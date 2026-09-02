@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap">
 <title>Arqueo Diario</title>
 <style>
@@ -113,6 +114,9 @@
   .shift-btn{ border:none; background:transparent; color:var(--ink-soft); padding:.4rem .95rem; border-radius:999px; font-size:.84rem; font-weight:700; cursor:pointer; }
   .shift-btn.active{ background:var(--accent); color:var(--accent-ink); }
 
+  .name-cell{ display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+  .btn-del{ flex:none; width:1.5rem; height:1.5rem; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--bad); font-size:.75rem; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
+  .btn-del:hover{ background:var(--bad); color:#fff; border-color:var(--bad); }
   .add-row{ display:flex; gap:.6rem; align-items:center; margin-bottom:.8rem; flex-wrap:wrap; }
   .add-row input[type="text"]{ flex:1; min-width:220px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.5rem .7rem; font-size:.88rem; color:var(--ink); }
   .search-row{ display:flex; gap:.6rem; align-items:center; margin-bottom:.8rem; flex-wrap:wrap; justify-content:space-between; }
@@ -275,7 +279,7 @@
     "Muffins de Manzana", "Muffins de Arándanos", "Muffins de Plátano y Chocolate", "Galletas Full Omega",
     "Porción Fondant Chocolate", "Porción de Tarta de Queso y Vainilla", "Molde Fondant de Chocolate", "Molde Tarta de Queso y Vainilla",
     "40 Mini Galletas", "Mazamorra Morada", "Miel Frasco 250g", "Miel Frasco 1.1 Kg",
-    "Miel Frasco 500g", "Miel Frasco 200g"];
+    "Miel Frasco 500g", "Miel Frasco 200g", "Tostada Masa Madre"];
 
   var BEBIDAS = [
     "Coca Cola 500 ml", "Inca Kola 500 ml", "Coca Zero 500 ml", "Inka Zero 500 ml",
@@ -421,9 +425,45 @@ var TRIPLES = [
   function backfillDay(day, date){
     var prevDate = latestDayBefore(date);
     var prevDay = prevDate ? STATE.days[prevDate] : null;
-    if(!day.t) day.t = makeSection(TRIPLES, prevDay, "t");
-    backfillSection(day, "o", STATE.customCatalog, prevDay);
+    // Genérico para las 5 categorías: si un catálogo creció (se agregó un producto nuevo),
+    // completamos la fila que falta en cualquier día ya guardado, no solo en Otros.
+    PRODUCT_TABS.forEach(function(tab){
+      var section = SECTIONS[tab];
+      backfillSection(day, section.key, catalogFor(tab), prevDay);
+    });
   }
+  // Quitar un producto de Otros: hay que correr el índice en todos los días ya guardados
+  // (el arreglo de filas está indexado por posición), incluyendo los mapas de "se agotó".
+  function reindexAgMap(map, deletedIdx){
+    var out = {};
+    Object.keys(map || {}).forEach(function(k){
+      var i = parseInt(k, 10);
+      if(i === deletedIdx) return;
+      out[i > deletedIdx ? i - 1 : i] = map[k];
+    });
+    return out;
+  }
+  function deleteCustomProduct(idx){
+    var name = STATE.customCatalog[idx];
+    if(name === undefined) return;
+    if(!confirm('¿Eliminar "' + name + '" de Otros? Esto borra su registro de todos los días guardados y no se puede deshacer.')) return;
+    STATE.customCatalog.splice(idx, 1);
+    Object.keys(STATE.days).forEach(function(d){
+      var day = STATE.days[d];
+      if(day.o){
+        if(day.o.am) day.o.am.splice(idx, 1);
+        if(day.o.pm) day.o.pm.splice(idx, 1);
+        day.o.agAm = reindexAgMap(day.o.agAm, idx);
+        day.o.agPm = reindexAgMap(day.o.agPm, idx);
+      }
+    });
+    markDirty();
+    scheduleAutosave();
+    showToast('"' + name + '" eliminado de Otros.');
+    renderTabs();
+    renderPanel();
+  }
+
   function getDay(date){
     if(STATE.days[date]){ backfillDay(STATE.days[date], date); return STATE.days[date]; }
     return draftDay(date);
@@ -625,10 +665,31 @@ var TRIPLES = [
     "MIEL FRASCO 250 GR": "Miel Frasco 250g",
     "MIEL FRASCO 500 GR": "Miel Frasco 500g",
     "QUESO MOZARELLA": "Queso Mozzarella",
-    "T. GLASEADO PIÑA": "Triple Glaseado Piña",
-    "CHAMPIÑON Y TOCINO": "Triple Champiñón y Tocino",
-    "POLLO JAMON Y QUESO": "Triple Pollo Jamón y Queso",
-    "TRIPLE POLLO DURAZNO": "Triple de Pollo Durazno"
+    "TOSTADA AL AJO X 0 130G": "Tostada Ciabatta al Ajo",
+    "TOSTADAS MASA MADRE X 0 120GR": "Tostada Masa Madre"
+  };
+  // Triples: el sistema de ventas registra cada sabor de dos formas — "UND T. X" (unidad suelta)
+  // y "TIRA DE X" (la tira entera sin cortar, que son 3 unidades). Como el arqueo se lleva en
+  // unidades, cada línea "TIRA DE X" del reporte cuenta triple (mult:3) y se suma a la misma fila
+  // que "UND T. X" (mult:1). Pavo y Glaseado Piña no aparecieron en los reportes que revisamos —
+  // están puestos siguiendo el mismo patrón, pero avísame si no calzan cuando los vendan.
+  var TRIPLE_IMPORT_MAP = {
+    "UND T CLASICO": { name: "Triples Clásicos", mult: 1 },
+    "TIRA DE CLASICOS": { name: "Triples Clásicos", mult: 3 },
+    "UND T ACEITUNA": { name: "Triple de Aceituna", mult: 1 },
+    "TIRA DE ACEITUNA": { name: "Triple de Aceituna", mult: 3 },
+    "UND T ASADO": { name: "Triple de Asado", mult: 1 },
+    "TIRA DE ASADO": { name: "Triple de Asado", mult: 3 },
+    "UND T POLLO DURAZNO": { name: "Triple de Pollo Durazno", mult: 1 },
+    "TIRA DE POLLO DURAZNO": { name: "Triple de Pollo Durazno", mult: 3 },
+    "UND T PAVO": { name: "Triple de Pavo", mult: 1 },
+    "TIRA DE PAVO": { name: "Triple de Pavo", mult: 3 },
+    "UND T GLASEADO PINA": { name: "Triple Glaseado Piña", mult: 1 },
+    "TIRA DE GLASEADO PINA": { name: "Triple Glaseado Piña", mult: 3 },
+    "UND T CHAMPINON Y TOCINO": { name: "Triple Champiñón y Tocino", mult: 1 },
+    "TIRA DE CHAMPINON Y TOCINO": { name: "Triple Champiñón y Tocino", mult: 3 },
+    "UND T POLLO CON JAMON Y QUESO": { name: "Triple Pollo Jamón y Queso", mult: 1 },
+    "TIRA DE POLLO CON JAMON Y QUESO": { name: "Triple Pollo Jamón y Queso", mult: 3 }
   };
   function normName(s){
     s = String(s || "").trim().toUpperCase();
@@ -649,21 +710,47 @@ var TRIPLES = [
   }
   function resolveCatalogEntry(catIndex, posName){
     var n = normName(posName);
-    if(catIndex[n]) return catIndex[n];
+    if(catIndex[n]) return { hit: catIndex[n], mult: 1 };
+    var tri = TRIPLE_IMPORT_MAP[n];
+    if(tri){
+      var tn = normName(tri.name);
+      if(catIndex[tn]) return { hit: catIndex[tn], mult: tri.mult };
+    }
     var alias = IMPORT_ALIASES[n];
     if(alias){
       var an = normName(alias);
-      if(catIndex[an]) return catIndex[an];
+      if(catIndex[an]) return { hit: catIndex[an], mult: 1 };
+    }
+    return null;
+  }
+  // El sistema de ventas exporta a veces un reporte "simple" (Código, Nombre, Cantidad Vendida
+  // en las primeras 3 columnas) y a veces uno "detallado por familia" (con Stock, Precio, etc.
+  // de por medio, donde Cantidad Vendida cae en otra columna). Por eso buscamos el encabezado
+  // real ("CDARTICULO" / "DSARTICULO" / "Cantidad Vendida") y detectamos en qué columna cae
+  // cada uno, en vez de asumir siempre las primeras tres columnas.
+  function findSalesColumns(aoa){
+    for(var r = 0; r < Math.min((aoa || []).length, 40); r++){
+      var row = aoa[r] || [];
+      var codeCol = -1, nameCol = -1, qtyCol = -1;
+      for(var c = 0; c < row.length; c++){
+        var cell = String(row[c] == null ? "" : row[c]).trim().toUpperCase();
+        if(cell === "CDARTICULO") codeCol = c;
+        else if(cell === "DSARTICULO") nameCol = c;
+        else if(cell.indexOf("CANTIDAD VENDIDA") === 0) qtyCol = c;
+      }
+      if(codeCol !== -1 && nameCol !== -1 && qtyCol !== -1) return { code: codeCol, name: nameCol, qty: qtyCol };
     }
     return null;
   }
   // Detecta filas de producto por patrón (código numérico, nombre de texto, cantidad numérica) en
-  // vez de depender de encabezados exactos — así ignora títulos, "Familia :", subtotales y el total general.
+  // vez de depender de encabezados exactos para cada fila — así ignora títulos, "Familia :",
+  // subtotales y el total general. Las columnas en sí se ubican con findSalesColumns() arriba.
   function parseSalesAOA(aoa){
     var items = [];
+    var cols = findSalesColumns(aoa) || { code: 0, name: 1, qty: 2 };
     (aoa || []).forEach(function(row){
-      if(!row || row.length < 3) return;
-      var code = row[0], name = row[1], qtyRaw = row[2];
+      if(!row || row.length <= Math.max(cols.code, cols.name, cols.qty)) return;
+      var code = row[cols.code], name = row[cols.name], qtyRaw = row[cols.qty];
       var codeNum = (typeof code === "number") ? code : parseFloat(String(code == null ? "" : code).replace(",", "."));
       var qtyNum = (typeof qtyRaw === "number") ? qtyRaw : parseFloat(String(qtyRaw == null ? "" : qtyRaw).replace(",", "."));
       if(!isFinite(codeNum) || codeNum <= 0) return;
@@ -678,13 +765,24 @@ var TRIPLES = [
     var day = ensureDay(date);
     var updated = { panes:0, bebidas:0, embutidos:0, triples:0, otros:0 };
     var skipped = [];
+    // Varias líneas del reporte pueden apuntar al mismo producto del catálogo (p.ej. Triples:
+    // "unidad suelta" + "tira"), así que primero sumamos todo por producto y recién al final
+    // escribimos una vez por fila — así no se pisan entre sí ni se duplican si se reimporta.
+    var sums = {};
+    var hits = {};
     items.forEach(function(item){
-      var hit = resolveCatalogEntry(catIndex, item.name);
-      if(!hit){ skipped.push(item.name); return; }
+      var resolved = resolveCatalogEntry(catIndex, item.name);
+      if(!resolved){ skipped.push(item.name); return; }
+      var key = resolved.hit.tab + ":" + resolved.hit.idx;
+      if(!(key in sums)){ sums[key] = 0; hits[key] = resolved.hit; }
+      sums[key] += item.qty * resolved.mult;
+    });
+    Object.keys(sums).forEach(function(key){
+      var hit = hits[key];
       var section = SECTIONS[hit.tab];
       var sec = day[section.key];
       var row = shift === "am" ? sec.am[hit.idx] : sec.pm[hit.idx];
-      row.vc = item.qty;
+      row.vc = sums[key];
       updated[hit.tab]++;
     });
     return { updated: updated, skipped: skipped, totalUpdated: updated.panes + updated.bebidas + updated.embutidos + updated.triples + updated.otros };
@@ -837,16 +935,13 @@ var TRIPLES = [
     setTimeout(function(){ window.print(); }, 30);
   }
 
-  // ---------- CSV export ----------
-  function csvField(v){
-    var s = String(v==null ? "" : v);
-    if(/[",\n]/.test(s)) s = '"' + s.replace(/"/g,'""') + '"';
-    return s;
-  }
-  function buildReportRows(){
-    var rows = [["Fecha","Turno","Categoría","Producto","Saldo Anterior","Ingreso 1","Ingreso 2","Ingreso 3",
-      "Merma","Saldo Final","Ventas Físicas","Ventas Caja","Cuadre","Responsable Turno","Hora Cierre Turno",
-      "Hora Agotado","Minutos Sin Stock Antes Del Cierre"]];
+  // ---------- Excel export (una hoja por categoría, como lo mandaban antes) ----------
+  var REPORT_HEADER = ["Fecha","Turno","Producto","Saldo Anterior","Ingreso 1","Ingreso 2","Ingreso 3",
+    "Merma","Saldo Final","Ventas Físicas","Ventas Caja","Cuadre","Responsable Turno","Hora Cierre Turno",
+    "Hora Agotado","Minutos Sin Stock Antes Del Cierre"];
+  function buildReportRowsByCategory(){
+    var byTab = {};
+    PRODUCT_TABS.forEach(function(tabKey){ byTab[tabKey] = [REPORT_HEADER.slice()]; });
     var dates = Object.keys(STATE.days).sort();
     dates.forEach(function(d){
       var day = STATE.days[d];
@@ -866,8 +961,8 @@ var TRIPLES = [
             var agTime = agMap[idx] || "";
             var mins = minutesBetween(agTime, closeTime);
             var resp = shift === "am" ? t.respAM : t.respPM;
-            rows.push([
-              d, SHIFT_LABEL[shift], section.label, name,
+            byTab[tabKey].push([
+              d, SHIFT_LABEL[shift], name,
               shift === "am" ? fmt(row.a) : fmt(amRef.f),
               fmt(row.i1), fmt(row.i2), fmt(row.i3), fmt(row.m), fmt(row.f),
               fmt(v), row.vc===null ? "" : fmt(row.vc), c===null ? "" : fmt(c),
@@ -877,21 +972,31 @@ var TRIPLES = [
         });
       });
     });
+    return byTab;
+  }
+  function buildTurnoRows(){
+    var rows = [["Fecha","Responsable AM","Hora Entrada AM","Hora Cierre AM","Observaciones AM",
+      "Responsable PM","Hora Entrada PM","Hora Cierre PM","Observaciones PM","Notas del día"]];
+    Object.keys(STATE.days).sort().forEach(function(d){
+      var t = STATE.days[d].turno;
+      rows.push([d, t.respAM||"", t.eAM||"", t.sAM||"", t.obsAM||"", t.respPM||"", t.ePM||"", t.sPM||"", t.obsPM||"", t.notas||""]);
+    });
     return rows;
   }
   function doExport(){
     if(Object.keys(STATE.days).length === 0){ showToast("Todavía no hay días guardados para exportar."); return; }
-    var rows = buildReportRows();
-    // "sep=," le dice a Excel qu\u00E9 separador usar al abrir el archivo directamente,
-    // sin importar la configuraci\u00F3n regional del usuario (evita que todo caiga en una sola columna).
-    var csv = "\uFEFF" + "sep=,\r\n" + rows.map(function(r){ return r.map(csvField).join(","); }).join("\r\n");
+    if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo."); return; }
     try{
-      var blob = new Blob([csv], { type:"text/csv;charset=utf-8" });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement("a");
-      a.href = url; a.download = "arqueo-historial.csv";
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      var byTab = buildReportRowsByCategory();
+      var wb = XLSX.utils.book_new();
+      var SHEET_NAMES = { panes:"Panes", bebidas:"Bebidas", embutidos:"Embutidos", triples:"Triples", otros:"Otros" };
+      PRODUCT_TABS.forEach(function(tabKey){
+        var ws = XLSX.utils.aoa_to_sheet(byTab[tabKey]);
+        XLSX.utils.book_append_sheet(wb, ws, SHEET_NAMES[tabKey]);
+      });
+      var wsTurno = XLSX.utils.aoa_to_sheet(buildTurnoRows());
+      XLSX.utils.book_append_sheet(wb, wsTurno, "Turno");
+      XLSX.writeFile(wb, "arqueo-historial.xlsx");
       showToast("Reporte descargado.");
     }catch(err){
       showToast("No se pudo generar el archivo. Intenta de nuevo.");
@@ -1060,6 +1165,14 @@ var TRIPLES = [
 
     tbody.addEventListener("input", function(ev){ handleCellInput(ev, tab, section, tbody); });
     tbody.addEventListener("change", function(ev){ handleCellInput(ev, tab, section, tbody); });
+    if(tab === "otros"){
+      tbody.addEventListener("click", function(ev){
+        var btn = ev.target.closest(".btn-del");
+        if(!btn) return;
+        var idx = parseInt(btn.getAttribute("data-idx"), 10);
+        deleteCustomProduct(idx);
+      });
+    }
 
     return wrap;
   }
@@ -1158,8 +1271,14 @@ var TRIPLES = [
         ? '<input class="num-input field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="a" value="'+row.a+'">'
         : '<span class="derived" data-ridx="'+idx+'">'+fmt(amRow.f)+'</span>';
 
+      var nameCell = tab === "otros"
+        ? '<td class="name-cell">' + esc(name) +
+          (readOnly ? "" : '<button type="button" class="btn-del" data-idx="'+idx+'" title="Eliminar de Otros">✕</button>') +
+          '</td>'
+        : "<td>" + esc(name) + "</td>";
+
       tr.innerHTML =
-        "<td>" + esc(name) + "</td>" +
+        nameCell +
         "<td>" + saldoAntCell + "</td>" +
         '<td><span class="ing-group">' +
           '<input class="num-input mini field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="i1" value="'+row.i1+'" title="Ingreso 1">' +
@@ -1288,7 +1407,7 @@ var TRIPLES = [
     exportBtn.type = "button";
     exportBtn.className = "btn btn-sm";
     exportBtn.id = "exportBtn";
-    exportBtn.textContent = "Exportar historial (CSV)";
+    exportBtn.textContent = "Exportar historial (Excel)";
     exportBtn.disabled = Object.keys(STATE.days).length === 0;
     exportBtn.title = "Descarga todo el historial en un archivo que se abre en Excel";
     exportBtn.addEventListener("click", doExport);
