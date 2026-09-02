@@ -337,6 +337,10 @@ var TRIPLES = [
   var pedidoDraft = null;
   var pedidosView = "nuevo";
   var pedidosSaving = false;
+  // Clientes guardados (colección "clientes"): se guardan/actualizan solos cada vez que se
+  // registra un pedido, para que la próxima vez alcance con escribir el nombre y se rellene
+  // el resto de sus datos automáticamente.
+  var CLIENTES = null;
   var currentTab = "panes";
   var filters = { panes:"", bebidas:"", embutidos:"", triples:"", otros:"" };
   var shiftView = { panes:"am", bebidas:"am", embutidos:"am", triples:"am", otros:"am" };
@@ -541,6 +545,7 @@ var TRIPLES = [
     if(!parsed.meta) parsed.meta = { businessName:"", lastSavedAt:null, schema:2 };
     if(!parsed.days) parsed.days = {};
     if(!parsed.customCatalog) parsed.customCatalog = [];
+    if(!parsed.precios) parsed.precios = {};
     migrateStateObj(parsed);
     return parsed;
   }
@@ -1518,6 +1523,73 @@ var TRIPLES = [
     return names;
   }
 
+  function normalizeClienteName(s){
+    return (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+  }
+
+  // Lista de precios (STATE.precios): se guarda un precio por producto la primera vez que
+  // se escribe en un pedido, y de ahí en adelante se autocompleta solo al elegir ese producto
+  // de nuevo. Vive dentro del documento principal del arqueo (no en su propia colección) porque
+  // es una lista chica y acotada (un precio por producto), no algo que crezca sin límite.
+  function normalizePrecioKey(s){
+    return (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+  }
+  function getPrecioFor(producto){
+    var key = normalizePrecioKey(producto);
+    if(!key) return null;
+    var map = STATE.precios || {};
+    return map.hasOwnProperty(key) ? map[key] : null;
+  }
+  function setPrecioFor(producto, precio){
+    var key = normalizePrecioKey(producto);
+    if(!key || !(precio > 0)) return;
+    if(!STATE.precios) STATE.precios = {};
+    if(STATE.precios[key] !== precio){
+      STATE.precios[key] = precio;
+      markDirty();
+      scheduleAutosave();
+    }
+  }
+
+  function findClienteByNombre(nombre){
+    var target = normalizeClienteName(nombre);
+    if(!target) return null;
+    var map = CLIENTES || {};
+    var found = null;
+    Object.keys(map).forEach(function(id){
+      if(found) return;
+      if(normalizeClienteName(map[id].nombre) === target){ found = { id: id, data: map[id] }; }
+    });
+    return found;
+  }
+
+  function buildClienteNameList(){
+    var map = CLIENTES || {};
+    var names = [];
+    Object.keys(map).forEach(function(id){ if(map[id].nombre) names.push(map[id].nombre); });
+    names.sort();
+    return names;
+  }
+
+  function upsertCliente(cliente){
+    if(!db || !cliente || !cliente.nombre || !cliente.nombre.trim()) return;
+    var match = findClienteByNombre(cliente.nombre);
+    var payload = {
+      nombre: cliente.nombre.trim(),
+      ruc: cliente.ruc || "",
+      direccion: cliente.direccion || "",
+      referencia: cliente.referencia || "",
+      telefono: cliente.telefono || "",
+      correo: cliente.correo || "",
+      updatedAt: Date.now()
+    };
+    if(match){
+      db.collection("clientes").doc(match.id).update(payload).catch(function(){});
+    } else {
+      db.collection("clientes").add(payload).catch(function(){});
+    }
+  }
+
   function buildPedidosPanel(){
     var wrap = document.createElement("div");
 
@@ -1580,13 +1652,74 @@ var TRIPLES = [
 
     var grid = document.createElement("div");
     grid.className = "field-grid";
-    grid.appendChild(buildField("Nombre / Razón social", "text", draft.cliente.nombre, function(v){ draft.cliente.nombre = v; }));
-    grid.appendChild(buildField("RUC", "text", draft.cliente.ruc, function(v){ draft.cliente.ruc = v; }));
-    grid.appendChild(buildField("Dirección", "text", draft.cliente.direccion, function(v){ draft.cliente.direccion = v; }));
-    grid.appendChild(buildField("Referencia", "text", draft.cliente.referencia, function(v){ draft.cliente.referencia = v; }));
-    grid.appendChild(buildField("Teléfono", "text", draft.cliente.telefono, function(v){ draft.cliente.telefono = v; }));
-    grid.appendChild(buildField("Correo", "text", draft.cliente.correo, function(v){ draft.cliente.correo = v; }));
-    grid.appendChild(buildField("Tipo de pago", "text", draft.tipoPago, function(v){ draft.tipoPago = v; }));
+
+    var nombreField = document.createElement("div");
+    nombreField.className = "field";
+    var nombreLabel = document.createElement("label");
+    nombreLabel.textContent = "Nombre / Razón social";
+    nombreField.appendChild(nombreLabel);
+    var nombreInput = document.createElement("input");
+    nombreInput.type = "text";
+    nombreInput.value = draft.cliente.nombre || "";
+    nombreInput.setAttribute("list", "pedidoClienteList");
+    nombreInput.placeholder = "Buscar cliente guardado o escribir uno nuevo…";
+    if(readOnly) nombreInput.disabled = true;
+    nombreField.appendChild(nombreInput);
+    grid.appendChild(nombreField);
+
+    var rucField = buildField("RUC", "text", draft.cliente.ruc, function(v){ draft.cliente.ruc = v; });
+    var rucInput = rucField.querySelector("input");
+    grid.appendChild(rucField);
+
+    var direccionField = buildField("Dirección", "text", draft.cliente.direccion, function(v){ draft.cliente.direccion = v; });
+    var direccionInput = direccionField.querySelector("input");
+    grid.appendChild(direccionField);
+
+    var referenciaField = buildField("Referencia", "text", draft.cliente.referencia, function(v){ draft.cliente.referencia = v; });
+    var referenciaInput = referenciaField.querySelector("input");
+    grid.appendChild(referenciaField);
+
+    var telefonoField = buildField("Teléfono", "text", draft.cliente.telefono, function(v){ draft.cliente.telefono = v; });
+    var telefonoInput = telefonoField.querySelector("input");
+    grid.appendChild(telefonoField);
+
+    var correoField = buildField("Correo", "text", draft.cliente.correo, function(v){ draft.cliente.correo = v; });
+    var correoInput = correoField.querySelector("input");
+    grid.appendChild(correoField);
+
+    nombreInput.addEventListener("input", function(){
+      draft.cliente.nombre = nombreInput.value;
+      var match = findClienteByNombre(nombreInput.value);
+      if(match){
+        var c = match.data;
+        draft.cliente.ruc = c.ruc || "";
+        draft.cliente.direccion = c.direccion || draft.cliente.direccion;
+        draft.cliente.referencia = c.referencia || "";
+        draft.cliente.telefono = c.telefono || "";
+        draft.cliente.correo = c.correo || "";
+        rucInput.value = draft.cliente.ruc;
+        direccionInput.value = draft.cliente.direccion;
+        referenciaInput.value = draft.cliente.referencia;
+        telefonoInput.value = draft.cliente.telefono;
+        correoInput.value = draft.cliente.correo;
+        showToast("Cliente encontrado: se rellenaron sus datos.");
+      }
+    });
+
+    var pagoField = document.createElement("div");
+    pagoField.className = "field";
+    var pagoLabel = document.createElement("label");
+    pagoLabel.textContent = "Forma de pago";
+    pagoField.appendChild(pagoLabel);
+    var pagoInput = document.createElement("input");
+    pagoInput.type = "text";
+    pagoInput.value = draft.tipoPago || "";
+    pagoInput.setAttribute("list", "pedidoPagoList");
+    pagoInput.placeholder = "Efectivo, Yape, Plin, Transferencia…";
+    if(readOnly) pagoInput.disabled = true;
+    pagoInput.addEventListener("input", function(){ draft.tipoPago = pagoInput.value; });
+    pagoField.appendChild(pagoInput);
+    grid.appendChild(pagoField);
     if(draft.canal === "delivery"){
       grid.appendChild(buildField("Monto delivery (S/)", "number", draft.deliveryMonto, function(v){
         draft.deliveryMonto = num(v);
@@ -1682,6 +1815,24 @@ var TRIPLES = [
     });
     card.appendChild(datalist);
 
+    var clienteDatalist = document.createElement("datalist");
+    clienteDatalist.id = "pedidoClienteList";
+    buildClienteNameList().forEach(function(name){
+      var opt = document.createElement("option");
+      opt.value = name;
+      clienteDatalist.appendChild(opt);
+    });
+    card.appendChild(clienteDatalist);
+
+    var pagoDatalist = document.createElement("datalist");
+    pagoDatalist.id = "pedidoPagoList";
+    ["Efectivo","Yape","Plin","Transferencia","Tarjeta"].forEach(function(name){
+      var opt = document.createElement("option");
+      opt.value = name;
+      pagoDatalist.appendChild(opt);
+    });
+    card.appendChild(pagoDatalist);
+
     renderPedidoItems(tbody, totalsRow);
     updatePedidoTotals(totalsRow);
 
@@ -1717,7 +1868,17 @@ var TRIPLES = [
     });
     tbody.querySelectorAll(".pedido-item-producto").forEach(function(input){
       input.addEventListener("input", function(){
-        draft.items[+input.getAttribute("data-idx")].producto = input.value;
+        var idx = +input.getAttribute("data-idx");
+        draft.items[idx].producto = input.value;
+        var savedPrecio = getPrecioFor(input.value);
+        if(savedPrecio !== null && !(num(draft.items[idx].precio) > 0)){
+          draft.items[idx].precio = savedPrecio;
+          var precioInput = tbody.querySelector('.pedido-item-precio[data-idx="'+idx+'"]');
+          if(precioInput) precioInput.value = savedPrecio;
+          var cell = tbody.querySelector('.pedido-item-total[data-idx="'+idx+'"]');
+          if(cell) cell.textContent = "S/ " + fmt(draft.items[idx].cantidad * draft.items[idx].precio);
+          updatePedidoTotals(totalsRow);
+        }
       });
     });
     function wireQtyPrice(cls, field){
@@ -1728,6 +1889,7 @@ var TRIPLES = [
           var cell = tbody.querySelector('.pedido-item-total[data-idx="'+idx+'"]');
           if(cell) cell.textContent = "S/ " + fmt(draft.items[idx].cantidad * draft.items[idx].precio);
           updatePedidoTotals(totalsRow);
+          if(field === "precio"){ setPrecioFor(draft.items[idx].producto, draft.items[idx].precio); }
         });
       });
     }
@@ -1779,6 +1941,7 @@ var TRIPLES = [
     };
     db.collection("pedidos").add(payload).then(function(){
       pedidosSaving = false;
+      upsertCliente(payload.cliente);
       pedidoDraft = newPedidoDraft(payload.canal);
       showToast("Pedido guardado.");
       renderPanel();
@@ -2001,12 +2164,27 @@ var TRIPLES = [
       });
       list.sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
       PEDIDOS = list;
-      if(currentTab === "pedidos") renderPanel();
+      // No repintamos si está en "Nuevo pedido": así no se pierde lo que está escribiendo
+      // si otra persona (ej. quien toma pedidos por WhatsApp) guarda algo al mismo tiempo.
+      if(currentTab === "pedidos" && pedidosView !== "nuevo") renderPanel();
     }, function(){
       // Si falla, dejamos PEDIDOS como esté (puede seguir null) y avisamos solo si
       // el usuario está mirando esa pestaña.
       if(currentTab === "pedidos" && PEDIDOS === null){
         showToast("No se pudo cargar los pedidos. Revisa tu conexión e intenta de nuevo.");
+      }
+    });
+  }
+
+  function attachClientesSync(){
+    db.collection("clientes").onSnapshot(function(snap){
+      var map = {};
+      snap.forEach(function(doc){ map[doc.id] = doc.data(); });
+      CLIENTES = map;
+      if(currentTab === "pedidos" && pedidosView !== "nuevo") renderPanel();
+    }, function(){
+      if(currentTab === "pedidos" && CLIENTES === null){
+        showToast("No se pudo cargar los clientes guardados.");
       }
     });
   }
@@ -2034,6 +2212,7 @@ var TRIPLES = [
       restoreBackupBanner();
     });
     attachPedidosSync();
+    attachClientesSync();
   }
 
   // ---------- lock screen (contraseña compartida del equipo) ----------
