@@ -191,6 +191,7 @@
     #printArea{
       display:block !important; background:#fff; color:#111; padding:0; margin:0;
       font-family:"Public Sans", ui-sans-serif, system-ui, sans-serif; font-size:11px;
+      -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;
     }
     #printArea h1{ font-family:"Fraunces", Georgia, serif; font-size:20px; margin:0 0 .1em; }
     #printArea .print-sub{ font-size:13px; color:#333; margin:0 0 .8em; }
@@ -305,6 +306,237 @@
 
 var TRIPLES = [
     "Triples Clásicos", "Triple de Aceituna", "Triple de Asado", "Triple de Pollo Durazno", "Triple de Pavo", "Triple Glaseado Piña", "Triple Champiñón y Tocino", "Triple Pollo Jamón y Queso"];
+
+  // Lista de precios de Carmelitas Pan S.A.C. (subida por Jessica el 2026-08-26),
+  // usada SOLO para autocompletar producto + precio en Pedidos. No toca ni se mezcla
+  // con los catalogos de Arqueo (Panes/Bebidas/Embutidos/Triples/Otros), que siguen
+  // exactamente igual que antes.
+  var PEDIDO_PRECIO_SEED = [
+    {n:"MERMELADA DE ROCOTO", p:6.5},
+    {n:"MIEL DE NARANJA", p:6.5},
+    {n:"PORCIÓN DE AJÍ CARMELITAS", p:6.5},
+    {n:"PORCIÓN DE CAMOTE", p:5},
+    {n:"PORCIÓN DE CEBOLLA", p:4.8},
+    {n:"PORCIÓN DE MAYONESA", p:6.5},
+    {n:"PORCIÓN HONEY MUSTARD", p:6.5},
+    {n:"BATIDO DE FRESA", p:16.9},
+    {n:"BATIDO DE FRESA CON ARANADANOS", p:19.9},
+    {n:"BATIDO DE GUANABANA", p:16.9},
+    {n:"BATIDO DE LÚCUMA", p:17.9},
+    {n:"BATIDO DE MANGO", p:16.9},
+    {n:"BATIDO DE PAPAYA", p:16.9},
+    {n:"BATIDO DE PIÑA", p:16.9},
+    {n:"AGUA CON GAS 625 ML", p:3.9},
+    {n:"AGUA SIN GAS 625 ML", p:3.9},
+    {n:"CHOCOLATADA CHICA", p:2.2},
+    {n:"CHOCOLATADA LT LAIVE", p:6.5},
+    {n:"COCA COLA 500 ML", p:4.9},
+    {n:"COCA COLA VIDRIO 296 ML", p:2.9},
+    {n:"COCA ZERO 500 ML", p:4.9},
+    {n:"FANTA 450 ML", p:3.9},
+    {n:"INCA KOLA 500 ML", p:4.9},
+    {n:"INCA KOLA VIDRIO 296 ML", p:2.9},
+    {n:"INKA ZERO 500 ML", p:4.9},
+    {n:"LECHE ENTERA CAJA LT", p:5.9},
+    {n:"LECHE LIGTH CAJA LT - SEMI", p:5.9},
+    {n:"LECHE SIN LACTOSA LT", p:6.3},
+    {n:"CAFÉ AMERICANO CHICO", p:8.1},
+    {n:"CAFE AMERICANO GRANDE", p:12.2},
+    {n:"CAFÉ LECHE", p:8.4},
+    {n:"CAFE MOLIDO 250G", p:38.5},
+    {n:"CAFÉ TRADICIONAL CHICO", p:7.8},
+    {n:"CAFE TRADICIONAL GRANDE", p:11.7},
+    {n:"CAPUCCINO", p:9.3},
+    {n:"CAPUCCINO GRANDE", p:13.8},
+    {n:"CHOCOLATE", p:7},
+    {n:"ESPRESSO", p:7.5},
+    {n:"LECHE SOLA", p:6.9},
+    {n:"TE FRUTADO CALIENTE", p:7.9},
+    {n:"TE- MANZANILLA", p:5.9},
+    {n:"CHICHA LITRO", p:23.2},
+    {n:"CHICHA MEDIO LITRO", p:13.4},
+    {n:"CHICHA VASO", p:7.5},
+    {n:"LIMONADA", p:9},
+    {n:"ACEITUNA ENTERA POR KILO", p:55},
+    {n:"CHICHARRÓN PRENSA", p:55.9},
+    {n:"HUEVOS DE CORRAL ( CAJA )", p:9.8},
+    {n:"JAMON DE PIERNA ARTESANAL", p:98.5},
+    {n:"JAMÓN INGLES", p:78.7},
+    {n:"JAMONADA DE POLLO", p:46.5},
+    {n:"JAMONADA POLACA", p:53.9},
+    {n:"MANT. LAIVE 100 GR", p:7.5},
+    {n:"MANT. LAIVE 180 GR", p:13.3},
+    {n:"MANTEQUILLA SERRANITA POR KILO", p:79.8},
+    {n:"PATE", p:4.25},
+    {n:"PATE FINAS HIERBAS", p:10.1},
+    {n:"SALCHICHA DE HUACHO", p:10.4},
+    {n:"TOCINO POR KILO", p:88},
+    {n:"EMPANADA AJÍ DE GALLINA", p:10.9},
+    {n:"EMPANADA DE CARNE", p:11.9},
+    {n:"EMPANADA MIXTA", p:10.9},
+    {n:"EMPANADA DE QUESO", p:10.9},
+    {n:"MINI EMPANADA DE CARNE", p:5},
+    {n:"MOLDE PASTEL DE ACELGA 3 QUESOS", p:65.4},
+    {n:"PORCIÓN PASTEL DE ACELGA CON 3 QUESOS", p:10.9},
+    {n:"ASADO", p:145.3},
+    {n:"CHICHARRÓN", p:138.2},
+    {n:"JAMÓN DE PAÍS", p:109.8},
+    {n:"JAMÓN GLASEADO", p:129.7},
+    {n:"PAVO ENTERO X KG", p:89.9},
+    {n:"PECHUGA PAVO X KG", p:148.7},
+    {n:"FROZEN DE FRESA", p:17.5},
+    {n:"FROZEN DE GUANABANA", p:17.5},
+    {n:"FROZEN DE LIMONADA", p:17.5},
+    {n:"FROZEN DE LUCUMA", p:17.5},
+    {n:"FROZEN DE MANGO", p:17.5},
+    {n:"FROZEN DE MARACUYA", p:17.5},
+    {n:"FROZEN DE MELON", p:17.5},
+    {n:"FROZEN DE NARANJA", p:17.5},
+    {n:"FROZEN DE PIÑA", p:17.5},
+    {n:"FROZEN FRESA C/ ARANDANOS", p:18.9},
+    {n:"JUGO MIX BI", p:17.5},
+    {n:"JUGO MIX TRI", p:17.5},
+    {n:"MIX BI CON NARANJA", p:18},
+    {n:"MIX FRESA / ARAN /MANGO", p:18.9},
+    {n:"MIX TRI CON NARANJA", p:18.9},
+    {n:"MORA POWER", p:18.9},
+    {n:"JUGO DE FRESA", p:16.5},
+    {n:"JUGO DE GUANÁBANA", p:16.5},
+    {n:"JUGO DE LUCUMA", p:16.5},
+    {n:"JUGO DE MANDARINA", p:15.8},
+    {n:"JUGO DE MANGO", p:15.5},
+    {n:"JUGO DE MELON", p:15.5},
+    {n:"JUGO DE NARANJA", p:16.9},
+    {n:"JUGO DE PAPAYA", p:15.5},
+    {n:"JUGO DE PIÑA", p:15.5},
+    {n:"JUGO FRESA CON ARANDANOS", p:17.9},
+    {n:"JUGO MARACUYA", p:14.5},
+    {n:"JUGO MORACUYA", p:14.5},
+    {n:"JUGO MORANJADA", p:14.5},
+    {n:"MINI BRIOCHE", p:0.65},
+    {n:"MINI HAMBURGUESA", p:0.65},
+    {n:"MINI INTEGRAL", p:0.65},
+    {n:"MINI OREJAS", p:1.5},
+    {n:"MIQUETITAS", p:0.65},
+    {n:"PAN MINI ARABE", p:0.65},
+    {n:"PAN MINI CIABATTA", p:0.65},
+    {n:"PAN MINI CROISSANT", p:2.7},
+    {n:"PAN MINI FRANCES", p:0.65},
+    {n:"PAN MINI YEMA", p:0.65},
+    {n:"PETIPAN", p:0.65},
+    {n:"BAGUETINO", p:1.4},
+    {n:"BAGUETTE", p:4.9},
+    {n:"CARAMANDUCA", p:1.1},
+    {n:"CHANCAY", p:7},
+    {n:"CIABATTA POR KILO", p:13.2},
+    {n:"COLIZA", p:1.1},
+    {n:"CROISSANT", p:4},
+    {n:"FRANCÉS", p:0.8},
+    {n:"FRANCES AER", p:0.85},
+    {n:"FRANCÉS ESPECIAL", p:1},
+    {n:"FRANCÉS INTERMEDIO", p:1.1},
+    {n:"FRANCÉS SANGUCHERO", p:1.2},
+    {n:"HAMBURGUESA", p:1.4},
+    {n:"HAMBURGUESA BRIOCHE", p:1.4},
+    {n:"INTEGRAL", p:0.9},
+    {n:"PAN HOT DOG", p:1.4},
+    {n:"YEMA", p:0.9},
+    {n:"CIABATTITAS CON POLLO", p:8.9},
+    {n:"MINI ASADO", p:8.9},
+    {n:"MINI BUTIFARRA", p:8.9},
+    {n:"MINI CHICHARRÓN", p:8.9},
+    {n:"MINI CROISSANT DE JAMÓN Y QUESO", p:8.9},
+    {n:"MINI GLASEADO", p:8.9},
+    {n:"MINI PAVO", p:8.9},
+    {n:"40 MINI GALLETAS", p:50},
+    {n:"ALFAJOR", p:6.9},
+    {n:"CHIRIMOYA", p:3},
+    {n:"CINNAMON ROLL", p:7.5},
+    {n:"CROISANT DE MANJAR", p:8.9},
+    {n:"CROISSANT DE CHOCOLATE", p:8.9},
+    {n:"ENCIMADA", p:4.5},
+    {n:"GALLETAS FULL OMEGA", p:5},
+    {n:"MAZAMORRA MORADA", p:7.9},
+    {n:"MIEL FRASCO 1.1 KG", p:69.9},
+    {n:"MIEL FRASCO 200 GR", p:15},
+    {n:"MIEL FRASCO 250 GR", p:19.9},
+    {n:"MIEL FRASCO 500 GR", p:34.9},
+    {n:"MILHOJAS", p:9.9},
+    {n:"MINI ALFAJOR", p:4.2},
+    {n:"MOLDE FONDANT DE CHOCOLATE", p:100},
+    {n:"MOLDE TARTA DE QUESO Y VAINILLA", p:90},
+    {n:"MUFFINS DE ARANDANOS", p:8},
+    {n:"MUFFINS DE MANZANA", p:8},
+    {n:"MUFFINS DE PLATANO Y CHOCOLATE", p:8},
+    {n:"OREJAS", p:8.5},
+    {n:"PORCION DE BUDIN", p:9.8},
+    {n:"PORCION DE TARTA DE QUESO Y VAINILLA", p:15},
+    {n:"PORCION FONDANT CHOCOLATE", p:13},
+    {n:"ROSCA REYES", p:36.9},
+    {n:"ROSQUITAS", p:5.9},
+    {n:"TURRÓN CARMELITAS", p:59.9},
+    {n:"STRUDEL DE MANZANA", p:11.9},
+    {n:"QUESO AHUMADO HOLANDÉS", p:124.8},
+    {n:"QUESO ANDINO CARMELITAS ( AD)", p:75},
+    {n:"QUESO DE CABRA KG", p:94.9},
+    {n:"QUESO EDAM CARMELITAS", p:75},
+    {n:"QUESO FRESCO", p:41.9},
+    {n:"QUESO GOUDA PRESIDENT", p:84.7},
+    {n:"QUESO SUIZO CARMELITAS", p:75},
+    {n:"CRUTONES", p:5.9},
+    {n:"MASA MADRE CON FRUTOS ENTERO", p:17},
+    {n:"MASA MADRE CON FRUTOS X MITAD", p:8.5},
+    {n:"MOLDE 7 SEMILLAS CHICO", p:0},
+    {n:"MOLDE BLANCO CHICO", p:8.3},
+    {n:"MOLDE ESPECIAL SEMILLAS CHICO", p:11.9},
+    {n:"MOLDE INTEGRAL", p:10.3},
+    {n:"MULTIGRANOS", p:12.2},
+    {n:"PAN DE CENTENO MASA MADRE", p:14.9},
+    {n:"PAN MASA MADRE CAMPESINO", p:14.9},
+    {n:"PAN MOLIDO 500G", p:8},
+    {n:"PAN PULLMAN", p:17.7},
+    {n:"PITA 7 SEMILLAS BOLSA DE 3", p:4.5},
+    {n:"CROISSANT DE JAMÓN Y QUESO", p:19.9},
+    {n:"MEGA SANDWICH ASADO", p:29.9},
+    {n:"MEGA SANDWICH BUTIFARRA", p:29.9},
+    {n:"MEGA SANDWICH CHICHARRÓN", p:29.9},
+    {n:"MEGA SANDWICH GLASEADO", p:29.9},
+    {n:"MEGA SANDWICH HUACHANO", p:29.9},
+    {n:"MEGA SANDWICH PAVO", p:29.9},
+    {n:"MIXTO 100", p:24.9},
+    {n:"MIXTO CLÁSICO", p:16.9},
+    {n:"MIXTO ESPECIAL", p:19.9},
+    {n:"SANDWICH ASADO", p:24.9},
+    {n:"SANDWICH BUTIFARRA", p:24.9},
+    {n:"SANDWICH CHICHARRÓN", p:24.9},
+    {n:"SANDWICH GLASEADO", p:24.9},
+    {n:"SANDWICH HUACHANO", p:24.9},
+    {n:"SANDWICH PAVO", p:24.9},
+    {n:"TAMAL DE CHANCHO", p:6.3},
+    {n:"TAMAL DE POLLO", p:6.3},
+    {n:"TAMAL FAMILIAR", p:19.9},
+    {n:"TOSTADA AL AJO x 0.130G", p:10.9},
+    {n:"TOSTADA CLASICA X 180G", p:7.9},
+    {n:"TOSTADA INTEGRAL x 0.120G", p:8.5},
+    {n:"TOSTADA MICKEY", p:4.9},
+    {n:"TOSTADAS MASA MADRE x 0.120GR", p:11.9},
+    {n:"TIRA DE ACEITUNA", p:13.5},
+    {n:"TIRA DE ASADO", p:13.5},
+    {n:"TIRA DE CHAMPIÑÓN Y TOCINO", p:13.5},
+    {n:"TIRA DE CLÁSICOS", p:13.5},
+    {n:"TIRA DE GLASEADO PIÑA", p:13.5},
+    {n:"TIRA DE PAVO", p:13.5},
+    {n:"TIRA DE POLLO CON JAMÓN Y QUESO", p:13.5},
+    {n:"TIRA DE POLLO DURAZNO", p:13.5},
+    {n:"UND T. POLLO DURAZNO", p:4.5},
+    {n:"UND T. ACEITUNA", p:4.5},
+    {n:"UND T. ASADO", p:4.5},
+    {n:"UND T. CHAMPIÑÓN Y TOCINO", p:4.5},
+    {n:"UND T. CLÁSICO", p:4.5},
+    {n:"UND T. GLASEADO PIÑA", p:4.5},
+    {n:"UND T. PAVO", p:4.5},
+    {n:"UND T. POLLO CON JAMÓN Y QUESO", p:4.5},
+  ];
 
 
   var SECTIONS = {
@@ -1505,20 +1737,43 @@ var TRIPLES = [
     var fecha = currentDate;
     return {
       canal: canal,
-      cliente: { nombre:"", ruc:"", direccion: canal === "tienda" ? "Recojo en tienda" : "", referencia:"", telefono:"", correo:"" },
+      cliente: { nombre:"", dni:"", ruc:"", direccion: canal === "tienda" ? "Recojo en tienda" : "", referencia:"", telefono:"", correo:"" },
       tipoPago: "",
       pagado: false,
       deliveryMonto: 0,
       notas: "",
       fechaDefault: fecha,
+      hora: "",
       items: [ { producto:"", cantidad:1, precio:0, fecha: fecha } ]
     };
+  }
+
+  // Mapa de la lista de precios subida (PEDIDO_PRECIO_SEED), armado una sola vez y
+  // normalizado para búsqueda. Solo se usa dentro de Pedidos.
+  var pedidoPrecioSeedMap = null;
+  function getPedidoPrecioSeedMap(){
+    if(pedidoPrecioSeedMap) return pedidoPrecioSeedMap;
+    pedidoPrecioSeedMap = {};
+    PEDIDO_PRECIO_SEED.forEach(function(item){
+      var key = normalizePrecioKey(item.n);
+      if(key && item.p > 0) pedidoPrecioSeedMap[key] = item.p;
+    });
+    return pedidoPrecioSeedMap;
   }
 
   function buildCatalogNameList(){
     var idx = buildCatalogIndex();
     var names = [];
-    Object.keys(idx).forEach(function(k){ names.push(idx[k].name); });
+    var seen = {};
+    Object.keys(idx).forEach(function(k){
+      var name = idx[k].name;
+      var key = normalizePrecioKey(name);
+      if(!seen[key]){ seen[key] = true; names.push(name); }
+    });
+    PEDIDO_PRECIO_SEED.forEach(function(item){
+      var key = normalizePrecioKey(item.n);
+      if(!seen[key]){ seen[key] = true; names.push(item.n); }
+    });
     names.sort();
     return names;
   }
@@ -1528,9 +1783,11 @@ var TRIPLES = [
   }
 
   // Lista de precios (STATE.precios): se guarda un precio por producto la primera vez que
-  // se escribe en un pedido, y de ahí en adelante se autocompleta solo al elegir ese producto
-  // de nuevo. Vive dentro del documento principal del arqueo (no en su propia colección) porque
-  // es una lista chica y acotada (un precio por producto), no algo que crezca sin límite.
+  // se escribe o corrige en un pedido, y de ahí en adelante se autocompleta solo al elegir
+  // ese producto de nuevo — pisa lo que traiga la lista subida (PEDIDO_PRECIO_SEED), que sirve
+  // de precio inicial para todo lo que Jessica no haya tocado todavía. Vive dentro del
+  // documento principal del arqueo (no en su propia colección) porque es una lista chica y
+  // acotada (un precio por producto), no algo que crezca sin límite.
   function normalizePrecioKey(s){
     return (s || "").trim().toLowerCase().replace(/\s+/g, " ");
   }
@@ -1538,7 +1795,9 @@ var TRIPLES = [
     var key = normalizePrecioKey(producto);
     if(!key) return null;
     var map = STATE.precios || {};
-    return map.hasOwnProperty(key) ? map[key] : null;
+    if(map.hasOwnProperty(key)) return map[key];
+    var seedMap = getPedidoPrecioSeedMap();
+    return seedMap.hasOwnProperty(key) ? seedMap[key] : null;
   }
   function setPrecioFor(producto, precio){
     var key = normalizePrecioKey(producto);
@@ -1576,6 +1835,7 @@ var TRIPLES = [
     var match = findClienteByNombre(cliente.nombre);
     var payload = {
       nombre: cliente.nombre.trim(),
+      dni: cliente.dni || "",
       ruc: cliente.ruc || "",
       direccion: cliente.direccion || "",
       referencia: cliente.referencia || "",
@@ -1590,7 +1850,77 @@ var TRIPLES = [
     }
   }
 
+  // Clave aparte para entrar a Pedidos: acá se manejan pedidos que el cliente ya pagó,
+  // así que aunque cualquiera con la clave general puede ver el arqueo del día, hace falta
+  // esta segunda clave para entrar, ver, borrar o cambiar algo en Pedidos.
+  var PEDIDOS_PASSWORD = "Pedidos2026";
+  function isPedidosUnlocked(){
+    try{ return sessionStorage.getItem("arqueo_pedidos_unlocked") === "1"; }catch(e){ return false; }
+  }
+  function setPedidosUnlocked(){
+    try{ sessionStorage.setItem("arqueo_pedidos_unlocked", "1"); }catch(e){}
+  }
+  function buildPedidosLockGate(){
+    var wrap = document.createElement("div");
+    var card = document.createElement("div");
+    card.className = "card";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .5rem";
+    h2.textContent = "Pedidos";
+    card.appendChild(h2);
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.textContent = "Esta sección tiene una clave aparte porque acá se manejan pedidos que el cliente ya pagó. Pide la clave a Jessica si no la tienes.";
+    card.appendChild(hint);
+
+    var form = document.createElement("form");
+    form.style.maxWidth = "260px";
+    form.style.marginTop = "1rem";
+    var field = document.createElement("div");
+    field.className = "field";
+    var label = document.createElement("label");
+    label.textContent = "Clave de Pedidos";
+    field.appendChild(label);
+    var input = document.createElement("input");
+    input.type = "password";
+    input.placeholder = "Clave de Pedidos";
+    input.autocomplete = "off";
+    field.appendChild(input);
+    form.appendChild(field);
+
+    var err = document.createElement("p");
+    err.className = "lock-error";
+    err.textContent = "Clave incorrecta. Intenta de nuevo.";
+    err.hidden = true;
+    form.appendChild(err);
+
+    var btn = document.createElement("button");
+    btn.type = "submit";
+    btn.className = "btn btn-primary";
+    btn.style.marginTop = ".6rem";
+    btn.textContent = "Entrar";
+    form.appendChild(btn);
+
+    form.addEventListener("submit", function(ev){
+      ev.preventDefault();
+      if(input.value === PEDIDOS_PASSWORD){
+        setPedidosUnlocked();
+        renderPanel();
+      } else {
+        err.hidden = false;
+        input.value = "";
+        input.focus();
+      }
+    });
+
+    card.appendChild(form);
+    wrap.appendChild(card);
+    setTimeout(function(){ input.focus(); }, 30);
+    return wrap;
+  }
+
   function buildPedidosPanel(){
+    if(!isPedidosUnlocked()){ return buildPedidosLockGate(); }
     var wrap = document.createElement("div");
 
     var viewToggle = document.createElement("div");
@@ -1667,6 +1997,10 @@ var TRIPLES = [
     nombreField.appendChild(nombreInput);
     grid.appendChild(nombreField);
 
+    var dniField = buildField("DNI", "text", draft.cliente.dni, function(v){ draft.cliente.dni = v; });
+    var dniInput = dniField.querySelector("input");
+    grid.appendChild(dniField);
+
     var rucField = buildField("RUC", "text", draft.cliente.ruc, function(v){ draft.cliente.ruc = v; });
     var rucInput = rucField.querySelector("input");
     grid.appendChild(rucField);
@@ -1692,11 +2026,13 @@ var TRIPLES = [
       var match = findClienteByNombre(nombreInput.value);
       if(match){
         var c = match.data;
+        draft.cliente.dni = c.dni || "";
         draft.cliente.ruc = c.ruc || "";
         draft.cliente.direccion = c.direccion || draft.cliente.direccion;
         draft.cliente.referencia = c.referencia || "";
         draft.cliente.telefono = c.telefono || "";
         draft.cliente.correo = c.correo || "";
+        dniInput.value = draft.cliente.dni;
         rucInput.value = draft.cliente.ruc;
         direccionInput.value = draft.cliente.direccion;
         referenciaInput.value = draft.cliente.referencia;
@@ -1728,10 +2064,15 @@ var TRIPLES = [
     }
     card.appendChild(grid);
 
+    var fechaHoraWrap = document.createElement("div");
+    fechaHoraWrap.style.display = "flex";
+    fechaHoraWrap.style.gap = "1rem";
+    fechaHoraWrap.style.flexWrap = "wrap";
+    fechaHoraWrap.style.margin = "1rem 0";
+
     var fechaRow = document.createElement("div");
     fechaRow.className = "field";
     fechaRow.style.maxWidth = "220px";
-    fechaRow.style.margin = "1rem 0";
     var fechaLabel = document.createElement("label");
     fechaLabel.textContent = draft.canal === "masivo" ? "Fecha para líneas nuevas" : "Fecha de entrega";
     fechaRow.appendChild(fechaLabel);
@@ -1747,7 +2088,23 @@ var TRIPLES = [
       }
     });
     fechaRow.appendChild(fechaInput);
-    card.appendChild(fechaRow);
+    fechaHoraWrap.appendChild(fechaRow);
+
+    var horaRow = document.createElement("div");
+    horaRow.className = "field";
+    horaRow.style.maxWidth = "160px";
+    var horaLabel = document.createElement("label");
+    horaLabel.textContent = "Hora en que debe estar listo";
+    horaRow.appendChild(horaLabel);
+    var horaInput = document.createElement("input");
+    horaInput.type = "time";
+    horaInput.value = draft.hora || "";
+    if(readOnly) horaInput.disabled = true;
+    horaInput.addEventListener("change", function(){ draft.hora = horaInput.value || ""; });
+    horaRow.appendChild(horaInput);
+    fechaHoraWrap.appendChild(horaRow);
+
+    card.appendChild(fechaHoraWrap);
 
     var itemsWrap = document.createElement("div");
     itemsWrap.className = "table-wrap";
@@ -1933,7 +2290,9 @@ var TRIPLES = [
       tipoPago: draft.tipoPago || "",
       pagado: !!draft.pagado,
       deliveryMonto: draft.canal === "delivery" ? num(draft.deliveryMonto) : 0,
+      hora: draft.hora || "",
       notas: draft.notas || "",
+      numero: genPedidoNumero(),
       items: validItems.map(function(it){
         return { producto: it.producto.trim(), cantidad: num(it.cantidad), precio: num(it.precio), fecha: it.fecha || draft.fechaDefault };
       }),
@@ -1950,6 +2309,131 @@ var TRIPLES = [
       showToast("No se pudo guardar el pedido. Revisa tu conexión e intenta de nuevo.");
       renderPanel();
     });
+  }
+
+  // ---------- Pre-orden de pedido en PDF (imprimir / guardar como PDF) ----------
+  // Replica el formato de la pre-orden de "Carmelitas Pan SAC" que usan hoy (Aniversario),
+  // para que el equipo la reconozca igual mientras se acostumbran al sistema nuevo.
+  var MESES_LARGO = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Setiembre","Octubre","Noviembre","Diciembre"];
+  var DIAS_LARGO = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+  function fmtFechaLarga(iso){
+    if(!iso) return "";
+    var d = new Date(iso + "T12:00:00");
+    var dia = DIAS_LARGO[d.getDay()];
+    var num2 = (d.getDate() < 10 ? "0" : "") + d.getDate();
+    var mes = MESES_LARGO[d.getMonth()];
+    return dia + ", " + num2 + " de " + mes + " de " + d.getFullYear();
+  }
+  function fmtFechaCorta(iso){
+    if(!iso) return "";
+    var parts = iso.split("-");
+    return parts.length === 3 ? (parts[2] + "/" + parts[1] + "/" + parts[0]) : iso;
+  }
+  function genPedidoNumero(){
+    return Math.random().toString(36).slice(2, 10);
+  }
+  function pedidoBannerHTML(p){
+    if(p.canal === "masivo"){
+      return "Pedido Masivo";
+    }
+    if(p.canal === "tienda"){
+      return "Recojo en Tienda" + (p.hora ? " " + esc(p.hora) : "");
+    }
+    return p.hora ? ("Enviar antes de las " + esc(p.hora)) : "Pedido Delivery";
+  }
+  function pedidoInfoRowsHTML(p){
+    var c = p.cliente || {};
+    var rows = [
+      ["NOMBRES:", c.nombre],
+      ["DNI:", c.dni],
+      ["RUC:", c.ruc],
+      ["DIRECCION:", c.direccion],
+      ["REFERENCIA:", c.referencia],
+      ["TELÉFONO:", c.telefono],
+      ["CORREO:", c.correo],
+      ["TIPO DE PAGO:", p.tipoPago]
+    ];
+    var html = "";
+    rows.forEach(function(r){
+      html += '<div style="display:flex; padding:1px 0;">' +
+        '<div style="width:130px; flex:none; font-weight:700;">' + esc(r[0]) + '</div>' +
+        '<div>' + esc(r[1] || "") + '</div></div>';
+    });
+    return html;
+  }
+  function pedidoTableHTML(p){
+    var isMasivo = p.canal === "masivo";
+    var subtotal = 0;
+    var headStyle = "border:1px solid #111; padding:3px 6px; background:#fff;";
+    function th(label, align){ return '<th style="' + headStyle + 'text-align:' + align + ';">' + label + "</th>"; }
+    var head = (isMasivo ? th("FECHA ENTREGA", "left") : "") + th("CANT.", "right") + th("PRODUCTO", "left") + th("PRECIO", "right") + th("TOTAL", "right");
+    var body = "";
+    (p.items || []).forEach(function(it){
+      var lineTotal = num(it.cantidad) * num(it.precio);
+      subtotal += lineTotal;
+      var cellStyle = "border:1px solid #111; padding:3px 6px;";
+      body += "<tr>" +
+        (isMasivo ? '<td style="' + cellStyle + 'text-align:left;">' + esc(fmtFechaCorta(it.fecha)) + "</td>" : "") +
+        '<td style="' + cellStyle + 'text-align:right;">' + fmt(it.cantidad) + "</td>" +
+        '<td style="' + cellStyle + 'text-align:left;">' + esc(it.producto) + "</td>" +
+        '<td style="' + cellStyle + 'text-align:right;">S/' + fmt(it.precio) + "</td>" +
+        '<td style="' + cellStyle + 'text-align:right;">S/' + fmt(lineTotal) + "</td>" +
+        "</tr>";
+    });
+    var theadHtml = "<thead><tr>" + head + "</tr></thead>";
+    return { html: '<table style="width:100%; border-collapse:collapse; font-size:12px; margin:8px 0 4px;">' + theadHtml + "<tbody>" + body + "</tbody></table>", subtotal: subtotal };
+  }
+  function buildPedidoPrintCardHTML(p){
+    var isMasivo = p.canal === "masivo";
+    var primeraFecha = (p.items && p.items[0] && p.items[0].fecha) || "";
+    var tabla = pedidoTableHTML(p);
+    var delivery = num(p.deliveryMonto);
+    var total = tabla.subtotal + delivery;
+    var html = '<div class="pedido-print-card" style="font-family:Arial,Helvetica,sans-serif; color:#111; max-width:780px; margin:0 auto; -webkit-print-color-adjust:exact; print-color-adjust:exact;">';
+    html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #111; padding-bottom:8px;">';
+    html += '<div><div style="font-size:20px; font-weight:800;">CARMELITAS PAN SAC</div>' +
+      '<div style="font-size:12px;">Av. 28 de Julio 1328 - Miraflores -Lima</div>' +
+      '<div style="font-size:12px;">Tlf. 444-7105 / 959 176 479</div>' +
+      '<div style="font-size:12px; text-decoration:underline;">carmelitaspan@gmail.com</div></div>';
+    html += '<div style="text-align:right;">' +
+      '<div style="font-size:14px; font-weight:800; color:#c2660c;">PRE-ORDEN DE PEDIDO</div>' +
+      '<div style="font-size:12px; color:#c2660c;">Número: <strong>' + esc(p.numero || (p.id||"").slice(-8)) + '</strong></div>' +
+      '<div style="font-size:15px; font-weight:800; color:#cc0000; margin-top:2px;">' + (isMasivo ? "ENTREGA MULTIPLE" : "ENTREGA") + '</div>' +
+      (isMasivo ? "" : '<div style="font-size:12px; font-weight:700; color:#cc0000;">' + esc(fmtFechaLarga(primeraFecha)) + '</div>') +
+      '</div>';
+    html += '</div>';
+    html += '<div style="background:#fff200; color:#cc0000; font-weight:800; font-size:17px; text-align:center; padding:7px 4px; margin:8px 0;">' + pedidoBannerHTML(p) + '</div>';
+    html += '<div style="background:#f6e3bd; padding:7px 10px; margin-bottom:6px; font-size:12px;">' + pedidoInfoRowsHTML(p) + '</div>';
+    html += tabla.html;
+    html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:4px;">' +
+      '<div style="font-size:11px;">Importante: Poner su nombre en Whatsapp</div>' +
+      '<div style="font-size:12px; text-align:right;">' +
+      '<div>SubTotal Productos: <strong>S/' + fmt(tabla.subtotal) + '</strong></div>' +
+      '<div>Delivery: <strong>S/' + fmt(delivery) + '</strong></div>' +
+      '<div>Total: <strong>S/' + fmt(total) + '</strong></div>' +
+      '</div></div>';
+    html += '<div style="text-align:center; color:#cc0000; font-weight:700; font-size:11px; margin-top:14px;">40 años... Tradición en Evolución</div>';
+    html += '</div>';
+    return html;
+  }
+  function doPrintPedido(id){
+    var p = (PEDIDOS || []).filter(function(x){ return x.id === id; })[0];
+    if(!p) return;
+    var area = document.getElementById("printArea");
+    area.innerHTML = buildPedidoPrintCardHTML(p);
+    setTimeout(function(){ window.print(); }, 30);
+  }
+  function doPrintPedidosDia(date){
+    var list = (PEDIDOS || []).filter(function(p){
+      return (p.items || []).some(function(it){ return it.fecha === date; });
+    });
+    if(list.length === 0){ showToast("No hay pedidos con entrega ese día."); return; }
+    var area = document.getElementById("printArea");
+    area.innerHTML = list.map(function(p, i){
+      var pageBreak = i < list.length - 1 ? "page-break-after:always;" : "";
+      return '<div style="' + pageBreak + '">' + buildPedidoPrintCardHTML(p) + '</div>';
+    }).join("");
+    setTimeout(function(){ window.print(); }, 30);
   }
 
   function buildProduccionView(){
@@ -1983,6 +2467,14 @@ var TRIPLES = [
     card.appendChild(dateRow);
 
     var targetDate = pedidosProduccionDate || currentDate;
+
+    var printDiaBtn = document.createElement("button");
+    printDiaBtn.type = "button";
+    printDiaBtn.className = "btn btn-sm";
+    printDiaBtn.style.margin = "0 0 1rem";
+    printDiaBtn.textContent = "PDF de todos los pedidos de este día";
+    printDiaBtn.addEventListener("click", function(){ doPrintPedidosDia(targetDate); });
+    card.appendChild(printDiaBtn);
     var totals = {};
     PEDIDOS.forEach(function(p){
       (p.items || []).forEach(function(it){
@@ -2045,7 +2537,7 @@ var TRIPLES = [
     tableWrap.className = "table-wrap";
     var table = document.createElement("table");
     table.className = "data-table";
-    table.innerHTML = "<thead><tr><th>Fecha(s)</th><th>Cliente</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th></th></tr></thead><tbody></tbody>";
+    table.innerHTML = "<thead><tr><th>Fecha(s)</th><th>Hora</th><th>Cliente</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th></th><th></th></tr></thead><tbody></tbody>";
     var tbody = table.querySelector("tbody");
     PEDIDOS.forEach(function(p){
       var tr = document.createElement("tr");
@@ -2061,17 +2553,23 @@ var TRIPLES = [
       var pagadoClass = "chip pedido-pagado-toggle " + (p.pagado ? "good" : "bad");
       tr.innerHTML =
         "<td>" + esc(fechaLabel) + "</td>" +
+        "<td>" + esc(p.hora || "—") + "</td>" +
         "<td>" + esc((p.cliente && p.cliente.nombre) || "—") + "</td>" +
         "<td>" + esc(CANAL_LABEL[p.canal] || p.canal) + "</td>" +
         "<td class='pedido-productos-cell'>" + esc(productosLabel) + "</td>" +
         "<td>S/ " + fmt(subtotal) + "</td>" +
         "<td><button type='button' class='" + pagadoClass + "' data-id='" + p.id + "'>" + (p.pagado ? "Pagado" : "Pendiente") + "</button></td>" +
+        "<td><button type='button' class='btn btn-sm pedido-pdf' data-id='" + p.id + "'>Generar PDF</button></td>" +
         "<td>" + (readOnly ? "" : '<button type="button" class="btn-del pedido-del" data-id="' + p.id + '" title="Eliminar pedido">✕</button>') + "</td>";
       tbody.appendChild(tr);
     });
     tableWrap.appendChild(table);
     card.appendChild(tableWrap);
     wrap.appendChild(card);
+
+    tbody.querySelectorAll(".pedido-pdf").forEach(function(btn){
+      btn.addEventListener("click", function(){ doPrintPedido(btn.getAttribute("data-id")); });
+    });
 
     if(!readOnly){
       tbody.querySelectorAll(".pedido-pagado-toggle").forEach(function(btn){
