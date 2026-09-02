@@ -165,6 +165,11 @@
   .chip{ font-size:.74rem; font-weight:700; border-radius:999px; padding:.2rem .6rem; white-space:nowrap; }
   .chip.good{ background:var(--good-soft); color:var(--good); }
   .chip.bad{ background:var(--bad-soft); color:var(--bad); }
+  .chip.pedido-pagado-toggle{ border:none; cursor:pointer; font-family:inherit; }
+  .pedido-totals{ margin-top:1rem; padding-top:.8rem; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:.25rem; font-size:.92rem; }
+  .pedido-checkbox-label{ display:flex; align-items:center; gap:.5rem; font-size:.9rem; font-weight:600; cursor:pointer; }
+  .pedido-checkbox-label input{ width:auto; }
+  .pedido-productos-cell{ max-width:320px; white-space:normal; }
   .empty-state{ color:var(--ink-soft); font-size:.9rem; padding:1.4rem 0; text-align:center; }
 
   .toast{ position:fixed; left:50%; bottom:1.2rem; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:.6rem 1rem; border-radius:999px; font-size:.84rem; box-shadow:var(--shadow); z-index:40; max-width:90vw; text-align:center; }
@@ -238,6 +243,7 @@
       <button class="tab-btn" data-tab="embutidos" type="button">Embutidos</button>
       <button class="tab-btn" data-tab="triples" type="button">Triples</button>
       <button class="tab-btn" data-tab="otros" type="button">Otros</button>
+      <button class="tab-btn" data-tab="pedidos" type="button">Pedidos</button>
       <button class="tab-btn" data-tab="turno" type="button">Turno</button>
       <button class="tab-btn" data-tab="historial" type="button">Historial</button>
     </nav>
@@ -324,6 +330,13 @@ var TRIPLES = [
   var lastSavedBySelf = null;
   var saveTimer = null, saving = false;
   var currentDate = todayISO();
+  // Pedidos (delivery / recojo en tienda / masivo): viven en su propia colección de Firestore,
+  // separada del documento "arqueo/state", para no hacer crecer sin límite el documento del
+  // arqueo diario y para que se puedan editar en simultáneo sin pisar los datos del arqueo.
+  var PEDIDOS = null;
+  var pedidoDraft = null;
+  var pedidosView = "nuevo";
+  var pedidosSaving = false;
   var currentTab = "panes";
   var filters = { panes:"", bebidas:"", embutidos:"", triples:"", otros:"" };
   var shiftView = { panes:"am", bebidas:"am", embutidos:"am", triples:"am", otros:"am" };
@@ -1028,7 +1041,9 @@ var TRIPLES = [
       btn.classList.toggle("active", tab === currentTab);
       var n = alerts[tab];
       var countHtml = n ? '<span class="count">' + n + "</span>" : "";
-      btn.innerHTML = SECTIONS[tab] ? SECTIONS[tab].label + countHtml : (tab === "turno" ? "Turno" : "Historial");
+      var label = SECTIONS[tab] ? SECTIONS[tab].label + countHtml
+        : (tab === "turno" ? "Turno" : (tab === "historial" ? "Historial" : (tab === "pedidos" ? "Pedidos" : "")));
+      btn.innerHTML = label;
     });
   }
 
@@ -1037,6 +1052,7 @@ var TRIPLES = [
     panel.innerHTML = "";
     if(currentTab === "turno"){ panel.appendChild(buildTurnoPanel()); }
     else if(currentTab === "historial"){ panel.appendChild(buildHistorialPanel()); }
+    else if(currentTab === "pedidos"){ panel.appendChild(buildPedidosPanel()); }
     else { panel.appendChild(buildProductPanel(currentTab)); }
   }
 
@@ -1475,6 +1491,452 @@ var TRIPLES = [
     return wrap;
   }
 
+  // ---------- Pedidos (delivery / recojo en tienda / pedido masivo) ----------
+  var CANAL_LABEL = { delivery:"Delivery", tienda:"Recojo en tienda", masivo:"Pedido masivo" };
+  var pedidosProduccionDate = null;
+
+  function newPedidoDraft(canal){
+    canal = canal || "delivery";
+    var fecha = currentDate;
+    return {
+      canal: canal,
+      cliente: { nombre:"", ruc:"", direccion: canal === "tienda" ? "Recojo en tienda" : "", referencia:"", telefono:"", correo:"" },
+      tipoPago: "",
+      pagado: false,
+      deliveryMonto: 0,
+      notas: "",
+      fechaDefault: fecha,
+      items: [ { producto:"", cantidad:1, precio:0, fecha: fecha } ]
+    };
+  }
+
+  function buildCatalogNameList(){
+    var idx = buildCatalogIndex();
+    var names = [];
+    Object.keys(idx).forEach(function(k){ names.push(idx[k].name); });
+    names.sort();
+    return names;
+  }
+
+  function buildPedidosPanel(){
+    var wrap = document.createElement("div");
+
+    var viewToggle = document.createElement("div");
+    viewToggle.className = "shift-toggle";
+    viewToggle.style.marginBottom = "1rem";
+    [["nuevo","Nuevo pedido"], ["produccion","Producción por día"], ["lista","Todos los pedidos"]].forEach(function(pair){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "shift-btn" + (pedidosView === pair[0] ? " active" : "");
+      b.textContent = pair[1];
+      b.addEventListener("click", function(){ pedidosView = pair[0]; renderPanel(); });
+      viewToggle.appendChild(b);
+    });
+    wrap.appendChild(viewToggle);
+
+    if(PEDIDOS === null){
+      var loading = document.createElement("div");
+      loading.className = "empty-state";
+      loading.textContent = "Cargando pedidos…";
+      wrap.appendChild(loading);
+      return wrap;
+    }
+
+    if(pedidosView === "produccion"){ wrap.appendChild(buildProduccionView()); }
+    else if(pedidosView === "lista"){ wrap.appendChild(buildPedidosLista()); }
+    else { wrap.appendChild(buildPedidoForm()); }
+
+    return wrap;
+  }
+
+  function buildPedidoForm(){
+    if(!pedidoDraft) pedidoDraft = newPedidoDraft("delivery");
+    var draft = pedidoDraft;
+    var card = document.createElement("div");
+    card.className = "card";
+
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .8rem";
+    h2.textContent = "Nuevo pedido";
+    card.appendChild(h2);
+
+    var canalRow = document.createElement("div");
+    canalRow.className = "shift-toggle";
+    canalRow.style.marginBottom = "1rem";
+    ["delivery","tienda","masivo"].forEach(function(c){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "shift-btn" + (draft.canal === c ? " active" : "");
+      b.textContent = CANAL_LABEL[c];
+      if(readOnly) b.disabled = true;
+      b.addEventListener("click", function(){
+        draft.canal = c;
+        if(c === "tienda" && !draft.cliente.direccion) draft.cliente.direccion = "Recojo en tienda";
+        renderPanel();
+      });
+      canalRow.appendChild(b);
+    });
+    card.appendChild(canalRow);
+
+    var grid = document.createElement("div");
+    grid.className = "field-grid";
+    grid.appendChild(buildField("Nombre / Razón social", "text", draft.cliente.nombre, function(v){ draft.cliente.nombre = v; }));
+    grid.appendChild(buildField("RUC", "text", draft.cliente.ruc, function(v){ draft.cliente.ruc = v; }));
+    grid.appendChild(buildField("Dirección", "text", draft.cliente.direccion, function(v){ draft.cliente.direccion = v; }));
+    grid.appendChild(buildField("Referencia", "text", draft.cliente.referencia, function(v){ draft.cliente.referencia = v; }));
+    grid.appendChild(buildField("Teléfono", "text", draft.cliente.telefono, function(v){ draft.cliente.telefono = v; }));
+    grid.appendChild(buildField("Correo", "text", draft.cliente.correo, function(v){ draft.cliente.correo = v; }));
+    grid.appendChild(buildField("Tipo de pago", "text", draft.tipoPago, function(v){ draft.tipoPago = v; }));
+    if(draft.canal === "delivery"){
+      grid.appendChild(buildField("Monto delivery (S/)", "number", draft.deliveryMonto, function(v){
+        draft.deliveryMonto = num(v);
+        updatePedidoTotals(totalsRow);
+      }));
+    }
+    card.appendChild(grid);
+
+    var fechaRow = document.createElement("div");
+    fechaRow.className = "field";
+    fechaRow.style.maxWidth = "220px";
+    fechaRow.style.margin = "1rem 0";
+    var fechaLabel = document.createElement("label");
+    fechaLabel.textContent = draft.canal === "masivo" ? "Fecha para líneas nuevas" : "Fecha de entrega";
+    fechaRow.appendChild(fechaLabel);
+    var fechaInput = document.createElement("input");
+    fechaInput.type = "date";
+    fechaInput.value = draft.fechaDefault;
+    if(readOnly) fechaInput.disabled = true;
+    fechaInput.addEventListener("change", function(){
+      draft.fechaDefault = fechaInput.value || currentDate;
+      if(draft.canal !== "masivo"){
+        draft.items.forEach(function(it){ it.fecha = draft.fechaDefault; });
+        renderPedidoItems(tbody, totalsRow);
+      }
+    });
+    fechaRow.appendChild(fechaInput);
+    card.appendChild(fechaRow);
+
+    var itemsWrap = document.createElement("div");
+    itemsWrap.className = "table-wrap";
+    var table = document.createElement("table");
+    table.className = "data-table";
+    var headCols = draft.canal === "masivo"
+      ? "<th>Fecha entrega</th><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Total</th><th></th>"
+      : "<th>Producto</th><th>Cantidad</th><th>Precio</th><th>Total</th><th></th>";
+    table.innerHTML = "<thead><tr>" + headCols + "</tr></thead><tbody></tbody>";
+    var tbody = table.querySelector("tbody");
+    itemsWrap.appendChild(table);
+    card.appendChild(itemsWrap);
+
+    var totalsRow = document.createElement("div");
+    totalsRow.className = "pedido-totals";
+
+    var addLineBtn = document.createElement("button");
+    addLineBtn.type = "button";
+    addLineBtn.className = "btn btn-sm";
+    addLineBtn.style.marginTop = ".6rem";
+    addLineBtn.textContent = "+ Agregar línea";
+    if(readOnly) addLineBtn.disabled = true;
+    addLineBtn.addEventListener("click", function(){
+      draft.items.push({ producto:"", cantidad:1, precio:0, fecha: draft.fechaDefault });
+      renderPedidoItems(tbody, totalsRow);
+    });
+    card.appendChild(addLineBtn);
+
+    var payRow = document.createElement("div");
+    payRow.className = "field";
+    payRow.style.margin = "1.1rem 0 0";
+    var payLabel = document.createElement("label");
+    payLabel.className = "pedido-checkbox-label";
+    var payInput = document.createElement("input");
+    payInput.type = "checkbox";
+    payInput.checked = !!draft.pagado;
+    if(readOnly) payInput.disabled = true;
+    payInput.addEventListener("change", function(){ draft.pagado = payInput.checked; });
+    payLabel.appendChild(payInput);
+    payLabel.appendChild(document.createTextNode(" Pagado"));
+    payRow.appendChild(payLabel);
+    card.appendChild(payRow);
+
+    card.appendChild(buildField("Notas (opcional)", "textarea", draft.notas, function(v){ draft.notas = v; }, true));
+
+    card.appendChild(totalsRow);
+
+    var saveRow = document.createElement("div");
+    saveRow.style.marginTop = "1rem";
+    var saveBtn2 = document.createElement("button");
+    saveBtn2.type = "button";
+    saveBtn2.className = "btn btn-primary";
+    saveBtn2.textContent = pedidosSaving ? "Guardando…" : "Guardar pedido";
+    saveBtn2.disabled = pedidosSaving || readOnly;
+    saveBtn2.addEventListener("click", savePedido);
+    saveRow.appendChild(saveBtn2);
+    card.appendChild(saveRow);
+
+    var datalist = document.createElement("datalist");
+    datalist.id = "pedidoProductList";
+    buildCatalogNameList().forEach(function(name){
+      var opt = document.createElement("option");
+      opt.value = name;
+      datalist.appendChild(opt);
+    });
+    card.appendChild(datalist);
+
+    renderPedidoItems(tbody, totalsRow);
+    updatePedidoTotals(totalsRow);
+
+    return card;
+  }
+
+  function renderPedidoItems(tbody, totalsRow){
+    var draft = pedidoDraft;
+    var isMasivo = draft.canal === "masivo";
+    tbody.innerHTML = "";
+    draft.items.forEach(function(item, idx){
+      var tr = document.createElement("tr");
+      var fechaCell = isMasivo
+        ? '<td><input type="date" class="pedido-item-fecha" data-idx="'+idx+'" value="'+esc(item.fecha)+'"></td>'
+        : "";
+      tr.innerHTML =
+        fechaCell +
+        '<td><input type="text" list="pedidoProductList" class="pedido-item-producto" data-idx="'+idx+'" value="'+esc(item.producto)+'" placeholder="Buscar producto…"></td>' +
+        '<td><input type="number" step="any" min="0" class="pedido-item-cantidad num-input mini" data-idx="'+idx+'" value="'+item.cantidad+'"></td>' +
+        '<td><input type="number" step="any" min="0" class="pedido-item-precio num-input mini" data-idx="'+idx+'" value="'+item.precio+'"></td>' +
+        '<td class="pedido-item-total" data-idx="'+idx+'">S/ ' + fmt(item.cantidad*item.precio) + '</td>' +
+        '<td>' + (draft.items.length > 1 ? '<button type="button" class="btn-del pedido-item-del" data-idx="'+idx+'" title="Quitar línea">✕</button>' : '') + '</td>';
+      tbody.appendChild(tr);
+    });
+    if(readOnly){
+      tbody.querySelectorAll("input, button").forEach(function(el){ el.disabled = true; });
+      return;
+    }
+    tbody.querySelectorAll(".pedido-item-fecha").forEach(function(input){
+      input.addEventListener("change", function(){
+        draft.items[+input.getAttribute("data-idx")].fecha = input.value || draft.fechaDefault;
+      });
+    });
+    tbody.querySelectorAll(".pedido-item-producto").forEach(function(input){
+      input.addEventListener("input", function(){
+        draft.items[+input.getAttribute("data-idx")].producto = input.value;
+      });
+    });
+    function wireQtyPrice(cls, field){
+      tbody.querySelectorAll(cls).forEach(function(input){
+        input.addEventListener("input", function(){
+          var idx = +input.getAttribute("data-idx");
+          draft.items[idx][field] = num(input.value);
+          var cell = tbody.querySelector('.pedido-item-total[data-idx="'+idx+'"]');
+          if(cell) cell.textContent = "S/ " + fmt(draft.items[idx].cantidad * draft.items[idx].precio);
+          updatePedidoTotals(totalsRow);
+        });
+      });
+    }
+    wireQtyPrice(".pedido-item-cantidad", "cantidad");
+    wireQtyPrice(".pedido-item-precio", "precio");
+    tbody.querySelectorAll(".pedido-item-del").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        draft.items.splice(+btn.getAttribute("data-idx"), 1);
+        renderPedidoItems(tbody, totalsRow);
+        updatePedidoTotals(totalsRow);
+      });
+    });
+  }
+
+  function pedidoSubtotal(draft){
+    return draft.items.reduce(function(sum, it){ return sum + (num(it.cantidad) * num(it.precio)); }, 0);
+  }
+  function updatePedidoTotals(totalsRow){
+    var draft = pedidoDraft;
+    var subtotal = pedidoSubtotal(draft);
+    var delivery = draft.canal === "delivery" ? num(draft.deliveryMonto) : 0;
+    var total = subtotal + delivery;
+    var html = "<div>Subtotal productos: <strong>S/ " + fmt(subtotal) + "</strong></div>";
+    if(draft.canal === "delivery") html += "<div>Delivery: <strong>S/ " + fmt(delivery) + "</strong></div>";
+    html += "<div>Total: <strong>S/ " + fmt(total) + "</strong></div>";
+    totalsRow.innerHTML = html;
+  }
+
+  function savePedido(){
+    var draft = pedidoDraft;
+    if(!draft || readOnly || !db) return;
+    var validItems = draft.items.filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
+    if(!draft.cliente.nombre || !draft.cliente.nombre.trim()){ showToast("Falta el nombre del cliente."); return; }
+    if(validItems.length === 0){ showToast("Agrega al menos un producto con cantidad."); return; }
+    if(pedidosSaving) return;
+    pedidosSaving = true;
+    renderPanel();
+    var payload = {
+      canal: draft.canal,
+      cliente: draft.cliente,
+      tipoPago: draft.tipoPago || "",
+      pagado: !!draft.pagado,
+      deliveryMonto: draft.canal === "delivery" ? num(draft.deliveryMonto) : 0,
+      notas: draft.notas || "",
+      items: validItems.map(function(it){
+        return { producto: it.producto.trim(), cantidad: num(it.cantidad), precio: num(it.precio), fecha: it.fecha || draft.fechaDefault };
+      }),
+      createdAt: Date.now()
+    };
+    db.collection("pedidos").add(payload).then(function(){
+      pedidosSaving = false;
+      pedidoDraft = newPedidoDraft(payload.canal);
+      showToast("Pedido guardado.");
+      renderPanel();
+    }).catch(function(){
+      pedidosSaving = false;
+      showToast("No se pudo guardar el pedido. Revisa tu conexión e intenta de nuevo.");
+      renderPanel();
+    });
+  }
+
+  function buildProduccionView(){
+    var wrap = document.createElement("div");
+    var card = document.createElement("div");
+    card.className = "card";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .4rem";
+    h2.textContent = "Producción por día";
+    card.appendChild(h2);
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.textContent = "Elige una fecha y suma, por producto, lo comprometido entre delivery, recojo en tienda y pedidos masivos que entreguen ese día.";
+    card.appendChild(hint);
+
+    var dateRow = document.createElement("div");
+    dateRow.className = "field";
+    dateRow.style.maxWidth = "220px";
+    dateRow.style.margin = "1rem 0";
+    var dl = document.createElement("label");
+    dl.textContent = "Fecha";
+    dateRow.appendChild(dl);
+    var dateInput = document.createElement("input");
+    dateInput.type = "date";
+    dateInput.value = pedidosProduccionDate || currentDate;
+    dateInput.addEventListener("change", function(){
+      pedidosProduccionDate = dateInput.value || currentDate;
+      renderPanel();
+    });
+    dateRow.appendChild(dateInput);
+    card.appendChild(dateRow);
+
+    var targetDate = pedidosProduccionDate || currentDate;
+    var totals = {};
+    PEDIDOS.forEach(function(p){
+      (p.items || []).forEach(function(it){
+        if(it.fecha !== targetDate) return;
+        if(!totals[it.producto]) totals[it.producto] = { delivery:0, tienda:0, masivo:0 };
+        totals[it.producto][p.canal] = (totals[it.producto][p.canal] || 0) + num(it.cantidad);
+      });
+    });
+    var names = Object.keys(totals).sort();
+    if(names.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "No hay pedidos con entrega para ese día.";
+      card.appendChild(empty);
+    } else {
+      var tableWrap = document.createElement("div");
+      tableWrap.className = "table-wrap";
+      var table = document.createElement("table");
+      table.className = "data-table";
+      var rows = "<thead><tr><th>Producto</th><th>Delivery</th><th>Tienda</th><th>Masivo</th><th>Total</th></tr></thead><tbody>";
+      var grand = { delivery:0, tienda:0, masivo:0 };
+      names.forEach(function(name){
+        var t = totals[name];
+        var rowTotal = (t.delivery||0) + (t.tienda||0) + (t.masivo||0);
+        grand.delivery += t.delivery||0; grand.tienda += t.tienda||0; grand.masivo += t.masivo||0;
+        rows += "<tr><td>" + esc(name) + "</td><td>" + (t.delivery ? fmt(t.delivery) : "—") + "</td><td>" +
+          (t.tienda ? fmt(t.tienda) : "—") + "</td><td>" + (t.masivo ? fmt(t.masivo) : "—") + "</td><td><strong>" + fmt(rowTotal) + "</strong></td></tr>";
+      });
+      var grandTotal = grand.delivery + grand.tienda + grand.masivo;
+      rows += "<tr><td><strong>Total</strong></td><td><strong>" + fmt(grand.delivery) + "</strong></td><td><strong>" +
+        fmt(grand.tienda) + "</strong></td><td><strong>" + fmt(grand.masivo) + "</strong></td><td><strong>" + fmt(grandTotal) + "</strong></td></tr>";
+      rows += "</tbody>";
+      table.innerHTML = rows;
+      tableWrap.appendChild(table);
+      card.appendChild(tableWrap);
+    }
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  function buildPedidosLista(){
+    var wrap = document.createElement("div");
+    var card = document.createElement("div");
+    card.className = "card";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .8rem";
+    h2.textContent = "Todos los pedidos";
+    card.appendChild(h2);
+
+    if(PEDIDOS.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "Todavía no hay pedidos registrados.";
+      card.appendChild(empty);
+      wrap.appendChild(card);
+      return wrap;
+    }
+
+    var tableWrap = document.createElement("div");
+    tableWrap.className = "table-wrap";
+    var table = document.createElement("table");
+    table.className = "data-table";
+    table.innerHTML = "<thead><tr><th>Fecha(s)</th><th>Cliente</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th></th></tr></thead><tbody></tbody>";
+    var tbody = table.querySelector("tbody");
+    PEDIDOS.forEach(function(p){
+      var tr = document.createElement("tr");
+      var seen = {};
+      var fechas = [];
+      (p.items||[]).forEach(function(it){
+        if(it.fecha && !seen[it.fecha]){ seen[it.fecha] = true; fechas.push(it.fecha); }
+      });
+      fechas.sort();
+      var fechaLabel = fechas.length <= 1 ? (fechas[0] || "—") : (fechas[0] + " → " + fechas[fechas.length-1]);
+      var productosLabel = (p.items||[]).map(function(it){ return it.cantidad + "x " + it.producto; }).join(", ");
+      var subtotal = (p.items||[]).reduce(function(s,it){ return s + num(it.cantidad)*num(it.precio); }, 0) + num(p.deliveryMonto);
+      var pagadoClass = "chip pedido-pagado-toggle " + (p.pagado ? "good" : "bad");
+      tr.innerHTML =
+        "<td>" + esc(fechaLabel) + "</td>" +
+        "<td>" + esc((p.cliente && p.cliente.nombre) || "—") + "</td>" +
+        "<td>" + esc(CANAL_LABEL[p.canal] || p.canal) + "</td>" +
+        "<td class='pedido-productos-cell'>" + esc(productosLabel) + "</td>" +
+        "<td>S/ " + fmt(subtotal) + "</td>" +
+        "<td><button type='button' class='" + pagadoClass + "' data-id='" + p.id + "'>" + (p.pagado ? "Pagado" : "Pendiente") + "</button></td>" +
+        "<td>" + (readOnly ? "" : '<button type="button" class="btn-del pedido-del" data-id="' + p.id + '" title="Eliminar pedido">✕</button>') + "</td>";
+      tbody.appendChild(tr);
+    });
+    tableWrap.appendChild(table);
+    card.appendChild(tableWrap);
+    wrap.appendChild(card);
+
+    if(!readOnly){
+      tbody.querySelectorAll(".pedido-pagado-toggle").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var id = btn.getAttribute("data-id");
+          var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
+          if(!p || !db) return;
+          db.collection("pedidos").doc(id).update({ pagado: !p.pagado }).catch(function(){
+            showToast("No se pudo actualizar. Intenta de nuevo.");
+          });
+        });
+      });
+      tbody.querySelectorAll(".pedido-del").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var id = btn.getAttribute("data-id");
+          var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
+          if(!p || !db) return;
+          if(!confirm('¿Eliminar el pedido de "' + ((p.cliente && p.cliente.nombre) || "este cliente") + '"? No se puede deshacer.')) return;
+          db.collection("pedidos").doc(id).delete().catch(function(){
+            showToast("No se pudo eliminar. Intenta de nuevo.");
+          });
+        });
+      });
+    }
+
+    return wrap;
+  }
+
   // ---------- wiring ----------
   function wireStatic(){
     document.getElementById("datePicker").value = currentDate;
@@ -1529,6 +1991,26 @@ var TRIPLES = [
     });
   }
 
+  function attachPedidosSync(){
+    db.collection("pedidos").onSnapshot(function(snap){
+      var list = [];
+      snap.forEach(function(doc){
+        var data = doc.data();
+        data.id = doc.id;
+        list.push(data);
+      });
+      list.sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
+      PEDIDOS = list;
+      if(currentTab === "pedidos") renderPanel();
+    }, function(){
+      // Si falla, dejamos PEDIDOS como esté (puede seguir null) y avisamos solo si
+      // el usuario está mirando esa pestaña.
+      if(currentTab === "pedidos" && PEDIDOS === null){
+        showToast("No se pudo cargar los pedidos. Revisa tu conexión e intenta de nuevo.");
+      }
+    });
+  }
+
   function initFirebase(){
     var firebaseConfig = {
       apiKey: "AIzaSyApjo00nK0Vc_5cESnAPvjEg1-hIuv2zCE",
@@ -1551,6 +2033,7 @@ var TRIPLES = [
       renderAll();
       restoreBackupBanner();
     });
+    attachPedidosSync();
   }
 
   // ---------- lock screen (contraseña compartida del equipo) ----------
