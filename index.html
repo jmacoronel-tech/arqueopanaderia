@@ -160,7 +160,8 @@
   .history-card:hover{ border-color:var(--accent); }
   .history-date{ font-family:"Fraunces", Georgia, serif; font-weight:600; font-size:1.02rem; text-transform:capitalize; }
   .history-meta{ font-size:.8rem; color:var(--ink-soft); margin-top:.2rem; }
-  .history-badges{ display:flex; gap:.4rem; flex-wrap:wrap; justify-content:flex-end; }
+  .history-badges{ display:flex; gap:.4rem; flex-wrap:wrap; justify-content:flex-end; align-items:center; }
+  .history-export-btn{ font-size:.72rem; padding:.3rem .55rem; }
   .chip{ font-size:.74rem; font-weight:700; border-radius:999px; padding:.2rem .6rem; white-space:nowrap; }
   .chip.good{ background:var(--good-soft); color:var(--good); }
   .chip.bad{ background:var(--bad-soft); color:var(--bad); }
@@ -935,14 +936,18 @@ var TRIPLES = [
     setTimeout(function(){ window.print(); }, 30);
   }
 
-  // ---------- Excel export (una hoja por categoría, como lo mandaban antes) ----------
-  var REPORT_HEADER = ["Fecha","Turno","Producto","Saldo Anterior","Ingreso 1","Ingreso 2","Ingreso 3",
-    "Merma","Saldo Final","Ventas Físicas","Ventas Caja","Cuadre","Responsable Turno","Hora Cierre Turno",
-    "Hora Agotado","Minutos Sin Stock Antes Del Cierre"];
-  function buildReportRowsByCategory(){
+  // ---------- Excel export (una hoja por categoría, un día opcionalmente) ----------
+  // Una fila por producto por día, con Mañana y Tarde lado a lado (como en el reporte de
+  // papel que mandan a la dueña), en vez de dos filas separadas por turno.
+  var REPORT_HEADER = ["Fecha","Producto",
+    "Saldo Anterior","Ingreso AM","Merma AM","Saldo Final AM","Ventas AM","Ventas Caja AM","Cuadre AM",
+    "Ingreso PM","Merma PM","Saldo Final PM","Ventas PM","Ventas Caja PM","Cuadre PM",
+    "Responsable AM","Hora Cierre AM","Responsable PM","Hora Cierre PM"];
+  function buildReportRowsByCategory(dateFilter){
     var byTab = {};
     PRODUCT_TABS.forEach(function(tabKey){ byTab[tabKey] = [REPORT_HEADER.slice()]; });
     var dates = Object.keys(STATE.days).sort();
+    if(dateFilter) dates = dates.filter(function(d){ return d === dateFilter; });
     dates.forEach(function(d){
       var day = STATE.days[d];
       backfillDay(day, d);
@@ -952,51 +957,54 @@ var TRIPLES = [
         var sec = day[section.key];
         catalogFor(tabKey).forEach(function(name, idx){
           var amRow = sec.am[idx];
-          [["am", amRow, null], ["pm", sec.pm[idx], amRow]].forEach(function(pair){
-            var shift = pair[0], row = pair[1], amRef = pair[2];
-            var v = ventasOf(row, shift, amRef);
-            var c = cuadreOf(row, v);
-            var closeTime = shift === "am" ? t.sAM : t.sPM;
-            var agMap = shift === "am" ? sec.agAm : sec.agPm;
-            var agTime = agMap[idx] || "";
-            var mins = minutesBetween(agTime, closeTime);
-            var resp = shift === "am" ? t.respAM : t.respPM;
-            byTab[tabKey].push([
-              d, SHIFT_LABEL[shift], name,
-              shift === "am" ? fmt(row.a) : fmt(amRef.f),
-              fmt(row.i1), fmt(row.i2), fmt(row.i3), fmt(row.m), fmt(row.f),
-              fmt(v), row.vc===null ? "" : fmt(row.vc), c===null ? "" : fmt(c),
-              resp || "", closeTime || "", agTime || "", (mins && mins>0) ? mins : ""
-            ]);
-          });
+          var pmRow = sec.pm[idx];
+          var vAm = ventasOf(amRow, "am", null);
+          var cAm = cuadreOf(amRow, vAm);
+          var vPm = ventasOf(pmRow, "pm", amRow);
+          var cPm = cuadreOf(pmRow, vPm);
+          var ingresoAm = amRow.i1 + amRow.i2 + amRow.i3;
+          var ingresoPm = pmRow.i1 + pmRow.i2 + pmRow.i3;
+          byTab[tabKey].push([
+            d, name,
+            fmt(amRow.a), fmt(ingresoAm), fmt(amRow.m), fmt(amRow.f), fmt(vAm),
+            amRow.vc===null ? "" : fmt(amRow.vc), cAm===null ? "" : fmt(cAm),
+            fmt(ingresoPm), fmt(pmRow.m), fmt(pmRow.f), fmt(vPm),
+            pmRow.vc===null ? "" : fmt(pmRow.vc), cPm===null ? "" : fmt(cPm),
+            t.respAM || "", t.sAM || "", t.respPM || "", t.sPM || ""
+          ]);
         });
       });
     });
     return byTab;
   }
-  function buildTurnoRows(){
+  function buildTurnoRows(dateFilter){
     var rows = [["Fecha","Responsable AM","Hora Entrada AM","Hora Cierre AM","Observaciones AM",
       "Responsable PM","Hora Entrada PM","Hora Cierre PM","Observaciones PM","Notas del día"]];
-    Object.keys(STATE.days).sort().forEach(function(d){
+    var dates = Object.keys(STATE.days).sort();
+    if(dateFilter) dates = dates.filter(function(d){ return d === dateFilter; });
+    dates.forEach(function(d){
       var t = STATE.days[d].turno;
       rows.push([d, t.respAM||"", t.eAM||"", t.sAM||"", t.obsAM||"", t.respPM||"", t.ePM||"", t.sPM||"", t.obsPM||"", t.notas||""]);
     });
     return rows;
   }
-  function doExport(){
+  // dateFilter: si se pasa una fecha (YYYY-MM-DD), exporta solo ese día; si no, todo el historial.
+  function doExport(dateFilter){
     if(Object.keys(STATE.days).length === 0){ showToast("Todavía no hay días guardados para exportar."); return; }
+    if(dateFilter && !STATE.days[dateFilter]){ showToast("No hay datos guardados para ese día."); return; }
     if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo."); return; }
     try{
-      var byTab = buildReportRowsByCategory();
+      var byTab = buildReportRowsByCategory(dateFilter);
       var wb = XLSX.utils.book_new();
       var SHEET_NAMES = { panes:"Panes", bebidas:"Bebidas", embutidos:"Embutidos", triples:"Triples", otros:"Otros" };
       PRODUCT_TABS.forEach(function(tabKey){
         var ws = XLSX.utils.aoa_to_sheet(byTab[tabKey]);
         XLSX.utils.book_append_sheet(wb, ws, SHEET_NAMES[tabKey]);
       });
-      var wsTurno = XLSX.utils.aoa_to_sheet(buildTurnoRows());
+      var wsTurno = XLSX.utils.aoa_to_sheet(buildTurnoRows(dateFilter));
       XLSX.utils.book_append_sheet(wb, wsTurno, "Turno");
-      XLSX.writeFile(wb, "arqueo-historial.xlsx");
+      var filename = dateFilter ? ("arqueo-" + dateFilter + ".xlsx") : "arqueo-historial.xlsx";
+      XLSX.writeFile(wb, filename);
       showToast("Reporte descargado.");
     }catch(err){
       showToast("No se pudo generar el archivo. Intenta de nuevo.");
@@ -1410,7 +1418,7 @@ var TRIPLES = [
     exportBtn.textContent = "Exportar historial (Excel)";
     exportBtn.disabled = Object.keys(STATE.days).length === 0;
     exportBtn.title = "Descarga todo el historial en un archivo que se abre en Excel";
-    exportBtn.addEventListener("click", doExport);
+    exportBtn.addEventListener("click", function(){ doExport(); });
     headRow.appendChild(exportBtn);
     card.appendChild(headRow);
 
@@ -1442,6 +1450,16 @@ var TRIPLES = [
             if(alerts[tab] > 0){ right.innerHTML += '<span class="chip bad">' + SECTIONS[tab].label + ": " + alerts[tab] + "</span>"; }
           });
         }
+        var dayExportBtn = document.createElement("button");
+        dayExportBtn.type = "button";
+        dayExportBtn.className = "btn btn-sm history-export-btn";
+        dayExportBtn.textContent = "Excel de este día";
+        dayExportBtn.title = "Descarga el reporte de Excel de solo este día";
+        dayExportBtn.addEventListener("click", function(ev){
+          ev.stopPropagation();
+          doExport(d);
+        });
+        right.appendChild(dayExportBtn);
         btn.appendChild(left);
         btn.appendChild(right);
         btn.addEventListener("click", function(){
