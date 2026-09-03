@@ -128,6 +128,7 @@
   .dot.good{ background:var(--good); }
   .dot.bad{ background:var(--bad); }
   .dot.neutral{ background:var(--ink-muted); }
+  .dot.warn{ background:var(--warn); }
 
   .table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius); }
   table.data-table{ border-collapse:collapse; width:100%; min-width:920px; font-variant-numeric:tabular-nums; }
@@ -138,6 +139,9 @@
   table.data-table tbody tr:nth-child(even) td{ background:var(--bg); }
   table.data-table tbody td:first-child{ text-align:left; font-weight:600; color:var(--ink); position:sticky; left:0; z-index:1; }
   table.data-table tbody tr.flag td:first-child{ box-shadow:inset 3px 0 0 var(--bad); }
+  table.data-table tbody tr.pending-data:not(.flag) td:first-child{ box-shadow:inset 3px 0 0 var(--warn); }
+  .num-input.pending-warn{ border-color:var(--warn); }
+  .derived.pending-warn{ color:var(--warn); font-weight:700; }
   .ing-group{ display:inline-flex; gap:.2rem; }
   .num-input{ width:4.1rem; text-align:right; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:.3rem .35rem; font-size:.85rem; color:var(--ink); font-variant-numeric:tabular-nums; }
   .num-input.mini{ width:2.15rem; padding:.3rem .2rem; text-align:center; }
@@ -647,8 +651,11 @@ var TRIPLES = [
   }
   // "Saldo Final" (f) arranca en blanco (null) tanto en la mañana como en la tarde: es el
   // número que alguien tiene que escribir después de contar físicamente, no algo que el
-  // sistema deba adivinar. "Saldo Anterior" (a) sí sigue trayendo el saldo final del día
-  // anterior, porque ese es un dato ya confirmado, no uno pendiente de contar.
+  // sistema deba adivinar. "Saldo Anterior" (a) también arranca en blanco (null) cuando no
+  // hay un cierre anterior REAL de dónde traerlo — no se inventa un 0, porque un 0 puesto por
+  // el sistema (sin dato real) se ve idéntico a un 0 que alguien contó a propósito (por
+  // ejemplo, en un producto que solo se hace a pedido), y eso es justo lo que generaba
+  // confusión. Un 0 solo aparece si alguien lo confirmó de verdad, contando o escribiéndolo.
   function emptyAmRow(prevFinal){ return { a:prevFinal, i1:0, i2:0, i3:0, m:0, f:null, vc:null }; }
   function emptyPmRow(carry){ return { i1:0, i2:0, i3:0, m:0, f:null, vc:null }; }
 
@@ -656,18 +663,21 @@ var TRIPLES = [
     var keys = Object.keys(STATE.days).filter(function(d){ return d < date; }).sort();
     return keys.length ? keys[keys.length-1] : null;
   }
+  // Saldo con el que abre un producto: lo que quedó contado (Saldo Final) en la tarde del
+  // día anterior. Si ese día no existe, o existe pero ese "Saldo Final" nunca se llegó a
+  // contar (sigue en null), no hay dato real de dónde partir — se devuelve null (pendiente),
+  // nunca un 0 inventado.
+  function getPrevFinal(prevDay, key, i){
+    if(prevDay && prevDay[key] && prevDay[key].pm && prevDay[key].pm[i]){
+      var f = prevDay[key].pm[i].f;
+      return (f === null || f === undefined) ? null : f;
+    }
+    return null;
+  }
   function makeSection(catalog, prevDay, key){
     return {
-      am: catalog.map(function(_, i){
-        var prevFinal = 0;
-        if(prevDay && prevDay[key] && prevDay[key].pm && prevDay[key].pm[i]) prevFinal = prevDay[key].pm[i].f || 0;
-        return emptyAmRow(prevFinal);
-      }),
-      pm: catalog.map(function(_, i){
-        var prevFinal = 0;
-        if(prevDay && prevDay[key] && prevDay[key].pm && prevDay[key].pm[i]) prevFinal = prevDay[key].pm[i].f || 0;
-        return emptyPmRow(prevFinal);
-      }),
+      am: catalog.map(function(_, i){ return emptyAmRow(getPrevFinal(prevDay, key, i)); }),
+      pm: catalog.map(function(_, i){ return emptyPmRow(getPrevFinal(prevDay, key, i)); }),
       agAm: {}, agPm: {}
     };
   }
@@ -690,11 +700,48 @@ var TRIPLES = [
     var sec = day[key];
     if(!sec){ day[key] = { am:[], pm:[], agAm:{}, agPm:{} }; sec = day[key]; }
     for(var i = sec.am.length; i < catalog.length; i++){
-      var prevFinal = 0;
-      if(prevDay && prevDay[key] && prevDay[key].pm && prevDay[key].pm[i]) prevFinal = prevDay[key].pm[i].f || 0;
+      var prevFinal = getPrevFinal(prevDay, key, i);
       sec.am.push(emptyAmRow(prevFinal));
       sec.pm.push(emptyPmRow(prevFinal));
     }
+  }
+  // Arregla dos cosas que quedaron mal SOLO por el cambio de "Saldo Final ya no arranca
+  // relleno": (1) filas que nadie tocó de verdad, donde "Saldo Final" se quedó con el número
+  // viejo (versión anterior del sistema, antes de que ese campo empezara en blanco) — esas se
+  // dejan pendientes; (2) el caso de Bebidas: como esa categoría no trae saldo de un día
+  // anterior, "Saldo Anterior" arranca en 0, y como "Saldo Final" es hoy el único recuadro que
+  // se ve vacío, el personal terminó anotando ahí el conteo real de la mañana en vez de en
+  // "Saldo Anterior". Se detecta con cuidado: solo se toca una fila si NADA más se registró
+  // todavía (sin ingresos, sin merma, sin caja) para no tocar ni un solo dato real ya cargado.
+  function cleanupSaldoFinalMigrado(day){
+    var changed = false;
+    PRODUCT_TABS.forEach(function(tab){
+      var section = SECTIONS[tab];
+      var sec = day[section.key];
+      if(!sec) return;
+      sec.am.forEach(function(row){
+        var untouched = row.i1===0 && row.i2===0 && row.i3===0 && row.m===0 && row.vc===null;
+        if(!untouched || row.f === null) return;
+        if(row.f === row.a){
+          row.f = null;
+          changed = true;
+        } else if(row.a === 0 && row.f !== 0){
+          row.a = row.f;
+          row.f = null;
+          changed = true;
+        }
+      });
+      sec.pm.forEach(function(row, idx){
+        var amRow = sec.am[idx];
+        var prevFinal = amRow ? amRow.a : 0;
+        var untouched = row.i1===0 && row.i2===0 && row.i3===0 && row.m===0 && row.vc===null;
+        if(untouched && row.f !== null && row.f === prevFinal){
+          row.f = null;
+          changed = true;
+        }
+      });
+    });
+    return changed;
   }
   function backfillDay(day, date){
     var prevDate = latestDayBefore(date);
@@ -705,6 +752,10 @@ var TRIPLES = [
       var section = SECTIONS[tab];
       backfillSection(day, section.key, catalogFor(tab), prevDay);
     });
+    if(cleanupSaldoFinalMigrado(day)){
+      markDirty();
+      scheduleAutosave();
+    }
   }
   // Quitar un producto de Otros: hay que correr el índice en todos los días ya guardados
   // (el arreglo de filas está indexado por posición), incluyendo los mapas de "se agotó".
@@ -751,7 +802,9 @@ var TRIPLES = [
   // Si todavía no se contó el "Saldo Final" (f === null, pendiente), no se puede calcular
   // "Ventas físicas" — no es que sea cero, es que todavía no se sabe. Lo mismo si, en la
   // tarde, lo que falta contar es el cierre de la mañana (amRow.f).
-  function ventasAm(row){ return row.f === null ? null : row.a + row.i1 + row.i2 + row.i3 - row.m - row.f; }
+  function ventasAm(row){
+    return (row.a === null || row.f === null) ? null : row.a + row.i1 + row.i2 + row.i3 - row.m - row.f;
+  }
   function ventasPm(row, amRow){
     if(row.f === null || amRow.f === null) return null;
     return amRow.f + row.i1 + row.i2 + row.i3 - row.m - row.f;
@@ -1323,7 +1376,7 @@ var TRIPLES = [
           var ingresoPm = pmRow.i1 + pmRow.i2 + pmRow.i3;
           byTab[tabKey].push([
             d, name,
-            fmt(amRow.a), fmt(ingresoAm), fmt(amRow.m), amRow.f===null ? "" : fmt(amRow.f), vAm===null ? "" : fmt(vAm),
+            amRow.a===null ? "" : fmt(amRow.a), fmt(ingresoAm), fmt(amRow.m), amRow.f===null ? "" : fmt(amRow.f), vAm===null ? "" : fmt(vAm),
             amRow.vc===null ? "" : fmt(amRow.vc), cAm===null ? "" : fmt(cAm),
             fmt(ingresoPm), fmt(pmRow.m), pmRow.f===null ? "" : fmt(pmRow.f), vPm===null ? "" : fmt(vPm),
             pmRow.vc===null ? "" : fmt(pmRow.vc), cPm===null ? "" : fmt(cPm),
@@ -1362,7 +1415,7 @@ var TRIPLES = [
           var ingresoAm = amRow.i1 + amRow.i2 + amRow.i3;
           var ingresoPm = pmRow.i1 + pmRow.i2 + pmRow.i3;
           byTab[tabKey].push([
-            d, name, fmt(amRow.a), fmt(ingresoAm), fmt(ingresoPm), fmt(pmRow.m), pmRow.f===null ? "" : fmt(pmRow.f),
+            d, name, amRow.a===null ? "" : fmt(amRow.a), fmt(ingresoAm), fmt(ingresoPm), fmt(pmRow.m), pmRow.f===null ? "" : fmt(pmRow.f),
             pmRow.vc===null ? "" : fmt(pmRow.vc), cPm===null ? "" : fmt(cPm)
           ]);
         });
@@ -1559,6 +1612,7 @@ var TRIPLES = [
     var legend = document.createElement("div");
     legend.className = "legend";
     legend.innerHTML =
+      '<span><span class="dot warn"></span>Sin dato anterior — hay que contarlo</span>' +
       '<span><span class="dot neutral"></span>Sin caja registrada</span>' +
       '<span><span class="dot bad"></span>Descuadre — revisar</span>';
     searchRow.appendChild(legend);
@@ -1618,7 +1672,7 @@ var TRIPLES = [
 
     if(t.classList.contains("field-input")){
       var field = t.getAttribute("data-field");
-      if(field === "vc" || field === "f"){ row[field] = numOrNull(t.value); }
+      if(field === "vc" || field === "f" || field === "a"){ row[field] = numOrNull(t.value); }
       else { row[field] = num(t.value); }
     } else if(t.classList.contains("ag-input")){
       var map = shift === "am" ? sec.agAm : sec.agPm;
@@ -1654,12 +1708,22 @@ var TRIPLES = [
       if(c === null){ cCell.textContent = "—"; cCell.className = "cuadre-cell pending"; }
       else { cCell.textContent = fmt(c); cCell.className = "cuadre-cell " + (Math.abs(c) > 0.004 ? "bad" : "good"); }
     }
+    var pendingData = shift === "am" ? row.a === null : amRow.f === null;
     var tr = tbody.querySelector('tr[data-ridx="'+idx+'"]');
-    if(tr) tr.classList.toggle("flag", flagged);
+    if(tr){
+      tr.classList.toggle("flag", flagged);
+      tr.classList.toggle("pending-data", pendingData);
+    }
 
     if(shift === "pm"){
       var derived = tbody.querySelector('.derived[data-ridx="'+idx+'"]');
-      if(derived) derived.textContent = amRow.f === null ? "—" : fmt(amRow.f);
+      if(derived){
+        derived.textContent = amRow.f === null ? "—" : fmt(amRow.f);
+        derived.classList.toggle("pending-warn", amRow.f === null);
+      }
+    } else {
+      var aInput = tbody.querySelector('.field-input[data-idx="'+idx+'"][data-field="a"]');
+      if(aInput) aInput.classList.toggle("pending-warn", row.a === null);
     }
 
     var agNote = tbody.querySelector('.ag-note[data-ridx="'+idx+'"]');
@@ -1695,13 +1759,19 @@ var TRIPLES = [
       var agTime = agMap[idx] || "";
       var mins = minutesBetween(agTime, closeTime);
 
+      // "Sin dato anterior": todavía no hay un número real de dónde partir (nadie lo contó
+      // el día/turno anterior) — se avisa con un borde ámbar en la fila, distinto del rojo
+      // de descuadre, para que se sepa que hay que contarlo, no que algo está mal.
+      var pendingData = shift === "am" ? row.a === null : amRow.f === null;
+
       var tr = document.createElement("tr");
       tr.setAttribute("data-ridx", idx);
       if(flagged) tr.classList.add("flag");
+      if(pendingData) tr.classList.add("pending-data");
 
       var saldoAntCell = shift === "am"
-        ? '<input class="num-input field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="a" value="'+row.a+'">'
-        : '<span class="derived" data-ridx="'+idx+'">'+(amRow.f===null?"—":fmt(amRow.f))+'</span>';
+        ? '<input class="num-input field-input' + (row.a===null?" pending-warn":"") + '" type="number" step="any" min="0" data-idx="'+idx+'" data-field="a" value="'+(row.a===null?"":row.a)+'" placeholder="—">'
+        : '<span class="derived' + (amRow.f===null?" pending-warn":"") + '" data-ridx="'+idx+'">'+(amRow.f===null?"—":fmt(amRow.f))+'</span>';
 
       var nameCell = tab === "otros"
         ? '<td class="name-cell">' + esc(name) +
