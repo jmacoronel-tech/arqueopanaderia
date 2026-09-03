@@ -157,6 +157,7 @@
   .cuadre-cell{ font-weight:700; min-width:3.6rem; }
   .cuadre-cell.good{ color:var(--good); }
   .cuadre-cell.bad{ color:var(--bad); }
+  .ventas-cell.pending, .cuadre-cell.pending{ color:var(--ink-muted); font-weight:600; }
   .cuadre-cell.pending{ color:var(--ink-muted); font-weight:500; }
   .row-count{ font-size:.78rem; color:var(--ink-muted); margin-top:.6rem; }
 
@@ -644,8 +645,12 @@ var TRIPLES = [
   function emptyTurno(){
     return { respAM:"", respPM:"", eAM:"", sAM:"", ePM:"", sPM:"", obsAM:"", obsPM:"", notas:"" };
   }
-  function emptyAmRow(prevFinal){ return { a:prevFinal, i1:0, i2:0, i3:0, m:0, f:prevFinal, vc:null }; }
-  function emptyPmRow(carry){ return { i1:0, i2:0, i3:0, m:0, f:carry, vc:null }; }
+  // "Saldo Final" (f) arranca en blanco (null) tanto en la mañana como en la tarde: es el
+  // número que alguien tiene que escribir después de contar físicamente, no algo que el
+  // sistema deba adivinar. "Saldo Anterior" (a) sí sigue trayendo el saldo final del día
+  // anterior, porque ese es un dato ya confirmado, no uno pendiente de contar.
+  function emptyAmRow(prevFinal){ return { a:prevFinal, i1:0, i2:0, i3:0, m:0, f:null, vc:null }; }
+  function emptyPmRow(carry){ return { i1:0, i2:0, i3:0, m:0, f:null, vc:null }; }
 
   function latestDayBefore(date){
     var keys = Object.keys(STATE.days).filter(function(d){ return d < date; }).sort();
@@ -743,12 +748,21 @@ var TRIPLES = [
     return STATE.days[date];
   }
 
-  function ventasAm(row){ return row.a + row.i1 + row.i2 + row.i3 - row.m - row.f; }
-  function ventasPm(row, amRow){ return amRow.f + row.i1 + row.i2 + row.i3 - row.m - row.f; }
+  // Si todavía no se contó el "Saldo Final" (f === null, pendiente), no se puede calcular
+  // "Ventas físicas" — no es que sea cero, es que todavía no se sabe. Lo mismo si, en la
+  // tarde, lo que falta contar es el cierre de la mañana (amRow.f).
+  function ventasAm(row){ return row.f === null ? null : row.a + row.i1 + row.i2 + row.i3 - row.m - row.f; }
+  function ventasPm(row, amRow){
+    if(row.f === null || amRow.f === null) return null;
+    return amRow.f + row.i1 + row.i2 + row.i3 - row.m - row.f;
+  }
   function ventasOf(row, shift, amRow){ return shift === "am" ? ventasAm(row) : ventasPm(row, amRow); }
-  function cuadreOf(row, ventasFisicas){ return row.vc === null ? null : (ventasFisicas - row.vc); }
+  function cuadreOf(row, ventasFisicas){
+    return (row.vc === null || ventasFisicas === null) ? null : (ventasFisicas - row.vc);
+  }
   function isFlagged(row, shift, amRow){
     var v = ventasOf(row, shift, amRow);
+    if(v === null) return false;
     if(v < -0.004) return true;
     var c = cuadreOf(row, v);
     if(c !== null && Math.abs(c) > 0.004) return true;
@@ -1205,7 +1219,10 @@ var TRIPLES = [
       var amRow = amRows[idx];
       var row = shift === "am" ? amRow : pmRows[idx];
       var saldoAnt = shift === "am" ? row.a : amRow.f;
-      var moved = row.i1 || row.i2 || row.i3 || row.m || row.f !== saldoAnt || row.vc !== null;
+      // "Saldo Final" pendiente de contar (null) no cuenta como "se movió" — antes sí generaba
+      // un falso movimiento porque null nunca es igual al saldo anterior.
+      var fChanged = row.f !== null && row.f !== saldoAnt;
+      var moved = row.i1 || row.i2 || row.i3 || row.m || fChanged || row.vc !== null;
       if(!moved) return;
       var v = ventasOf(row, shift, amRow);
       var c = cuadreOf(row, v);
@@ -1242,8 +1259,8 @@ var TRIPLES = [
         html += "<table><thead><tr><th>Producto</th><th>Saldo ant.</th><th>Ingresos</th><th>Merma</th>" +
           "<th>Saldo final</th><th>Ventas físicas</th><th>Ventas caja</th><th>Cuadre</th></tr></thead><tbody>";
         rows.forEach(function(r){
-          html += '<tr class="' + (r.flagged ? "flagged" : "") + '"><td>' + esc(r.name) + "</td><td>" + fmt(r.saldoAnt) +
-            "</td><td>" + fmt(r.ing) + "</td><td>" + fmt(r.m) + "</td><td>" + fmt(r.f) + "</td><td>" + fmt(r.v) +
+          html += '<tr class="' + (r.flagged ? "flagged" : "") + '"><td>' + esc(r.name) + "</td><td>" + (r.saldoAnt === null ? "—" : fmt(r.saldoAnt)) +
+            "</td><td>" + fmt(r.ing) + "</td><td>" + fmt(r.m) + "</td><td>" + (r.f === null ? "—" : fmt(r.f)) + "</td><td>" + (r.v === null ? "—" : fmt(r.v)) +
             "</td><td>" + (r.vc === null ? "—" : fmt(r.vc)) + "</td><td>" + (r.c === null ? "—" : fmt(r.c)) + "</td></tr>";
         });
         html += "</tbody></table>";
@@ -1306,9 +1323,9 @@ var TRIPLES = [
           var ingresoPm = pmRow.i1 + pmRow.i2 + pmRow.i3;
           byTab[tabKey].push([
             d, name,
-            fmt(amRow.a), fmt(ingresoAm), fmt(amRow.m), fmt(amRow.f), fmt(vAm),
+            fmt(amRow.a), fmt(ingresoAm), fmt(amRow.m), amRow.f===null ? "" : fmt(amRow.f), vAm===null ? "" : fmt(vAm),
             amRow.vc===null ? "" : fmt(amRow.vc), cAm===null ? "" : fmt(cAm),
-            fmt(ingresoPm), fmt(pmRow.m), fmt(pmRow.f), fmt(vPm),
+            fmt(ingresoPm), fmt(pmRow.m), pmRow.f===null ? "" : fmt(pmRow.f), vPm===null ? "" : fmt(vPm),
             pmRow.vc===null ? "" : fmt(pmRow.vc), cPm===null ? "" : fmt(cPm),
             t.respAM || "", t.sAM || "", t.respPM || "", t.sPM || ""
           ]);
@@ -1316,6 +1333,64 @@ var TRIPLES = [
       });
     });
     return byTab;
+  }
+  // ---------- Reporte simple (Panes / Embutidos / Triples) ----------
+  // Jessica pidió un reporte más liviano para estas 3 categorías —el de arriba (REPORT_HEADER)
+  // le sale con demasiadas columnas (mañana + tarde repetido por cada cosa). Este otro es una
+  // sola fila por producto, con lo que necesita del cierre de la tarde nada más: parecido al
+  // Excel que ella misma armó a mano como ejemplo. Bebidas y Otros, por ahora, se quedan con el
+  // reporte de siempre (no lo pidió para esas dos todavía).
+  var SIMPLE_REPORT_TABS = ["panes","embutidos","triples"];
+  var SIMPLE_REPORT_HEADER = ["Fecha","Producto","Saldo Anterior","Ingreso AM","Ingreso PM","Merma PM","Saldo Final PM","Ventas Caja PM","Cuadre PM"];
+  var SIMPLE_REPORT_TITLES = { panes:"ARQUEO DE PANES", embutidos:"ARQUEO DE EMBUTIDOS", triples:"ARQUEO DE TRIPLES" };
+  function buildSimpleReportRowsByCategory(dateFilter){
+    var byTab = {};
+    SIMPLE_REPORT_TABS.forEach(function(tabKey){ byTab[tabKey] = []; });
+    var dates = Object.keys(STATE.days).sort();
+    if(dateFilter) dates = dates.filter(function(d){ return d === dateFilter; });
+    dates.forEach(function(d){
+      var day = STATE.days[d];
+      backfillDay(day, d);
+      SIMPLE_REPORT_TABS.forEach(function(tabKey){
+        var section = SECTIONS[tabKey];
+        var sec = day[section.key];
+        catalogFor(tabKey).forEach(function(name, idx){
+          var amRow = sec.am[idx];
+          var pmRow = sec.pm[idx];
+          var vPm = ventasOf(pmRow, "pm", amRow);
+          var cPm = cuadreOf(pmRow, vPm);
+          var ingresoAm = amRow.i1 + amRow.i2 + amRow.i3;
+          var ingresoPm = pmRow.i1 + pmRow.i2 + pmRow.i3;
+          byTab[tabKey].push([
+            d, name, fmt(amRow.a), fmt(ingresoAm), fmt(ingresoPm), fmt(pmRow.m), pmRow.f===null ? "" : fmt(pmRow.f),
+            pmRow.vc===null ? "" : fmt(pmRow.vc), cPm===null ? "" : fmt(cPm)
+          ]);
+        });
+      });
+    });
+    return byTab;
+  }
+  function buildSimpleReportSheet(tabKey, rows){
+    var numCols = SIMPLE_REPORT_HEADER.length;
+    var titleRow = [];
+    for(var i=0;i<numCols;i++) titleRow.push("");
+    titleRow[0] = SIMPLE_REPORT_TITLES[tabKey];
+    var aoa = [titleRow, SIMPLE_REPORT_HEADER.slice()].concat(rows);
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!merges"] = [{ s:{r:0,c:0}, e:{r:0,c:numCols-1} }];
+    ws["!cols"] = [{wch:12},{wch:26},{wch:14},{wch:12},{wch:12},{wch:10},{wch:14},{wch:14},{wch:10}];
+    // Negrita y color para el título y el encabezado — si el lector de Excel de quien lo abre
+    // no llega a pintar el color, igual queda bien: el contenido y el orden de columnas es lo
+    // que más importa.
+    try{
+      var titleRef = XLSX.utils.encode_cell({r:0,c:0});
+      if(ws[titleRef]) ws[titleRef].s = { font:{ bold:true, underline:true, sz:14, color:{rgb:"C2660C"} }, alignment:{ horizontal:"center" } };
+      for(var c=0;c<numCols;c++){
+        var ref = XLSX.utils.encode_cell({r:1,c:c});
+        if(ws[ref]) ws[ref].s = { font:{ bold:true, color:{rgb:"FFFFFF"} }, fill:{ fgColor:{rgb:"4472C4"} }, alignment:{ horizontal:"center" } };
+      }
+    }catch(e){}
+    return ws;
   }
   function buildTurnoRows(dateFilter){
     var rows = [["Fecha","Responsable AM","Hora Entrada AM","Hora Cierre AM","Observaciones AM",
@@ -1335,10 +1410,13 @@ var TRIPLES = [
     if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo."); return; }
     try{
       var byTab = buildReportRowsByCategory(dateFilter);
+      var simpleByTab = buildSimpleReportRowsByCategory(dateFilter);
       var wb = XLSX.utils.book_new();
       var SHEET_NAMES = { panes:"Panes", bebidas:"Bebidas", embutidos:"Embutidos", triples:"Triples", otros:"Otros" };
       PRODUCT_TABS.forEach(function(tabKey){
-        var ws = XLSX.utils.aoa_to_sheet(byTab[tabKey]);
+        var ws = SIMPLE_REPORT_TABS.indexOf(tabKey) !== -1
+          ? buildSimpleReportSheet(tabKey, simpleByTab[tabKey])
+          : XLSX.utils.aoa_to_sheet(byTab[tabKey]);
         XLSX.utils.book_append_sheet(wb, ws, SHEET_NAMES[tabKey]);
       });
       var wsTurno = XLSX.utils.aoa_to_sheet(buildTurnoRows(dateFilter));
@@ -1540,7 +1618,7 @@ var TRIPLES = [
 
     if(t.classList.contains("field-input")){
       var field = t.getAttribute("data-field");
-      if(field === "vc"){ row.vc = numOrNull(t.value); }
+      if(field === "vc" || field === "f"){ row[field] = numOrNull(t.value); }
       else { row[field] = num(t.value); }
     } else if(t.classList.contains("ag-input")){
       var map = shift === "am" ? sec.agAm : sec.agPm;
@@ -1565,8 +1643,11 @@ var TRIPLES = [
 
     var vCell = tbody.querySelector('.ventas-cell[data-ridx="'+idx+'"]');
     if(vCell){
-      vCell.textContent = fmt(v);
-      vCell.className = "ventas-cell " + (v < -0.004 ? "bad" : (v === 0 && row.vc===null ? "neutral" : "good"));
+      if(v === null){ vCell.textContent = "—"; vCell.className = "ventas-cell pending"; }
+      else {
+        vCell.textContent = fmt(v);
+        vCell.className = "ventas-cell " + (v < -0.004 ? "bad" : (v === 0 && row.vc===null ? "neutral" : "good"));
+      }
     }
     var cCell = tbody.querySelector('.cuadre-cell[data-ridx="'+idx+'"]');
     if(cCell){
@@ -1578,7 +1659,7 @@ var TRIPLES = [
 
     if(shift === "pm"){
       var derived = tbody.querySelector('.derived[data-ridx="'+idx+'"]');
-      if(derived) derived.textContent = fmt(amRow.f);
+      if(derived) derived.textContent = amRow.f === null ? "—" : fmt(amRow.f);
     }
 
     var agNote = tbody.querySelector('.ag-note[data-ridx="'+idx+'"]');
@@ -1620,7 +1701,7 @@ var TRIPLES = [
 
       var saldoAntCell = shift === "am"
         ? '<input class="num-input field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="a" value="'+row.a+'">'
-        : '<span class="derived" data-ridx="'+idx+'">'+fmt(amRow.f)+'</span>';
+        : '<span class="derived" data-ridx="'+idx+'">'+(amRow.f===null?"—":fmt(amRow.f))+'</span>';
 
       var nameCell = tab === "otros"
         ? '<td class="name-cell">' + esc(name) +
@@ -1637,10 +1718,10 @@ var TRIPLES = [
           '<input class="num-input mini field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="i3" value="'+row.i3+'" title="Ingreso 3">' +
         '</span></td>' +
         '<td><input class="num-input field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="m" value="'+row.m+'"></td>' +
-        '<td><input class="num-input field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="f" value="'+row.f+'"></td>' +
+        '<td><input class="num-input field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="f" value="'+(row.f===null?"":row.f)+'" placeholder="—"></td>' +
         '<td><input class="time-input ag-input" type="time" data-idx="'+idx+'" value="'+esc(agTime)+'">' +
           '<div class="ag-note" data-ridx="'+idx+'">' + esc(fmtDuration(mins)) + '</div></td>' +
-        '<td class="ventas-cell ' + (v<-0.004?"bad":(v===0&&row.vc===null?"neutral":"good")) + '" data-ridx="'+idx+'">' + fmt(v) + "</td>" +
+        '<td class="ventas-cell ' + (v===null?"pending":(v<-0.004?"bad":(v===0&&row.vc===null?"neutral":"good"))) + '" data-ridx="'+idx+'">' + (v===null?"—":fmt(v)) + "</td>" +
         '<td><input class="num-input vc field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="vc" value="'+(row.vc===null?"":row.vc)+'" placeholder="—"></td>' +
         '<td class="cuadre-cell ' + (c===null?"pending":(Math.abs(c)>0.004?"bad":"good")) + '" data-ridx="'+idx+'">' + (c===null?"—":fmt(c)) + "</td>";
       tbody.appendChild(tr);
