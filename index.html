@@ -599,6 +599,13 @@ var TRIPLES = [
     var r = Math.round(n*100)/100;
     return Number.isInteger(r) ? String(r) : r.toFixed(2);
   }
+  // Solo para montos en soles del PDF de Pedidos (precios, totales de línea, subtotal, delivery,
+  // total): siempre con dos decimales ("108.00", no "108"), a diferencia de fmt() de arriba, que
+  // se usa en el Arqueo y ahí no se toca.
+  function fmtMoney(n){
+    if(!isFinite(n)) return "0.00";
+    return (Math.round(n*100)/100).toFixed(2);
+  }
   function num(v){ var n = parseFloat(v); return isFinite(n) ? n : 0; }
   function numOrNull(v){
     if(v === "" || v === null || typeof v === "undefined") return null;
@@ -1828,6 +1835,7 @@ var TRIPLES = [
       cliente: { nombre:"", dni:"", ruc:"", direccion: canal === "tienda" ? "Recojo en tienda" : "", referencia:"", telefono:"", correo:"" },
       tipoPago: "",
       pagado: false,
+      comprobante: null,
       deliveryMonto: 0,
       notas: "",
       fechaDefault: fecha,
@@ -2079,6 +2087,41 @@ var TRIPLES = [
     else { wrap.appendChild(buildPedidoForm()); }
 
     return wrap;
+  }
+
+  // Comprime la foto del comprobante (Yape/transferencia) antes de guardarla: cada Pedido vive
+  // en su propio documento de Firestore (límite de 1 MB), así que se reduce el tamaño de la
+  // imagen y se prueba con menos calidad hasta que quede liviana y quepa sin problema.
+  function compressImageFile(file, done){
+    var maxDim = 1000, maxBytes = 550000;
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var img = new Image();
+      img.onload = function(){
+        var w = img.width, h = img.height;
+        var scale = Math.min(1, maxDim / Math.max(w, h));
+        var cw = Math.max(1, Math.round(w * scale));
+        var ch = Math.max(1, Math.round(h * scale));
+        var canvas = document.createElement("canvas");
+        canvas.width = cw; canvas.height = ch;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, cw, ch);
+        function tryQuality(q){
+          var dataUrl = canvas.toDataURL("image/jpeg", q);
+          var approxBytes = Math.round(dataUrl.length * 0.75);
+          if(approxBytes > maxBytes && q > 0.3){
+            tryQuality(q - 0.12);
+          } else {
+            done(dataUrl);
+          }
+        }
+        tryQuality(0.72);
+      };
+      img.onerror = function(){ done(null); };
+      img.src = ev.target.result;
+    };
+    reader.onerror = function(){ done(null); };
+    reader.readAsDataURL(file);
   }
 
   function buildPedidoForm(){
@@ -2363,6 +2406,72 @@ var TRIPLES = [
     payRow.appendChild(payLabel);
     card.appendChild(payRow);
 
+    var comprobanteRow = document.createElement("div");
+    comprobanteRow.className = "field";
+    comprobanteRow.style.margin = ".8rem 0 0";
+    var comprobanteLabel = document.createElement("label");
+    comprobanteLabel.textContent = "Foto del Yape / Transferencia (opcional)";
+    comprobanteRow.appendChild(comprobanteLabel);
+
+    var comprobantePreviewWrap = document.createElement("div");
+    comprobantePreviewWrap.style.display = "flex";
+    comprobantePreviewWrap.style.alignItems = "center";
+    comprobantePreviewWrap.style.gap = ".6rem";
+    comprobantePreviewWrap.style.flexWrap = "wrap";
+
+    var comprobanteImg = document.createElement("img");
+    comprobanteImg.style.maxWidth = "90px";
+    comprobanteImg.style.maxHeight = "90px";
+    comprobanteImg.style.borderRadius = "6px";
+    comprobanteImg.style.border = "1px solid var(--border)";
+    comprobanteImg.hidden = !draft.comprobante;
+    if(draft.comprobante) comprobanteImg.src = draft.comprobante;
+    comprobantePreviewWrap.appendChild(comprobanteImg);
+
+    var comprobanteFileInput = document.createElement("input");
+    comprobanteFileInput.type = "file";
+    comprobanteFileInput.accept = "image/*";
+    if(readOnly) comprobanteFileInput.disabled = true;
+    comprobantePreviewWrap.appendChild(comprobanteFileInput);
+
+    var comprobanteRemoveBtn = document.createElement("button");
+    comprobanteRemoveBtn.type = "button";
+    comprobanteRemoveBtn.className = "btn btn-sm";
+    comprobanteRemoveBtn.textContent = "Quitar foto";
+    comprobanteRemoveBtn.hidden = !draft.comprobante;
+    if(readOnly) comprobanteRemoveBtn.disabled = true;
+    comprobantePreviewWrap.appendChild(comprobanteRemoveBtn);
+
+    comprobanteRow.appendChild(comprobantePreviewWrap);
+    var comprobanteHint = document.createElement("div");
+    comprobanteHint.className = "hint";
+    comprobanteHint.textContent = "Sube la captura del Yape o la transferencia: así sale en el PDF y queda confirmado el pago.";
+    comprobanteRow.appendChild(comprobanteHint);
+    card.appendChild(comprobanteRow);
+
+    comprobanteFileInput.addEventListener("change", function(){
+      var file = comprobanteFileInput.files && comprobanteFileInput.files[0];
+      if(!file) return;
+      showToast("Cargando foto…");
+      compressImageFile(file, function(dataUrl){
+        comprobanteFileInput.value = "";
+        if(!dataUrl){ showToast("No se pudo cargar la foto. Intenta con otra imagen."); return; }
+        draft.comprobante = dataUrl;
+        comprobanteImg.src = dataUrl;
+        comprobanteImg.hidden = false;
+        comprobanteRemoveBtn.hidden = false;
+        showToast("Foto agregada.");
+        if(pedidoEditingId) schedulePedidoAutosave();
+      });
+    });
+    comprobanteRemoveBtn.addEventListener("click", function(){
+      draft.comprobante = null;
+      comprobanteImg.hidden = true;
+      comprobanteImg.src = "";
+      comprobanteRemoveBtn.hidden = true;
+      if(pedidoEditingId) schedulePedidoAutosave();
+    });
+
     card.appendChild(buildField("Notas (opcional)", "textarea", draft.notas, function(v){ draft.notas = v; }, true));
 
     card.appendChild(totalsRow);
@@ -2549,6 +2658,7 @@ var TRIPLES = [
       cliente: draft.cliente,
       tipoPago: draft.tipoPago || "",
       pagado: !!draft.pagado,
+      comprobante: draft.comprobante || null,
       deliveryMonto: pedidoDeliveryTotal(draft),
       masivoModo: draft.canal === "masivo" ? draft.masivoModo : "",
       masivoDeliveryRate: draft.canal === "masivo" ? num(draft.masivoDeliveryRate) : 0,
@@ -2592,6 +2702,7 @@ var TRIPLES = [
       },
       tipoPago: p.tipoPago || "",
       pagado: !!p.pagado,
+      comprobante: p.comprobante || null,
       deliveryMonto: num(p.deliveryMonto),
       masivoModo: p.masivoModo || "recojo",
       masivoDeliveryRate: num(p.masivoDeliveryRate),
@@ -2632,6 +2743,7 @@ var TRIPLES = [
       cliente: draft.cliente,
       tipoPago: draft.tipoPago || "",
       pagado: !!draft.pagado,
+      comprobante: draft.comprobante || null,
       deliveryMonto: pedidoDeliveryTotal(draft),
       masivoModo: draft.canal === "masivo" ? draft.masivoModo : "",
       masivoDeliveryRate: draft.canal === "masivo" ? num(draft.masivoDeliveryRate) : 0,
@@ -2695,8 +2807,7 @@ var TRIPLES = [
       ["DIRECCION:", c.direccion],
       ["REFERENCIA:", c.referencia],
       ["TELÉFONO:", c.telefono],
-      ["CORREO:", c.correo],
-      ["TIPO DE PAGO:", p.tipoPago]
+      ["CORREO:", c.correo]
     ];
     var html = "";
     rows.forEach(function(r){
@@ -2707,32 +2818,52 @@ var TRIPLES = [
         '<div style="width:130px; flex:none; font-weight:700;">' + esc(r[0]) + '</div>' +
         '<div>' + esc(r[1] || "") + '</div></div>';
     });
+    // La forma de pago (Yape, Transferencia, Efectivo…) y si ya está pagado o no van juntas
+    // y siempre visibles — a diferencia de los datos de arriba, esto sí le importa al equipo
+    // aunque no se haya llenado la forma de pago todavía.
+    var tipoPago = p.tipoPago && String(p.tipoPago).trim() ? esc(p.tipoPago) : "—";
+    var pagadoBadge = p.pagado
+      ? '<span style="color:#3D7A57; font-weight:800;">✓ PAGADO</span>'
+      : '<span style="color:#B34428; font-weight:800;">PENDIENTE DE PAGO</span>';
+    html += '<div style="display:flex; padding:1px 0; align-items:center;">' +
+      '<div style="width:130px; flex:none; font-weight:700;">PAGO:</div>' +
+      '<div>' + tipoPago + ' &nbsp;—&nbsp; ' + pagadoBadge + '</div></div>';
     return html;
   }
   function pedidoTableHTML(p){
     var isMasivo = p.canal === "masivo";
     var subtotal = 0;
-    var headStyle = "border:1px solid #111; padding:3px 6px; background:#fff;";
+    var headStyle = "border:1px solid #111; padding:4px 6px; background:#fff;";
     function th(label, align){ return '<th style="' + headStyle + 'text-align:' + align + ';">' + label + "</th>"; }
-    var head = (isMasivo ? th("FECHA ENTREGA", "left") : "") + th("CANT.", "right") + th("PRODUCTO", "left") + th("PRECIO", "right") + th("TOTAL", "right");
+    var head = (isMasivo ? th("FECHA ENTREGA", "left") : "") + th("CANT.", "center") + th("PRODUCTO", "left") + th("PRECIO", "right") + th("TOTAL", "right");
+    // Anchos fijos por columna (via colgroup + table-layout:fixed) para que Cantidad, Precio y
+    // Total queden siempre alineados en la misma posición en todas las filas, en vez de que el
+    // ancho se acomode según el texto más largo de cada pedido.
+    var colgroup = "<colgroup>" +
+      (isMasivo ? '<col style="width:80px;">' : "") +
+      '<col style="width:44px;">' +
+      "<col>" +
+      '<col style="width:64px;">' +
+      '<col style="width:68px;">' +
+      "</colgroup>";
     var body = "";
     (p.items || []).forEach(function(it){
       var lineTotal = num(it.cantidad) * num(it.precio);
       subtotal += lineTotal;
-      var cellStyle = "border:1px solid #111; padding:3px 6px;";
+      var cellStyle = "border:1px solid #111; padding:4px 6px; vertical-align:top;";
       var obsHtml = it.obs && it.obs.trim()
         ? '<div style="font-size:10px; font-style:italic; color:#555;">' + esc(it.obs.trim()) + "</div>"
         : "";
       body += "<tr>" +
         (isMasivo ? '<td style="' + cellStyle + 'text-align:left;">' + esc(fmtFechaCorta(it.fecha)) + "</td>" : "") +
-        '<td style="' + cellStyle + 'text-align:right;">' + fmt(it.cantidad) + "</td>" +
+        '<td style="' + cellStyle + 'text-align:center;">' + fmt(it.cantidad) + "</td>" +
         '<td style="' + cellStyle + 'text-align:left;">' + esc(it.producto) + obsHtml + "</td>" +
-        '<td style="' + cellStyle + 'text-align:right;">S/' + fmt(it.precio) + "</td>" +
-        '<td style="' + cellStyle + 'text-align:right;">S/' + fmt(lineTotal) + "</td>" +
+        '<td style="' + cellStyle + 'text-align:right;">S/' + fmtMoney(it.precio) + "</td>" +
+        '<td style="' + cellStyle + 'text-align:right;">S/' + fmtMoney(lineTotal) + "</td>" +
         "</tr>";
     });
     var theadHtml = "<thead><tr>" + head + "</tr></thead>";
-    return { html: '<table style="width:100%; border-collapse:collapse; font-size:12px; margin:8px 0 4px;">' + theadHtml + "<tbody>" + body + "</tbody></table>", subtotal: subtotal };
+    return { html: '<table style="width:100%; border-collapse:collapse; table-layout:fixed; font-size:12px; margin:8px 0 4px;">' + colgroup + theadHtml + "<tbody>" + body + "</tbody></table>", subtotal: subtotal };
   }
   function buildPedidoPrintCardHTML(p){
     var isMasivo = p.canal === "masivo";
@@ -2759,11 +2890,20 @@ var TRIPLES = [
     html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:4px;">' +
       '<div style="font-size:11px;">Importante: Poner su nombre en Whatsapp</div>' +
       '<div style="font-size:12px; text-align:right;">' +
-      '<div>SubTotal Productos: <strong>S/' + fmt(tabla.subtotal) + '</strong></div>' +
-      '<div>Delivery: <strong>S/' + fmt(delivery) + '</strong></div>' +
-      '<div>Total: <strong>S/' + fmt(total) + '</strong></div>' +
+      '<div>SubTotal Productos: <strong>S/' + fmtMoney(tabla.subtotal) + '</strong></div>' +
+      '<div>Delivery: <strong>S/' + fmtMoney(delivery) + '</strong></div>' +
+      '<div>Total: <strong>S/' + fmtMoney(total) + '</strong></div>' +
       '</div></div>';
-    html += '<div style="text-align:center; color:#cc0000; font-weight:700; font-size:11px; margin-top:14px;">40 años... Tradición en Evolución</div>';
+    // Foto del Yape/transferencia (si se subió una): así queda el pago 100% confirmado junto
+    // con el resto del pedido, no solo el texto "PAGADO".
+    if(p.comprobante){
+      html += '<div style="margin-top:8px; text-align:center;">' +
+        '<div style="font-size:10px; font-weight:700; color:#555; margin-bottom:3px;">COMPROBANTE DE PAGO</div>' +
+        '<img src="' + p.comprobante + '" style="max-width:260px; max-height:260px; border:1px solid #ccc; border-radius:4px;">' +
+        '</div>';
+    }
+    html += '<div style="text-align:center; color:#cc0000; font-weight:700; font-size:11px; margin-top:14px;">40 años... Tradición en Evolución, a tu servicio</div>';
+    html += '<div style="text-align:center; color:#111; font-size:11px; margin-top:2px;">¡Gracias por tu compra!</div>';
     html += '</div>';
     return html;
   }
