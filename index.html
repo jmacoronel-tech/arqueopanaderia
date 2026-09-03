@@ -571,6 +571,10 @@ var TRIPLES = [
   var db = null;
   var lastSavedBySelf = null;
   var saveTimer = null, saving = false;
+  // Se pone en true cuando llega un cambio de OTRO dispositivo mientras acá había algo sin
+  // guardar todavía. Mientras esté en true, doSave() se niega a guardar (para nunca pisar por
+  // encima lo que ese otro dispositivo ya guardó) hasta que se toque "Actualizar ahora".
+  var remoteConflict = false;
   var currentDate = todayISO();
   // Pedidos (delivery / recojo en tienda / masivo): viven en su propia colección de Firestore,
   // separada del documento "arqueo/state", para no hacer crecer sin límite el documento del
@@ -752,10 +756,15 @@ var TRIPLES = [
       var section = SECTIONS[tab];
       backfillSection(day, section.key, catalogFor(tab), prevDay);
     });
-    if(cleanupSaldoFinalMigrado(day)){
-      markDirty();
-      scheduleAutosave();
-    }
+    // OJO: esto antes guardaba solo, en automático, apenas detectaba algo para corregir.
+    // Era peligroso porque getDay()/backfillDay() se ejecuta en CADA render (no solo cuando
+    // alguien escribe algo) — así que podía disparar un guardado de fondo sin que nadie
+    // tocara nada, justo en el peor momento: cuando otro dispositivo ya tenía cambios más
+    // nuevos que acá todavía no se habían recibido. Ese guardado automático los pisaba por
+    // completo, sin avisar. Ahora la corrección se sigue aplicando (se ve bien en pantalla
+    // y viaja junto con cualquier guardado real que la persona haga por su cuenta al
+    // escribir algo), pero YA NO dispara un guardado por sí sola.
+    cleanupSaldoFinalMigrado(day);
   }
   // Quitar un producto de Otros: hay que correr el índice en todos los días ya guardados
   // (el arreglo de filas está indexado por posición), incluyendo los mapas de "se agotó".
@@ -811,7 +820,16 @@ var TRIPLES = [
   }
   function ventasOf(row, shift, amRow){ return shift === "am" ? ventasAm(row) : ventasPm(row, amRow); }
   function cuadreOf(row, ventasFisicas){
-    return (row.vc === null || ventasFisicas === null) ? null : (ventasFisicas - row.vc);
+    if(ventasFisicas === null) return null;
+    if(row.vc === null){
+      // No se registró venta de caja para esta fila. Si tampoco hubo movimiento físico
+      // (ventasFisicas === 0), no hay nada que cuadrar todavía -> queda "—" (neutral).
+      // Pero si SÍ hubo una venta física real y no hay caja registrada, eso es justo lo
+      // que hay que revisar: se trata como si la caja fuera 0, así que el cuadre sale en
+      // negativo (por ejemplo, se vendió 1 y no figura en caja -> Cuadre = -1).
+      return ventasFisicas === 0 ? null : -ventasFisicas;
+    }
+    return ventasFisicas - row.vc;
   }
   function isFlagged(row, shift, amRow){
     var v = ventasOf(row, shift, amRow);
@@ -968,6 +986,15 @@ var TRIPLES = [
 
   function doSave(){
     if(readOnly || saving || !db) { setSaveStatus(); return; }
+    if(remoteConflict){
+      // Hay cambios de otro dispositivo que todavía no se cargaron acá. Guardar ahora
+      // significaría pisar por encima esos cambios con una copia vieja. Nos negamos a
+      // guardar y dejamos el aviso visible hasta que la persona toque "Actualizar ahora".
+      clearTimeout(saveTimer);
+      showBanner("bad", "No se guardó: otro dispositivo tiene cambios más nuevos. Toca \"Actualizar ahora\" arriba para traerlos antes de seguir.", []);
+      setSaveStatus();
+      return;
+    }
     clearTimeout(saveTimer);
     saving = true;
     setSaveStatus();
@@ -3439,9 +3466,10 @@ var TRIPLES = [
         return;
       }
       if(dirty || saving){
-        showBanner("info", "Otro dispositivo guardó cambios nuevos. Si sigues editando podrías perderlos.",
+        remoteConflict = true;
+        showBanner("warn", "Otro dispositivo guardó cambios nuevos. Toca \"Actualizar ahora\" para traerlos — mientras tanto no se va a guardar nada acá, para no perder lo tuyo ni lo de ellos.",
           [{ label:"Actualizar ahora", action:function(){
-              STATE = data; dirty = false; clearBackup(); renderAll();
+              STATE = data; dirty = false; remoteConflict = false; clearBackup(); renderAll();
             }}]);
         return;
       }
