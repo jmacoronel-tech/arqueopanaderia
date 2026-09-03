@@ -569,6 +569,9 @@ var TRIPLES = [
   var pedidoDraft = null;
   var pedidosView = "nuevo";
   var pedidosSaving = false;
+  var pedidoEditingId = null;
+  var pedidoSaveTimer = null;
+  var pedidoAutosaving = false;
   // Clientes guardados (colección "clientes"): se guardan/actualizan solos cada vez que se
   // registra un pedido, para que la próxima vez alcance con escribir el nombre y se rellene
   // el resto de sus datos automáticamente.
@@ -1957,10 +1960,40 @@ var TRIPLES = [
     var card = document.createElement("div");
     card.className = "card";
 
+    var headRow = document.createElement("div");
+    headRow.style.display = "flex";
+    headRow.style.justifyContent = "space-between";
+    headRow.style.alignItems = "center";
+    headRow.style.flexWrap = "wrap";
+    headRow.style.gap = ".5rem";
     var h2 = document.createElement("h2");
     h2.style.margin = "0 0 .8rem";
-    h2.textContent = "Nuevo pedido";
-    card.appendChild(h2);
+    h2.textContent = pedidoEditingId ? "Editar pedido" : "Nuevo pedido";
+    headRow.appendChild(h2);
+    if(pedidoEditingId){
+      var editControls = document.createElement("div");
+      editControls.style.display = "flex";
+      editControls.style.alignItems = "center";
+      editControls.style.gap = ".6rem";
+      var pedidoSaveStatus = document.createElement("span");
+      pedidoSaveStatus.id = "pedidoSaveStatus";
+      pedidoSaveStatus.className = "hint";
+      pedidoSaveStatus.textContent = pedidoAutosaving ? "Guardando…" : "Los cambios se guardan solos";
+      editControls.appendChild(pedidoSaveStatus);
+      var volverBtn = document.createElement("button");
+      volverBtn.type = "button";
+      volverBtn.className = "btn btn-sm";
+      volverBtn.textContent = "Volver a la lista";
+      volverBtn.addEventListener("click", function(){
+        pedidoEditingId = null;
+        pedidoDraft = null;
+        pedidosView = "lista";
+        renderPanel();
+      });
+      editControls.appendChild(volverBtn);
+      headRow.appendChild(editControls);
+    }
+    card.appendChild(headRow);
 
     var canalRow = document.createElement("div");
     canalRow.className = "shift-toggle";
@@ -1975,6 +2008,7 @@ var TRIPLES = [
         draft.canal = c;
         if(c === "tienda" && !draft.cliente.direccion) draft.cliente.direccion = "Recojo en tienda";
         renderPanel();
+        if(pedidoEditingId) schedulePedidoAutosave();
       });
       canalRow.appendChild(b);
     });
@@ -2152,16 +2186,18 @@ var TRIPLES = [
 
     card.appendChild(totalsRow);
 
-    var saveRow = document.createElement("div");
-    saveRow.style.marginTop = "1rem";
-    var saveBtn2 = document.createElement("button");
-    saveBtn2.type = "button";
-    saveBtn2.className = "btn btn-primary";
-    saveBtn2.textContent = pedidosSaving ? "Guardando…" : "Guardar pedido";
-    saveBtn2.disabled = pedidosSaving || readOnly;
-    saveBtn2.addEventListener("click", savePedido);
-    saveRow.appendChild(saveBtn2);
-    card.appendChild(saveRow);
+    if(!pedidoEditingId){
+      var saveRow = document.createElement("div");
+      saveRow.style.marginTop = "1rem";
+      var saveBtn2 = document.createElement("button");
+      saveBtn2.type = "button";
+      saveBtn2.className = "btn btn-primary";
+      saveBtn2.textContent = pedidosSaving ? "Guardando…" : "Guardar pedido";
+      saveBtn2.disabled = pedidosSaving || readOnly;
+      saveBtn2.addEventListener("click", savePedido);
+      saveRow.appendChild(saveBtn2);
+      card.appendChild(saveRow);
+    }
 
     var datalist = document.createElement("datalist");
     datalist.id = "pedidoProductList";
@@ -2192,6 +2228,11 @@ var TRIPLES = [
 
     renderPedidoItems(tbody, totalsRow);
     updatePedidoTotals(totalsRow);
+
+    if(pedidoEditingId){
+      card.addEventListener("input", function(){ schedulePedidoAutosave(); });
+      card.addEventListener("change", function(){ schedulePedidoAutosave(); });
+    }
 
     return card;
   }
@@ -2224,7 +2265,7 @@ var TRIPLES = [
       });
     });
     tbody.querySelectorAll(".pedido-item-producto").forEach(function(input){
-      input.addEventListener("input", function(){
+      function syncProductoYPrecio(){
         var idx = +input.getAttribute("data-idx");
         draft.items[idx].producto = input.value;
         var savedPrecio = getPrecioFor(input.value);
@@ -2236,7 +2277,12 @@ var TRIPLES = [
           if(cell) cell.textContent = "S/ " + fmt(draft.items[idx].cantidad * draft.items[idx].precio);
           updatePedidoTotals(totalsRow);
         }
-      });
+      }
+      // Se escucha "input", "change" y "blur" a la vez porque en algunos celulares, elegir
+      // una sugerencia de la lista no siempre dispara el evento "input" de forma confiable.
+      input.addEventListener("input", syncProductoYPrecio);
+      input.addEventListener("change", syncProductoYPrecio);
+      input.addEventListener("blur", syncProductoYPrecio);
     });
     function wireQtyPrice(cls, field){
       tbody.querySelectorAll(cls).forEach(function(input){
@@ -2257,6 +2303,7 @@ var TRIPLES = [
         draft.items.splice(+btn.getAttribute("data-idx"), 1);
         renderPedidoItems(tbody, totalsRow);
         updatePedidoTotals(totalsRow);
+        if(pedidoEditingId) schedulePedidoAutosave();
       });
     });
   }
@@ -2308,6 +2355,81 @@ var TRIPLES = [
       pedidosSaving = false;
       showToast("No se pudo guardar el pedido. Revisa tu conexión e intenta de nuevo.");
       renderPanel();
+    });
+  }
+
+  // ---------- Editar un pedido ya guardado (con guardado automático) ----------
+  // A diferencia de crear un pedido nuevo (que exige apretar "Guardar pedido"), corregir
+  // uno que ya existe se guarda solo, como el resto del arqueo — así Jessica o quien tome
+  // el pedido puede arreglar un error sin pasos extra.
+  function startEditPedido(p){
+    pedidoDraft = {
+      canal: p.canal || "delivery",
+      cliente: {
+        nombre: (p.cliente && p.cliente.nombre) || "",
+        dni: (p.cliente && p.cliente.dni) || "",
+        ruc: (p.cliente && p.cliente.ruc) || "",
+        direccion: (p.cliente && p.cliente.direccion) || "",
+        referencia: (p.cliente && p.cliente.referencia) || "",
+        telefono: (p.cliente && p.cliente.telefono) || "",
+        correo: (p.cliente && p.cliente.correo) || ""
+      },
+      tipoPago: p.tipoPago || "",
+      pagado: !!p.pagado,
+      deliveryMonto: num(p.deliveryMonto),
+      hora: p.hora || "",
+      notas: p.notas || "",
+      fechaDefault: (p.items && p.items[0] && p.items[0].fecha) || currentDate,
+      items: (p.items && p.items.length) ? p.items.map(function(it){
+        return { producto: it.producto || "", cantidad: num(it.cantidad), precio: num(it.precio), fecha: it.fecha || currentDate };
+      }) : [ { producto:"", cantidad:1, precio:0, fecha: currentDate } ]
+    };
+    pedidoEditingId = p.id;
+    pedidosView = "nuevo";
+    renderPanel();
+  }
+  function updatePedidoSaveStatus(){
+    var el = document.getElementById("pedidoSaveStatus");
+    if(!el) return;
+    el.textContent = pedidoAutosaving ? "Guardando…" : "Los cambios se guardan solos";
+  }
+  function schedulePedidoAutosave(){
+    if(!pedidoEditingId || readOnly) return;
+    clearTimeout(pedidoSaveTimer);
+    pedidoSaveTimer = setTimeout(function(){ doPedidoAutosave(); }, 1200);
+  }
+  function doPedidoAutosave(){
+    if(!pedidoEditingId || !db || readOnly) return;
+    var draft = pedidoDraft;
+    if(!draft) return;
+    // Si está a mitad de corregir (ej. borrando el nombre para escribir uno nuevo), esperamos
+    // a que vuelva a haber algo válido en vez de guardar un pedido a medio llenar.
+    if(!draft.cliente.nombre || !draft.cliente.nombre.trim()) return;
+    var validItems = draft.items.filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
+    if(validItems.length === 0) return;
+    var id = pedidoEditingId;
+    var payload = {
+      canal: draft.canal,
+      cliente: draft.cliente,
+      tipoPago: draft.tipoPago || "",
+      pagado: !!draft.pagado,
+      deliveryMonto: draft.canal === "delivery" ? num(draft.deliveryMonto) : 0,
+      hora: draft.hora || "",
+      notas: draft.notas || "",
+      items: validItems.map(function(it){
+        return { producto: it.producto.trim(), cantidad: num(it.cantidad), precio: num(it.precio), fecha: it.fecha || draft.fechaDefault };
+      })
+    };
+    pedidoAutosaving = true;
+    updatePedidoSaveStatus();
+    db.collection("pedidos").doc(id).update(payload).then(function(){
+      pedidoAutosaving = false;
+      updatePedidoSaveStatus();
+      upsertCliente(payload.cliente);
+    }).catch(function(){
+      pedidoAutosaving = false;
+      updatePedidoSaveStatus();
+      showToast("No se pudo guardar el cambio. Revisa tu conexión e intenta de nuevo.");
     });
   }
 
@@ -2537,7 +2659,7 @@ var TRIPLES = [
     tableWrap.className = "table-wrap";
     var table = document.createElement("table");
     table.className = "data-table";
-    table.innerHTML = "<thead><tr><th>Fecha(s)</th><th>Hora</th><th>Cliente</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th></th><th></th></tr></thead><tbody></tbody>";
+    table.innerHTML = "<thead><tr><th>Fecha(s)</th><th>Hora</th><th>Cliente</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
     var tbody = table.querySelector("tbody");
     PEDIDOS.forEach(function(p){
       var tr = document.createElement("tr");
@@ -2559,6 +2681,7 @@ var TRIPLES = [
         "<td class='pedido-productos-cell'>" + esc(productosLabel) + "</td>" +
         "<td>S/ " + fmt(subtotal) + "</td>" +
         "<td><button type='button' class='" + pagadoClass + "' data-id='" + p.id + "'>" + (p.pagado ? "Pagado" : "Pendiente") + "</button></td>" +
+        "<td>" + (readOnly ? "" : "<button type='button' class='btn btn-sm pedido-editar' data-id='" + p.id + "'>Editar</button>") + "</td>" +
         "<td><button type='button' class='btn btn-sm pedido-pdf' data-id='" + p.id + "'>Generar PDF</button></td>" +
         "<td>" + (readOnly ? "" : '<button type="button" class="btn-del pedido-del" data-id="' + p.id + '" title="Eliminar pedido">✕</button>') + "</td>";
       tbody.appendChild(tr);
@@ -2572,6 +2695,13 @@ var TRIPLES = [
     });
 
     if(!readOnly){
+      tbody.querySelectorAll(".pedido-editar").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var id = btn.getAttribute("data-id");
+          var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
+          if(p) startEditPedido(p);
+        });
+      });
       tbody.querySelectorAll(".pedido-pagado-toggle").forEach(function(btn){
         btn.addEventListener("click", function(){
           var id = btn.getAttribute("data-id");
