@@ -142,6 +142,11 @@
   .num-input{ width:4.1rem; text-align:right; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:.3rem .35rem; font-size:.85rem; color:var(--ink); font-variant-numeric:tabular-nums; }
   .num-input.mini{ width:2.15rem; padding:.3rem .2rem; text-align:center; }
   .num-input.vc{ width:4.4rem; }
+  /* Cantidad y precio de cada línea de un Pedido: recuadros más grandes y fáciles de leer/tocar
+     que el resto de campos "mini" (los de Ingreso del Arqueo, que se quedan como están). */
+  .num-input.mini.pedido-item-cantidad, .num-input.mini.pedido-item-precio{
+    width:4.6rem; padding:.5rem .4rem; font-size:1.05rem; font-weight:700; text-align:center;
+  }
   .time-input{ width:5.7rem; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:.28rem .35rem; font-size:.8rem; color:var(--ink); }
   .ag-note{ font-size:.68rem; color:var(--bad); margin-top:.15rem; text-align:right; }
   .derived{ color:var(--ink-muted); font-size:.85rem; font-style:italic; }
@@ -1846,6 +1851,36 @@ var TRIPLES = [
     return pedidoPrecioSeedMap;
   }
 
+  // Los Triples viven en el catálogo del Arqueo con un nombre genérico por sabor
+  // ("Triples Clásicos", "Triple de Aceituna", ...), que es justo el nombre que aparece
+  // para elegir en un Pedido. Pero en la lista oficial de precios (PEDIDO_PRECIO_SEED,
+  // subida del Excel) cada sabor figura con dos precios distintos según cómo se vende:
+  // "UND T. X" (por unidad) y "TIRA DE X" (la tira de 3 unidades). Como en un Pedido
+  // normalmente se cuenta por unidad (cantidad = número de triples), el nombre genérico
+  // del catálogo se enlaza aquí al precio por UNIDAD, para que nunca se quede sin precio
+  // oficial ni caiga en un precio antiguo guardado por error.
+  var TRIPLE_PRECIO_ALIAS = [
+    { catalogo:"Triples Clásicos", seed:"UND T. CLÁSICO" },
+    { catalogo:"Triple de Aceituna", seed:"UND T. ACEITUNA" },
+    { catalogo:"Triple de Asado", seed:"UND T. ASADO" },
+    { catalogo:"Triple de Pollo Durazno", seed:"UND T. POLLO DURAZNO" },
+    { catalogo:"Triple de Pavo", seed:"UND T. PAVO" },
+    { catalogo:"Triple Glaseado Piña", seed:"UND T. GLASEADO PIÑA" },
+    { catalogo:"Triple Champiñón y Tocino", seed:"UND T. CHAMPIÑÓN Y TOCINO" },
+    { catalogo:"Triple Pollo Jamón y Queso", seed:"UND T. POLLO CON JAMÓN Y QUESO" }
+  ];
+  var pedidoPrecioAliasMap = null;
+  function getPedidoPrecioAliasMap(){
+    if(pedidoPrecioAliasMap) return pedidoPrecioAliasMap;
+    pedidoPrecioAliasMap = {};
+    TRIPLE_PRECIO_ALIAS.forEach(function(item){
+      var key = normalizePrecioKey(item.catalogo);
+      var seedKey = normalizePrecioKey(item.seed);
+      if(key && seedKey) pedidoPrecioAliasMap[key] = seedKey;
+    });
+    return pedidoPrecioAliasMap;
+  }
+
   function buildCatalogNameList(){
     var idx = buildCatalogIndex();
     var names = [];
@@ -1883,6 +1918,10 @@ var TRIPLES = [
     if(!key) return null;
     var seedMap = getPedidoPrecioSeedMap();
     if(seedMap.hasOwnProperty(key)) return seedMap[key];
+    var aliasMap = getPedidoPrecioAliasMap();
+    if(aliasMap.hasOwnProperty(key) && seedMap.hasOwnProperty(aliasMap[key])){
+      return seedMap[aliasMap[key]];
+    }
     var map = STATE.precios || {};
     return map.hasOwnProperty(key) ? map[key] : null;
   }
@@ -1891,6 +1930,8 @@ var TRIPLES = [
     if(!key || !(precio > 0)) return;
     var seedMap = getPedidoPrecioSeedMap();
     if(seedMap.hasOwnProperty(key)) return; // el precio de la lista oficial no se pisa
+    var aliasMap = getPedidoPrecioAliasMap();
+    if(aliasMap.hasOwnProperty(key) && seedMap.hasOwnProperty(aliasMap[key])) return; // ídem, vía alias de Triples
     if(!STATE.precios) STATE.precios = {};
     if(STATE.precios[key] !== precio){
       STATE.precios[key] = precio;
