@@ -1,0 +1,3608 @@
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap">
+<title>Arqueo Diario</title>
+<style>
+  :root{
+    --bg:#F5F3EE;
+    --surface:#FFFFFF;
+    --surface-2:#ECE5D6;
+    --border:#DDD3BE;
+    --ink:#241C13;
+    --ink-soft:#6C5F49;
+    --ink-muted:#96896E;
+    --accent:#1F5B6E;
+    --accent-ink:#FFFFFF;
+    --accent-soft:#DEEAEC;
+    --good:#3D7A57;
+    --good-soft:#E3F0E7;
+    --bad:#B34428;
+    --bad-soft:#FAE6DF;
+    --warn:#A6631B;
+    --warn-soft:#F5E8D2;
+    --radius:12px;
+    --radius-sm:8px;
+    --shadow:0 1px 2px rgba(36,28,19,.06), 0 10px 28px -14px rgba(36,28,19,.22);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#18140E; --surface:#221C14; --surface-2:#2C2519; --border:#3C3222;
+      --ink:#F2ECDE; --ink-soft:#C3B79E; --ink-muted:#8C8069;
+      --accent:#72B8CB; --accent-ink:#0E2A31; --accent-soft:#213A3F;
+      --good:#71BE93; --good-soft:#1F3627; --bad:#E28369; --bad-soft:#3D2419;
+      --warn:#D9A75E; --warn-soft:#3A2C16;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#18140E; --surface:#221C14; --surface-2:#2C2519; --border:#3C3222;
+    --ink:#F2ECDE; --ink-soft:#C3B79E; --ink-muted:#8C8069;
+    --accent:#72B8CB; --accent-ink:#0E2A31; --accent-soft:#213A3F;
+    --good:#71BE93; --good-soft:#1F3627; --bad:#E28369; --bad-soft:#3D2419;
+    --warn:#D9A75E; --warn-soft:#3A2C16;
+    color-scheme: dark;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Public Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size:15px; line-height:1.45; -webkit-font-smoothing:antialiased;
+  }
+  .visually-hidden{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; padding:0; margin:-1px; }
+  button, input, textarea{ font-family:inherit; color:inherit; }
+  input:focus-visible, textarea:focus-visible, button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+  .app{ max-width:1120px; margin:0 auto; padding-bottom:4rem; }
+
+  .topbar{ position:sticky; top:0; z-index:20; background:var(--bg); border-bottom:1px solid var(--border); padding:.9rem 1.1rem 0; }
+  .topbar-inner{ display:flex; flex-wrap:wrap; gap:.9rem 1.4rem; align-items:flex-end; justify-content:space-between; padding-bottom:.8rem; }
+  .brand-title{ font-family:"Fraunces", Georgia, serif; font-weight:600; font-size:1.55rem; letter-spacing:-.01em; margin:0; text-wrap:balance; }
+  .brand-sub{ font-size:.82rem; color:var(--ink-soft); margin-top:.15rem; }
+  .topbar-controls{ display:flex; align-items:flex-end; gap:1rem; flex-wrap:wrap; }
+  .date-field input[type="date"]{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.5rem .65rem; font-size:.92rem; color:var(--ink); }
+  .save-area{ display:flex; flex-direction:column; align-items:flex-end; gap:.3rem; }
+  .save-status{ font-size:.78rem; color:var(--ink-muted); white-space:nowrap; }
+  .save-status.warn{ color:var(--warn); }
+  .save-status.bad{ color:var(--bad); }
+  .btn{ border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:var(--radius-sm); padding:.55rem 1rem; font-size:.88rem; font-weight:600; cursor:pointer; transition:filter .12s ease; }
+  .btn:hover{ filter:brightness(0.97); }
+  @media (prefers-color-scheme:dark){ .btn:hover{ filter:brightness(1.12); } }
+  :root[data-theme="dark"] .btn:hover{ filter:brightness(1.12); }
+  .btn-primary{ background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+  .btn-primary:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn-sm{ padding:.35rem .65rem; font-size:.78rem; }
+
+  .tabs{ display:flex; gap:.4rem; overflow-x:auto; padding-bottom:.7rem; -ms-overflow-style:none; scrollbar-width:none; }
+  .tabs::-webkit-scrollbar{ display:none; }
+  .tab-btn{ border:1px solid transparent; background:transparent; color:var(--ink-soft); padding:.5rem .85rem; border-radius:999px; font-size:.86rem; font-weight:600; white-space:nowrap; cursor:pointer; }
+  .tab-btn .count{ display:inline-block; margin-left:.4rem; font-size:.72rem; font-weight:700; background:var(--bad-soft); color:var(--bad); border-radius:999px; padding:.05rem .4rem; }
+  .tab-btn:hover{ background:var(--surface-2); color:var(--ink); }
+  .tab-btn.active{ background:var(--accent-soft); color:var(--accent); border-color:var(--accent-soft); }
+  :root[data-theme="dark"] .tab-btn.active{ color:var(--ink); }
+  @media (prefers-color-scheme:dark){ .tab-btn.active{ color:var(--ink); } }
+
+  #banners{ padding:0 1.1rem; }
+  .banner{ margin-top:.9rem; border-radius:var(--radius-sm); padding:.7rem .9rem; font-size:.86rem; display:flex; gap:.7rem; align-items:flex-start; justify-content:space-between; }
+  .banner.warn{ background:var(--warn-soft); color:var(--warn); }
+  .banner.bad{ background:var(--bad-soft); color:var(--bad); }
+  .banner.info{ background:var(--accent-soft); color:var(--accent); }
+  .banner-actions{ display:flex; gap:.5rem; flex-shrink:0; }
+  .banner button{ border:1px solid currentColor; background:transparent; color:inherit; border-radius:6px; padding:.25rem .6rem; font-size:.78rem; font-weight:600; cursor:pointer; }
+
+  .main{ padding:1.1rem; }
+  .strip{ display:flex; flex-wrap:wrap; gap:.5rem 1.2rem; align-items:baseline; color:var(--ink-soft); font-size:.85rem; margin-bottom:1rem; }
+  .strip strong{ color:var(--ink); font-weight:700; }
+  .strip .ok{ color:var(--good); font-weight:600; }
+  .strip .alert{ color:var(--bad); font-weight:600; }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:1.1rem 1.2rem; margin-bottom:1rem; }
+  .card h2{ font-family:"Fraunces", Georgia, serif; font-weight:600; font-size:1.1rem; margin:0 0 .9rem; }
+  .card h3{ font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-muted); margin:1.1rem 0 .5rem; }
+  .card h3:first-child{ margin-top:0; }
+  .card .hint{ font-size:.78rem; color:var(--ink-muted); margin:-.5rem 0 .8rem; }
+
+  .field-grid{ display:grid; grid-template-columns:1fr 1fr; gap:.9rem 1.1rem; }
+  @media (max-width:620px){ .field-grid{ grid-template-columns:1fr; } }
+  .field{ display:flex; flex-direction:column; gap:.32rem; }
+  .field.full{ grid-column:1 / -1; }
+  .field label{ font-size:.78rem; color:var(--ink-soft); font-weight:600; }
+  .field input, .field textarea{ background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.55rem .65rem; font-size:.92rem; color:var(--ink); width:100%; }
+  .field textarea{ min-height:4.2rem; resize:vertical; font-family:inherit; }
+
+  .shift-toggle{ display:inline-flex; background:var(--surface-2); border-radius:999px; padding:.2rem; gap:.15rem; }
+  .shift-btn{ border:none; background:transparent; color:var(--ink-soft); padding:.4rem .95rem; border-radius:999px; font-size:.84rem; font-weight:700; cursor:pointer; }
+  .shift-btn.active{ background:var(--accent); color:var(--accent-ink); }
+
+  .name-cell{ display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+  .btn-del{ flex:none; width:1.5rem; height:1.5rem; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--bad); font-size:.75rem; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
+  .btn-del:hover{ background:var(--bad); color:#fff; border-color:var(--bad); }
+  .add-row{ display:flex; gap:.6rem; align-items:center; margin-bottom:.8rem; flex-wrap:wrap; }
+  .add-row input[type="text"]{ flex:1; min-width:220px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.5rem .7rem; font-size:.88rem; color:var(--ink); }
+  .search-row{ display:flex; gap:.6rem; align-items:center; margin-bottom:.8rem; flex-wrap:wrap; justify-content:space-between; }
+  .search-row .search-left{ display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; flex:1; }
+  .search-row input[type="search"]{ flex:1; min-width:180px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.5rem .7rem; font-size:.88rem; color:var(--ink); }
+  .legend{ display:flex; gap:.9rem; font-size:.76rem; color:var(--ink-muted); flex-wrap:wrap; }
+  .legend span{ display:inline-flex; align-items:center; gap:.35rem; }
+  .dot{ width:.5rem; height:.5rem; border-radius:50%; display:inline-block; }
+  .dot.good{ background:var(--good); }
+  .dot.bad{ background:var(--bad); }
+  .dot.neutral{ background:var(--ink-muted); }
+  .dot.warn{ background:var(--warn); }
+
+  .table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius); }
+  table.data-table{ border-collapse:collapse; width:100%; min-width:920px; font-variant-numeric:tabular-nums; }
+  table.data-table thead th{ position:sticky; top:0; background:var(--surface-2); color:var(--ink-soft); font-size:.68rem; text-transform:uppercase; letter-spacing:.04em; font-weight:700; text-align:right; padding:.55rem .55rem; border-bottom:1px solid var(--border); white-space:nowrap; z-index:2; }
+  table.data-table thead th:first-child{ text-align:left; left:0; z-index:3; }
+  table.data-table tbody td{ padding:.35rem .5rem; border-bottom:1px solid var(--border); text-align:right; background:var(--surface); vertical-align:middle; }
+  table.data-table tbody tr:last-child td{ border-bottom:none; }
+  table.data-table tbody tr:nth-child(even) td{ background:var(--bg); }
+  table.data-table tbody td:first-child{ text-align:left; font-weight:600; color:var(--ink); position:sticky; left:0; z-index:1; }
+  table.data-table tbody tr.flag td:first-child{ box-shadow:inset 3px 0 0 var(--bad); }
+  table.data-table tbody tr.pending-data:not(.flag) td:first-child{ box-shadow:inset 3px 0 0 var(--warn); }
+  .num-input.pending-warn{ border-color:var(--warn); }
+  .derived.pending-warn{ color:var(--warn); font-weight:700; }
+  .ing-group{ display:inline-flex; gap:.2rem; }
+  .num-input{ width:4.1rem; text-align:right; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:.3rem .35rem; font-size:.85rem; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .num-input.mini{ width:2.15rem; padding:.3rem .2rem; text-align:center; }
+  .num-input.vc{ width:4.4rem; }
+  /* Cantidad y precio de cada línea de un Pedido: recuadros más grandes y fáciles de leer/tocar
+     que el resto de campos "mini" (los de Ingreso del Arqueo, que se quedan como están). */
+  .num-input.mini.pedido-item-cantidad, .num-input.mini.pedido-item-precio{
+    width:4.6rem; padding:.5rem .4rem; font-size:1.05rem; font-weight:700; text-align:center;
+  }
+  .time-input{ width:5.7rem; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:.28rem .35rem; font-size:.8rem; color:var(--ink); }
+  .ag-note{ font-size:.68rem; color:var(--bad); margin-top:.15rem; text-align:right; }
+  .derived{ color:var(--ink-muted); font-size:.85rem; font-style:italic; }
+  .ventas-cell{ font-weight:700; min-width:3.6rem; }
+  .ventas-cell.good{ color:var(--good); }
+  .ventas-cell.bad{ color:var(--bad); }
+  .ventas-cell.neutral{ color:var(--ink-muted); font-weight:600; }
+  .cuadre-cell{ font-weight:700; min-width:3.6rem; }
+  .cuadre-cell.good{ color:var(--good); }
+  .cuadre-cell.bad{ color:var(--bad); }
+  .ventas-cell.pending, .cuadre-cell.pending{ color:var(--ink-muted); font-weight:600; }
+  .cuadre-cell.pending{ color:var(--ink-muted); font-weight:500; }
+  .row-count{ font-size:.78rem; color:var(--ink-muted); margin-top:.6rem; }
+
+  .history-list{ display:flex; flex-direction:column; gap:.7rem; }
+  .history-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:.85rem 1rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; cursor:pointer; text-align:left; width:100%; box-shadow:var(--shadow); }
+  .history-card:hover{ border-color:var(--accent); }
+  .history-date{ font-family:"Fraunces", Georgia, serif; font-weight:600; font-size:1.02rem; text-transform:capitalize; }
+  .history-meta{ font-size:.8rem; color:var(--ink-soft); margin-top:.2rem; }
+  .history-badges{ display:flex; gap:.4rem; flex-wrap:wrap; justify-content:flex-end; align-items:center; }
+  .history-export-btn{ font-size:.72rem; padding:.3rem .55rem; }
+  .chip{ font-size:.74rem; font-weight:700; border-radius:999px; padding:.2rem .6rem; white-space:nowrap; }
+  .chip.good{ background:var(--good-soft); color:var(--good); }
+  .chip.bad{ background:var(--bad-soft); color:var(--bad); }
+  .chip.pedido-pagado-toggle{ border:none; cursor:pointer; font-family:inherit; }
+  .pedido-totals{ margin-top:1rem; padding-top:.8rem; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:.25rem; font-size:.92rem; }
+  .pedido-checkbox-label{ display:flex; align-items:center; gap:.5rem; font-size:.9rem; font-weight:600; cursor:pointer; }
+  .pedido-checkbox-label input{ width:auto; }
+  .pedido-productos-cell{ max-width:320px; white-space:normal; }
+  .empty-state{ color:var(--ink-soft); font-size:.9rem; padding:1.4rem 0; text-align:center; }
+
+  .toast{ position:fixed; left:50%; bottom:1.2rem; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:.6rem 1rem; border-radius:999px; font-size:.84rem; box-shadow:var(--shadow); z-index:40; max-width:90vw; text-align:center; }
+  @media (prefers-color-scheme:dark){ .toast{ background:var(--surface-2); color:var(--ink); border:1px solid var(--border); } }
+  :root[data-theme="dark"] .toast{ background:var(--surface-2); color:var(--ink); border:1px solid var(--border); }
+
+  .lock-screen{ position:fixed; inset:0; z-index:100; background:var(--bg); align-items:center; justify-content:center; padding:1.2rem; }
+  .lock-screen:not([hidden]){ display:flex; }
+  .lock-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:1.6rem 1.6rem 1.8rem; max-width:340px; width:100%; text-align:center; }
+  .lock-title{ font-family:"Fraunces", Georgia, serif; font-weight:600; font-size:1.4rem; margin:0 0 .3rem; }
+  .lock-sub{ font-size:.85rem; color:var(--ink-soft); margin:0 0 1.1rem; }
+  .lock-input{ width:100%; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.65rem .8rem; font-size:1rem; color:var(--ink); text-align:center; margin-bottom:.8rem; }
+  .lock-btn{ width:100%; }
+  .lock-error{ color:var(--bad); font-size:.82rem; margin:.8rem 0 0; }
+
+  #printArea{ display:none; }
+  @media print{
+    .app, .toast, #banners{ display:none !important; }
+    #printArea{
+      display:block !important; background:#fff; color:#111; padding:0; margin:0;
+      font-family:"Public Sans", ui-sans-serif, system-ui, sans-serif; font-size:11px;
+      -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;
+    }
+    #printArea h1{ font-family:"Fraunces", Georgia, serif; font-size:20px; margin:0 0 .1em; }
+    #printArea .print-sub{ font-size:13px; color:#333; margin:0 0 .8em; }
+    #printArea .print-summary{ font-weight:700; margin:.6em 0; }
+    #printArea .meta-line{ margin:.15em 0; }
+    #printArea h2{ font-size:13px; margin:1.1em 0 .3em; page-break-after:avoid; }
+    #printArea table{ width:100%; border-collapse:collapse; margin-bottom:.6em; font-variant-numeric:tabular-nums; }
+    #printArea th, #printArea td{ border:1px solid #999; padding:2px 5px; text-align:right; }
+    #printArea th:first-child, #printArea td:first-child{ text-align:left; }
+    #printArea thead{ background:#eee; }
+    #printArea tr{ page-break-inside:avoid; }
+    #printArea tr.flagged td{ background:#fbdcd4; font-weight:700; }
+    #printArea .print-empty{ color:#555; font-style:italic; margin:0 0 .8em; }
+    #printArea .print-footer{ margin-top:1.2em; font-size:9px; color:#777; }
+    @page{ margin:14mm; }
+  }
+</style>
+
+<div id="lockScreen" class="lock-screen" hidden>
+  <form id="lockForm" class="lock-card">
+    <h1 class="lock-title">Arqueo Diario</h1>
+    <p class="lock-sub">Ingresa la contraseña del equipo para continuar.</p>
+    <input id="lockInput" class="lock-input" type="password" inputmode="text" autocomplete="off" placeholder="Contraseña" />
+    <button class="btn btn-primary lock-btn" type="submit">Entrar</button>
+    <p id="lockError" class="lock-error" hidden>Contraseña incorrecta. Intenta de nuevo.</p>
+  </form>
+</div>
+
+<div class="app" id="appRoot" hidden>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <h1 class="brand-title">Arqueo Diario</h1>
+        <div class="brand-sub" id="brandSub">Registro diario</div>
+      </div>
+      <div class="topbar-controls">
+        <label class="date-field">
+          <span class="visually-hidden">Fecha</span>
+          <input type="date" id="datePicker" />
+        </label>
+        <div class="save-area">
+          <span class="save-status" id="saveStatus">Cargando…</span>
+          <button class="btn btn-primary" id="saveBtn" type="button">Guardar</button>
+        </div>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab-btn" data-tab="panes" type="button">Panes</button>
+      <button class="tab-btn" data-tab="bebidas" type="button">Bebidas</button>
+      <button class="tab-btn" data-tab="embutidos" type="button">Embutidos</button>
+      <button class="tab-btn" data-tab="carnes" type="button">Carnes</button>
+      <button class="tab-btn" data-tab="triples" type="button">Triples</button>
+      <button class="tab-btn" data-tab="otros" type="button">Otros</button>
+      <button class="tab-btn" data-tab="pedidos" type="button">Pedidos</button>
+      <button class="tab-btn" data-tab="turno" type="button">Turno</button>
+      <button class="tab-btn" data-tab="historial" type="button">Historial</button>
+    </nav>
+  </header>
+
+  <div id="banners"></div>
+  <main class="main" id="panel"></main>
+</div>
+<div class="toast" id="toast" hidden></div>
+<div id="printArea"></div>
+
+<script id="state-data" type="application/json">{"meta":{"businessName":"","lastSavedAt":null,"schema":2},"days":{"2026-09-01":{"turno":{"respAM":"","respPM":"","eAM":"","sAM":"","ePM":"","sPM":"","obsAM":"","obsPM":"","notas":""},"p":{"am":[{"a":0,"i1":38,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":60,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":270,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":100,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":35,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":12,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":160,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":240,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":90,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":15,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":10,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":15,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":10,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":10,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":2,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":9,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":5,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":5,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":5,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":15,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":30,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":6,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":6,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":12,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":1,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":15,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":8,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":5,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":5,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":3,"i1":6,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":9,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":11,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":19,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":18,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":2,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":3,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"pm":[{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":25,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":39,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"agAm":{},"agPm":{}},"b":{"am":[{"a":7,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":6,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":5,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":12,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":6,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":11,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":26,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":3,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":5,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":5,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":4,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"pm":[{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"agAm":{},"agPm":{}},"e":{"am":[{"a":1.725,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":4.02,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":2.67,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.51,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":2,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.19,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0.935,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.16,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":5.315,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":12,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":10,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":18,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.18,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":11.25,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0.25,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0.055,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.51,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":2.28,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0.955,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":3.015,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.52,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.62,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"pm":[{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"agAm":{},"agPm":{}},"o":{"am":[],"pm":[],"agAm":{},"agPm":{}},"t":{"am":[{"a":79,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":24,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":24,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":6,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":12,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":6,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"pm":[{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"agAm":{},"agPm":{}}}},"customCatalog":[]}</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  // ===================================================================
+  // CAMBIOS 04-SET-2026 (piloto, sin desplegar todavia): se agrega "Carnes"
+  // como 6ta categoria del Arqueo Diario, con el mismo patron que Embutidos
+  // (vende por peso/kg, reporte simple, mismo turno AM/PM). Catalogo:
+  // Panceta (Chicharron), Pavo, Pierna (Jamon del Pais), Jamon Glaseado, Asado.
+  // No se toco ninguna logica de Panes/Bebidas/Embutidos/Triples/Otros ni de
+  // Pedidos/Clientes. Los dias ya guardados en Firestore no tienen la seccion
+  // "c" todavia -- se completa sola al abrir el dia (ver backfillDay), igual
+  // que ya pasa cuando crece el catalogo de Otros.
+  // ===================================================================
+
+  var PANES = [
+    "Francés", "Pan Mini Francés", "Francés Especial", "Francés Intermedio",
+    "Francés Sanguchero", "Ciabatta por Kilo", "Pan Mini Ciabatta", "Yema",
+    "Integral", "Baguette", "Baguetino", "Croissant",
+    "Hamburguesa", "Hamburguesa Brioche", "Chirimoya", "Chancay",
+    "Coliza", "Caramanduca", "Molde 7 Semillas Chico", "Molde Especial Semillas Chico",
+    "Molde Integral", "Molde Blanco Chico", "Rústico 7 Semillas", "Pita 7 Semillas Bolsa de 3",
+    "Multigranos", "Masa Madre con Frutos", "Pan de Centeno Masa Madre", "Pan Masa Madre Campesino",
+    "Crutones", "Pan Pullman", "Porción de Budín", "Turrón Carmelitas",
+    "Croissant De Manjar", "Croissant De Chocolate", "Cinnamon Roll", "Encimada",
+    "Milhojas", "Oreja", "Strudel De Manzana", "Rosquitas",
+    "Alfajor", "Mini Alfajor", "Empanada de Carne", "Empanada Mixta",
+    "Empanada Ají de Gallina", "Porción Pastel de Acelga con 3 Quesos", "Croissant de Jamón y Queso", "Mixto Clásico",
+    "Mixto Especial", "Mixto 100", "Ciabattitas con Pollo", "Mini Butifarra",
+    "Tamal de Pollo", "Tamal de Chancho", "Café Molido 250g", "Mini Croissant de Jamón y Queso",
+    "Pan Mini Croissant", "Pan Mini Yema", "Mini Hamburguesa", "Pan Mini Árabe",
+    "Petipán", "Miquetitas", "Mini Brioche", "Mini Integral",
+    "Pan Molido 500g", "Pan Molido x Kg Milossi", "Tostada Clasica", "Tostada Ciabatta al Ajo",
+    "Tostada Integral", "Tostada 7 Semillas al Ajo", "Tostadas Dulces", "Tostada Mickey",
+    "Muffins de Manzana", "Muffins de Arándanos", "Muffins de Plátano y Chocolate", "Galletas Full Omega",
+    "Porción Fondant Chocolate", "Porción de Tarta de Queso y Vainilla", "Molde Fondant de Chocolate", "Molde Tarta de Queso y Vainilla",
+    "40 Mini Galletas", "Mazamorra Morada", "Miel Frasco 250g", "Miel Frasco 1.1 Kg",
+    "Miel Frasco 500g", "Miel Frasco 200g", "Tostada Masa Madre"];
+
+  var BEBIDAS = [
+    "Coca Cola 500 ml", "Inca Kola 500 ml", "Coca Zero 500 ml", "Inka Zero 500 ml",
+    "Coca Cola Vidrio 296 ml", "Inca Kola Vidrio 296 ml", "Fanta 450 ml", "Agua Sin Gas 625 ml",
+    "Agua Con Gas 625 ml", "Chocolatada Chica", "Chocolatada LT Laive", "Leche sin Lactosa LT",
+    "Leche Entera Caja LT", "Leche Light Caja LT - Semi", "Chicha Litro", "Chicha Medio Litro",
+    "Chicha Vaso"];
+
+  var EMBUTIDOS = [
+    "Chicharrón Prensa", "Jamón Inglés", "Jamonada de Pollo", "Jamonada Polaca",
+    "Paté", "Paté Finas Hierbas", "Tocino por Kilo", "Queso Fresco",
+    "Queso Andino Carmelitas (AD)", "Queso Suizo Carmelitas", "Queso Edam Carmelitas", "Mantequilla Laive 180g",
+    "Mantequilla Laive 90g", "Huevos de Corral (Unid)", "Aceituna", "Salchicha de Huacho",
+    "Queso Mozzarella", "Manjar Blanco", "Mantequilla Serranita por Kilo", "Jamón de Pierna Artesanal",
+    "Queso Ahumado Holandés", "Queso Gouda President", "Queso de Cabra (Kg)", "Queso Belpaese"];
+
+  var CARNES = [
+    "Panceta (Chicharrón)", "Pavo", "Pierna (Jamón del País)", "Jamón Glaseado", "Asado"];
+
+var TRIPLES = [
+    "Triples Clásicos", "Triple de Aceituna", "Triple de Asado", "Triple de Pollo Durazno", "Triple de Pavo", "Triple Glaseado Piña", "Triple Champiñón y Tocino", "Triple Pollo Jamón y Queso"];
+
+  // Lista de precios de Carmelitas Pan S.A.C. (subida por Jessica el 2026-08-26),
+  // usada SOLO para autocompletar producto + precio en Pedidos. No toca ni se mezcla
+  // con los catalogos de Arqueo (Panes/Bebidas/Embutidos/Triples/Otros), que siguen
+  // exactamente igual que antes.
+  var PEDIDO_PRECIO_SEED = [
+    {n:"MERMELADA DE ROCOTO", p:6.5},
+    {n:"MIEL DE NARANJA", p:6.5},
+    {n:"PORCIÓN DE AJÍ CARMELITAS", p:6.5},
+    {n:"PORCIÓN DE CAMOTE", p:5},
+    {n:"PORCIÓN DE CEBOLLA", p:4.8},
+    {n:"PORCIÓN DE MAYONESA", p:6.5},
+    {n:"PORCIÓN HONEY MUSTARD", p:6.5},
+    {n:"BATIDO DE FRESA", p:16.9},
+    {n:"BATIDO DE FRESA CON ARANADANOS", p:19.9},
+    {n:"BATIDO DE GUANABANA", p:16.9},
+    {n:"BATIDO DE LÚCUMA", p:17.9},
+    {n:"BATIDO DE MANGO", p:16.9},
+    {n:"BATIDO DE PAPAYA", p:16.9},
+    {n:"BATIDO DE PIÑA", p:16.9},
+    {n:"AGUA CON GAS 625 ML", p:3.9},
+    {n:"AGUA SIN GAS 625 ML", p:3.9},
+    {n:"CHOCOLATADA CHICA", p:2.2},
+    {n:"CHOCOLATADA LT LAIVE", p:6.5},
+    {n:"COCA COLA 500 ML", p:4.9},
+    {n:"COCA COLA VIDRIO 296 ML", p:2.9},
+    {n:"COCA ZERO 500 ML", p:4.9},
+    {n:"FANTA 450 ML", p:3.9},
+    {n:"INCA KOLA 500 ML", p:4.9},
+    {n:"INCA KOLA VIDRIO 296 ML", p:2.9},
+    {n:"INKA ZERO 500 ML", p:4.9},
+    {n:"LECHE ENTERA CAJA LT", p:5.9},
+    {n:"LECHE LIGTH CAJA LT - SEMI", p:5.9},
+    {n:"LECHE SIN LACTOSA LT", p:6.3},
+    {n:"CAFÉ AMERICANO CHICO", p:8.1},
+    {n:"CAFE AMERICANO GRANDE", p:12.2},
+    {n:"CAFÉ LECHE", p:8.4},
+    {n:"CAFE MOLIDO 250G", p:38.5},
+    {n:"CAFÉ TRADICIONAL CHICO", p:7.8},
+    {n:"CAFE TRADICIONAL GRANDE", p:11.7},
+    {n:"CAPUCCINO", p:9.3},
+    {n:"CAPUCCINO GRANDE", p:13.8},
+    {n:"CHOCOLATE", p:7},
+    {n:"ESPRESSO", p:7.5},
+    {n:"LECHE SOLA", p:6.9},
+    {n:"TE FRUTADO CALIENTE", p:7.9},
+    {n:"TE- MANZANILLA", p:5.9},
+    {n:"CHICHA LITRO", p:23.2},
+    {n:"CHICHA MEDIO LITRO", p:13.4},
+    {n:"CHICHA VASO", p:7.5},
+    {n:"LIMONADA", p:9},
+    {n:"ACEITUNA ENTERA POR KILO", p:55},
+    {n:"CHICHARRÓN PRENSA", p:55.9},
+    {n:"HUEVOS DE CORRAL ( CAJA )", p:9.8},
+    {n:"JAMON DE PIERNA ARTESANAL", p:98.5},
+    {n:"JAMÓN INGLES", p:78.7},
+    {n:"JAMONADA DE POLLO", p:46.5},
+    {n:"JAMONADA POLACA", p:53.9},
+    {n:"MANT. LAIVE 100 GR", p:7.5},
+    {n:"MANT. LAIVE 180 GR", p:13.3},
+    {n:"MANTEQUILLA SERRANITA POR KILO", p:79.8},
+    {n:"PATE", p:4.25},
+    {n:"PATE FINAS HIERBAS", p:10.1},
+    {n:"SALCHICHA DE HUACHO", p:10.4},
+    {n:"TOCINO POR KILO", p:88},
+    {n:"EMPANADA AJÍ DE GALLINA", p:10.9},
+    {n:"EMPANADA DE CARNE", p:11.9},
+    {n:"EMPANADA MIXTA", p:10.9},
+    {n:"EMPANADA DE QUESO", p:10.9},
+    {n:"MINI EMPANADA DE CARNE", p:5},
+    {n:"MOLDE PASTEL DE ACELGA 3 QUESOS", p:65.4},
+    {n:"PORCIÓN PASTEL DE ACELGA CON 3 QUESOS", p:10.9},
+    {n:"ASADO", p:145.3},
+    {n:"CHICHARRÓN", p:138.2},
+    {n:"JAMÓN DE PAÍS", p:109.8},
+    {n:"JAMÓN GLASEADO", p:129.7},
+    {n:"PAVO ENTERO X KG", p:89.9},
+    {n:"PECHUGA PAVO X KG", p:148.7},
+    {n:"FROZEN DE FRESA", p:17.5},
+    {n:"FROZEN DE GUANABANA", p:17.5},
+    {n:"FROZEN DE LIMONADA", p:17.5},
+    {n:"FROZEN DE LUCUMA", p:17.5},
+    {n:"FROZEN DE MANGO", p:17.5},
+    {n:"FROZEN DE MARACUYA", p:17.5},
+    {n:"FROZEN DE MELON", p:17.5},
+    {n:"FROZEN DE NARANJA", p:17.5},
+    {n:"FROZEN DE PIÑA", p:17.5},
+    {n:"FROZEN FRESA C/ ARANDANOS", p:18.9},
+    {n:"JUGO MIX BI", p:17.5},
+    {n:"JUGO MIX TRI", p:17.5},
+    {n:"MIX BI CON NARANJA", p:18},
+    {n:"MIX FRESA / ARAN /MANGO", p:18.9},
+    {n:"MIX TRI CON NARANJA", p:18.9},
+    {n:"MORA POWER", p:18.9},
+    {n:"JUGO DE FRESA", p:16.5},
+    {n:"JUGO DE GUANÁBANA", p:16.5},
+    {n:"JUGO DE LUCUMA", p:16.5},
+    {n:"JUGO DE MANDARINA", p:15.8},
+    {n:"JUGO DE MANGO", p:15.5},
+    {n:"JUGO DE MELON", p:15.5},
+    {n:"JUGO DE NARANJA", p:16.9},
+    {n:"JUGO DE PAPAYA", p:15.5},
+    {n:"JUGO DE PIÑA", p:15.5},
+    {n:"JUGO FRESA CON ARANDANOS", p:17.9},
+    {n:"JUGO MARACUYA", p:14.5},
+    {n:"JUGO MORACUYA", p:14.5},
+    {n:"JUGO MORANJADA", p:14.5},
+    {n:"MINI BRIOCHE", p:0.65},
+    {n:"MINI HAMBURGUESA", p:0.65},
+    {n:"MINI INTEGRAL", p:0.65},
+    {n:"MINI OREJAS", p:1.5},
+    {n:"MIQUETITAS", p:0.65},
+    {n:"PAN MINI ARABE", p:0.65},
+    {n:"PAN MINI CIABATTA", p:0.65},
+    {n:"PAN MINI CROISSANT", p:2.7},
+    {n:"PAN MINI FRANCES", p:0.65},
+    {n:"PAN MINI YEMA", p:0.65},
+    {n:"PETIPAN", p:0.65},
+    {n:"BAGUETINO", p:1.4},
+    {n:"BAGUETTE", p:4.9},
+    {n:"CARAMANDUCA", p:1.1},
+    {n:"CHANCAY", p:7},
+    {n:"CIABATTA POR KILO", p:13.2},
+    {n:"COLIZA", p:1.1},
+    {n:"CROISSANT", p:4},
+    {n:"FRANCÉS", p:0.8},
+    {n:"FRANCES AER", p:0.85},
+    {n:"FRANCÉS ESPECIAL", p:1},
+    {n:"FRANCÉS INTERMEDIO", p:1.1},
+    {n:"FRANCÉS SANGUCHERO", p:1.2},
+    {n:"HAMBURGUESA", p:1.4},
+    {n:"HAMBURGUESA BRIOCHE", p:1.4},
+    {n:"INTEGRAL", p:0.9},
+    {n:"PAN HOT DOG", p:1.4},
+    {n:"YEMA", p:0.9},
+    {n:"CIABATTITAS CON POLLO", p:8.9},
+    {n:"MINI ASADO", p:8.9},
+    {n:"MINI BUTIFARRA", p:8.9},
+    {n:"MINI CHICHARRÓN", p:8.9},
+    {n:"MINI CROISSANT DE JAMÓN Y QUESO", p:8.9},
+    {n:"MINI GLASEADO", p:8.9},
+    {n:"MINI PAVO", p:8.9},
+    {n:"40 MINI GALLETAS", p:50},
+    {n:"ALFAJOR", p:6.9},
+    {n:"CHIRIMOYA", p:3},
+    {n:"CINNAMON ROLL", p:7.5},
+    {n:"CROISANT DE MANJAR", p:8.9},
+    {n:"CROISSANT DE CHOCOLATE", p:8.9},
+    {n:"ENCIMADA", p:4.5},
+    {n:"GALLETAS FULL OMEGA", p:5},
+    {n:"MAZAMORRA MORADA", p:7.9},
+    {n:"MIEL FRASCO 1.1 KG", p:69.9},
+    {n:"MIEL FRASCO 200 GR", p:15},
+    {n:"MIEL FRASCO 250 GR", p:19.9},
+    {n:"MIEL FRASCO 500 GR", p:34.9},
+    {n:"MILHOJAS", p:9.9},
+    {n:"MINI ALFAJOR", p:4.2},
+    {n:"MOLDE FONDANT DE CHOCOLATE", p:100},
+    {n:"MOLDE TARTA DE QUESO Y VAINILLA", p:90},
+    {n:"MUFFINS DE ARANDANOS", p:8},
+    {n:"MUFFINS DE MANZANA", p:8},
+    {n:"MUFFINS DE PLATANO Y CHOCOLATE", p:8},
+    {n:"OREJAS", p:8.5},
+    {n:"PORCION DE BUDIN", p:9.8},
+    {n:"PORCION DE TARTA DE QUESO Y VAINILLA", p:15},
+    {n:"PORCION FONDANT CHOCOLATE", p:13},
+    {n:"ROSCA REYES", p:36.9},
+    {n:"ROSQUITAS", p:5.9},
+    {n:"TURRÓN CARMELITAS", p:59.9},
+    {n:"STRUDEL DE MANZANA", p:11.9},
+    {n:"QUESO AHUMADO HOLANDÉS", p:124.8},
+    {n:"QUESO ANDINO CARMELITAS ( AD)", p:75},
+    {n:"QUESO DE CABRA KG", p:94.9},
+    {n:"QUESO EDAM CARMELITAS", p:75},
+    {n:"QUESO FRESCO", p:41.9},
+    {n:"QUESO GOUDA PRESIDENT", p:84.7},
+    {n:"QUESO SUIZO CARMELITAS", p:75},
+    {n:"CRUTONES", p:5.9},
+    {n:"MASA MADRE CON FRUTOS ENTERO", p:17},
+    {n:"MASA MADRE CON FRUTOS X MITAD", p:8.5},
+    {n:"MOLDE 7 SEMILLAS CHICO", p:0},
+    {n:"MOLDE BLANCO CHICO", p:8.3},
+    {n:"MOLDE ESPECIAL SEMILLAS CHICO", p:11.9},
+    {n:"MOLDE INTEGRAL", p:10.3},
+    {n:"MULTIGRANOS", p:12.2},
+    {n:"PAN DE CENTENO MASA MADRE", p:14.9},
+    {n:"PAN MASA MADRE CAMPESINO", p:14.9},
+    {n:"PAN MOLIDO 500G", p:8},
+    {n:"PAN PULLMAN", p:17.7},
+    {n:"PITA 7 SEMILLAS BOLSA DE 3", p:4.5},
+    {n:"CROISSANT DE JAMÓN Y QUESO", p:19.9},
+    {n:"MEGA SANDWICH ASADO", p:29.9},
+    {n:"MEGA SANDWICH BUTIFARRA", p:29.9},
+    {n:"MEGA SANDWICH CHICHARRÓN", p:29.9},
+    {n:"MEGA SANDWICH GLASEADO", p:29.9},
+    {n:"MEGA SANDWICH HUACHANO", p:29.9},
+    {n:"MEGA SANDWICH PAVO", p:29.9},
+    {n:"MIXTO 100", p:24.9},
+    {n:"MIXTO CLÁSICO", p:16.9},
+    {n:"MIXTO ESPECIAL", p:19.9},
+    {n:"SANDWICH ASADO", p:24.9},
+    {n:"SANDWICH BUTIFARRA", p:24.9},
+    {n:"SANDWICH CHICHARRÓN", p:24.9},
+    {n:"SANDWICH GLASEADO", p:24.9},
+    {n:"SANDWICH HUACHANO", p:24.9},
+    {n:"SANDWICH PAVO", p:24.9},
+    {n:"TAMAL DE CHANCHO", p:6.3},
+    {n:"TAMAL DE POLLO", p:6.3},
+    {n:"TAMAL FAMILIAR", p:19.9},
+    {n:"TOSTADA AL AJO x 0.130G", p:10.9},
+    {n:"TOSTADA CLASICA X 180G", p:7.9},
+    {n:"TOSTADA INTEGRAL x 0.120G", p:8.5},
+    {n:"TOSTADA MICKEY", p:4.9},
+    {n:"TOSTADAS MASA MADRE x 0.120GR", p:11.9},
+    {n:"TIRA DE ACEITUNA", p:13.5},
+    {n:"TIRA DE ASADO", p:13.5},
+    {n:"TIRA DE CHAMPIÑÓN Y TOCINO", p:13.5},
+    {n:"TIRA DE CLÁSICOS", p:13.5},
+    {n:"TIRA DE GLASEADO PIÑA", p:13.5},
+    {n:"TIRA DE PAVO", p:13.5},
+    {n:"TIRA DE POLLO CON JAMÓN Y QUESO", p:13.5},
+    {n:"TIRA DE POLLO DURAZNO", p:13.5},
+    {n:"UND T. POLLO DURAZNO", p:4.5},
+    {n:"UND T. ACEITUNA", p:4.5},
+    {n:"UND T. ASADO", p:4.5},
+    {n:"UND T. CHAMPIÑÓN Y TOCINO", p:4.5},
+    {n:"UND T. CLÁSICO", p:4.5},
+    {n:"UND T. GLASEADO PIÑA", p:4.5},
+    {n:"UND T. PAVO", p:4.5},
+    {n:"UND T. POLLO CON JAMÓN Y QUESO", p:4.5},
+  ];
+
+
+  var SECTIONS = {
+    panes:{ key:"p", catalog:PANES, label:"Panes" },
+    bebidas:{ key:"b", catalog:BEBIDAS, label:"Bebidas" },
+    embutidos:{ key:"e", catalog:EMBUTIDOS, label:"Embutidos" },
+    carnes:{ key:"c", catalog:CARNES, label:"Carnes" },
+    triples:{ key:"t", catalog:TRIPLES, label:"Triples" },
+    otros:{ key:"o", catalog:null, label:"Otros" }
+  };
+  var PRODUCT_TABS = ["panes","bebidas","embutidos","carnes","triples","otros"];
+  var SHIFT_LABEL = { am:"Mañana", pm:"Tarde" };
+  // Otros: catálogo libre que la panadería va llenando (jugos, sandwiches, tostadas, etc.).
+  // Se guarda en STATE.customCatalog y se usa exactamente con el mismo patrón (arreglo indexado)
+  // que Panes/Bebidas/Embutidos — la única diferencia es que este arreglo puede crecer.
+  function catalogFor(tabKey){
+    var section = SECTIONS[tabKey];
+    return section.catalog || STATE.customCatalog;
+  }
+
+  var STATE = null;
+  var readOnly = false, dirty = false;
+  var db = null;
+  var lastSavedBySelf = null;
+  var saveTimer = null, saving = false;
+  // Se pone en true cuando llega un cambio de OTRO dispositivo mientras acá había algo sin
+  // guardar todavía. Mientras esté en true, doSave() se niega a guardar (para nunca pisar por
+  // encima lo que ese otro dispositivo ya guardó) hasta que se toque "Actualizar ahora".
+  var remoteConflict = false;
+  var currentDate = todayISO();
+  // Pedidos (delivery / recojo en tienda / masivo): viven en su propia colección de Firestore,
+  // separada del documento "arqueo/state", para no hacer crecer sin límite el documento del
+  // arqueo diario y para que se puedan editar en simultáneo sin pisar los datos del arqueo.
+  var PEDIDOS = null;
+  var pedidoDraft = null;
+  var pedidosView = "nuevo";
+  var pedidosSaving = false;
+  var pedidoEditingId = null;
+  var pedidoSaveTimer = null;
+  var pedidoAutosaving = false;
+  // Filtro de "Todos los pedidos" por origen (de dónde vino el pedido: Whatsapp o Tienda),
+  // igual a como Jessica separaba sus reportes en Universalio ("Hoy Canal Tienda" / "Hoy
+  // Canal Whatsapp"). Es independiente del canal de entrega (delivery/recojo/masivo).
+  var pedidosOrigenFilter = "todos";
+  // Clientes guardados (colección "clientes"): se guardan/actualizan solos cada vez que se
+  // registra un pedido, para que la próxima vez alcance con escribir el nombre y se rellene
+  // el resto de sus datos automáticamente.
+  var CLIENTES = null;
+  var currentTab = "panes";
+  var filters = { panes:"", bebidas:"", embutidos:"", carnes:"", triples:"", otros:"" };
+  var shiftView = { panes:"am", bebidas:"am", embutidos:"am", carnes:"am", triples:"am", otros:"am" };
+
+  // ---------- helpers ----------
+  function todayISO(){
+    try{ return new Date().toLocaleDateString("en-CA",{ timeZone:"America/Lima" }); }
+    catch(e){ return new Date().toISOString().slice(0,10); }
+  }
+  function fmt(n){
+    if(!isFinite(n)) return "0";
+    var r = Math.round(n*100)/100;
+    return Number.isInteger(r) ? String(r) : r.toFixed(2);
+  }
+  // Solo para montos en soles del PDF de Pedidos (precios, totales de línea, subtotal, delivery,
+  // total): siempre con dos decimales ("108.00", no "108"), a diferencia de fmt() de arriba, que
+  // se usa en el Arqueo y ahí no se toca.
+  function fmtMoney(n){
+    if(!isFinite(n)) return "0.00";
+    return (Math.round(n*100)/100).toFixed(2);
+  }
+  function num(v){ var n = parseFloat(v); return isFinite(n) ? n : 0; }
+  function numOrNull(v){
+    if(v === "" || v === null || typeof v === "undefined") return null;
+    var n = parseFloat(v);
+    return isFinite(n) ? n : null;
+  }
+  function esc(s){
+    return String(s==null?"":s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function capitalize(s){ return s.length? s.charAt(0).toUpperCase()+s.slice(1) : s; }
+  function fmtDateLabel(iso){
+    var d = new Date(iso+"T12:00:00");
+    var s = d.toLocaleDateString("es-PE",{ weekday:"short", day:"numeric", month:"short", year:"numeric" });
+    return capitalize(s);
+  }
+  function minutesBetween(t1, t2){
+    // t2 - t1, both "HH:MM", same day. Returns null if either missing/invalid.
+    if(!t1 || !t2) return null;
+    var a = t1.split(":"), b = t2.split(":");
+    if(a.length<2 || b.length<2) return null;
+    var m1 = (+a[0])*60 + (+a[1]);
+    var m2 = (+b[0])*60 + (+b[1]);
+    if(!isFinite(m1) || !isFinite(m2)) return null;
+    return m2 - m1;
+  }
+  function fmtDuration(mins){
+    if(mins === null) return "";
+    if(mins <= 0) return "";
+    var h = Math.floor(mins/60), m = mins%60;
+    if(h>0) return h + "h " + m + "m sin stock antes del cierre";
+    return m + "m sin stock antes del cierre";
+  }
+
+  function emptyTurno(){
+    return { respAM:"", respPM:"", eAM:"", sAM:"", ePM:"", sPM:"", obsAM:"", obsPM:"", notas:"" };
+  }
+  // "Saldo Final" (f) arranca en blanco (null) tanto en la mañana como en la tarde: es el
+  // número que alguien tiene que escribir después de contar físicamente, no algo que el
+  // sistema deba adivinar. "Saldo Anterior" (a) también arranca en blanco (null) cuando no
+  // hay un cierre anterior REAL de dónde traerlo — no se inventa un 0, porque un 0 puesto por
+  // el sistema (sin dato real) se ve idéntico a un 0 que alguien contó a propósito (por
+  // ejemplo, en un producto que solo se hace a pedido), y eso es justo lo que generaba
+  // confusión. Un 0 solo aparece si alguien lo confirmó de verdad, contando o escribiéndolo.
+  function emptyAmRow(prevFinal){ return { a:prevFinal, i1:0, i2:0, i3:0, m:0, f:null, vc:null }; }
+  function emptyPmRow(carry){ return { i1:0, i2:0, i3:0, m:0, f:null, vc:null }; }
+
+  function latestDayBefore(date){
+    var keys = Object.keys(STATE.days).filter(function(d){ return d < date; }).sort();
+    return keys.length ? keys[keys.length-1] : null;
+  }
+  // Saldo con el que abre un producto: lo que quedó contado (Saldo Final) en la tarde del
+  // día anterior. Si ese día no existe, o existe pero ese "Saldo Final" nunca se llegó a
+  // contar (sigue en null), no hay dato real de dónde partir — se devuelve null (pendiente),
+  // nunca un 0 inventado.
+  function getPrevFinal(prevDay, key, i){
+    if(prevDay && prevDay[key] && prevDay[key].pm && prevDay[key].pm[i]){
+      var f = prevDay[key].pm[i].f;
+      return (f === null || f === undefined) ? null : f;
+    }
+    return null;
+  }
+  function makeSection(catalog, prevDay, key){
+    return {
+      am: catalog.map(function(_, i){ return emptyAmRow(getPrevFinal(prevDay, key, i)); }),
+      pm: catalog.map(function(_, i){ return emptyPmRow(getPrevFinal(prevDay, key, i)); }),
+      agAm: {}, agPm: {}
+    };
+  }
+  function draftDay(date){
+    var prevDate = latestDayBefore(date);
+    var prevDay = prevDate ? STATE.days[prevDate] : null;
+    return {
+      turno: emptyTurno(),
+      p: makeSection(PANES, prevDay, "p"),
+      b: makeSection(BEBIDAS, prevDay, "b"),
+      e: makeSection(EMBUTIDOS, prevDay, "e"),
+      c: makeSection(CARNES, prevDay, "c"),
+      t: makeSection(TRIPLES, prevDay, "t"),
+      o: makeSection(STATE.customCatalog, prevDay, "o")
+    };
+  }
+  // Otros crece con el tiempo: cuando se agrega un producto nuevo, los días ya guardados
+  // (incluso de fechas pasadas) no tienen esa fila todavía. La completamos al vuelo, igual
+  // que se calculó originalmente (saldo inicial = saldo final del día anterior si existe).
+  function backfillSection(day, key, catalog, prevDay){
+    var sec = day[key];
+    if(!sec){ day[key] = { am:[], pm:[], agAm:{}, agPm:{} }; sec = day[key]; }
+    for(var i = sec.am.length; i < catalog.length; i++){
+      var prevFinal = getPrevFinal(prevDay, key, i);
+      sec.am.push(emptyAmRow(prevFinal));
+      sec.pm.push(emptyPmRow(prevFinal));
+    }
+  }
+  // Arregla dos cosas que quedaron mal SOLO por el cambio de "Saldo Final ya no arranca
+  // relleno": (1) filas que nadie tocó de verdad, donde "Saldo Final" se quedó con el número
+  // viejo (versión anterior del sistema, antes de que ese campo empezara en blanco) — esas se
+  // dejan pendientes; (2) el caso de Bebidas: como esa categoría no trae saldo de un día
+  // anterior, "Saldo Anterior" arranca en 0, y como "Saldo Final" es hoy el único recuadro que
+  // se ve vacío, el personal terminó anotando ahí el conteo real de la mañana en vez de en
+  // "Saldo Anterior". Se detecta con cuidado: solo se toca una fila si NADA más se registró
+  // todavía (sin ingresos, sin merma, sin caja) para no tocar ni un solo dato real ya cargado.
+  function cleanupSaldoFinalMigrado(day){
+    var changed = false;
+    PRODUCT_TABS.forEach(function(tab){
+      var section = SECTIONS[tab];
+      var sec = day[section.key];
+      if(!sec) return;
+      sec.am.forEach(function(row){
+        var untouched = row.i1===0 && row.i2===0 && row.i3===0 && row.m===0 && row.vc===null;
+        if(!untouched || row.f === null) return;
+        if(row.f === row.a){
+          row.f = null;
+          changed = true;
+        } else if(row.a === 0 && row.f !== 0){
+          row.a = row.f;
+          row.f = null;
+          changed = true;
+        }
+      });
+      sec.pm.forEach(function(row, idx){
+        var amRow = sec.am[idx];
+        var prevFinal = amRow ? amRow.a : 0;
+        var untouched = row.i1===0 && row.i2===0 && row.i3===0 && row.m===0 && row.vc===null;
+        if(untouched && row.f !== null && row.f === prevFinal){
+          row.f = null;
+          changed = true;
+        }
+      });
+    });
+    return changed;
+  }
+  function backfillDay(day, date){
+    var prevDate = latestDayBefore(date);
+    var prevDay = prevDate ? STATE.days[prevDate] : null;
+    // Genérico para las 5 categorías: si un catálogo creció (se agregó un producto nuevo),
+    // completamos la fila que falta en cualquier día ya guardado, no solo en Otros.
+    PRODUCT_TABS.forEach(function(tab){
+      var section = SECTIONS[tab];
+      backfillSection(day, section.key, catalogFor(tab), prevDay);
+    });
+    // OJO: esto antes guardaba solo, en automático, apenas detectaba algo para corregir.
+    // Era peligroso porque getDay()/backfillDay() se ejecuta en CADA render (no solo cuando
+    // alguien escribe algo) — así que podía disparar un guardado de fondo sin que nadie
+    // tocara nada, justo en el peor momento: cuando otro dispositivo ya tenía cambios más
+    // nuevos que acá todavía no se habían recibido. Ese guardado automático los pisaba por
+    // completo, sin avisar. Ahora la corrección se sigue aplicando (se ve bien en pantalla
+    // y viaja junto con cualquier guardado real que la persona haga por su cuenta al
+    // escribir algo), pero YA NO dispara un guardado por sí sola.
+    cleanupSaldoFinalMigrado(day);
+  }
+  // Quitar un producto de Otros: hay que correr el índice en todos los días ya guardados
+  // (el arreglo de filas está indexado por posición), incluyendo los mapas de "se agotó".
+  function reindexAgMap(map, deletedIdx){
+    var out = {};
+    Object.keys(map || {}).forEach(function(k){
+      var i = parseInt(k, 10);
+      if(i === deletedIdx) return;
+      out[i > deletedIdx ? i - 1 : i] = map[k];
+    });
+    return out;
+  }
+  function deleteCustomProduct(idx){
+    var name = STATE.customCatalog[idx];
+    if(name === undefined) return;
+    if(!confirm('¿Eliminar "' + name + '" de Otros? Esto borra su registro de todos los días guardados y no se puede deshacer.')) return;
+    STATE.customCatalog.splice(idx, 1);
+    Object.keys(STATE.days).forEach(function(d){
+      var day = STATE.days[d];
+      if(day.o){
+        if(day.o.am) day.o.am.splice(idx, 1);
+        if(day.o.pm) day.o.pm.splice(idx, 1);
+        day.o.agAm = reindexAgMap(day.o.agAm, idx);
+        day.o.agPm = reindexAgMap(day.o.agPm, idx);
+      }
+    });
+    markDirty();
+    scheduleAutosave();
+    showToast('"' + name + '" eliminado de Otros.');
+    renderTabs();
+    renderPanel();
+  }
+
+  function getDay(date){
+    if(STATE.days[date]){ backfillDay(STATE.days[date], date); return STATE.days[date]; }
+    return draftDay(date);
+  }
+  function ensureDay(date){
+    if(!STATE.days[date]) STATE.days[date] = draftDay(date);
+    else backfillDay(STATE.days[date], date);
+    return STATE.days[date];
+  }
+
+  // Si todavía no se contó el "Saldo Final" (f === null, pendiente), no se puede calcular
+  // "Ventas físicas" — no es que sea cero, es que todavía no se sabe. Lo mismo si, en la
+  // tarde, lo que falta contar es el cierre de la mañana (amRow.f).
+  function ventasAm(row){
+    return (row.a === null || row.f === null) ? null : row.a + row.i1 + row.i2 + row.i3 - row.m - row.f;
+  }
+  function ventasPm(row, amRow){
+    if(row.f === null || amRow.f === null) return null;
+    return amRow.f + row.i1 + row.i2 + row.i3 - row.m - row.f;
+  }
+  function ventasOf(row, shift, amRow){ return shift === "am" ? ventasAm(row) : ventasPm(row, amRow); }
+  function cuadreOf(row, ventasFisicas){
+    if(ventasFisicas === null) return null;
+    if(row.vc === null){
+      // No se registró venta de caja para esta fila. Si tampoco hubo movimiento físico
+      // (ventasFisicas === 0), no hay nada que cuadrar todavía -> queda "—" (neutral).
+      // Pero si SÍ hubo una venta física real y no hay caja registrada, eso es justo lo
+      // que hay que revisar: se trata como si la caja fuera 0, así que el cuadre sale en
+      // negativo (por ejemplo, se vendió 1 y no figura en caja -> Cuadre = -1).
+      return ventasFisicas === 0 ? null : -ventasFisicas;
+    }
+    return ventasFisicas - row.vc;
+  }
+  function isFlagged(row, shift, amRow){
+    var v = ventasOf(row, shift, amRow);
+    if(v === null) return false;
+    if(v < -0.004) return true;
+    var c = cuadreOf(row, v);
+    if(c !== null && Math.abs(c) > 0.004) return true;
+    return false;
+  }
+
+  function dayAlerts(day){
+    var counts = { panes:0, bebidas:0, embutidos:0, carnes:0, triples:0, otros:0 };
+    PRODUCT_TABS.forEach(function(tab){
+      var key = SECTIONS[tab].key;
+      var sec = day[key];
+      if(!sec) return;
+      sec.am.forEach(function(row){ if(isFlagged(row, "am", null)) counts[tab]++; });
+      sec.pm.forEach(function(row, i){ if(isFlagged(row, "pm", sec.am[i])) counts[tab]++; });
+    });
+    counts.total = counts.panes + counts.bebidas + counts.embutidos + counts.carnes + counts.triples + counts.otros;
+    return counts;
+  }
+
+  // ---------- migration (old single-shift schema -> shift schema) ----------
+  function migrateOldSection(catalog, oldArr){
+    var am = [], pm = [];
+    catalog.forEach(function(_, i){
+      var old = (oldArr && oldArr[i]) || [0,0,0,0];
+      var a = old[0]||0, ing = old[1]||0, m = old[2]||0, f = old[3]||0;
+      am.push({ a:a, i1:ing, i2:0, i3:0, m:m, f:f, vc:null });
+      pm.push({ i1:0, i2:0, i3:0, m:0, f:f, vc:null });
+    });
+    return { am:am, pm:pm, agAm:{}, agPm:{} };
+  }
+  function migrateStateObj(s){
+    if(s.meta.schema === 2) return;
+    Object.keys(s.days).forEach(function(d){
+      var day = s.days[d];
+      if(day.p && !day.p.am){ day.p = migrateOldSection(PANES, day.p); }
+      if(day.b && !day.b.am){ day.b = migrateOldSection(BEBIDAS, day.b); }
+      if(day.e && !day.e.am){ day.e = migrateOldSection(EMBUTIDOS, day.e); }
+    });
+    s.meta.schema = 2;
+  }
+
+  // ---------- persistence (Firebase Firestore) ----------
+  function normalizeState(parsed){
+    parsed = parsed || {};
+    if(!parsed.meta) parsed.meta = { businessName:"", lastSavedAt:null, schema:2 };
+    if(!parsed.days) parsed.days = {};
+    if(!parsed.customCatalog) parsed.customCatalog = [];
+    if(!parsed.precios) parsed.precios = {};
+    migrateStateObj(parsed);
+    return parsed;
+  }
+  function readEmbeddedSeed(){
+    var el = document.getElementById("state-data");
+    var parsed = {};
+    try{ parsed = JSON.parse(el.textContent || "{}"); }catch(e){ parsed = {}; }
+    return normalizeState(parsed);
+  }
+
+  function stashBackup(){
+    try{
+      sessionStorage.setItem("arqueo_backup", JSON.stringify({
+        date: currentDate, ts: Date.now(), day: STATE.days[currentDate] || null
+      }));
+    }catch(e){}
+  }
+  function clearBackup(){ try{ sessionStorage.removeItem("arqueo_backup"); }catch(e){} }
+
+  function restoreBackupBanner(){
+    var raw;
+    try{ raw = sessionStorage.getItem("arqueo_backup"); }catch(e){ raw = null; }
+    if(!raw) return;
+    var backup;
+    try{ backup = JSON.parse(raw); }catch(e){ return; }
+    if(!backup || !backup.day) return;
+    if(Date.now() - backup.ts > 30*60*1000){ clearBackup(); return; }
+    var current = STATE.days[backup.date];
+    var same = current && JSON.stringify(current) === JSON.stringify(backup.day);
+    if(same){ clearBackup(); return; }
+    showBanner("info", "Tenías cambios sin guardar de tu última sesión (" + fmtDateLabel(backup.date) + ").",
+      [{ label:"Recuperar", action:function(){
+          STATE.days[backup.date] = backup.day;
+          clearBackup();
+          markDirty();
+          currentDate = backup.date;
+          document.getElementById("datePicker").value = currentDate;
+          renderAll();
+          scheduleAutosave();
+        }},
+       { label:"Descartar", action:function(){ clearBackup(); renderBanners(); }}]);
+  }
+
+  var banners = [];
+  function showBanner(kind, text, actions){
+    banners = banners.filter(function(b){ return b.kind !== kind; });
+    banners.push({ kind:kind, text:text, actions:actions||[] });
+    renderBanners();
+  }
+  function renderBanners(){
+    var host = document.getElementById("banners");
+    host.innerHTML = "";
+    banners.forEach(function(b){
+      var div = document.createElement("div");
+      div.className = "banner " + (b.kind === "info" ? "info" : b.kind === "warn" ? "warn" : "bad");
+      var span = document.createElement("span");
+      span.textContent = b.text;
+      div.appendChild(span);
+      var actWrap = document.createElement("div");
+      actWrap.className = "banner-actions";
+      b.actions.forEach(function(a){
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = a.label;
+        btn.addEventListener("click", a.action);
+        actWrap.appendChild(btn);
+      });
+      div.appendChild(actWrap);
+      host.appendChild(div);
+    });
+  }
+
+  var toastTimer = null;
+  // Guarda el resumen de la última importación de ventas por turno, para poder mostrarlo de
+  // forma permanente en el panel (el toast desaparece solo a los pocos segundos y no alcanza
+  // a leerse un mensaje largo como el de la resta mañana/tarde).
+  var lastImportSummary = { am:null, pm:null };
+  function showToast(msg, ms){
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.hidden = true; }, ms || 3200);
+  }
+
+  function markDirty(){ dirty = true; setSaveStatus(); }
+  function setSaveStatus(){
+    var el = document.getElementById("saveStatus");
+    var btn = document.getElementById("saveBtn");
+    if(readOnly){ el.textContent = "No se pudo guardar — revisa tu conexión"; el.className = "save-status bad"; btn.disabled = true; return; }
+    btn.disabled = saving;
+    if(saving){ el.textContent = "Guardando…"; el.className = "save-status"; return; }
+    if(dirty){ el.textContent = "Cambios sin guardar"; el.className = "save-status warn"; return; }
+    if(STATE.meta.lastSavedAt){
+      var mins = Math.round((Date.now() - STATE.meta.lastSavedAt)/60000);
+      el.textContent = mins < 1 ? "Guardado justo ahora" : "Guardado hace " + mins + " min";
+    } else { el.textContent = "Sin cambios"; }
+    el.className = "save-status";
+  }
+
+  function scheduleAutosave(){ clearTimeout(saveTimer); saveTimer = setTimeout(function(){ doSave(); }, 1500); }
+
+  function doSave(){
+    if(readOnly || saving || !db) { setSaveStatus(); return; }
+    if(remoteConflict){
+      // Hay cambios de otro dispositivo que todavía no se cargaron acá. Guardar ahora
+      // significaría pisar por encima esos cambios con una copia vieja. Nos negamos a
+      // guardar y dejamos el aviso visible hasta que la persona toque "Actualizar ahora".
+      clearTimeout(saveTimer);
+      showBanner("bad", "No se guardó: otro dispositivo tiene cambios más nuevos. Toca \"Actualizar ahora\" arriba para traerlos antes de seguir.", []);
+      setSaveStatus();
+      return;
+    }
+    clearTimeout(saveTimer);
+    saving = true;
+    setSaveStatus();
+    stashBackup();
+    STATE.meta.lastSavedAt = Date.now();
+    lastSavedBySelf = STATE.meta.lastSavedAt;
+    db.collection("arqueo").doc("state").set(STATE)
+      .then(function(){ saving = false; dirty = false; clearBackup(); setSaveStatus(); })
+      .catch(function(err){ saving = false; handleSaveError(err); });
+  }
+
+  function handleSaveError(err){
+    var code = err && err.code;
+    if(code === "permission-denied"){
+      showBanner("bad", "No se pudo guardar: sin permiso de escritura en la base de datos. Avísale al dueño del arqueo.", []);
+      setSaveStatus();
+      return;
+    }
+    showToast("No se pudo guardar (revisa tu conexión a internet). Vuelve a intentar en unos segundos.");
+    setSaveStatus();
+  }
+
+  // ---------- import (reporte de ventas del sistema) ----------
+  // Nombres que el sistema exporta distinto al catálogo del arqueo (mismo producto,
+  // solo cambia la forma de escribirlo: abreviaturas, singular/plural, una letra de más o menos).
+  var IMPORT_ALIASES = {
+    "MANT LAIVE 180 GR": "Mantequilla Laive 180g",
+    "MANT LAIVE 90 GR": "Mantequilla Laive 90g",
+    "CROISANT DE MANJAR": "Croissant De Manjar",
+    "OREJAS": "Oreja",
+    "MASA MADRE CON FRUTOS ENTERO": "Masa Madre con Frutos",
+    "ACEITUNA ENTERA POR KILO": "Aceituna",
+    "ACEITUNA ENTERA X KG": "Aceituna",
+    "LECHE LIGTH CAJA LT - SEMI": "Leche Light Caja LT - Semi",
+    "MIEL FRASCO 200 GR": "Miel Frasco 200g",
+    "MIEL FRASCO 250 GR": "Miel Frasco 250g",
+    "MIEL FRASCO 500 GR": "Miel Frasco 500g",
+    "QUESO MOZARELLA": "Queso Mozzarella",
+    "TOSTADA AL AJO X 0 130G": "Tostada Ciabatta al Ajo",
+    "TOSTADAS MASA MADRE X 0 120GR": "Tostada Masa Madre"
+  };
+  // Triples: el sistema de ventas registra cada sabor de dos formas — "UND T. X" (unidad suelta)
+  // y "TIRA DE X" (la tira entera sin cortar, que son 3 unidades). Como el arqueo se lleva en
+  // unidades, cada línea "TIRA DE X" del reporte cuenta triple (mult:3) y se suma a la misma fila
+  // que "UND T. X" (mult:1). Pavo y Glaseado Piña no aparecieron en los reportes que revisamos —
+  // están puestos siguiendo el mismo patrón, pero avísame si no calzan cuando los vendan.
+  var TRIPLE_IMPORT_MAP = {
+    "UND T CLASICO": { name: "Triples Clásicos", mult: 1 },
+    "TIRA DE CLASICOS": { name: "Triples Clásicos", mult: 3 },
+    "UND T ACEITUNA": { name: "Triple de Aceituna", mult: 1 },
+    "TIRA DE ACEITUNA": { name: "Triple de Aceituna", mult: 3 },
+    "UND T ASADO": { name: "Triple de Asado", mult: 1 },
+    "TIRA DE ASADO": { name: "Triple de Asado", mult: 3 },
+    "UND T POLLO DURAZNO": { name: "Triple de Pollo Durazno", mult: 1 },
+    "TIRA DE POLLO DURAZNO": { name: "Triple de Pollo Durazno", mult: 3 },
+    "UND T PAVO": { name: "Triple de Pavo", mult: 1 },
+    "TIRA DE PAVO": { name: "Triple de Pavo", mult: 3 },
+    "UND T GLASEADO PINA": { name: "Triple Glaseado Piña", mult: 1 },
+    "TIRA DE GLASEADO PINA": { name: "Triple Glaseado Piña", mult: 3 },
+    "UND T CHAMPINON Y TOCINO": { name: "Triple Champiñón y Tocino", mult: 1 },
+    "TIRA DE CHAMPINON Y TOCINO": { name: "Triple Champiñón y Tocino", mult: 3 },
+    "UND T POLLO CON JAMON Y QUESO": { name: "Triple Pollo Jamón y Queso", mult: 1 },
+    "TIRA DE POLLO CON JAMON Y QUESO": { name: "Triple Pollo Jamón y Queso", mult: 3 }
+  };
+  function normName(s){
+    s = String(s || "").trim().toUpperCase();
+    if(s.normalize) s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    s = s.replace(/[.()]/g, " ");
+    s = s.replace(/[^A-Z0-9 ]/g, " ");
+    s = s.replace(/\s+/g, " ").trim();
+    return s;
+  }
+  function buildCatalogIndex(){
+    var idx = {};
+    PRODUCT_TABS.forEach(function(tabKey){
+      catalogFor(tabKey).forEach(function(name, i){
+        idx[normName(name)] = { tab: tabKey, idx: i, name: name };
+      });
+    });
+    return idx;
+  }
+  function resolveCatalogEntry(catIndex, posName){
+    var n = normName(posName);
+    if(catIndex[n]) return { hit: catIndex[n], mult: 1 };
+    var tri = TRIPLE_IMPORT_MAP[n];
+    if(tri){
+      var tn = normName(tri.name);
+      if(catIndex[tn]) return { hit: catIndex[tn], mult: tri.mult };
+    }
+    var alias = IMPORT_ALIASES[n];
+    if(alias){
+      var an = normName(alias);
+      if(catIndex[an]) return { hit: catIndex[an], mult: 1 };
+    }
+    return null;
+  }
+  // El sistema de ventas exporta a veces un reporte "simple" (Código, Nombre, Cantidad Vendida
+  // en las primeras 3 columnas) y a veces uno "detallado por familia" (con Stock, Precio, etc.
+  // de por medio, donde Cantidad Vendida cae en otra columna). Por eso buscamos el encabezado
+  // real ("CDARTICULO" / "DSARTICULO" / "Cantidad Vendida") y detectamos en qué columna cae
+  // cada uno, en vez de asumir siempre las primeras tres columnas.
+  function findSalesColumns(aoa){
+    for(var r = 0; r < Math.min((aoa || []).length, 40); r++){
+      var row = aoa[r] || [];
+      var codeCol = -1, nameCol = -1, qtyCol = -1;
+      for(var c = 0; c < row.length; c++){
+        var cell = String(row[c] == null ? "" : row[c]).trim().toUpperCase();
+        if(cell === "CDARTICULO") codeCol = c;
+        else if(cell === "DSARTICULO") nameCol = c;
+        else if(cell.indexOf("CANTIDAD VENDIDA") === 0) qtyCol = c;
+      }
+      if(codeCol !== -1 && nameCol !== -1 && qtyCol !== -1) return { code: codeCol, name: nameCol, qty: qtyCol };
+    }
+    return null;
+  }
+  // Detecta filas de producto por patrón (código numérico, nombre de texto, cantidad numérica) en
+  // vez de depender de encabezados exactos para cada fila — así ignora títulos, "Familia :",
+  // subtotales y el total general. Las columnas en sí se ubican con findSalesColumns() arriba.
+  function parseSalesAOA(aoa){
+    var items = [];
+    var cols = findSalesColumns(aoa) || { code: 0, name: 1, qty: 2 };
+    (aoa || []).forEach(function(row){
+      if(!row || row.length <= Math.max(cols.code, cols.name, cols.qty)) return;
+      var code = row[cols.code], name = row[cols.name], qtyRaw = row[cols.qty];
+      var codeNum = (typeof code === "number") ? code : parseFloat(String(code == null ? "" : code).replace(",", "."));
+      var qtyNum = (typeof qtyRaw === "number") ? qtyRaw : parseFloat(String(qtyRaw == null ? "" : qtyRaw).replace(",", "."));
+      if(!isFinite(codeNum) || codeNum <= 0) return;
+      if(typeof name !== "string" || !name.trim()) return;
+      if(!isFinite(qtyNum)) return;
+      items.push({ code: codeNum, name: String(name).trim(), qty: qtyNum });
+    });
+    return items;
+  }
+  function applyImport(items, date, shift){
+    var catIndex = buildCatalogIndex();
+    var day = ensureDay(date);
+    var updated = { panes:0, bebidas:0, embutidos:0, carnes:0, triples:0, otros:0 };
+    var skipped = [];
+    // Varias líneas del reporte pueden apuntar al mismo producto del catálogo (p.ej. Triples:
+    // "unidad suelta" + "tira"), así que primero sumamos todo por producto y recién al final
+    // escribimos una vez por fila — así no se pisan entre sí ni se duplican si se reimporta.
+    var sums = {};
+    var hits = {};
+    items.forEach(function(item){
+      var resolved = resolveCatalogEntry(catIndex, item.name);
+      if(!resolved){ skipped.push(item.name); return; }
+      var key = resolved.hit.tab + ":" + resolved.hit.idx;
+      if(!(key in sums)){ sums[key] = 0; hits[key] = resolved.hit; }
+      sums[key] += item.qty * resolved.mult;
+    });
+    // El reporte de cierre de la tarde (10pm) trae el total del día completo (mañana + tarde
+    // juntas, según confirmó Jessica), no solo lo de la tarde — así que al importarlo en el
+    // turno "pm" hay que restarle, producto por producto, lo que ya está en "Ventas Caja
+    // Mañana" para quedarnos con la venta real de la tarde sola.
+    var sinMananaCount = 0;
+    var totalGeneralPm = 0;
+    var totalRestadoPm = 0;
+    Object.keys(sums).forEach(function(key){
+      var hit = hits[key];
+      var section = SECTIONS[hit.tab];
+      var sec = day[section.key];
+      var row = shift === "am" ? sec.am[hit.idx] : sec.pm[hit.idx];
+      if(shift === "pm"){
+        var amRow = sec.am[hit.idx];
+        var amVc = (amRow && amRow.vc !== null) ? amRow.vc : 0;
+        if(!amRow || amRow.vc === null) sinMananaCount++;
+        var general = sums[key];
+        var soloTarde = general - amVc;
+        row.vc = soloTarde;
+        totalGeneralPm += general;
+        totalRestadoPm += soloTarde;
+      } else {
+        row.vc = sums[key];
+      }
+      updated[hit.tab]++;
+    });
+    return {
+      updated: updated, skipped: skipped,
+      totalUpdated: updated.panes + updated.bebidas + updated.embutidos + updated.carnes + updated.triples + updated.otros,
+      sinMananaCount: sinMananaCount,
+      totalGeneralPm: shift === "pm" ? totalGeneralPm : null,
+      totalRestadoPm: shift === "pm" ? totalRestadoPm : null
+    };
+  }
+  function handleImportFile(file, date, shift, statusEl){
+    if(readOnly){ showToast("Vista de solo lectura: no puedes importar aquí."); return; }
+    if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo."); return; }
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try{
+        var data = new Uint8Array(e.target.result);
+        var wb = XLSX.read(data, { type:"array" });
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var aoa = XLSX.utils.sheet_to_json(ws, { header:1, defval:"", raw:true });
+        var items = parseSalesAOA(aoa);
+        if(items.length === 0){
+          showToast("No se reconocieron filas de productos en ese archivo. ¿Es el reporte de ventas del sistema?");
+          return;
+        }
+        var result = applyImport(items, date, shift);
+        markDirty();
+        scheduleAutosave();
+        // Guardamos el resumen ANTES de repintar el panel, para que el bloque "Última
+        // importación" ya salga completo la primera vez (si no, renderPanel() reconstruye
+        // el control de importar con el resumen anterior, o vacío, y hay que esperar a un
+        // segundo repintado para verlo).
+        showImportSummary(result, date, shift, statusEl);
+        renderTabs();
+        if(currentTab === "turno") renderPanel();
+      }catch(err){
+        showToast("No se pudo leer ese archivo. Revisa que sea el reporte de ventas exportado del sistema (.xls, .xlsx o .csv).");
+      }
+    };
+    reader.onerror = function(){ showToast("No se pudo leer el archivo."); };
+    reader.readAsArrayBuffer(file);
+  }
+  // Arma el bloque "Última importación" a partir de lastImportSummary[shift] — se llama tanto
+  // al construir el panel (para que sobreviva un renderPanel()) como justo después de importar.
+  function renderImportStatus(statusEl, shift){
+    if(!statusEl) return;
+    statusEl.innerHTML = "";
+    var saved = lastImportSummary[shift];
+    if(!saved) return;
+    var p = document.createElement("div");
+    p.className = "hint";
+    p.style.margin = ".5rem 0 0";
+    p.textContent = "Última importación (" + SHIFT_LABEL[shift] + ", " + fmtDateLabel(saved.date) + "): " + saved.msg;
+    statusEl.appendChild(p);
+    if(saved.skipped && saved.skipped.length){
+      var det = document.createElement("details");
+      det.style.fontSize = ".76rem";
+      det.style.color = "var(--ink-muted)";
+      det.style.marginTop = ".3rem";
+      var sum = document.createElement("summary");
+      sum.style.cursor = "pointer";
+      sum.textContent = "Ver productos del archivo que no se reconocieron";
+      det.appendChild(sum);
+      var listDiv = document.createElement("div");
+      listDiv.style.marginTop = ".3rem";
+      listDiv.textContent = saved.skipped.slice(0, 60).join(", ") + (saved.skipped.length > 60 ? "…" : "");
+      det.appendChild(listDiv);
+      statusEl.appendChild(det);
+    }
+  }
+  function showImportSummary(result, date, shift, statusEl){
+    var n = result.totalUpdated;
+    var s = result.skipped.length;
+    var msg = n + " producto" + (n===1?"":"s") + " actualizado" + (n===1?"":"s") +
+      " (Panes " + result.updated.panes + " · Bebidas " + result.updated.bebidas + " · Embutidos " + result.updated.embutidos +
+      " · Carnes " + result.updated.carnes + " · Triples " + result.updated.triples + " · Otros " + result.updated.otros + ")" +
+      (s ? " — " + s + " fila" + (s===1?"":"s") + " del archivo no está" + (s===1?"":"n") + " en tu arqueo." : "");
+    if(shift === "pm" && result.totalGeneralPm !== null){
+      msg += " — Total del reporte (día completo): " + fmt(result.totalGeneralPm) +
+        ", ya restando lo de la mañana → Ventas Caja Tarde: " + fmt(result.totalRestadoPm) + ".";
+      if(result.sinMananaCount > 0){
+        msg += " Ojo: " + result.sinMananaCount + " producto" + (result.sinMananaCount===1?"":"s") +
+          " no tenía" + (result.sinMananaCount===1?"":"n") + " ventas de mañana registradas todavía, así que para " +
+          (result.sinMananaCount===1?"ese producto":"esos productos") + " se tomó el total del reporte tal cual.";
+      }
+    }
+    // Mensaje largo (sobre todo el de la tarde, con la resta) — le damos más tiempo en
+    // pantalla que al toast normal, y además queda guardado de forma permanente abajo del
+    // botón (renderImportStatus), porque el toast igual se cierra solo.
+    showToast(msg, 7000);
+    lastImportSummary[shift] = { msg: msg, skipped: result.skipped, date: date };
+    renderImportStatus(statusEl, shift);
+  }
+  function buildImportControl(shift){
+    var wrap = document.createElement("div");
+    wrap.style.marginTop = ".5rem";
+    var label = document.createElement("label");
+    label.className = "btn btn-sm";
+    label.style.display = "inline-flex";
+    label.style.cursor = "pointer";
+    label.textContent = "Importar reporte de ventas (" + SHIFT_LABEL[shift] + ")";
+    var input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".xls,.xlsx,.csv";
+    input.className = "visually-hidden";
+    if(readOnly) input.disabled = true;
+    var statusEl = document.createElement("div");
+    renderImportStatus(statusEl, shift);
+    input.addEventListener("change", function(){
+      var f = input.files && input.files[0];
+      input.value = "";
+      if(!f) return;
+      handleImportFile(f, currentDate, shift, statusEl);
+    });
+    label.appendChild(input);
+    wrap.appendChild(label);
+    wrap.appendChild(statusEl);
+    return wrap;
+  }
+
+  // ---------- print report ----------
+  function printableRows(tabKey, shift, day){
+    var section = SECTIONS[tabKey];
+    var amRows = day[section.key].am;
+    var pmRows = day[section.key].pm;
+    var out = [];
+    catalogFor(tabKey).forEach(function(name, idx){
+      var amRow = amRows[idx];
+      var row = shift === "am" ? amRow : pmRows[idx];
+      var saldoAnt = shift === "am" ? row.a : amRow.f;
+      // "Saldo Final" pendiente de contar (null) no cuenta como "se movió" — antes sí generaba
+      // un falso movimiento porque null nunca es igual al saldo anterior.
+      var fChanged = row.f !== null && row.f !== saldoAnt;
+      var moved = row.i1 || row.i2 || row.i3 || row.m || fChanged || row.vc !== null;
+      if(!moved) return;
+      var v = ventasOf(row, shift, amRow);
+      var c = cuadreOf(row, v);
+      out.push({
+        name: name, saldoAnt: saldoAnt, ing: row.i1 + row.i2 + row.i3, m: row.m, f: row.f,
+        v: v, vc: row.vc, c: c, flagged: isFlagged(row, shift, amRow)
+      });
+    });
+    return out;
+  }
+  function buildPrintHTML(date){
+    var day = getDay(date);
+    var t = day.turno;
+    var alerts = dayAlerts(day);
+    var html = "";
+    html += "<h1>" + esc(STATE.meta.businessName || "Arqueo Diario") + "</h1>";
+    html += '<div class="print-sub">Arqueo del ' + esc(fmtDateLabel(date)) + "</div>";
+    html += '<div class="meta-line"><strong>Turno mañana:</strong> ' + esc(t.respAM || "—") +
+      " (" + esc(t.eAM || "—") + " a " + esc(t.sAM || "—") + ")" + (t.obsAM ? " — " + esc(t.obsAM) : "") + "</div>";
+    html += '<div class="meta-line"><strong>Turno tarde:</strong> ' + esc(t.respPM || "—") +
+      " (" + esc(t.ePM || "—") + " a " + esc(t.sPM || "—") + ")" + (t.obsPM ? " — " + esc(t.obsPM) : "") + "</div>";
+    if(t.notas) html += '<div class="meta-line"><strong>Notas:</strong> ' + esc(t.notas) + "</div>";
+    html += '<p class="print-summary">' + (alerts.total === 0
+      ? "Todo cuadra."
+      : alerts.total + " producto" + (alerts.total===1?"":"s") + " por revisar (Panes " + alerts.panes + " · Bebidas " + alerts.bebidas + " · Embutidos " + alerts.embutidos + " · Carnes " + alerts.carnes + " · Triples " + alerts.triples + " · Otros " + alerts.otros + ").") + "</p>";
+
+    PRODUCT_TABS.forEach(function(tabKey){
+      var section = SECTIONS[tabKey];
+      if(tabKey === "otros" && catalogFor(tabKey).length === 0) return;
+      ["am","pm"].forEach(function(shift){
+        var rows = printableRows(tabKey, shift, day);
+        html += "<h2>" + esc(section.label) + " — " + SHIFT_LABEL[shift] + "</h2>";
+        if(rows.length === 0){ html += '<p class="print-empty">Sin movimientos registrados.</p>'; return; }
+        html += "<table><thead><tr><th>Producto</th><th>Saldo ant.</th><th>Ingresos</th><th>Merma</th>" +
+          "<th>Saldo final</th><th>Ventas físicas</th><th>Ventas caja</th><th>Cuadre</th></tr></thead><tbody>";
+        rows.forEach(function(r){
+          html += '<tr class="' + (r.flagged ? "flagged" : "") + '"><td>' + esc(r.name) + "</td><td>" + (r.saldoAnt === null ? "—" : fmt(r.saldoAnt)) +
+            "</td><td>" + fmt(r.ing) + "</td><td>" + fmt(r.m) + "</td><td>" + (r.f === null ? "—" : fmt(r.f)) + "</td><td>" + (r.v === null ? "—" : fmt(r.v)) +
+            "</td><td>" + (r.vc === null ? "—" : fmt(r.vc)) + "</td><td>" + (r.c === null ? "—" : fmt(r.c)) + "</td></tr>";
+        });
+        html += "</tbody></table>";
+      });
+    });
+    html += '<div class="print-footer">Generado ' + esc(new Date().toLocaleString("es-PE",{ timeZone:"America/Lima" })) + "</div>";
+    return html;
+  }
+  function doWindowPrint(tempTitle){
+    // Cambiamos el título de la página mientras se imprime para que el navegador
+    // no muestre "Arqueo Diario" en el encabezado del PDF/impresión.
+    var oldTitle = document.title;
+    document.title = tempTitle;
+    var restored = false;
+    function restore(){
+      if(restored) return;
+      restored = true;
+      document.title = oldTitle;
+      window.removeEventListener("afterprint", restore);
+    }
+    window.addEventListener("afterprint", restore);
+    setTimeout(function(){
+      window.print();
+      setTimeout(restore, 1500);
+    }, 30);
+  }
+  function doPrint(date){
+    var area = document.getElementById("printArea");
+    area.innerHTML = buildPrintHTML(date);
+    doWindowPrint("Arqueo " + (date || ""));
+  }
+
+  // ---------- Excel export (una hoja por categoría, un día opcionalmente) ----------
+  // Una fila por producto por día, con Mañana y Tarde lado a lado (como en el reporte de
+  // papel que mandan a la dueña), en vez de dos filas separadas por turno.
+  var REPORT_HEADER = ["Fecha","Producto",
+    "Saldo Anterior","Ingreso AM","Merma AM","Saldo Final AM","Ventas AM","Ventas Caja AM","Cuadre AM",
+    "Ingreso PM","Merma PM","Saldo Final PM","Ventas PM","Ventas Caja PM","Cuadre PM",
+    "Responsable AM","Hora Cierre AM","Responsable PM","Hora Cierre PM"];
+  function buildReportRowsByCategory(dateFilter){
+    var byTab = {};
+    PRODUCT_TABS.forEach(function(tabKey){ byTab[tabKey] = [REPORT_HEADER.slice()]; });
+    var dates = Object.keys(STATE.days).sort();
+    if(dateFilter) dates = dates.filter(function(d){ return d === dateFilter; });
+    dates.forEach(function(d){
+      var day = STATE.days[d];
+      backfillDay(day, d);
+      var t = day.turno;
+      PRODUCT_TABS.forEach(function(tabKey){
+        var section = SECTIONS[tabKey];
+        var sec = day[section.key];
+        catalogFor(tabKey).forEach(function(name, idx){
+          var amRow = sec.am[idx];
+          var pmRow = sec.pm[idx];
+          var vAm = ventasOf(amRow, "am", null);
+          var cAm = cuadreOf(amRow, vAm);
+          var vPm = ventasOf(pmRow, "pm", amRow);
+          var cPm = cuadreOf(pmRow, vPm);
+          var ingresoAm = amRow.i1 + amRow.i2 + amRow.i3;
+          var ingresoPm = pmRow.i1 + pmRow.i2 + pmRow.i3;
+          byTab[tabKey].push([
+            d, name,
+            amRow.a===null ? "" : fmt(amRow.a), fmt(ingresoAm), fmt(amRow.m), amRow.f===null ? "" : fmt(amRow.f), vAm===null ? "" : fmt(vAm),
+            amRow.vc===null ? "" : fmt(amRow.vc), cAm===null ? "" : fmt(cAm),
+            fmt(ingresoPm), fmt(pmRow.m), pmRow.f===null ? "" : fmt(pmRow.f), vPm===null ? "" : fmt(vPm),
+            pmRow.vc===null ? "" : fmt(pmRow.vc), cPm===null ? "" : fmt(cPm),
+            t.respAM || "", t.sAM || "", t.respPM || "", t.sPM || ""
+          ]);
+        });
+      });
+    });
+    return byTab;
+  }
+  // ---------- Reporte simple (Panes / Embutidos / Triples) ----------
+  // Jessica pidió un reporte más liviano para estas 3 categorías —el de arriba (REPORT_HEADER)
+  // le sale con demasiadas columnas (mañana + tarde repetido por cada cosa). Este otro es una
+  // sola fila por producto, con lo que necesita del cierre de la tarde nada más: parecido al
+  // Excel que ella misma armó a mano como ejemplo. Bebidas y Otros, por ahora, se quedan con el
+  // reporte de siempre (no lo pidió para esas dos todavía).
+  var SIMPLE_REPORT_TABS = ["panes","embutidos","carnes","triples"];
+  var SIMPLE_REPORT_HEADER = ["Fecha","Producto","Saldo Anterior","Ingreso AM","Ingreso PM","Merma PM","Saldo Final PM","Ventas Caja PM","Cuadre PM"];
+  var SIMPLE_REPORT_TITLES = { panes:"ARQUEO DE PANES", embutidos:"ARQUEO DE EMBUTIDOS", carnes:"ARQUEO DE CARNES", triples:"ARQUEO DE TRIPLES" };
+  function buildSimpleReportRowsByCategory(dateFilter){
+    var byTab = {};
+    SIMPLE_REPORT_TABS.forEach(function(tabKey){ byTab[tabKey] = []; });
+    var dates = Object.keys(STATE.days).sort();
+    if(dateFilter) dates = dates.filter(function(d){ return d === dateFilter; });
+    dates.forEach(function(d){
+      var day = STATE.days[d];
+      backfillDay(day, d);
+      SIMPLE_REPORT_TABS.forEach(function(tabKey){
+        var section = SECTIONS[tabKey];
+        var sec = day[section.key];
+        catalogFor(tabKey).forEach(function(name, idx){
+          var amRow = sec.am[idx];
+          var pmRow = sec.pm[idx];
+          var vPm = ventasOf(pmRow, "pm", amRow);
+          var cPm = cuadreOf(pmRow, vPm);
+          var ingresoAm = amRow.i1 + amRow.i2 + amRow.i3;
+          var ingresoPm = pmRow.i1 + pmRow.i2 + pmRow.i3;
+          byTab[tabKey].push([
+            d, name, amRow.a===null ? "" : fmt(amRow.a), fmt(ingresoAm), fmt(ingresoPm), fmt(pmRow.m), pmRow.f===null ? "" : fmt(pmRow.f),
+            pmRow.vc===null ? "" : fmt(pmRow.vc), cPm===null ? "" : fmt(cPm)
+          ]);
+        });
+      });
+    });
+    return byTab;
+  }
+  function buildSimpleReportSheet(tabKey, rows){
+    var numCols = SIMPLE_REPORT_HEADER.length;
+    var titleRow = [];
+    for(var i=0;i<numCols;i++) titleRow.push("");
+    titleRow[0] = SIMPLE_REPORT_TITLES[tabKey];
+    var aoa = [titleRow, SIMPLE_REPORT_HEADER.slice()].concat(rows);
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!merges"] = [{ s:{r:0,c:0}, e:{r:0,c:numCols-1} }];
+    ws["!cols"] = [{wch:12},{wch:26},{wch:14},{wch:12},{wch:12},{wch:10},{wch:14},{wch:14},{wch:10}];
+    // Negrita y color para el título y el encabezado — si el lector de Excel de quien lo abre
+    // no llega a pintar el color, igual queda bien: el contenido y el orden de columnas es lo
+    // que más importa.
+    try{
+      var titleRef = XLSX.utils.encode_cell({r:0,c:0});
+      if(ws[titleRef]) ws[titleRef].s = { font:{ bold:true, underline:true, sz:14, color:{rgb:"C2660C"} }, alignment:{ horizontal:"center" } };
+      for(var c=0;c<numCols;c++){
+        var ref = XLSX.utils.encode_cell({r:1,c:c});
+        if(ws[ref]) ws[ref].s = { font:{ bold:true, color:{rgb:"FFFFFF"} }, fill:{ fgColor:{rgb:"4472C4"} }, alignment:{ horizontal:"center" } };
+      }
+    }catch(e){}
+    return ws;
+  }
+  function buildTurnoRows(dateFilter){
+    var rows = [["Fecha","Responsable AM","Hora Entrada AM","Hora Cierre AM","Observaciones AM",
+      "Responsable PM","Hora Entrada PM","Hora Cierre PM","Observaciones PM","Notas del día"]];
+    var dates = Object.keys(STATE.days).sort();
+    if(dateFilter) dates = dates.filter(function(d){ return d === dateFilter; });
+    dates.forEach(function(d){
+      var t = STATE.days[d].turno;
+      rows.push([d, t.respAM||"", t.eAM||"", t.sAM||"", t.obsAM||"", t.respPM||"", t.ePM||"", t.sPM||"", t.obsPM||"", t.notas||""]);
+    });
+    return rows;
+  }
+  // dateFilter: si se pasa una fecha (YYYY-MM-DD), exporta solo ese día; si no, todo el historial.
+  function doExport(dateFilter){
+    if(Object.keys(STATE.days).length === 0){ showToast("Todavía no hay días guardados para exportar."); return; }
+    if(dateFilter && !STATE.days[dateFilter]){ showToast("No hay datos guardados para ese día."); return; }
+    if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo."); return; }
+    try{
+      var byTab = buildReportRowsByCategory(dateFilter);
+      var simpleByTab = buildSimpleReportRowsByCategory(dateFilter);
+      var wb = XLSX.utils.book_new();
+      var SHEET_NAMES = { panes:"Panes", bebidas:"Bebidas", embutidos:"Embutidos", carnes:"Carnes", triples:"Triples", otros:"Otros" };
+      PRODUCT_TABS.forEach(function(tabKey){
+        var ws = SIMPLE_REPORT_TABS.indexOf(tabKey) !== -1
+          ? buildSimpleReportSheet(tabKey, simpleByTab[tabKey])
+          : XLSX.utils.aoa_to_sheet(byTab[tabKey]);
+        XLSX.utils.book_append_sheet(wb, ws, SHEET_NAMES[tabKey]);
+      });
+      var wsTurno = XLSX.utils.aoa_to_sheet(buildTurnoRows(dateFilter));
+      XLSX.utils.book_append_sheet(wb, wsTurno, "Turno");
+      var filename = dateFilter ? ("arqueo-" + dateFilter + ".xlsx") : "arqueo-historial.xlsx";
+      XLSX.writeFile(wb, filename);
+      showToast("Reporte descargado.");
+    }catch(err){
+      showToast("No se pudo generar el archivo. Intenta de nuevo.");
+    }
+  }
+
+  // ---------- rendering ----------
+  function renderAll(){
+    document.getElementById("brandSub").textContent =
+      (STATE.meta.businessName ? STATE.meta.businessName + " · " : "") + fmtDateLabel(currentDate);
+    renderTabs();
+    renderPanel();
+    setSaveStatus();
+  }
+
+  function renderTabs(){
+    var day = getDay(currentDate);
+    var alerts = dayAlerts(day);
+    document.querySelectorAll(".tab-btn").forEach(function(btn){
+      var tab = btn.getAttribute("data-tab");
+      btn.classList.toggle("active", tab === currentTab);
+      var n = alerts[tab];
+      var countHtml = n ? '<span class="count">' + n + "</span>" : "";
+      var label = SECTIONS[tab] ? SECTIONS[tab].label + countHtml
+        : (tab === "turno" ? "Turno" : (tab === "historial" ? "Historial" : (tab === "pedidos" ? "Pedidos" : "")));
+      btn.innerHTML = label;
+    });
+  }
+
+  function renderPanel(){
+    var panel = document.getElementById("panel");
+    panel.innerHTML = "";
+    if(currentTab === "turno"){ panel.appendChild(buildTurnoPanel()); }
+    else if(currentTab === "historial"){ panel.appendChild(buildHistorialPanel()); }
+    else if(currentTab === "pedidos"){ panel.appendChild(buildPedidosPanel()); }
+    else { panel.appendChild(buildProductPanel(currentTab)); }
+  }
+
+  function buildStrip(){
+    var day = getDay(currentDate);
+    var alerts = dayAlerts(day);
+    var strip = document.createElement("div");
+    strip.className = "strip";
+    var d = document.createElement("span");
+    d.innerHTML = "<strong>" + fmtDateLabel(currentDate) + "</strong>";
+    strip.appendChild(d);
+    var a = document.createElement("span");
+    a.innerHTML = alerts.total === 0
+      ? '<span class="ok">Todo cuadra</span>'
+      : '<span class="alert">' + alerts.total + " producto" + (alerts.total===1?"":"s") + " por revisar</span>";
+    strip.appendChild(a);
+    return strip;
+  }
+
+  function buildProductPanel(tab){
+    var section = SECTIONS[tab];
+    var wrap = document.createElement("div");
+    wrap.appendChild(buildStrip());
+
+    var card = document.createElement("div");
+    card.className = "card";
+
+    if(tab === "otros"){
+      var otrosHint = document.createElement("div");
+      otrosHint.className = "hint";
+      otrosHint.style.margin = "0 0 .6rem";
+      otrosHint.textContent = "Aquí registras salidas que no son venta normal: regalos, bonificaciones u otra situación que se presente. Escribe una descripción (a quién, por qué) y agrégala. Se agrega una sola vez y queda disponible en todos los días.";
+      card.appendChild(otrosHint);
+
+      var addRow = document.createElement("div");
+      addRow.className = "add-row";
+      var addInput = document.createElement("input");
+      addInput.type = "text";
+      addInput.placeholder = "Descripción (ej. Regalo cliente, Bonificación personal)…";
+      if(readOnly) addInput.disabled = true;
+      var addBtn = document.createElement("button");
+      addBtn.type = "button";
+      addBtn.className = "btn btn-sm";
+      addBtn.textContent = "Agregar producto";
+      if(readOnly) addBtn.disabled = true;
+      function doAddProduct(){
+        var name = addInput.value.trim();
+        if(!name) return;
+        var dup = STATE.customCatalog.some(function(n){ return n.toLowerCase() === name.toLowerCase(); });
+        if(dup){ showToast('"' + name + '" ya está en Otros.'); return; }
+        STATE.customCatalog.push(name);
+        markDirty();
+        scheduleAutosave();
+        showToast('"' + name + '" agregado a Otros.');
+        renderTabs();
+        renderPanel();
+      }
+      addBtn.addEventListener("click", doAddProduct);
+      addInput.addEventListener("keydown", function(ev){
+        if(ev.key === "Enter"){ ev.preventDefault(); doAddProduct(); }
+      });
+      addRow.appendChild(addInput);
+      addRow.appendChild(addBtn);
+      card.appendChild(addRow);
+    }
+
+    var searchRow = document.createElement("div");
+    searchRow.className = "search-row";
+
+    var left = document.createElement("div");
+    left.className = "search-left";
+
+    var toggle = document.createElement("div");
+    toggle.className = "shift-toggle";
+    ["am","pm"].forEach(function(s){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "shift-btn" + (shiftView[tab]===s ? " active" : "");
+      b.textContent = SHIFT_LABEL[s];
+      b.addEventListener("click", function(){
+        shiftView[tab] = s;
+        renderPanel();
+      });
+      toggle.appendChild(b);
+    });
+    left.appendChild(toggle);
+
+    var input = document.createElement("input");
+    input.type = "search";
+    input.placeholder = "Buscar " + section.label.toLowerCase() + "…";
+    input.value = filters[tab];
+    input.addEventListener("input", function(){
+      filters[tab] = input.value;
+      renderTableBody(tab, tbody, rowCount);
+    });
+    left.appendChild(input);
+    searchRow.appendChild(left);
+
+    var legend = document.createElement("div");
+    legend.className = "legend";
+    legend.innerHTML =
+      '<span><span class="dot warn"></span>Sin dato anterior — hay que contarlo</span>' +
+      '<span><span class="dot neutral"></span>Sin caja registrada</span>' +
+      '<span><span class="dot bad"></span>Descuadre — revisar</span>';
+    searchRow.appendChild(legend);
+    card.appendChild(searchRow);
+
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.textContent = shiftView[tab] === "am"
+      ? "Cierre de la mañana: lo que quede aquí pasa como saldo inicial de la tarde."
+      : "Saldo inicial de la tarde = saldo final de la mañana (se calcula solo).";
+    card.appendChild(hint);
+
+    var tableWrap = document.createElement("div");
+    tableWrap.className = "table-wrap";
+    var table = document.createElement("table");
+    table.className = "data-table";
+    table.innerHTML =
+      "<thead><tr>" +
+        "<th>Producto</th><th>Saldo ant.</th><th>Ingresos (hasta 3)</th><th>Merma</th><th>Saldo final</th>" +
+        "<th>Se agotó</th><th>Ventas físicas</th><th>Ventas caja</th><th>Cuadre</th>" +
+      "</tr></thead><tbody></tbody>";
+    var tbody = table.querySelector("tbody");
+    tableWrap.appendChild(table);
+    card.appendChild(tableWrap);
+
+    var rowCount = document.createElement("div");
+    rowCount.className = "row-count";
+    card.appendChild(rowCount);
+
+    wrap.appendChild(card);
+
+    renderTableBody(tab, tbody, rowCount);
+
+    tbody.addEventListener("input", function(ev){ handleCellInput(ev, tab, section, tbody); });
+    tbody.addEventListener("change", function(ev){ handleCellInput(ev, tab, section, tbody); });
+    if(tab === "otros"){
+      tbody.addEventListener("click", function(ev){
+        var btn = ev.target.closest(".btn-del");
+        if(!btn) return;
+        var idx = parseInt(btn.getAttribute("data-idx"), 10);
+        deleteCustomProduct(idx);
+      });
+    }
+
+    return wrap;
+  }
+
+  function handleCellInput(ev, tab, section, tbody){
+    var t = ev.target;
+    var idx = t.getAttribute("data-idx");
+    if(idx === null) return;
+    idx = parseInt(idx, 10);
+    var shift = shiftView[tab];
+    var day = ensureDay(currentDate);
+    var sec = day[section.key];
+    var row = shift === "am" ? sec.am[idx] : sec.pm[idx];
+
+    if(t.classList.contains("field-input")){
+      var field = t.getAttribute("data-field");
+      if(field === "vc" || field === "f" || field === "a"){ row[field] = numOrNull(t.value); }
+      else { row[field] = num(t.value); }
+    } else if(t.classList.contains("ag-input")){
+      var map = shift === "am" ? sec.agAm : sec.agPm;
+      if(t.value){ map[idx] = t.value; } else { delete map[idx]; }
+    } else {
+      return;
+    }
+
+    markDirty();
+    scheduleAutosave();
+    updateComputedRow(tab, section, tbody, idx, shift, day);
+    renderTabs();
+  }
+
+  function updateComputedRow(tab, section, tbody, idx, shift, day){
+    var sec = day[section.key];
+    var amRow = sec.am[idx];
+    var row = shift === "am" ? amRow : sec.pm[idx];
+    var v = ventasOf(row, shift, amRow);
+    var c = cuadreOf(row, v);
+    var flagged = isFlagged(row, shift, amRow);
+
+    var vCell = tbody.querySelector('.ventas-cell[data-ridx="'+idx+'"]');
+    if(vCell){
+      if(v === null){ vCell.textContent = "—"; vCell.className = "ventas-cell pending"; }
+      else {
+        vCell.textContent = fmt(v);
+        vCell.className = "ventas-cell " + (v < -0.004 ? "bad" : (v === 0 && row.vc===null ? "neutral" : "good"));
+      }
+    }
+    var cCell = tbody.querySelector('.cuadre-cell[data-ridx="'+idx+'"]');
+    if(cCell){
+      if(c === null){ cCell.textContent = "—"; cCell.className = "cuadre-cell pending"; }
+      else { cCell.textContent = fmt(c); cCell.className = "cuadre-cell " + (Math.abs(c) > 0.004 ? "bad" : "good"); }
+    }
+    var pendingData = shift === "am" ? row.a === null : amRow.f === null;
+    var tr = tbody.querySelector('tr[data-ridx="'+idx+'"]');
+    if(tr){
+      tr.classList.toggle("flag", flagged);
+      tr.classList.toggle("pending-data", pendingData);
+    }
+
+    if(shift === "pm"){
+      var derived = tbody.querySelector('.derived[data-ridx="'+idx+'"]');
+      if(derived){
+        derived.textContent = amRow.f === null ? "—" : fmt(amRow.f);
+        derived.classList.toggle("pending-warn", amRow.f === null);
+      }
+    } else {
+      var aInput = tbody.querySelector('.field-input[data-idx="'+idx+'"][data-field="a"]');
+      if(aInput) aInput.classList.toggle("pending-warn", row.a === null);
+    }
+
+    var agNote = tbody.querySelector('.ag-note[data-ridx="'+idx+'"]');
+    if(agNote){
+      var t = day.turno;
+      var agTime = (shift === "am" ? sec.agAm : sec.agPm)[idx];
+      var closeTime = shift === "am" ? t.sAM : t.sPM;
+      var mins = minutesBetween(agTime, closeTime);
+      agNote.textContent = fmtDuration(mins);
+    }
+  }
+
+  function renderTableBody(tab, tbody, rowCountEl){
+    var section = SECTIONS[tab];
+    var shift = shiftView[tab];
+    var day = getDay(currentDate);
+    var sec = day[section.key];
+    var t = day.turno;
+    var closeTime = shift === "am" ? t.sAM : t.sPM;
+    var q = filters[tab].trim().toLowerCase();
+    tbody.innerHTML = "";
+    var shown = 0;
+    var catalog = catalogFor(tab);
+    catalog.forEach(function(name, idx){
+      if(q && name.toLowerCase().indexOf(q) === -1) return;
+      shown++;
+      var amRow = sec.am[idx];
+      var row = shift === "am" ? amRow : sec.pm[idx];
+      var v = ventasOf(row, shift, amRow);
+      var c = cuadreOf(row, v);
+      var flagged = isFlagged(row, shift, amRow);
+      var agMap = shift === "am" ? sec.agAm : sec.agPm;
+      var agTime = agMap[idx] || "";
+      var mins = minutesBetween(agTime, closeTime);
+
+      // "Sin dato anterior": todavía no hay un número real de dónde partir (nadie lo contó
+      // el día/turno anterior) — se avisa con un borde ámbar en la fila, distinto del rojo
+      // de descuadre, para que se sepa que hay que contarlo, no que algo está mal.
+      var pendingData = shift === "am" ? row.a === null : amRow.f === null;
+
+      var tr = document.createElement("tr");
+      tr.setAttribute("data-ridx", idx);
+      if(flagged) tr.classList.add("flag");
+      if(pendingData) tr.classList.add("pending-data");
+
+      var saldoAntCell = shift === "am"
+        ? '<input class="num-input field-input' + (row.a===null?" pending-warn":"") + '" type="number" step="any" min="0" data-idx="'+idx+'" data-field="a" value="'+(row.a===null?"":row.a)+'" placeholder="—">'
+        : '<span class="derived' + (amRow.f===null?" pending-warn":"") + '" data-ridx="'+idx+'">'+(amRow.f===null?"—":fmt(amRow.f))+'</span>';
+
+      var nameCell = tab === "otros"
+        ? '<td class="name-cell">' + esc(name) +
+          (readOnly ? "" : '<button type="button" class="btn-del" data-idx="'+idx+'" title="Eliminar de Otros">✕</button>') +
+          '</td>'
+        : "<td>" + esc(name) + "</td>";
+
+      tr.innerHTML =
+        nameCell +
+        "<td>" + saldoAntCell + "</td>" +
+        '<td><span class="ing-group">' +
+          '<input class="num-input mini field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="i1" value="'+row.i1+'" title="Ingreso 1">' +
+          '<input class="num-input mini field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="i2" value="'+row.i2+'" title="Ingreso 2">' +
+          '<input class="num-input mini field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="i3" value="'+row.i3+'" title="Ingreso 3">' +
+        '</span></td>' +
+        '<td><input class="num-input field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="m" value="'+row.m+'"></td>' +
+        '<td><input class="num-input field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="f" value="'+(row.f===null?"":row.f)+'" placeholder="—"></td>' +
+        '<td><input class="time-input ag-input" type="time" data-idx="'+idx+'" value="'+esc(agTime)+'">' +
+          '<div class="ag-note" data-ridx="'+idx+'">' + esc(fmtDuration(mins)) + '</div></td>' +
+        '<td class="ventas-cell ' + (v===null?"pending":(v<-0.004?"bad":(v===0&&row.vc===null?"neutral":"good"))) + '" data-ridx="'+idx+'">' + (v===null?"—":fmt(v)) + "</td>" +
+        '<td><input class="num-input vc field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="vc" value="'+(row.vc===null?"":row.vc)+'" placeholder="—"></td>' +
+        '<td class="cuadre-cell ' + (c===null?"pending":(Math.abs(c)>0.004?"bad":"good")) + '" data-ridx="'+idx+'">' + (c===null?"—":fmt(c)) + "</td>";
+      tbody.appendChild(tr);
+    });
+    if(readOnly){ tbody.querySelectorAll("input").forEach(function(i){ i.disabled = true; }); }
+    if(rowCountEl){
+      if(tab === "otros" && catalog.length === 0){
+        rowCountEl.textContent = "Todavía no registraste nada en Otros. Usa el campo de arriba cuando haya un regalo, bonificación u otra situación.";
+      } else {
+        rowCountEl.textContent = shown + " de " + catalog.length + " productos" + (q ? " (filtrados)" : "");
+      }
+    }
+  }
+
+  function buildTurnoPanel(){
+    var wrap = document.createElement("div");
+    wrap.appendChild(buildStrip());
+
+    var bizCard = document.createElement("div");
+    bizCard.className = "card";
+    bizCard.innerHTML = "<h2>Panadería</h2>";
+    var bizGrid = document.createElement("div");
+    bizGrid.className = "field-grid";
+    bizGrid.appendChild(buildField("Nombre de la panadería", "text", STATE.meta.businessName, function(v){
+      STATE.meta.businessName = v; markDirty(); scheduleAutosave();
+      document.getElementById("brandSub").textContent = (v ? v + " · " : "") + fmtDateLabel(currentDate);
+    }, true));
+    bizCard.appendChild(bizGrid);
+    wrap.appendChild(bizCard);
+
+    var card = document.createElement("div");
+    card.className = "card";
+    var turnoHead = document.createElement("div");
+    turnoHead.className = "search-row";
+    var turnoH2 = document.createElement("h2");
+    turnoH2.style.margin = "0";
+    turnoH2.textContent = "Turno del " + fmtDateLabel(currentDate);
+    turnoHead.appendChild(turnoH2);
+    var printBtn = document.createElement("button");
+    printBtn.type = "button";
+    printBtn.className = "btn btn-sm";
+    printBtn.textContent = "Imprimir informe del día";
+    printBtn.addEventListener("click", function(){ doPrint(currentDate); });
+    turnoHead.appendChild(printBtn);
+    card.appendChild(turnoHead);
+
+    function bindTurno(field){
+      return function(v){ var d = ensureDay(currentDate); d.turno[field] = v; markDirty(); scheduleAutosave(); };
+    }
+    var t = getDay(currentDate).turno;
+
+    var h3am = document.createElement("h3"); h3am.textContent = "Turno mañana"; card.appendChild(h3am);
+    var gridAM = document.createElement("div"); gridAM.className = "field-grid";
+    gridAM.appendChild(buildField("Responsable AM", "text", t.respAM, bindTurno("respAM")));
+    gridAM.appendChild(buildField("Hora de entrada", "time", t.eAM, bindTurno("eAM")));
+    gridAM.appendChild(buildField("Hora de salida / cierre AM", "time", t.sAM, bindTurno("sAM")));
+    gridAM.appendChild(buildField("Observaciones AM", "textarea", t.obsAM, bindTurno("obsAM"), true));
+    card.appendChild(gridAM);
+    var importHintAM = document.createElement("div");
+    importHintAM.className = "hint";
+    importHintAM.style.margin = ".2rem 0 .3rem";
+    importHintAM.textContent = "Sube aquí el reporte de ventas que exportas del sistema a media tarde: llena solo \"Ventas caja\" de la mañana, no toca tus conteos físicos.";
+    card.appendChild(importHintAM);
+    card.appendChild(buildImportControl("am"));
+
+    var h3pm = document.createElement("h3"); h3pm.textContent = "Turno tarde"; card.appendChild(h3pm);
+    var gridPM = document.createElement("div"); gridPM.className = "field-grid";
+    gridPM.appendChild(buildField("Responsable PM", "text", t.respPM, bindTurno("respPM")));
+    gridPM.appendChild(buildField("Hora de entrada", "time", t.ePM, bindTurno("ePM")));
+    gridPM.appendChild(buildField("Hora de salida / cierre PM", "time", t.sPM, bindTurno("sPM")));
+    gridPM.appendChild(buildField("Observaciones PM", "textarea", t.obsPM, bindTurno("obsPM"), true));
+    card.appendChild(gridPM);
+    var importHintPM = document.createElement("div");
+    importHintPM.className = "hint";
+    importHintPM.style.margin = ".2rem 0 .3rem";
+    importHintPM.textContent = "Sube aquí el reporte de cierre (el de las 10pm). Ese reporte trae el día completo (mañana + tarde), así que el sistema le resta automáticamente lo que ya está en \"Ventas caja\" de la mañana, y llena \"Ventas caja\" de la tarde solo con la diferencia.";
+    card.appendChild(importHintPM);
+    card.appendChild(buildImportControl("pm"));
+
+    var h3n = document.createElement("h3"); h3n.textContent = "Notas del día"; card.appendChild(h3n);
+    var gridN = document.createElement("div"); gridN.className = "field-grid";
+    gridN.appendChild(buildField("Notas generales", "textarea", t.notas, bindTurno("notas"), true));
+    card.appendChild(gridN);
+
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  function buildField(labelText, type, value, onChange, full){
+    var field = document.createElement("div");
+    field.className = "field" + (full ? " full" : "");
+    var label = document.createElement("label");
+    label.textContent = labelText;
+    field.appendChild(label);
+    var input;
+    if(type === "textarea"){ input = document.createElement("textarea"); input.value = value || ""; }
+    else { input = document.createElement("input"); input.type = type; input.value = value || ""; }
+    if(readOnly) input.disabled = true;
+    input.addEventListener("input", function(){ onChange(input.value); });
+    field.appendChild(input);
+    return field;
+  }
+
+  function buildHistorialPanel(){
+    var wrap = document.createElement("div");
+    var card = document.createElement("div");
+    card.className = "card";
+    var headRow = document.createElement("div");
+    headRow.className = "search-row";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0";
+    h2.textContent = "Historial de arqueos";
+    headRow.appendChild(h2);
+    var exportBtn = document.createElement("button");
+    exportBtn.type = "button";
+    exportBtn.className = "btn btn-sm";
+    exportBtn.id = "exportBtn";
+    exportBtn.textContent = "Exportar historial (Excel)";
+    exportBtn.disabled = Object.keys(STATE.days).length === 0;
+    exportBtn.title = "Descarga todo el historial en un archivo que se abre en Excel";
+    exportBtn.addEventListener("click", function(){ doExport(); });
+    headRow.appendChild(exportBtn);
+    card.appendChild(headRow);
+
+    var dates = Object.keys(STATE.days).sort().reverse();
+    if(dates.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "Aún no hay registros guardados. Llena el arqueo de hoy y presiona Guardar.";
+      card.appendChild(empty);
+    } else {
+      var list = document.createElement("div");
+      list.className = "history-list";
+      dates.forEach(function(d){
+        var day = STATE.days[d];
+        var alerts = dayAlerts(day);
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "history-card";
+        var left = document.createElement("div");
+        left.innerHTML =
+          '<div class="history-date">' + esc(fmtDateLabel(d)) + "</div>" +
+          '<div class="history-meta">AM: ' + esc(day.turno.respAM || "—") +
+          " · PM: " + esc(day.turno.respPM || "—") + "</div>";
+        var right = document.createElement("div");
+        right.className = "history-badges";
+        if(alerts.total === 0){ right.innerHTML = '<span class="chip good">Todo cuadra</span>'; }
+        else {
+          PRODUCT_TABS.forEach(function(tab){
+            if(alerts[tab] > 0){ right.innerHTML += '<span class="chip bad">' + SECTIONS[tab].label + ": " + alerts[tab] + "</span>"; }
+          });
+        }
+        var dayExportBtn = document.createElement("button");
+        dayExportBtn.type = "button";
+        dayExportBtn.className = "btn btn-sm history-export-btn";
+        dayExportBtn.textContent = "Excel de este día";
+        dayExportBtn.title = "Descarga el reporte de Excel de solo este día";
+        dayExportBtn.addEventListener("click", function(ev){
+          ev.stopPropagation();
+          doExport(d);
+        });
+        right.appendChild(dayExportBtn);
+        btn.appendChild(left);
+        btn.appendChild(right);
+        btn.addEventListener("click", function(){
+          currentDate = d; currentTab = "turno";
+          document.getElementById("datePicker").value = currentDate;
+          renderAll();
+        });
+        list.appendChild(btn);
+      });
+      card.appendChild(list);
+    }
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  // ---------- Pedidos (delivery / recojo en tienda / pedido masivo) ----------
+  var CANAL_LABEL = { delivery:"Delivery", tienda:"Recojo en tienda", masivo:"Pedido masivo" };
+  // Origen del pedido: de dónde vino (Whatsapp o Tienda física), independiente del canal de
+  // entrega de arriba — un pedido masivo, por ejemplo, puede venir tanto de Whatsapp como
+  // de un cliente que lo pide directo en la tienda (ej. Tanta pidiendo pan para toda la semana).
+  var ORIGEN_LABEL = { whatsapp:"WhatsApp", tienda:"Tienda" };
+  var pedidosProduccionDate = null;
+
+  function newPedidoDraft(canal){
+    canal = canal || "delivery";
+    var fecha = currentDate;
+    return {
+      canal: canal,
+      origen: "whatsapp",
+      cliente: { nombre:"", dni:"", ruc:"", direccion: canal === "tienda" ? "Recojo en tienda" : "", referencia:"", telefono:"", correo:"" },
+      tipoPago: "",
+      pagado: false,
+      comprobante: null,
+      deliveryMonto: 0,
+      notas: "",
+      fechaDefault: fecha,
+      hora: "",
+      masivoModo: "recojo",
+      masivoDeliveryRate: 0,
+      items: [ { producto:"", cantidad:1, precio:0, fecha: fecha, obs:"" } ]
+    };
+  }
+
+  // Mapa de la lista de precios subida (PEDIDO_PRECIO_SEED), armado una sola vez y
+  // normalizado para búsqueda. Solo se usa dentro de Pedidos.
+  var pedidoPrecioSeedMap = null;
+  function getPedidoPrecioSeedMap(){
+    if(pedidoPrecioSeedMap) return pedidoPrecioSeedMap;
+    pedidoPrecioSeedMap = {};
+    PEDIDO_PRECIO_SEED.forEach(function(item){
+      var key = normalizePrecioKey(item.n);
+      if(key && item.p > 0) pedidoPrecioSeedMap[key] = item.p;
+    });
+    return pedidoPrecioSeedMap;
+  }
+
+  // Los Triples viven en el catálogo del Arqueo con un nombre genérico por sabor
+  // ("Triples Clásicos", "Triple de Aceituna", ...), que es justo el nombre que aparece
+  // para elegir en un Pedido. Pero en la lista oficial de precios (PEDIDO_PRECIO_SEED,
+  // subida del Excel) cada sabor figura con dos precios distintos según cómo se vende:
+  // "UND T. X" (por unidad) y "TIRA DE X" (la tira de 3 unidades). Como en un Pedido
+  // normalmente se cuenta por unidad (cantidad = número de triples), el nombre genérico
+  // del catálogo se enlaza aquí al precio por UNIDAD, para que nunca se quede sin precio
+  // oficial ni caiga en un precio antiguo guardado por error.
+  var TRIPLE_PRECIO_ALIAS = [
+    { catalogo:"Triples Clásicos", seed:"UND T. CLÁSICO" },
+    { catalogo:"Triple de Aceituna", seed:"UND T. ACEITUNA" },
+    { catalogo:"Triple de Asado", seed:"UND T. ASADO" },
+    { catalogo:"Triple de Pollo Durazno", seed:"UND T. POLLO DURAZNO" },
+    { catalogo:"Triple de Pavo", seed:"UND T. PAVO" },
+    { catalogo:"Triple Glaseado Piña", seed:"UND T. GLASEADO PIÑA" },
+    { catalogo:"Triple Champiñón y Tocino", seed:"UND T. CHAMPIÑÓN Y TOCINO" },
+    { catalogo:"Triple Pollo Jamón y Queso", seed:"UND T. POLLO CON JAMÓN Y QUESO" }
+  ];
+  var pedidoPrecioAliasMap = null;
+  function getPedidoPrecioAliasMap(){
+    if(pedidoPrecioAliasMap) return pedidoPrecioAliasMap;
+    pedidoPrecioAliasMap = {};
+    TRIPLE_PRECIO_ALIAS.forEach(function(item){
+      var key = normalizePrecioKey(item.catalogo);
+      var seedKey = normalizePrecioKey(item.seed);
+      if(key && seedKey) pedidoPrecioAliasMap[key] = seedKey;
+    });
+    return pedidoPrecioAliasMap;
+  }
+
+  function buildCatalogNameList(){
+    var idx = buildCatalogIndex();
+    var names = [];
+    var seen = {};
+    Object.keys(idx).forEach(function(k){
+      var name = idx[k].name;
+      var key = normalizePrecioKey(name);
+      if(!seen[key]){ seen[key] = true; names.push(name); }
+    });
+    PEDIDO_PRECIO_SEED.forEach(function(item){
+      var key = normalizePrecioKey(item.n);
+      if(!seen[key]){ seen[key] = true; names.push(item.n); }
+    });
+    names.sort();
+    return names;
+  }
+
+  function normalizeClienteName(s){
+    return (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+  }
+
+  // Lista de precios (STATE.precios): el precio oficial de la lista subida (PEDIDO_PRECIO_SEED)
+  // manda siempre para cualquier producto que ya esté ahí — así escribir "pan", "empanada" o
+  // lo que sea, siempre trae el precio real, sin importar qué se haya escrito antes por error
+  // en un pedido. STATE.precios solo sirve para "aprender" el precio de productos que todavía
+  // NO están en la lista oficial (algo nuevo que Jessica no ha subido), para que al menos no
+  // se quede en cero — pero nunca pisa ni cambia un precio que ya viene de la lista oficial.
+  // Vive dentro del documento principal del arqueo (no en su propia colección) porque es una
+  // lista chica y acotada (un precio por producto), no algo que crezca sin límite.
+  function normalizePrecioKey(s){
+    return (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+  }
+  function getPrecioFor(producto){
+    var key = normalizePrecioKey(producto);
+    if(!key) return null;
+    var seedMap = getPedidoPrecioSeedMap();
+    if(seedMap.hasOwnProperty(key)) return seedMap[key];
+    var aliasMap = getPedidoPrecioAliasMap();
+    if(aliasMap.hasOwnProperty(key) && seedMap.hasOwnProperty(aliasMap[key])){
+      return seedMap[aliasMap[key]];
+    }
+    var map = STATE.precios || {};
+    return map.hasOwnProperty(key) ? map[key] : null;
+  }
+  function setPrecioFor(producto, precio){
+    var key = normalizePrecioKey(producto);
+    if(!key || !(precio > 0)) return;
+    var seedMap = getPedidoPrecioSeedMap();
+    if(seedMap.hasOwnProperty(key)) return; // el precio de la lista oficial no se pisa
+    var aliasMap = getPedidoPrecioAliasMap();
+    if(aliasMap.hasOwnProperty(key) && seedMap.hasOwnProperty(aliasMap[key])) return; // ídem, vía alias de Triples
+    if(!STATE.precios) STATE.precios = {};
+    if(STATE.precios[key] !== precio){
+      STATE.precios[key] = precio;
+      markDirty();
+      scheduleAutosave();
+    }
+  }
+
+  function findClienteByNombre(nombre){
+    var target = normalizeClienteName(nombre);
+    if(!target) return null;
+    var map = CLIENTES || {};
+    var found = null;
+    Object.keys(map).forEach(function(id){
+      if(found) return;
+      if(normalizeClienteName(map[id].nombre) === target){ found = { id: id, data: map[id] }; }
+    });
+    return found;
+  }
+
+  function buildClienteNameList(){
+    var map = CLIENTES || {};
+    var names = [];
+    Object.keys(map).forEach(function(id){ if(map[id].nombre) names.push(map[id].nombre); });
+    names.sort();
+    return names;
+  }
+
+  function upsertCliente(cliente){
+    if(!db || !cliente || !cliente.nombre || !cliente.nombre.trim()) return;
+    var match = findClienteByNombre(cliente.nombre);
+    var payload = {
+      nombre: cliente.nombre.trim(),
+      dni: cliente.dni || "",
+      ruc: cliente.ruc || "",
+      direccion: cliente.direccion || "",
+      referencia: cliente.referencia || "",
+      telefono: cliente.telefono || "",
+      correo: cliente.correo || "",
+      updatedAt: Date.now()
+    };
+    if(match){
+      db.collection("clientes").doc(match.id).update(payload).catch(function(){});
+    } else {
+      db.collection("clientes").add(payload).catch(function(){});
+    }
+  }
+
+  // Clave aparte para entrar a Pedidos: acá se manejan pedidos que el cliente ya pagó,
+  // así que aunque cualquiera con la clave general puede ver el arqueo del día, hace falta
+  // esta segunda clave para entrar, ver, borrar o cambiar algo en Pedidos.
+  var PEDIDOS_PASSWORD = "Pedidos2026";
+  function isPedidosUnlocked(){
+    try{ return sessionStorage.getItem("arqueo_pedidos_unlocked") === "1"; }catch(e){ return false; }
+  }
+  function setPedidosUnlocked(){
+    try{ sessionStorage.setItem("arqueo_pedidos_unlocked", "1"); }catch(e){}
+  }
+  function buildPedidosLockGate(){
+    var wrap = document.createElement("div");
+    var card = document.createElement("div");
+    card.className = "card";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .5rem";
+    h2.textContent = "Pedidos";
+    card.appendChild(h2);
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.textContent = "Esta sección tiene una clave aparte porque acá se manejan pedidos que el cliente ya pagó. Pide la clave a Jessica si no la tienes.";
+    card.appendChild(hint);
+
+    var form = document.createElement("form");
+    form.style.maxWidth = "260px";
+    form.style.marginTop = "1rem";
+    var field = document.createElement("div");
+    field.className = "field";
+    var label = document.createElement("label");
+    label.textContent = "Clave de Pedidos";
+    field.appendChild(label);
+    var input = document.createElement("input");
+    input.type = "password";
+    input.placeholder = "Clave de Pedidos";
+    input.autocomplete = "off";
+    field.appendChild(input);
+    form.appendChild(field);
+
+    var err = document.createElement("p");
+    err.className = "lock-error";
+    err.textContent = "Clave incorrecta. Intenta de nuevo.";
+    err.hidden = true;
+    form.appendChild(err);
+
+    var btn = document.createElement("button");
+    btn.type = "submit";
+    btn.className = "btn btn-primary";
+    btn.style.marginTop = ".6rem";
+    btn.textContent = "Entrar";
+    form.appendChild(btn);
+
+    form.addEventListener("submit", function(ev){
+      ev.preventDefault();
+      if(input.value === PEDIDOS_PASSWORD){
+        setPedidosUnlocked();
+        renderPanel();
+      } else {
+        err.hidden = false;
+        input.value = "";
+        input.focus();
+      }
+    });
+
+    card.appendChild(form);
+    wrap.appendChild(card);
+    setTimeout(function(){ input.focus(); }, 30);
+    return wrap;
+  }
+
+  function buildPedidosPanel(){
+    if(!isPedidosUnlocked()){ return buildPedidosLockGate(); }
+    var wrap = document.createElement("div");
+
+    var viewToggle = document.createElement("div");
+    viewToggle.className = "shift-toggle";
+    viewToggle.style.marginBottom = "1rem";
+    [["nuevo","Nuevo pedido"], ["produccion","Producción por día"], ["lista","Todos los pedidos"]].forEach(function(pair){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "shift-btn" + (pedidosView === pair[0] ? " active" : "");
+      b.textContent = pair[1];
+      b.addEventListener("click", function(){ pedidosView = pair[0]; renderPanel(); });
+      viewToggle.appendChild(b);
+    });
+    wrap.appendChild(viewToggle);
+
+    if(PEDIDOS === null){
+      var loading = document.createElement("div");
+      loading.className = "empty-state";
+      loading.textContent = "Cargando pedidos…";
+      wrap.appendChild(loading);
+      return wrap;
+    }
+
+    if(pedidosView === "produccion"){ wrap.appendChild(buildProduccionView()); }
+    else if(pedidosView === "lista"){ wrap.appendChild(buildPedidosLista()); }
+    else { wrap.appendChild(buildPedidoForm()); }
+
+    return wrap;
+  }
+
+  // Comprime la foto del comprobante (Yape/transferencia) antes de guardarla: cada Pedido vive
+  // en su propio documento de Firestore (límite de 1 MB), así que se reduce el tamaño de la
+  // imagen y se prueba con menos calidad hasta que quede liviana y quepa sin problema.
+  function compressImageFile(file, done){
+    var maxDim = 1000, maxBytes = 550000;
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var img = new Image();
+      img.onload = function(){
+        var w = img.width, h = img.height;
+        var scale = Math.min(1, maxDim / Math.max(w, h));
+        var cw = Math.max(1, Math.round(w * scale));
+        var ch = Math.max(1, Math.round(h * scale));
+        var canvas = document.createElement("canvas");
+        canvas.width = cw; canvas.height = ch;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, cw, ch);
+        function tryQuality(q){
+          var dataUrl = canvas.toDataURL("image/jpeg", q);
+          var approxBytes = Math.round(dataUrl.length * 0.75);
+          if(approxBytes > maxBytes && q > 0.3){
+            tryQuality(q - 0.12);
+          } else {
+            done(dataUrl);
+          }
+        }
+        tryQuality(0.72);
+      };
+      img.onerror = function(){ done(null); };
+      img.src = ev.target.result;
+    };
+    reader.onerror = function(){ done(null); };
+    reader.readAsDataURL(file);
+  }
+
+  function buildPedidoForm(){
+    if(!pedidoDraft) pedidoDraft = newPedidoDraft("delivery");
+    var draft = pedidoDraft;
+    var card = document.createElement("div");
+    card.className = "card";
+
+    var headRow = document.createElement("div");
+    headRow.style.display = "flex";
+    headRow.style.justifyContent = "space-between";
+    headRow.style.alignItems = "center";
+    headRow.style.flexWrap = "wrap";
+    headRow.style.gap = ".5rem";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .8rem";
+    h2.textContent = pedidoEditingId ? "Editar pedido" : "Nuevo pedido";
+    headRow.appendChild(h2);
+    if(pedidoEditingId){
+      var editControls = document.createElement("div");
+      editControls.style.display = "flex";
+      editControls.style.alignItems = "center";
+      editControls.style.gap = ".6rem";
+      var pedidoSaveStatus = document.createElement("span");
+      pedidoSaveStatus.id = "pedidoSaveStatus";
+      pedidoSaveStatus.className = "hint";
+      pedidoSaveStatus.textContent = pedidoAutosaving ? "Guardando…" : "Los cambios se guardan solos";
+      editControls.appendChild(pedidoSaveStatus);
+      var volverBtn = document.createElement("button");
+      volverBtn.type = "button";
+      volverBtn.className = "btn btn-sm";
+      volverBtn.textContent = "Volver a la lista";
+      volverBtn.addEventListener("click", function(){
+        pedidoEditingId = null;
+        pedidoDraft = null;
+        pedidosView = "lista";
+        renderPanel();
+      });
+      editControls.appendChild(volverBtn);
+      headRow.appendChild(editControls);
+    }
+    card.appendChild(headRow);
+
+    var origenHint = document.createElement("div");
+    origenHint.className = "hint";
+    origenHint.style.margin = "0 0 .4rem";
+    origenHint.textContent = "¿De dónde vino este pedido?";
+    card.appendChild(origenHint);
+    var origenRow = document.createElement("div");
+    origenRow.className = "shift-toggle";
+    origenRow.style.marginBottom = "1rem";
+    ["whatsapp","tienda"].forEach(function(o){
+      var ob = document.createElement("button");
+      ob.type = "button";
+      ob.className = "shift-btn" + (draft.origen === o ? " active" : "");
+      ob.textContent = ORIGEN_LABEL[o];
+      if(readOnly) ob.disabled = true;
+      ob.addEventListener("click", function(){
+        draft.origen = o;
+        renderPanel();
+        if(pedidoEditingId) schedulePedidoAutosave();
+      });
+      origenRow.appendChild(ob);
+    });
+    card.appendChild(origenRow);
+
+    var canalRow = document.createElement("div");
+    canalRow.className = "shift-toggle";
+    canalRow.style.marginBottom = "1rem";
+    ["delivery","tienda","masivo"].forEach(function(c){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "shift-btn" + (draft.canal === c ? " active" : "");
+      b.textContent = CANAL_LABEL[c];
+      if(readOnly) b.disabled = true;
+      b.addEventListener("click", function(){
+        draft.canal = c;
+        if(c === "tienda" && !draft.cliente.direccion) draft.cliente.direccion = "Recojo en tienda";
+        renderPanel();
+        if(pedidoEditingId) schedulePedidoAutosave();
+      });
+      canalRow.appendChild(b);
+    });
+    card.appendChild(canalRow);
+
+    if(draft.canal === "masivo"){
+      var modoHint = document.createElement("div");
+      modoHint.className = "hint";
+      modoHint.style.margin = "0 0 .4rem";
+      modoHint.textContent = "¿Cómo recibe el cliente este pedido masivo?";
+      card.appendChild(modoHint);
+      var modoRow = document.createElement("div");
+      modoRow.className = "shift-toggle";
+      modoRow.style.marginBottom = "1rem";
+      [["recojo","Recojo en tienda"], ["delivery","Delivery"]].forEach(function(pair){
+        var mb = document.createElement("button");
+        mb.type = "button";
+        mb.className = "shift-btn" + (draft.masivoModo === pair[0] ? " active" : "");
+        mb.textContent = pair[1];
+        if(readOnly) mb.disabled = true;
+        mb.addEventListener("click", function(){
+          draft.masivoModo = pair[0];
+          renderPanel();
+          if(pedidoEditingId) schedulePedidoAutosave();
+        });
+        modoRow.appendChild(mb);
+      });
+      card.appendChild(modoRow);
+    }
+
+    var grid = document.createElement("div");
+    grid.className = "field-grid";
+
+    var nombreField = document.createElement("div");
+    nombreField.className = "field";
+    var nombreLabel = document.createElement("label");
+    nombreLabel.textContent = "Nombre / Razón social";
+    nombreField.appendChild(nombreLabel);
+    var nombreInput = document.createElement("input");
+    nombreInput.type = "text";
+    nombreInput.value = draft.cliente.nombre || "";
+    nombreInput.setAttribute("list", "pedidoClienteList");
+    nombreInput.placeholder = "Buscar cliente guardado o escribir uno nuevo…";
+    if(readOnly) nombreInput.disabled = true;
+    nombreField.appendChild(nombreInput);
+    grid.appendChild(nombreField);
+
+    var dniField = buildField("DNI", "text", draft.cliente.dni, function(v){ draft.cliente.dni = v; });
+    var dniInput = dniField.querySelector("input");
+    grid.appendChild(dniField);
+
+    var rucField = buildField("RUC", "text", draft.cliente.ruc, function(v){ draft.cliente.ruc = v; });
+    var rucInput = rucField.querySelector("input");
+    grid.appendChild(rucField);
+
+    var direccionField = buildField("Dirección", "text", draft.cliente.direccion, function(v){ draft.cliente.direccion = v; });
+    var direccionInput = direccionField.querySelector("input");
+    grid.appendChild(direccionField);
+
+    var referenciaField = buildField("Referencia", "text", draft.cliente.referencia, function(v){ draft.cliente.referencia = v; });
+    var referenciaInput = referenciaField.querySelector("input");
+    grid.appendChild(referenciaField);
+
+    var telefonoField = buildField("Teléfono", "text", draft.cliente.telefono, function(v){ draft.cliente.telefono = v; });
+    var telefonoInput = telefonoField.querySelector("input");
+    grid.appendChild(telefonoField);
+
+    var correoField = buildField("Correo", "text", draft.cliente.correo, function(v){ draft.cliente.correo = v; });
+    var correoInput = correoField.querySelector("input");
+    grid.appendChild(correoField);
+
+    nombreInput.addEventListener("input", function(){
+      draft.cliente.nombre = nombreInput.value;
+      var match = findClienteByNombre(nombreInput.value);
+      if(match){
+        var c = match.data;
+        draft.cliente.dni = c.dni || "";
+        draft.cliente.ruc = c.ruc || "";
+        draft.cliente.direccion = c.direccion || draft.cliente.direccion;
+        draft.cliente.referencia = c.referencia || "";
+        draft.cliente.telefono = c.telefono || "";
+        draft.cliente.correo = c.correo || "";
+        dniInput.value = draft.cliente.dni;
+        rucInput.value = draft.cliente.ruc;
+        direccionInput.value = draft.cliente.direccion;
+        referenciaInput.value = draft.cliente.referencia;
+        telefonoInput.value = draft.cliente.telefono;
+        correoInput.value = draft.cliente.correo;
+        showToast("Cliente encontrado: se rellenaron sus datos.");
+      }
+    });
+
+    var pagoField = document.createElement("div");
+    pagoField.className = "field";
+    var pagoLabel = document.createElement("label");
+    pagoLabel.textContent = "Forma de pago";
+    pagoField.appendChild(pagoLabel);
+    var pagoInput = document.createElement("input");
+    pagoInput.type = "text";
+    pagoInput.value = draft.tipoPago || "";
+    pagoInput.setAttribute("list", "pedidoPagoList");
+    pagoInput.placeholder = "Efectivo, Yape, Plin, Transferencia…";
+    if(readOnly) pagoInput.disabled = true;
+    pagoInput.addEventListener("input", function(){ draft.tipoPago = pagoInput.value; });
+    pagoField.appendChild(pagoInput);
+    grid.appendChild(pagoField);
+    if(draft.canal === "delivery"){
+      grid.appendChild(buildField("Monto delivery (S/)", "number", draft.deliveryMonto, function(v){
+        draft.deliveryMonto = num(v);
+        updatePedidoTotals(totalsRow);
+      }));
+    }
+    if(draft.canal === "masivo" && draft.masivoModo === "delivery"){
+      grid.appendChild(buildField("Monto delivery por entrega (S/)", "number", draft.masivoDeliveryRate, function(v){
+        draft.masivoDeliveryRate = num(v);
+        updatePedidoTotals(totalsRow);
+      }));
+    }
+    card.appendChild(grid);
+
+    var fechaHoraWrap = document.createElement("div");
+    fechaHoraWrap.style.display = "flex";
+    fechaHoraWrap.style.gap = "1rem";
+    fechaHoraWrap.style.flexWrap = "wrap";
+    fechaHoraWrap.style.margin = "1rem 0";
+
+    var fechaRow = document.createElement("div");
+    fechaRow.className = "field";
+    fechaRow.style.maxWidth = "220px";
+    var fechaLabel = document.createElement("label");
+    fechaLabel.textContent = draft.canal === "masivo" ? "Fecha para líneas nuevas" : "Fecha de entrega";
+    fechaRow.appendChild(fechaLabel);
+    var fechaInput = document.createElement("input");
+    fechaInput.type = "date";
+    fechaInput.value = draft.fechaDefault;
+    if(readOnly) fechaInput.disabled = true;
+    fechaInput.addEventListener("change", function(){
+      draft.fechaDefault = fechaInput.value || currentDate;
+      if(draft.canal !== "masivo"){
+        draft.items.forEach(function(it){ it.fecha = draft.fechaDefault; });
+        renderPedidoItems(tbody, totalsRow);
+      }
+    });
+    fechaRow.appendChild(fechaInput);
+    fechaHoraWrap.appendChild(fechaRow);
+
+    var horaRow = document.createElement("div");
+    horaRow.className = "field";
+    horaRow.style.maxWidth = "160px";
+    var horaLabel = document.createElement("label");
+    horaLabel.textContent = "Hora en que debe estar listo";
+    horaRow.appendChild(horaLabel);
+    var horaInput = document.createElement("input");
+    horaInput.type = "time";
+    horaInput.value = draft.hora || "";
+    if(readOnly) horaInput.disabled = true;
+    horaInput.addEventListener("change", function(){ draft.hora = horaInput.value || ""; });
+    horaRow.appendChild(horaInput);
+    fechaHoraWrap.appendChild(horaRow);
+
+    card.appendChild(fechaHoraWrap);
+
+    var itemsWrap = document.createElement("div");
+    itemsWrap.className = "table-wrap";
+    var table = document.createElement("table");
+    table.className = "data-table";
+    var headCols = draft.canal === "masivo"
+      ? "<th>Fecha entrega</th><th>Producto</th><th>Observación</th><th>Cantidad</th><th>Precio</th><th>Total</th><th></th>"
+      : "<th>Producto</th><th>Observación</th><th>Cantidad</th><th>Precio</th><th>Total</th><th></th>";
+    table.innerHTML = "<thead><tr>" + headCols + "</tr></thead><tbody></tbody>";
+    var tbody = table.querySelector("tbody");
+    itemsWrap.appendChild(table);
+    card.appendChild(itemsWrap);
+
+    var totalsRow = document.createElement("div");
+    totalsRow.className = "pedido-totals";
+
+    var addLineBtn = document.createElement("button");
+    addLineBtn.type = "button";
+    addLineBtn.className = "btn btn-sm";
+    addLineBtn.style.marginTop = ".6rem";
+    addLineBtn.textContent = "+ Agregar línea";
+    if(readOnly) addLineBtn.disabled = true;
+    addLineBtn.addEventListener("click", function(){
+      draft.items.push({ producto:"", cantidad:1, precio:0, fecha: draft.fechaDefault, obs:"" });
+      renderPedidoItems(tbody, totalsRow);
+    });
+    card.appendChild(addLineBtn);
+
+    var payRow = document.createElement("div");
+    payRow.className = "field";
+    payRow.style.margin = "1.1rem 0 0";
+    var payLabel = document.createElement("label");
+    payLabel.className = "pedido-checkbox-label";
+    var payInput = document.createElement("input");
+    payInput.type = "checkbox";
+    payInput.checked = !!draft.pagado;
+    if(readOnly) payInput.disabled = true;
+    payInput.addEventListener("change", function(){ draft.pagado = payInput.checked; });
+    payLabel.appendChild(payInput);
+    payLabel.appendChild(document.createTextNode(" Pagado"));
+    payRow.appendChild(payLabel);
+    card.appendChild(payRow);
+
+    var comprobanteRow = document.createElement("div");
+    comprobanteRow.className = "field";
+    comprobanteRow.style.margin = ".8rem 0 0";
+    var comprobanteLabel = document.createElement("label");
+    comprobanteLabel.textContent = "Foto del Yape / Transferencia (opcional)";
+    comprobanteRow.appendChild(comprobanteLabel);
+
+    var comprobantePreviewWrap = document.createElement("div");
+    comprobantePreviewWrap.style.display = "flex";
+    comprobantePreviewWrap.style.alignItems = "center";
+    comprobantePreviewWrap.style.gap = ".6rem";
+    comprobantePreviewWrap.style.flexWrap = "wrap";
+
+    var comprobanteImg = document.createElement("img");
+    comprobanteImg.style.maxWidth = "90px";
+    comprobanteImg.style.maxHeight = "90px";
+    comprobanteImg.style.borderRadius = "6px";
+    comprobanteImg.style.border = "1px solid var(--border)";
+    comprobanteImg.hidden = !draft.comprobante;
+    if(draft.comprobante) comprobanteImg.src = draft.comprobante;
+    comprobantePreviewWrap.appendChild(comprobanteImg);
+
+    var comprobanteFileInput = document.createElement("input");
+    comprobanteFileInput.type = "file";
+    comprobanteFileInput.accept = "image/*";
+    if(readOnly) comprobanteFileInput.disabled = true;
+    comprobantePreviewWrap.appendChild(comprobanteFileInput);
+
+    var comprobanteRemoveBtn = document.createElement("button");
+    comprobanteRemoveBtn.type = "button";
+    comprobanteRemoveBtn.className = "btn btn-sm";
+    comprobanteRemoveBtn.textContent = "Quitar foto";
+    comprobanteRemoveBtn.hidden = !draft.comprobante;
+    if(readOnly) comprobanteRemoveBtn.disabled = true;
+    comprobantePreviewWrap.appendChild(comprobanteRemoveBtn);
+
+    comprobanteRow.appendChild(comprobantePreviewWrap);
+    var comprobanteHint = document.createElement("div");
+    comprobanteHint.className = "hint";
+    comprobanteHint.textContent = "Sube la captura del Yape o la transferencia: así sale en el PDF y queda confirmado el pago.";
+    comprobanteRow.appendChild(comprobanteHint);
+    card.appendChild(comprobanteRow);
+
+    comprobanteFileInput.addEventListener("change", function(){
+      var file = comprobanteFileInput.files && comprobanteFileInput.files[0];
+      if(!file) return;
+      showToast("Cargando foto…");
+      compressImageFile(file, function(dataUrl){
+        comprobanteFileInput.value = "";
+        if(!dataUrl){ showToast("No se pudo cargar la foto. Intenta con otra imagen."); return; }
+        draft.comprobante = dataUrl;
+        comprobanteImg.src = dataUrl;
+        comprobanteImg.hidden = false;
+        comprobanteRemoveBtn.hidden = false;
+        showToast("Foto agregada.");
+        if(pedidoEditingId) schedulePedidoAutosave();
+      });
+    });
+    comprobanteRemoveBtn.addEventListener("click", function(){
+      draft.comprobante = null;
+      comprobanteImg.hidden = true;
+      comprobanteImg.src = "";
+      comprobanteRemoveBtn.hidden = true;
+      if(pedidoEditingId) schedulePedidoAutosave();
+    });
+
+    card.appendChild(buildField("Notas (opcional)", "textarea", draft.notas, function(v){ draft.notas = v; }, true));
+
+    card.appendChild(totalsRow);
+
+    if(!pedidoEditingId){
+      var saveRow = document.createElement("div");
+      saveRow.style.marginTop = "1rem";
+      var saveBtn2 = document.createElement("button");
+      saveBtn2.type = "button";
+      saveBtn2.className = "btn btn-primary";
+      saveBtn2.textContent = pedidosSaving ? "Guardando…" : "Guardar pedido";
+      saveBtn2.disabled = pedidosSaving || readOnly;
+      saveBtn2.addEventListener("click", savePedido);
+      saveRow.appendChild(saveBtn2);
+      card.appendChild(saveRow);
+    }
+
+    var datalist = document.createElement("datalist");
+    datalist.id = "pedidoProductList";
+    buildCatalogNameList().forEach(function(name){
+      var opt = document.createElement("option");
+      opt.value = name;
+      datalist.appendChild(opt);
+    });
+    card.appendChild(datalist);
+
+    var clienteDatalist = document.createElement("datalist");
+    clienteDatalist.id = "pedidoClienteList";
+    buildClienteNameList().forEach(function(name){
+      var opt = document.createElement("option");
+      opt.value = name;
+      clienteDatalist.appendChild(opt);
+    });
+    card.appendChild(clienteDatalist);
+
+    var pagoDatalist = document.createElement("datalist");
+    pagoDatalist.id = "pedidoPagoList";
+    ["Efectivo","Yape","Plin","Transferencia","Tarjeta"].forEach(function(name){
+      var opt = document.createElement("option");
+      opt.value = name;
+      pagoDatalist.appendChild(opt);
+    });
+    card.appendChild(pagoDatalist);
+
+    renderPedidoItems(tbody, totalsRow);
+    updatePedidoTotals(totalsRow);
+
+    if(pedidoEditingId){
+      card.addEventListener("input", function(){ schedulePedidoAutosave(); });
+      card.addEventListener("change", function(){ schedulePedidoAutosave(); });
+    }
+
+    return card;
+  }
+
+  function renderPedidoItems(tbody, totalsRow){
+    var draft = pedidoDraft;
+    var isMasivo = draft.canal === "masivo";
+    tbody.innerHTML = "";
+    draft.items.forEach(function(item, idx){
+      var tr = document.createElement("tr");
+      var fechaCell = isMasivo
+        ? '<td><input type="date" class="pedido-item-fecha" data-idx="'+idx+'" value="'+esc(item.fecha)+'"></td>'
+        : "";
+      tr.innerHTML =
+        fechaCell +
+        '<td><input type="text" list="pedidoProductList" class="pedido-item-producto" data-idx="'+idx+'" value="'+esc(item.producto)+'" placeholder="Buscar producto…"></td>' +
+        '<td><input type="text" class="pedido-item-obs" data-idx="'+idx+'" value="'+esc(item.obs||"")+'" placeholder="Ej: poca grasa, cortado en 10…"></td>' +
+        '<td><input type="number" step="any" min="0" class="pedido-item-cantidad num-input mini" data-idx="'+idx+'" value="'+item.cantidad+'"></td>' +
+        '<td><input type="number" step="any" min="0" class="pedido-item-precio num-input mini" data-idx="'+idx+'" value="'+item.precio+'"></td>' +
+        '<td class="pedido-item-total" data-idx="'+idx+'">S/ ' + fmt(item.cantidad*item.precio) + '</td>' +
+        '<td>' + (draft.items.length > 1 ? '<button type="button" class="btn-del pedido-item-del" data-idx="'+idx+'" title="Quitar línea">✕</button>' : '') + '</td>';
+      tbody.appendChild(tr);
+    });
+    if(readOnly){
+      tbody.querySelectorAll("input, button").forEach(function(el){ el.disabled = true; });
+      return;
+    }
+    tbody.querySelectorAll(".pedido-item-fecha").forEach(function(input){
+      input.addEventListener("change", function(){
+        draft.items[+input.getAttribute("data-idx")].fecha = input.value || draft.fechaDefault;
+      });
+    });
+    tbody.querySelectorAll(".pedido-item-producto").forEach(function(input){
+      function syncProductoYPrecio(){
+        var idx = +input.getAttribute("data-idx");
+        draft.items[idx].producto = input.value;
+        var savedPrecio = getPrecioFor(input.value);
+        if(savedPrecio !== null && !(num(draft.items[idx].precio) > 0)){
+          draft.items[idx].precio = savedPrecio;
+          var precioInput = tbody.querySelector('.pedido-item-precio[data-idx="'+idx+'"]');
+          if(precioInput) precioInput.value = savedPrecio;
+          var cell = tbody.querySelector('.pedido-item-total[data-idx="'+idx+'"]');
+          if(cell) cell.textContent = "S/ " + fmt(draft.items[idx].cantidad * draft.items[idx].precio);
+          updatePedidoTotals(totalsRow);
+        }
+      }
+      // Se escucha "input", "change" y "blur" a la vez porque en algunos celulares, elegir
+      // una sugerencia de la lista no siempre dispara el evento "input" de forma confiable.
+      input.addEventListener("input", syncProductoYPrecio);
+      input.addEventListener("change", syncProductoYPrecio);
+      input.addEventListener("blur", syncProductoYPrecio);
+    });
+    tbody.querySelectorAll(".pedido-item-obs").forEach(function(input){
+      input.addEventListener("input", function(){
+        draft.items[+input.getAttribute("data-idx")].obs = input.value;
+      });
+    });
+    function wireQtyPrice(cls, field){
+      tbody.querySelectorAll(cls).forEach(function(input){
+        input.addEventListener("input", function(){
+          var idx = +input.getAttribute("data-idx");
+          draft.items[idx][field] = num(input.value);
+          var cell = tbody.querySelector('.pedido-item-total[data-idx="'+idx+'"]');
+          if(cell) cell.textContent = "S/ " + fmt(draft.items[idx].cantidad * draft.items[idx].precio);
+          updatePedidoTotals(totalsRow);
+          if(field === "precio"){ setPrecioFor(draft.items[idx].producto, draft.items[idx].precio); }
+        });
+      });
+    }
+    wireQtyPrice(".pedido-item-cantidad", "cantidad");
+    wireQtyPrice(".pedido-item-precio", "precio");
+    tbody.querySelectorAll(".pedido-item-del").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        draft.items.splice(+btn.getAttribute("data-idx"), 1);
+        renderPedidoItems(tbody, totalsRow);
+        updatePedidoTotals(totalsRow);
+        if(pedidoEditingId) schedulePedidoAutosave();
+      });
+    });
+  }
+
+  function pedidoSubtotal(draft){
+    return draft.items.reduce(function(sum, it){ return sum + (num(it.cantidad) * num(it.precio)); }, 0);
+  }
+  // Para pedido masivo en modo delivery, el envío se cobra una vez por cada fecha distinta
+  // de entrega (no por línea de producto) — así un cliente que recibe pan todos los días de
+  // la semana paga el delivery multiplicado por esos días, no por cada producto.
+  function masivoDeliveryCount(draft){
+    var seen = {};
+    var count = 0;
+    draft.items.forEach(function(it){
+      if(!it.producto || !it.producto.trim() || !(num(it.cantidad) > 0)) return;
+      var f = it.fecha || draft.fechaDefault;
+      if(!seen[f]){ seen[f] = true; count++; }
+    });
+    return count;
+  }
+  function pedidoDeliveryTotal(draft){
+    if(draft.canal === "delivery") return num(draft.deliveryMonto);
+    if(draft.canal === "masivo" && draft.masivoModo === "delivery"){
+      return num(draft.masivoDeliveryRate) * masivoDeliveryCount(draft);
+    }
+    return 0;
+  }
+  function updatePedidoTotals(totalsRow){
+    var draft = pedidoDraft;
+    var subtotal = pedidoSubtotal(draft);
+    var delivery = pedidoDeliveryTotal(draft);
+    var total = subtotal + delivery;
+    var html = "<div>Subtotal productos: <strong>S/ " + fmt(subtotal) + "</strong></div>";
+    if(draft.canal === "delivery"){
+      html += "<div>Delivery: <strong>S/ " + fmt(delivery) + "</strong></div>";
+    } else if(draft.canal === "masivo" && draft.masivoModo === "delivery"){
+      var count = masivoDeliveryCount(draft);
+      html += "<div>Delivery: <strong>S/ " + fmt(delivery) + "</strong> (" + count + " entrega" + (count === 1 ? "" : "s") + " × S/ " + fmt(num(draft.masivoDeliveryRate)) + ")</div>";
+    }
+    html += "<div>Total: <strong>S/ " + fmt(total) + "</strong></div>";
+    totalsRow.innerHTML = html;
+  }
+
+  function savePedido(){
+    var draft = pedidoDraft;
+    if(!draft || readOnly || !db) return;
+    var validItems = draft.items.filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
+    if(!draft.cliente.nombre || !draft.cliente.nombre.trim()){ showToast("Falta el nombre del cliente."); return; }
+    if(validItems.length === 0){ showToast("Agrega al menos un producto con cantidad."); return; }
+    if(pedidosSaving) return;
+    pedidosSaving = true;
+    renderPanel();
+    var payload = {
+      canal: draft.canal,
+      origen: draft.origen || "whatsapp",
+      cliente: draft.cliente,
+      tipoPago: draft.tipoPago || "",
+      pagado: !!draft.pagado,
+      comprobante: draft.comprobante || null,
+      deliveryMonto: pedidoDeliveryTotal(draft),
+      masivoModo: draft.canal === "masivo" ? draft.masivoModo : "",
+      masivoDeliveryRate: draft.canal === "masivo" ? num(draft.masivoDeliveryRate) : 0,
+      hora: draft.hora || "",
+      notas: draft.notas || "",
+      numero: genPedidoNumero(),
+      items: validItems.map(function(it){
+        return { producto: it.producto.trim(), cantidad: num(it.cantidad), precio: num(it.precio), fecha: it.fecha || draft.fechaDefault, obs: (it.obs || "").trim() };
+      }),
+      createdAt: Date.now()
+    };
+    db.collection("pedidos").add(payload).then(function(){
+      pedidosSaving = false;
+      upsertCliente(payload.cliente);
+      pedidoDraft = newPedidoDraft(payload.canal);
+      showToast("Pedido guardado.");
+      renderPanel();
+    }).catch(function(){
+      pedidosSaving = false;
+      showToast("No se pudo guardar el pedido. Revisa tu conexión e intenta de nuevo.");
+      renderPanel();
+    });
+  }
+
+  // ---------- Editar un pedido ya guardado (con guardado automático) ----------
+  // A diferencia de crear un pedido nuevo (que exige apretar "Guardar pedido"), corregir
+  // uno que ya existe se guarda solo, como el resto del arqueo — así Jessica o quien tome
+  // el pedido puede arreglar un error sin pasos extra.
+  function startEditPedido(p){
+    pedidoDraft = {
+      canal: p.canal || "delivery",
+      origen: p.origen || "whatsapp",
+      cliente: {
+        nombre: (p.cliente && p.cliente.nombre) || "",
+        dni: (p.cliente && p.cliente.dni) || "",
+        ruc: (p.cliente && p.cliente.ruc) || "",
+        direccion: (p.cliente && p.cliente.direccion) || "",
+        referencia: (p.cliente && p.cliente.referencia) || "",
+        telefono: (p.cliente && p.cliente.telefono) || "",
+        correo: (p.cliente && p.cliente.correo) || ""
+      },
+      tipoPago: p.tipoPago || "",
+      pagado: !!p.pagado,
+      comprobante: p.comprobante || null,
+      deliveryMonto: num(p.deliveryMonto),
+      masivoModo: p.masivoModo || "recojo",
+      masivoDeliveryRate: num(p.masivoDeliveryRate),
+      hora: p.hora || "",
+      notas: p.notas || "",
+      fechaDefault: (p.items && p.items[0] && p.items[0].fecha) || currentDate,
+      items: (p.items && p.items.length) ? p.items.map(function(it){
+        return { producto: it.producto || "", cantidad: num(it.cantidad), precio: num(it.precio), fecha: it.fecha || currentDate, obs: it.obs || "" };
+      }) : [ { producto:"", cantidad:1, precio:0, fecha: currentDate, obs:"" } ]
+    };
+    pedidoEditingId = p.id;
+    pedidosView = "nuevo";
+    renderPanel();
+  }
+  function updatePedidoSaveStatus(){
+    var el = document.getElementById("pedidoSaveStatus");
+    if(!el) return;
+    el.textContent = pedidoAutosaving ? "Guardando…" : "Los cambios se guardan solos";
+  }
+  function schedulePedidoAutosave(){
+    if(!pedidoEditingId || readOnly) return;
+    clearTimeout(pedidoSaveTimer);
+    pedidoSaveTimer = setTimeout(function(){ doPedidoAutosave(); }, 1200);
+  }
+  function doPedidoAutosave(){
+    if(!pedidoEditingId || !db || readOnly) return;
+    var draft = pedidoDraft;
+    if(!draft) return;
+    // Si está a mitad de corregir (ej. borrando el nombre para escribir uno nuevo), esperamos
+    // a que vuelva a haber algo válido en vez de guardar un pedido a medio llenar.
+    if(!draft.cliente.nombre || !draft.cliente.nombre.trim()) return;
+    var validItems = draft.items.filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
+    if(validItems.length === 0) return;
+    var id = pedidoEditingId;
+    var payload = {
+      canal: draft.canal,
+      origen: draft.origen || "whatsapp",
+      cliente: draft.cliente,
+      tipoPago: draft.tipoPago || "",
+      pagado: !!draft.pagado,
+      comprobante: draft.comprobante || null,
+      deliveryMonto: pedidoDeliveryTotal(draft),
+      masivoModo: draft.canal === "masivo" ? draft.masivoModo : "",
+      masivoDeliveryRate: draft.canal === "masivo" ? num(draft.masivoDeliveryRate) : 0,
+      hora: draft.hora || "",
+      notas: draft.notas || "",
+      items: validItems.map(function(it){
+        return { producto: it.producto.trim(), cantidad: num(it.cantidad), precio: num(it.precio), fecha: it.fecha || draft.fechaDefault, obs: (it.obs || "").trim() };
+      })
+    };
+    pedidoAutosaving = true;
+    updatePedidoSaveStatus();
+    db.collection("pedidos").doc(id).update(payload).then(function(){
+      pedidoAutosaving = false;
+      updatePedidoSaveStatus();
+      upsertCliente(payload.cliente);
+    }).catch(function(){
+      pedidoAutosaving = false;
+      updatePedidoSaveStatus();
+      showToast("No se pudo guardar el cambio. Revisa tu conexión e intenta de nuevo.");
+    });
+  }
+
+  // ---------- Pre-orden de pedido en PDF (imprimir / guardar como PDF) ----------
+  // Replica el formato de la pre-orden de "Carmelitas Pan SAC" que usan hoy (Aniversario),
+  // para que el equipo la reconozca igual mientras se acostumbran al sistema nuevo.
+  var MESES_LARGO = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Setiembre","Octubre","Noviembre","Diciembre"];
+  var DIAS_LARGO = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+  function fmtFechaLarga(iso){
+    if(!iso) return "";
+    var d = new Date(iso + "T12:00:00");
+    var dia = DIAS_LARGO[d.getDay()];
+    var num2 = (d.getDate() < 10 ? "0" : "") + d.getDate();
+    var mes = MESES_LARGO[d.getMonth()];
+    return dia + ", " + num2 + " de " + mes + " de " + d.getFullYear();
+  }
+  function fmtFechaCorta(iso){
+    if(!iso) return "";
+    var parts = iso.split("-");
+    return parts.length === 3 ? (parts[2] + "/" + parts[1] + "/" + parts[0]) : iso;
+  }
+  function genPedidoNumero(){
+    return Math.random().toString(36).slice(2, 10);
+  }
+  function pedidoBannerHTML(p){
+    if(p.canal === "masivo"){
+      if(p.masivoModo === "delivery") return "Pedido Masivo — Delivery";
+      if(p.masivoModo === "recojo") return "Pedido Masivo — Recojo en Tienda";
+      return "Pedido Masivo";
+    }
+    if(p.canal === "tienda"){
+      return "Recojo en Tienda" + (p.hora ? " " + esc(p.hora) : "");
+    }
+    return p.hora ? ("Enviar antes de las " + esc(p.hora)) : "Pedido Delivery";
+  }
+  function pedidoInfoRowsHTML(p){
+    var c = p.cliente || {};
+    var rows = [
+      ["NOMBRES:", c.nombre],
+      ["DNI:", c.dni],
+      ["RUC:", c.ruc],
+      ["DIRECCION:", c.direccion],
+      ["REFERENCIA:", c.referencia],
+      ["TELÉFONO:", c.telefono],
+      ["CORREO:", c.correo]
+    ];
+    var html = "";
+    rows.forEach(function(r){
+      // Solo se imprime el dato que sí se llenó — si el campo quedó vacío, ni el título ni
+      // la línea aparecen en el PDF.
+      if(!r[1] || !String(r[1]).trim()) return;
+      html += '<div style="display:flex; padding:1px 0;">' +
+        '<div style="width:130px; flex:none; font-weight:700;">' + esc(r[0]) + '</div>' +
+        '<div>' + esc(r[1] || "") + '</div></div>';
+    });
+    // La forma de pago (Yape, Transferencia, Efectivo…) y si ya está pagado o no van juntas
+    // y siempre visibles — a diferencia de los datos de arriba, esto sí le importa al equipo
+    // aunque no se haya llenado la forma de pago todavía.
+    var tipoPago = p.tipoPago && String(p.tipoPago).trim() ? esc(p.tipoPago) : "—";
+    var pagadoBadge = p.pagado
+      ? '<span style="color:#3D7A57; font-weight:800;">✓ PAGADO</span>'
+      : '<span style="color:#B34428; font-weight:800;">PENDIENTE DE PAGO</span>';
+    html += '<div style="display:flex; padding:1px 0; align-items:center;">' +
+      '<div style="width:130px; flex:none; font-weight:700;">PAGO:</div>' +
+      '<div>' + tipoPago + ' &nbsp;—&nbsp; ' + pagadoBadge + '</div></div>';
+    return html;
+  }
+  function pedidoTableHTML(p){
+    var isMasivo = p.canal === "masivo";
+    var subtotal = 0;
+    var headStyle = "border:1px solid #111; padding:4px 6px; background:#fff;";
+    function th(label, align){ return '<th style="' + headStyle + 'text-align:' + align + ';">' + label + "</th>"; }
+    var head = (isMasivo ? th("FECHA ENTREGA", "left") : "") + th("CANT.", "center") + th("PRODUCTO", "left") + th("PRECIO", "right") + th("TOTAL", "right");
+    // Anchos fijos por columna (via colgroup + table-layout:fixed) para que Cantidad, Precio y
+    // Total queden siempre alineados en la misma posición en todas las filas, en vez de que el
+    // ancho se acomode según el texto más largo de cada pedido.
+    var colgroup = "<colgroup>" +
+      (isMasivo ? '<col style="width:80px;">' : "") +
+      '<col style="width:44px;">' +
+      "<col>" +
+      '<col style="width:64px;">' +
+      '<col style="width:68px;">' +
+      "</colgroup>";
+    var body = "";
+    (p.items || []).forEach(function(it){
+      var lineTotal = num(it.cantidad) * num(it.precio);
+      subtotal += lineTotal;
+      var cellStyle = "border:1px solid #111; padding:4px 6px; vertical-align:top;";
+      var obsHtml = it.obs && it.obs.trim()
+        ? '<div style="font-size:10px; font-style:italic; color:#555;">' + esc(it.obs.trim()) + "</div>"
+        : "";
+      body += "<tr>" +
+        (isMasivo ? '<td style="' + cellStyle + 'text-align:left;">' + esc(fmtFechaCorta(it.fecha)) + "</td>" : "") +
+        '<td style="' + cellStyle + 'text-align:center;">' + fmt(it.cantidad) + "</td>" +
+        '<td style="' + cellStyle + 'text-align:left;">' + esc(it.producto) + obsHtml + "</td>" +
+        '<td style="' + cellStyle + 'text-align:right;">S/' + fmtMoney(it.precio) + "</td>" +
+        '<td style="' + cellStyle + 'text-align:right;">S/' + fmtMoney(lineTotal) + "</td>" +
+        "</tr>";
+    });
+    var theadHtml = "<thead><tr>" + head + "</tr></thead>";
+    return { html: '<table style="width:100%; border-collapse:collapse; table-layout:fixed; font-size:12px; margin:8px 0 4px;">' + colgroup + theadHtml + "<tbody>" + body + "</tbody></table>", subtotal: subtotal };
+  }
+  function buildPedidoPrintCardHTML(p){
+    var isMasivo = p.canal === "masivo";
+    var primeraFecha = (p.items && p.items[0] && p.items[0].fecha) || "";
+    var tabla = pedidoTableHTML(p);
+    var delivery = num(p.deliveryMonto);
+    var total = tabla.subtotal + delivery;
+    var html = '<div class="pedido-print-card" style="font-family:Arial,Helvetica,sans-serif; color:#111; max-width:780px; margin:0 auto; -webkit-print-color-adjust:exact; print-color-adjust:exact;">';
+    html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #111; padding-bottom:8px;">';
+    html += '<div><div style="font-size:20px; font-weight:800;">CARMELITAS PAN SAC</div>' +
+      '<div style="font-size:12px;">Av. 28 de Julio 1328 - Miraflores -Lima</div>' +
+      '<div style="font-size:12px;">Tlf. 444-7105 / 959 176 479</div>' +
+      '<div style="font-size:12px; text-decoration:underline;">carmelitaspan@gmail.com</div></div>';
+    html += '<div style="text-align:right;">' +
+      '<div style="font-size:14px; font-weight:800; color:#c2660c;">PRE-ORDEN DE PEDIDO</div>' +
+      '<div style="font-size:12px; color:#c2660c;">Número: <strong>' + esc(p.numero || (p.id||"").slice(-8)) + '</strong></div>' +
+      '<div style="font-size:15px; font-weight:800; color:#cc0000; margin-top:2px;">' + (isMasivo ? "ENTREGA MULTIPLE" : "ENTREGA") + '</div>' +
+      (isMasivo ? "" : '<div style="font-size:12px; font-weight:700; color:#cc0000;">' + esc(fmtFechaLarga(primeraFecha)) + '</div>') +
+      '</div>';
+    html += '</div>';
+    html += '<div style="background:#fff200; color:#cc0000; font-weight:800; font-size:17px; text-align:center; padding:7px 4px; margin:8px 0;">' + pedidoBannerHTML(p) + '</div>';
+    html += '<div style="background:#f6e3bd; padding:7px 10px; margin-bottom:6px; font-size:12px;">' + pedidoInfoRowsHTML(p) + '</div>';
+    html += tabla.html;
+    html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:4px;">' +
+      '<div style="font-size:11px;">Importante: Poner su nombre en Whatsapp</div>' +
+      '<div style="font-size:12px; text-align:right;">' +
+      '<div>SubTotal Productos: <strong>S/' + fmtMoney(tabla.subtotal) + '</strong></div>' +
+      '<div>Delivery: <strong>S/' + fmtMoney(delivery) + '</strong></div>' +
+      '<div>Total: <strong>S/' + fmtMoney(total) + '</strong></div>' +
+      '</div></div>';
+    // Foto del Yape/transferencia (si se subió una): así queda el pago 100% confirmado junto
+    // con el resto del pedido, no solo el texto "PAGADO".
+    if(p.comprobante){
+      html += '<div style="margin-top:8px; text-align:center;">' +
+        '<div style="font-size:10px; font-weight:700; color:#555; margin-bottom:3px;">COMPROBANTE DE PAGO</div>' +
+        '<img src="' + p.comprobante + '" style="max-width:260px; max-height:260px; border:1px solid #ccc; border-radius:4px;">' +
+        '</div>';
+    }
+    html += '<div style="text-align:center; color:#cc0000; font-weight:700; font-size:11px; margin-top:14px;">40 años... Tradición en Evolución, a tu servicio</div>';
+    html += '<div style="text-align:center; color:#111; font-size:11px; margin-top:2px;">¡Gracias por tu compra!</div>';
+    html += '</div>';
+    return html;
+  }
+  function doPrintPedido(id){
+    var p = (PEDIDOS || []).filter(function(x){ return x.id === id; })[0];
+    if(!p) return;
+    var area = document.getElementById("printArea");
+    area.innerHTML = buildPedidoPrintCardHTML(p);
+    doWindowPrint("Pre-orden " + (p.numero || ""));
+  }
+  function doPrintPedidosDia(date){
+    var list = (PEDIDOS || []).filter(function(p){
+      return (p.items || []).some(function(it){ return it.fecha === date; });
+    });
+    if(list.length === 0){ showToast("No hay pedidos con entrega ese día."); return; }
+    var area = document.getElementById("printArea");
+    area.innerHTML = list.map(function(p, i){
+      var pageBreak = i < list.length - 1 ? "page-break-after:always;" : "";
+      return '<div style="' + pageBreak + '">' + buildPedidoPrintCardHTML(p) + '</div>';
+    }).join("");
+    doWindowPrint("Pedidos " + (date || ""));
+  }
+
+  // ---------- Reporte "Pedidos Orden de Tienda" / "Pedidos Delivery" ----------
+  // Reemplaza los reportes que Jessica bajaba de Universalio y recortaba a mano en Excel
+  // antes de mandarlos a su grupo: una lista clara, línea por producto, ordenada por hora
+  // de entrega, separada por origen del pedido (Tienda o Whatsapp).
+  function pedidoTipoEntregaLabel(p){
+    if(p.canal === "masivo") return p.masivoModo === "delivery" ? "Delivery" : "Recojo";
+    return p.canal === "tienda" ? "Recojo" : "Delivery";
+  }
+  function fmtHora12(hhmm){
+    if(!hhmm) return "";
+    var parts = hhmm.split(":");
+    var h = parseInt(parts[0], 10);
+    if(isNaN(h)) return hhmm;
+    var m = parts[1] || "00";
+    var suf = h >= 12 ? "p. m." : "a. m.";
+    var h12 = h % 12; if(h12 === 0) h12 = 12;
+    return h12 + ":" + m + " " + suf;
+  }
+  function fmtFechaReporte(iso){
+    if(!iso) return "";
+    var d = new Date(iso + "T12:00:00");
+    var dia = DIAS_LARGO[d.getDay()].toLowerCase();
+    var mes = MESES_LARGO[d.getMonth()].toLowerCase();
+    return dia + ", " + d.getDate() + " de " + mes + " de " + d.getFullYear();
+  }
+  function buildPedidosReporteRows(date, origen){
+    var rows = [];
+    (PEDIDOS || []).forEach(function(p){
+      if((p.origen || "whatsapp") !== origen) return;
+      (p.items || []).forEach(function(it){
+        if(it.fecha !== date) return;
+        if(!it.producto || !it.producto.trim() || !(num(it.cantidad) > 0)) return;
+        rows.push({
+          cliente: (p.cliente && p.cliente.nombre) || "",
+          cantidad: num(it.cantidad),
+          producto: it.producto,
+          hora: p.hora || "",
+          tipoEntrega: pedidoTipoEntregaLabel(p)
+        });
+      });
+    });
+    rows.sort(function(a, b){
+      var ha = a.hora || "99:99";
+      var hb = b.hora || "99:99";
+      if(ha !== hb) return ha < hb ? -1 : 1;
+      return a.cliente.localeCompare(b.cliente);
+    });
+    return rows;
+  }
+  function buildPedidosReporteHTML(date, origen){
+    var rows = buildPedidosReporteRows(date, origen);
+    var isTienda = origen === "tienda";
+    var titulo = isTienda ? "PEDIDOS ORDEN DE TIENDA" : "PEDIDOS DELIVERY";
+    var color = isTienda ? "#c2660c" : "#cc0000";
+    var thStyle = "background:#4472c4; color:#fff; font-weight:700; padding:5px 8px; border:1px solid #ccc; text-align:left;";
+    var tdStyle = "padding:4px 8px; border-bottom:1px solid #ddd;";
+    var headCols = '<th style="' + thStyle + '">Cliente</th>' +
+      '<th style="' + thStyle + 'text-align:center;">Cantidad</th>' +
+      '<th style="' + thStyle + '">Producto</th>' +
+      '<th style="' + thStyle + 'text-align:center;">Hora Entrega</th>' +
+      (isTienda ? "" : '<th style="' + thStyle + 'text-align:center;">Tipo Entrega</th>');
+    var body = "";
+    if(rows.length === 0){
+      body = '<tr><td colspan="' + (isTienda ? 4 : 5) + '" style="padding:12px; text-align:center; color:#777; font-style:italic;">No hay pedidos de este origen para esta fecha.</td></tr>';
+    } else {
+      rows.forEach(function(r){
+        body += "<tr>" +
+          '<td style="' + tdStyle + 'font-weight:700;">' + esc(r.cliente) + "</td>" +
+          '<td style="' + tdStyle + 'text-align:center;">' + fmt(r.cantidad) + "</td>" +
+          '<td style="' + tdStyle + '">' + esc(r.producto) + "</td>" +
+          '<td style="' + tdStyle + 'text-align:center;">' + esc(fmtHora12(r.hora)) + "</td>" +
+          (isTienda ? "" : '<td style="' + tdStyle + 'text-align:center;">' + esc(r.tipoEntrega) + "</td>") +
+          "</tr>";
+      });
+    }
+    var html = '<div style="font-family:Arial,Helvetica,sans-serif; max-width:900px; margin:0 auto 1.5rem; background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact;">';
+    html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 4px; border-bottom:2px solid #ddd; flex-wrap:wrap; gap:.4rem;">';
+    html += '<div style="font-size:18px; font-weight:800; color:' + color + ';">' + titulo + '</div>';
+    html += '<div style="font-size:14px; font-weight:700; color:#111;">' + esc(fmtFechaReporte(date)) + '</div>';
+    html += "</div>";
+    html += '<table style="width:100%; border-collapse:collapse; font-size:12px; margin-top:6px;">';
+    html += "<thead><tr>" + headCols + "</tr></thead><tbody>" + body + "</tbody></table></div>";
+    return html;
+  }
+  function doPrintPedidosReporte(date, origen){
+    var area = document.getElementById("printArea");
+    area.innerHTML = buildPedidosReporteHTML(date, origen);
+    doWindowPrint((origen === "tienda" ? "Pedidos Tienda " : "Pedidos Delivery ") + (date || ""));
+  }
+
+  function buildProduccionView(){
+    var wrap = document.createElement("div");
+    var card = document.createElement("div");
+    card.className = "card";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .4rem";
+    h2.textContent = "Producción por día";
+    card.appendChild(h2);
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.textContent = "Elige una fecha y suma, por producto, lo comprometido entre delivery, recojo en tienda y pedidos masivos que entreguen ese día.";
+    card.appendChild(hint);
+
+    var dateRow = document.createElement("div");
+    dateRow.className = "field";
+    dateRow.style.maxWidth = "220px";
+    dateRow.style.margin = "1rem 0";
+    var dl = document.createElement("label");
+    dl.textContent = "Fecha";
+    dateRow.appendChild(dl);
+    var dateInput = document.createElement("input");
+    dateInput.type = "date";
+    dateInput.value = pedidosProduccionDate || currentDate;
+    dateInput.addEventListener("change", function(){
+      pedidosProduccionDate = dateInput.value || currentDate;
+      renderPanel();
+    });
+    dateRow.appendChild(dateInput);
+    card.appendChild(dateRow);
+
+    var targetDate = pedidosProduccionDate || currentDate;
+
+    var printDiaBtn = document.createElement("button");
+    printDiaBtn.type = "button";
+    printDiaBtn.className = "btn btn-sm";
+    printDiaBtn.style.margin = "0 0 1rem";
+    printDiaBtn.textContent = "PDF de todos los pedidos de este día";
+    printDiaBtn.addEventListener("click", function(){ doPrintPedidosDia(targetDate); });
+    card.appendChild(printDiaBtn);
+    var totals = {};
+    PEDIDOS.forEach(function(p){
+      (p.items || []).forEach(function(it){
+        if(it.fecha !== targetDate) return;
+        if(!totals[it.producto]) totals[it.producto] = { delivery:0, tienda:0, masivo:0 };
+        totals[it.producto][p.canal] = (totals[it.producto][p.canal] || 0) + num(it.cantidad);
+      });
+    });
+    var names = Object.keys(totals).sort();
+    if(names.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "No hay pedidos con entrega para ese día.";
+      card.appendChild(empty);
+    } else {
+      var tableWrap = document.createElement("div");
+      tableWrap.className = "table-wrap";
+      var table = document.createElement("table");
+      table.className = "data-table";
+      var rows = "<thead><tr><th>Producto</th><th>Delivery</th><th>Tienda</th><th>Masivo</th><th>Total</th></tr></thead><tbody>";
+      var grand = { delivery:0, tienda:0, masivo:0 };
+      names.forEach(function(name){
+        var t = totals[name];
+        var rowTotal = (t.delivery||0) + (t.tienda||0) + (t.masivo||0);
+        grand.delivery += t.delivery||0; grand.tienda += t.tienda||0; grand.masivo += t.masivo||0;
+        rows += "<tr><td>" + esc(name) + "</td><td>" + (t.delivery ? fmt(t.delivery) : "—") + "</td><td>" +
+          (t.tienda ? fmt(t.tienda) : "—") + "</td><td>" + (t.masivo ? fmt(t.masivo) : "—") + "</td><td><strong>" + fmt(rowTotal) + "</strong></td></tr>";
+      });
+      var grandTotal = grand.delivery + grand.tienda + grand.masivo;
+      rows += "<tr><td><strong>Total</strong></td><td><strong>" + fmt(grand.delivery) + "</strong></td><td><strong>" +
+        fmt(grand.tienda) + "</strong></td><td><strong>" + fmt(grand.masivo) + "</strong></td><td><strong>" + fmt(grandTotal) + "</strong></td></tr>";
+      rows += "</tbody>";
+      table.innerHTML = rows;
+      tableWrap.appendChild(table);
+      card.appendChild(tableWrap);
+    }
+    wrap.appendChild(card);
+
+    // Reportes "Pedidos Orden de Tienda" y "Pedidos Delivery": lo que antes bajaban de
+    // Universalio y recortaban a mano en Excel para mandar al grupo de WhatsApp.
+    var reporteCard = document.createElement("div");
+    reporteCard.className = "card";
+    var reporteH2 = document.createElement("h2");
+    reporteH2.style.margin = "0 0 .4rem";
+    reporteH2.textContent = "Reportes del día (para el grupo de WhatsApp)";
+    reporteCard.appendChild(reporteH2);
+    var reporteHint = document.createElement("div");
+    reporteHint.className = "hint";
+    reporteHint.style.marginBottom = ".8rem";
+    reporteHint.textContent = "Cliente, cantidad, producto y hora de entrega, separado por Tienda y por Delivery/Whatsapp — listo para copiar o generar en PDF.";
+    reporteCard.appendChild(reporteHint);
+
+    [["tienda","Tienda"], ["whatsapp","Delivery"]].forEach(function(pair){
+      var origen = pair[0];
+      var reporteWrap = document.createElement("div");
+      reporteWrap.style.marginBottom = "1.2rem";
+      reporteWrap.innerHTML = buildPedidosReporteHTML(targetDate, origen);
+      reporteCard.appendChild(reporteWrap);
+      var pdfBtn = document.createElement("button");
+      pdfBtn.type = "button";
+      pdfBtn.className = "btn btn-sm";
+      pdfBtn.style.margin = "0 0 1rem";
+      pdfBtn.textContent = "Generar PDF — Pedidos " + pair[1];
+      pdfBtn.addEventListener("click", function(){ doPrintPedidosReporte(targetDate, origen); });
+      reporteCard.appendChild(pdfBtn);
+    });
+
+    wrap.appendChild(reporteCard);
+    return wrap;
+  }
+
+  function buildPedidosLista(){
+    var wrap = document.createElement("div");
+    var card = document.createElement("div");
+    card.className = "card";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .8rem";
+    h2.textContent = "Todos los pedidos";
+    card.appendChild(h2);
+
+    // Filtro por origen: de dónde vino el pedido (Whatsapp o Tienda), para poder ver por
+    // separado, como los reportes "Hoy Canal Tienda" / "Hoy Canal Whatsapp" que se usaban antes.
+    var origenFilterRow = document.createElement("div");
+    origenFilterRow.className = "shift-toggle";
+    origenFilterRow.style.marginBottom = "1rem";
+    [["todos","Todos"], ["whatsapp","WhatsApp"], ["tienda","Tienda"]].forEach(function(pair){
+      var fb = document.createElement("button");
+      fb.type = "button";
+      fb.className = "shift-btn" + (pedidosOrigenFilter === pair[0] ? " active" : "");
+      fb.textContent = pair[1];
+      fb.addEventListener("click", function(){
+        pedidosOrigenFilter = pair[0];
+        renderPanel();
+      });
+      origenFilterRow.appendChild(fb);
+    });
+    card.appendChild(origenFilterRow);
+
+    var pedidosFiltrados = PEDIDOS.filter(function(p){
+      if(pedidosOrigenFilter === "todos") return true;
+      return (p.origen || "whatsapp") === pedidosOrigenFilter;
+    });
+
+    if(pedidosFiltrados.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = PEDIDOS.length === 0
+        ? "Todavía no hay pedidos registrados."
+        : "No hay pedidos de este origen.";
+      card.appendChild(empty);
+      wrap.appendChild(card);
+      return wrap;
+    }
+
+    var tableWrap = document.createElement("div");
+    tableWrap.className = "table-wrap";
+    var table = document.createElement("table");
+    table.className = "data-table";
+    table.innerHTML = "<thead><tr><th>Fecha(s)</th><th>Hora</th><th>Cliente</th><th>Origen</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
+    var tbody = table.querySelector("tbody");
+    pedidosFiltrados.forEach(function(p){
+      var tr = document.createElement("tr");
+      var seen = {};
+      var fechas = [];
+      (p.items||[]).forEach(function(it){
+        if(it.fecha && !seen[it.fecha]){ seen[it.fecha] = true; fechas.push(it.fecha); }
+      });
+      fechas.sort();
+      var fechaLabel = fechas.length <= 1 ? (fechas[0] || "—") : (fechas[0] + " → " + fechas[fechas.length-1]);
+      var productosLabel = (p.items||[]).map(function(it){ return it.cantidad + "x " + it.producto; }).join(", ");
+      var subtotal = (p.items||[]).reduce(function(s,it){ return s + num(it.cantidad)*num(it.precio); }, 0) + num(p.deliveryMonto);
+      var pagadoClass = "chip pedido-pagado-toggle " + (p.pagado ? "good" : "bad");
+      var canalLabel = CANAL_LABEL[p.canal] || p.canal;
+      if(p.canal === "masivo" && p.masivoModo){
+        canalLabel += " (" + (p.masivoModo === "delivery" ? "Delivery" : "Recojo") + ")";
+      }
+      var origenLabel = ORIGEN_LABEL[p.origen] || ORIGEN_LABEL.whatsapp;
+      tr.innerHTML =
+        "<td>" + esc(fechaLabel) + "</td>" +
+        "<td>" + esc(p.hora || "—") + "</td>" +
+        "<td>" + esc((p.cliente && p.cliente.nombre) || "—") + "</td>" +
+        "<td>" + esc(origenLabel) + "</td>" +
+        "<td>" + esc(canalLabel) + "</td>" +
+        "<td class='pedido-productos-cell'>" + esc(productosLabel) + "</td>" +
+        "<td>S/ " + fmt(subtotal) + "</td>" +
+        "<td><button type='button' class='" + pagadoClass + "' data-id='" + p.id + "'>" + (p.pagado ? "Pagado" : "Pendiente") + "</button></td>" +
+        "<td>" + (readOnly ? "" : "<button type='button' class='btn btn-sm pedido-editar' data-id='" + p.id + "'>Editar</button>") + "</td>" +
+        "<td><button type='button' class='btn btn-sm pedido-pdf' data-id='" + p.id + "'>Generar PDF</button></td>" +
+        "<td>" + (readOnly ? "" : '<button type="button" class="btn-del pedido-del" data-id="' + p.id + '" title="Eliminar pedido">✕</button>') + "</td>";
+      tbody.appendChild(tr);
+    });
+    tableWrap.appendChild(table);
+    card.appendChild(tableWrap);
+    wrap.appendChild(card);
+
+    tbody.querySelectorAll(".pedido-pdf").forEach(function(btn){
+      btn.addEventListener("click", function(){ doPrintPedido(btn.getAttribute("data-id")); });
+    });
+
+    if(!readOnly){
+      tbody.querySelectorAll(".pedido-editar").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var id = btn.getAttribute("data-id");
+          var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
+          if(p) startEditPedido(p);
+        });
+      });
+      tbody.querySelectorAll(".pedido-pagado-toggle").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var id = btn.getAttribute("data-id");
+          var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
+          if(!p || !db) return;
+          db.collection("pedidos").doc(id).update({ pagado: !p.pagado }).catch(function(){
+            showToast("No se pudo actualizar. Intenta de nuevo.");
+          });
+        });
+      });
+      tbody.querySelectorAll(".pedido-del").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var id = btn.getAttribute("data-id");
+          var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
+          if(!p || !db) return;
+          if(!confirm('¿Eliminar el pedido de "' + ((p.cliente && p.cliente.nombre) || "este cliente") + '"? No se puede deshacer.')) return;
+          db.collection("pedidos").doc(id).delete().catch(function(){
+            showToast("No se pudo eliminar. Intenta de nuevo.");
+          });
+        });
+      });
+    }
+
+    return wrap;
+  }
+
+  // ---------- wiring ----------
+  function wireStatic(){
+    document.getElementById("datePicker").value = currentDate;
+    document.getElementById("datePicker").addEventListener("change", function(ev){
+      if(!STATE) return;
+      currentDate = ev.target.value || todayISO();
+      renderAll();
+    });
+    document.getElementById("saveBtn").addEventListener("click", function(){ if(STATE) doSave(); });
+    document.querySelectorAll(".tab-btn").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        if(!STATE) return;
+        currentTab = btn.getAttribute("data-tab"); renderAll();
+      });
+    });
+  }
+
+  function attachRemoteSync(onFirstLoad){
+    var ref = db.collection("arqueo").doc("state");
+    var firstLoadDone = false;
+    ref.onSnapshot(function(snap){
+      if(!snap.exists){
+        // Primera vez que se usa esta base de datos: la sembramos con los datos que
+        // ya tenía la app (incluido lo migrado del Excel de setiembre).
+        ref.set(readEmbeddedSeed()).catch(function(){});
+        return;
+      }
+      var data = normalizeState(snap.data());
+      if(data.meta && data.meta.lastSavedAt && data.meta.lastSavedAt === lastSavedBySelf){
+        // Es el eco de nuestro propio guardado — ya lo tenemos aplicado.
+        if(!firstLoadDone){ firstLoadDone = true; onFirstLoad(data); }
+        return;
+      }
+      if(!firstLoadDone){
+        firstLoadDone = true;
+        onFirstLoad(data);
+        return;
+      }
+      if(dirty || saving){
+        remoteConflict = true;
+        showBanner("warn", "Otro dispositivo guardó cambios nuevos. Toca \"Actualizar ahora\" para traerlos — mientras tanto no se va a guardar nada acá, para no perder lo tuyo ni lo de ellos.",
+          [{ label:"Actualizar ahora", action:function(){
+              STATE = data; dirty = false; remoteConflict = false; clearBackup(); renderAll();
+            }}]);
+        return;
+      }
+      STATE = data;
+      renderAll();
+    }, function(){
+      readOnly = true;
+      showBanner("bad", "No se pudo conectar con la base de datos. Revisa tu conexión a internet y recarga la página.", []);
+      setSaveStatus();
+    });
+  }
+
+  function attachPedidosSync(){
+    db.collection("pedidos").onSnapshot(function(snap){
+      var list = [];
+      snap.forEach(function(doc){
+        var data = doc.data();
+        data.id = doc.id;
+        list.push(data);
+      });
+      list.sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
+      PEDIDOS = list;
+      // No repintamos si está en "Nuevo pedido": así no se pierde lo que está escribiendo
+      // si otra persona (ej. quien toma pedidos por WhatsApp) guarda algo al mismo tiempo.
+      if(currentTab === "pedidos" && pedidosView !== "nuevo") renderPanel();
+    }, function(){
+      // Si falla, dejamos PEDIDOS como esté (puede seguir null) y avisamos solo si
+      // el usuario está mirando esa pestaña.
+      if(currentTab === "pedidos" && PEDIDOS === null){
+        showToast("No se pudo cargar los pedidos. Revisa tu conexión e intenta de nuevo.");
+      }
+    });
+  }
+
+  function attachClientesSync(){
+    db.collection("clientes").onSnapshot(function(snap){
+      var map = {};
+      snap.forEach(function(doc){ map[doc.id] = doc.data(); });
+      CLIENTES = map;
+      if(currentTab === "pedidos" && pedidosView !== "nuevo") renderPanel();
+    }, function(){
+      if(currentTab === "pedidos" && CLIENTES === null){
+        showToast("No se pudo cargar los clientes guardados.");
+      }
+    });
+  }
+
+  function initFirebase(){
+    var firebaseConfig = {
+      apiKey: "AIzaSyApjo00nK0Vc_5cESnAPvjEg1-hIuv2zCE",
+      authDomain: "arqueo-panaderia-carmeli-9a193.firebaseapp.com",
+      projectId: "arqueo-panaderia-carmeli-9a193",
+      storageBucket: "arqueo-panaderia-carmeli-9a193.firebasestorage.app",
+      messagingSenderId: "176026150204",
+      appId: "1:176026150204:web:c2059275bb0b8b8298aa39"
+    };
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+  }
+
+  function init(){
+    initFirebase();
+    wireStatic();
+    document.getElementById("panel").innerHTML = '<div class="empty-state">Cargando datos…</div>';
+    attachRemoteSync(function(data){
+      STATE = data;
+      renderAll();
+      restoreBackupBanner();
+    });
+    attachPedidosSync();
+    attachClientesSync();
+  }
+
+  // ---------- lock screen (contraseña compartida del equipo) ----------
+  var APP_PASSWORD = "Carmelitas2026";
+  function isUnlocked(){
+    try{ return sessionStorage.getItem("arqueo_unlocked") === "1"; }catch(e){ return false; }
+  }
+  function setUnlocked(){
+    try{ sessionStorage.setItem("arqueo_unlocked", "1"); }catch(e){}
+  }
+  function showLock(){
+    document.getElementById("lockScreen").hidden = false;
+    document.getElementById("appRoot").hidden = true;
+    var input = document.getElementById("lockInput");
+    setTimeout(function(){ input.focus(); }, 30);
+  }
+  function hideLock(){
+    document.getElementById("lockScreen").hidden = true;
+    document.getElementById("appRoot").hidden = false;
+  }
+  function wireLock(){
+    var form = document.getElementById("lockForm");
+    var input = document.getElementById("lockInput");
+    var err = document.getElementById("lockError");
+    form.addEventListener("submit", function(ev){
+      ev.preventDefault();
+      if(input.value === APP_PASSWORD){
+        setUnlocked();
+        hideLock();
+        init();
+      } else {
+        err.hidden = false;
+        input.value = "";
+        input.focus();
+      }
+    });
+  }
+
+  function boot(){
+    wireLock();
+    if(isUnlocked()){ hideLock(); init(); }
+    else { showLock(); }
+  }
+
+  if(document.readyState === "loading"){ document.addEventListener("DOMContentLoaded", boot); }
+  else { boot(); }
+})();
+</script>
