@@ -255,6 +255,7 @@
       <button class="tab-btn" data-tab="carnes" type="button">Carnes</button>
       <button class="tab-btn" data-tab="triples" type="button">Triples</button>
       <button class="tab-btn" data-tab="otros" type="button">Otros</button>
+      <button class="tab-btn" data-tab="produccion" type="button">Producción</button>
       <button class="tab-btn" data-tab="pedidos" type="button">Pedidos</button>
       <button class="tab-btn" data-tab="turno" type="button">Turno</button>
       <button class="tab-btn" data-tab="historial" type="button">Historial</button>
@@ -280,7 +281,8 @@
   // CAMBIOS 04-SET-2026 (piloto, sin desplegar todavia): se agrega "Carnes"
   // como 6ta categoria del Arqueo Diario, con el mismo patron que Embutidos
   // (vende por peso/kg, reporte simple, mismo turno AM/PM). Catalogo:
-  // Panceta (Chicharron), Pavo, Pierna (Jamon del Pais), Jamon Glaseado, Asado.
+  // Chicharron, Pavo, Jamon del Pais, Jamon Glaseado, Asado (nombres de venta en tienda;
+  // panceta y pierna son la materia prima cruda, no se usan como nombre de producto aqui).
   // No se toco ninguna logica de Panes/Bebidas/Embutidos/Triples/Otros ni de
   // Pedidos/Clientes. Los dias ya guardados en Firestore no tienen la seccion
   // "c" todavia -- se completa sola al abrir el dia (ver backfillDay), igual
@@ -327,7 +329,7 @@
     "Queso Ahumado Holandés", "Queso Gouda President", "Queso de Cabra (Kg)", "Queso Belpaese"];
 
   var CARNES = [
-    "Panceta (Chicharrón)", "Pavo", "Pierna (Jamón del País)", "Jamón Glaseado", "Asado"];
+    "Chicharrón", "Pavo", "Jamón del País", "Jamón Glaseado", "Asado"];
 
 var TRIPLES = [
     "Triples Clásicos", "Triple de Aceituna", "Triple de Asado", "Triple de Pollo Durazno", "Triple de Pavo", "Triple Glaseado Piña", "Triple Champiñón y Tocino", "Triple Pollo Jamón y Queso"];
@@ -1544,7 +1546,7 @@ var TRIPLES = [
       var n = alerts[tab];
       var countHtml = n ? '<span class="count">' + n + "</span>" : "";
       var label = SECTIONS[tab] ? SECTIONS[tab].label + countHtml
-        : (tab === "turno" ? "Turno" : (tab === "historial" ? "Historial" : (tab === "pedidos" ? "Pedidos" : "")));
+        : (tab === "turno" ? "Turno" : (tab === "historial" ? "Historial" : (tab === "pedidos" ? "Pedidos" : (tab === "produccion" ? "Producción" : ""))));
       btn.innerHTML = label;
     });
   }
@@ -1555,6 +1557,7 @@ var TRIPLES = [
     if(currentTab === "turno"){ panel.appendChild(buildTurnoPanel()); }
     else if(currentTab === "historial"){ panel.appendChild(buildHistorialPanel()); }
     else if(currentTab === "pedidos"){ panel.appendChild(buildPedidosPanel()); }
+    else if(currentTab === "produccion"){ panel.appendChild(buildProduccionPanel()); }
     else { panel.appendChild(buildProductPanel(currentTab)); }
   }
 
@@ -3499,6 +3502,516 @@ var TRIPLES = [
     });
   }
 
+
+  // ===================================================================
+  // PRODUCCION (agregado 04-set-2026): compras de materia prima cruda,
+  // lotes de produccion (crudo -> producto terminado, con % de rendimiento
+  // calculado solo) y un cierre que cruza todo eso contra lo que Carnes ya
+  // registra como vendido. Vive en sus propias colecciones de Firestore
+  // ("produccion_compras", "produccion_lotes"), igual que Pedidos vive
+  // aparte del documento principal del arqueo, para no hacerlo crecer sin
+  // limite y para poder guardar cada fila al toque sin pisar nada mas.
+  //
+  // OJO Jessie: la materia prima de Pavo, Jamon Glaseado y Asado (abajo)
+  // es un supuesto mio -- solo confirmaste Panceta->Chicharron y
+  // Pierna->Jamon del Pais. Revisa y corrige esos 3 nombres antes de
+  // usarlo en serio.
+  // ===================================================================
+  var PRODUCCION_RECETAS = [
+    { materiaPrima:"Panceta", producto:"Chicharrón" },
+    { materiaPrima:"Pierna", producto:"Jamón del País" },
+    { materiaPrima:"Pavo (crudo)", producto:"Pavo" },
+    { materiaPrima:"Jamón base (para glasear)", producto:"Jamón Glaseado" },
+    { materiaPrima:"Res (crudo)", producto:"Asado" }
+  ];
+  var PRODUCCION_COMPRAS = null; // array sincronizado desde Firestore
+  var PRODUCCION_LOTES = null;   // array sincronizado desde Firestore
+  var produccionView = "compras"; // "compras" | "lotes" | "cierre"
+  var produccionCierreRango = { desde:"", hasta:"", producto:"" };
+
+  function attachProduccionSync(){
+    db.collection("produccion_compras").onSnapshot(function(snap){
+      var list = [];
+      snap.forEach(function(doc){ var d = doc.data(); d.id = doc.id; list.push(d); });
+      list.sort(function(a,b){ return (b.fecha||"").localeCompare(a.fecha||""); });
+      PRODUCCION_COMPRAS = list;
+      if(currentTab === "produccion") renderPanel();
+    }, function(){
+      if(currentTab === "produccion" && PRODUCCION_COMPRAS === null){
+        showToast("No se pudo cargar las compras de producción.");
+      }
+    });
+    db.collection("produccion_lotes").onSnapshot(function(snap){
+      var list = [];
+      snap.forEach(function(doc){ var d = doc.data(); d.id = doc.id; list.push(d); });
+      list.sort(function(a,b){ return (b.fecha||"").localeCompare(a.fecha||""); });
+      PRODUCCION_LOTES = list;
+      if(currentTab === "produccion") renderPanel();
+    }, function(){
+      if(currentTab === "produccion" && PRODUCCION_LOTES === null){
+        showToast("No se pudo cargar los lotes de producción.");
+      }
+    });
+  }
+
+  function buildProduccionPanel(){
+    var wrap = document.createElement("div");
+    var card = document.createElement("div");
+    card.className = "card";
+
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.style.margin = "0 0 .6rem";
+    hint.textContent = "Registra aquí la materia prima cruda que se compra y cómo rinde al convertirse en el producto que se vende en tienda (por ejemplo panceta → chicharrón). Esto es aparte del conteo diario de la pestaña Carnes.";
+    card.appendChild(hint);
+
+    var toggle = document.createElement("div");
+    toggle.className = "shift-toggle";
+    [["compras","Compras"], ["lotes","Lotes"], ["cierre","Cierre"]].forEach(function(pair){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "shift-btn" + (produccionView === pair[0] ? " active" : "");
+      b.textContent = pair[1];
+      b.addEventListener("click", function(){ produccionView = pair[0]; renderPanel(); });
+      toggle.appendChild(b);
+    });
+    card.appendChild(toggle);
+
+    if(PRODUCCION_COMPRAS === null || PRODUCCION_LOTES === null){
+      var loading = document.createElement("div");
+      loading.className = "hint";
+      loading.textContent = "Cargando…";
+      card.appendChild(loading);
+      wrap.appendChild(card);
+      return wrap;
+    }
+
+    if(produccionView === "compras") card.appendChild(buildProduccionComprasView());
+    else if(produccionView === "lotes") card.appendChild(buildProduccionLotesView());
+    else card.appendChild(buildProduccionCierreView());
+
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  function buildProduccionComprasView(){
+    var box = document.createElement("div");
+    var form = document.createElement("div");
+    form.className = "add-row";
+    form.style.flexWrap = "wrap";
+
+    var fecha = document.createElement("input");
+    fecha.type = "date"; fecha.value = currentDate;
+    var materia = document.createElement("select");
+    PRODUCCION_RECETAS.forEach(function(r){
+      var opt = document.createElement("option");
+      opt.value = r.materiaPrima; opt.textContent = r.materiaPrima + " (→ " + r.producto + ")";
+      materia.appendChild(opt);
+    });
+    var prov = document.createElement("input");
+    prov.type = "text"; prov.placeholder = "Proveedor";
+    var comprobante = document.createElement("input");
+    comprobante.type = "text"; comprobante.placeholder = "N° factura/boleta (opcional)";
+    var kg = document.createElement("input");
+    kg.type = "number"; kg.step = "0.01"; kg.placeholder = "Kilos";
+    var precio = document.createElement("input");
+    precio.type = "number"; precio.step = "0.01"; precio.placeholder = "S/. por kilo";
+    var addBtn = document.createElement("button");
+    addBtn.type = "button"; addBtn.className = "btn btn-sm"; addBtn.textContent = "Agregar compra";
+    if(readOnly){ [fecha, materia, prov, comprobante, kg, precio, addBtn].forEach(function(el){ el.disabled = true; }); }
+
+    [fecha, materia, prov, comprobante, kg, precio, addBtn].forEach(function(el){ form.appendChild(el); });
+    box.appendChild(form);
+
+    addBtn.addEventListener("click", function(){
+      var kgNum = num(kg.value), precioNum = num(precio.value);
+      if(!fecha.value || kgNum <= 0){ showToast("Falta la fecha o los kilos."); return; }
+      db.collection("produccion_compras").add({
+        fecha: fecha.value, materiaPrima: materia.value, proveedor: prov.value.trim(),
+        comprobante: comprobante.value.trim(),
+        kg: kgNum, precioKg: precioNum, total: kgNum * precioNum, createdAt: Date.now()
+      }).then(function(){
+        showToast("Compra agregada.");
+        fecha.value = currentDate; prov.value = ""; comprobante.value = ""; kg.value = ""; precio.value = "";
+      }).catch(function(){ showToast("No se pudo guardar. Revisa tu conexión."); });
+    });
+
+    var tableWrap = document.createElement("div");
+    tableWrap.className = "table-wrap";
+    var table = document.createElement("table");
+    table.className = "data-table";
+    table.innerHTML = "<thead><tr><th>Fecha</th><th>Materia prima</th><th>Proveedor</th><th>N° comprobante</th><th>Kg</th><th>S/. x Kg</th><th>Total S/.</th><th></th></tr></thead><tbody></tbody>";
+    var tbody = table.querySelector("tbody");
+    PRODUCCION_COMPRAS.forEach(function(c){
+      var tr = document.createElement("tr");
+      tr.innerHTML = "<td>" + esc(c.fecha||"") + "</td><td>" + esc(c.materiaPrima||"") + "</td><td>" + esc(c.proveedor||"") +
+        "</td><td>" + esc(c.comprobante||"") +
+        "</td><td>" + fmt(c.kg||0) + "</td><td>" + fmt(c.precioKg||0) + "</td><td>" + fmt(c.total||0) + "</td><td></td>";
+      var delTd = tr.lastElementChild;
+      if(!readOnly){
+        var delBtn = document.createElement("button");
+        delBtn.type = "button"; delBtn.className = "btn btn-sm"; delBtn.textContent = "Borrar";
+        delBtn.addEventListener("click", function(){
+          if(!confirm("¿Borrar esta compra?")) return;
+          db.collection("produccion_compras").doc(c.id).delete().catch(function(){ showToast("No se pudo borrar."); });
+        });
+        delTd.appendChild(delBtn);
+      }
+      tbody.appendChild(tr);
+    });
+    tableWrap.appendChild(table);
+    box.appendChild(tableWrap);
+    var count = document.createElement("div");
+    count.className = "row-count";
+    count.textContent = PRODUCCION_COMPRAS.length + " compra" + (PRODUCCION_COMPRAS.length===1?"":"s") + " registrada" + (PRODUCCION_COMPRAS.length===1?"":"s");
+    box.appendChild(count);
+    return box;
+  }
+
+  function buildProduccionLotesView(){
+    var box = document.createElement("div");
+    var form = document.createElement("div");
+    form.className = "add-row";
+    form.style.flexWrap = "wrap";
+
+    var fecha = document.createElement("input");
+    fecha.type = "date"; fecha.value = currentDate;
+    var materia = document.createElement("select");
+    PRODUCCION_RECETAS.forEach(function(r){
+      var opt = document.createElement("option");
+      opt.value = r.materiaPrima; opt.textContent = r.materiaPrima + " (→ " + r.producto + ")";
+      materia.appendChild(opt);
+    });
+    var kgEntra = document.createElement("input");
+    kgEntra.type = "number"; kgEntra.step = "0.01"; kgEntra.placeholder = "Kg que entra (crudo)";
+    var kgSale = document.createElement("input");
+    kgSale.type = "number"; kgSale.step = "0.01"; kgSale.placeholder = "Kg que sale (listo)";
+    var obs = document.createElement("input");
+    obs.type = "text"; obs.placeholder = "Observaciones (opcional)";
+    var addBtn = document.createElement("button");
+    addBtn.type = "button"; addBtn.className = "btn btn-sm"; addBtn.textContent = "Agregar lote";
+    if(readOnly){ [fecha, materia, kgEntra, kgSale, obs, addBtn].forEach(function(el){ el.disabled = true; }); }
+
+    [fecha, materia, kgEntra, kgSale, obs, addBtn].forEach(function(el){ form.appendChild(el); });
+    box.appendChild(form);
+
+    addBtn.addEventListener("click", function(){
+      var kgE = num(kgEntra.value), kgS = num(kgSale.value);
+      if(!fecha.value || kgE <= 0){ showToast("Falta la fecha o el kilo que entra."); return; }
+      var receta = PRODUCCION_RECETAS.filter(function(r){ return r.materiaPrima === materia.value; })[0];
+      db.collection("produccion_lotes").add({
+        fecha: fecha.value, materiaPrima: materia.value, producto: receta ? receta.producto : "",
+        kgEntra: kgE, kgSale: kgS, observaciones: obs.value.trim(), createdAt: Date.now()
+      }).then(function(){
+        showToast("Lote agregado.");
+        fecha.value = currentDate; kgEntra.value = ""; kgSale.value = ""; obs.value = "";
+      }).catch(function(){ showToast("No se pudo guardar. Revisa tu conexión."); });
+    });
+
+    var tableWrap = document.createElement("div");
+    tableWrap.className = "table-wrap";
+    var table = document.createElement("table");
+    table.className = "data-table";
+    table.innerHTML = "<thead><tr><th>Fecha</th><th>Materia prima</th><th>Producto</th><th>Kg entra</th><th>Kg sale</th><th>Rendimiento</th><th>Obs.</th><th></th></tr></thead><tbody></tbody>";
+    var tbody = table.querySelector("tbody");
+    PRODUCCION_LOTES.forEach(function(l){
+      var rend = (l.kgEntra > 0) ? (l.kgSale / l.kgEntra) : null;
+      var tr = document.createElement("tr");
+      tr.innerHTML = "<td>" + esc(l.fecha||"") + "</td><td>" + esc(l.materiaPrima||"") + "</td><td>" + esc(l.producto||"") +
+        "</td><td>" + fmt(l.kgEntra||0) + "</td><td>" + fmt(l.kgSale||0) + "</td><td>" + (rend===null?"—":fmt(rend*100)+"%") +
+        "</td><td>" + esc(l.observaciones||"") + "</td><td></td>";
+      var delTd = tr.lastElementChild;
+      if(!readOnly){
+        var delBtn = document.createElement("button");
+        delBtn.type = "button"; delBtn.className = "btn btn-sm"; delBtn.textContent = "Borrar";
+        delBtn.addEventListener("click", function(){
+          if(!confirm("¿Borrar este lote?")) return;
+          db.collection("produccion_lotes").doc(l.id).delete().catch(function(){ showToast("No se pudo borrar."); });
+        });
+        delTd.appendChild(delBtn);
+      }
+      tbody.appendChild(tr);
+    });
+    tableWrap.appendChild(table);
+    box.appendChild(tableWrap);
+    var count = document.createElement("div");
+    count.className = "row-count";
+    count.textContent = PRODUCCION_LOTES.length + " lote" + (PRODUCCION_LOTES.length===1?"":"s") + " registrado" + (PRODUCCION_LOTES.length===1?"":"s");
+    box.appendChild(count);
+    return box;
+  }
+
+  // Suma "Ventas Físicas" (AM+PM) del producto en Carnes, dentro de un rango de fechas.
+  // Usa exactamente el mismo cálculo que ya usa la pestaña Carnes (ventasOf), para que el
+  // cierre de producción nunca pueda mostrar un número distinto al que ya se ve ahí.
+  function sumVentasCarnesEnRango(productoNombre, fechaIni, fechaFin){
+    var idx = CARNES.indexOf(productoNombre);
+    if(idx === -1) return null;
+    var total = 0;
+    Object.keys(STATE.days).forEach(function(d){
+      if(d < fechaIni || d > fechaFin) return;
+      var day = STATE.days[d];
+      backfillDay(day, d);
+      var sec = day.c;
+      if(!sec) return;
+      var amRow = sec.am[idx], pmRow = sec.pm[idx];
+      var vAm = ventasOf(amRow, "am", null);
+      var vPm = ventasOf(pmRow, "pm", amRow);
+      if(vAm !== null) total += vAm;
+      if(vPm !== null) total += vPm;
+    });
+    return total;
+  }
+
+  // Calcula, para cada carne, los mismos numeros que se muestran en pantalla Y los que
+  // se exportan a Excel -- UNA sola funcion hace la cuenta para evitar que algun dia el
+  // reporte descargado muestre un numero distinto al que Jessie ve en la app.
+  function computeCierreRows(f1, f2){
+    return PRODUCCION_RECETAS.map(function(r){
+      var compras = PRODUCCION_COMPRAS.filter(function(c){ return c.materiaPrima === r.materiaPrima && c.fecha >= f1 && c.fecha <= f2; });
+      var lotes = PRODUCCION_LOTES.filter(function(l){ return l.materiaPrima === r.materiaPrima && l.fecha >= f1 && l.fecha <= f2; });
+      var kgComprado = compras.reduce(function(s,c){ return s + (c.kg||0); }, 0);
+      var solesComprado = compras.reduce(function(s,c){ return s + (c.total||0); }, 0);
+      var rendProm = lotes.length ? (lotes.reduce(function(s,l){ return s + ((l.kgEntra>0)?(l.kgSale/l.kgEntra):0); }, 0) / lotes.length) : null;
+      var kgEsperado = (rendProm !== null) ? kgComprado * rendProm : null;
+      var kgVendido = sumVentasCarnesEnRango(r.producto, f1, f2);
+      var tienedatos = compras.length > 0 || lotes.length > 0;
+      var perdidaKg = null, perdidaSoles = null;
+      if(tienedatos){
+        perdidaKg = (kgEsperado !== null && kgVendido !== null) ? (kgEsperado - kgVendido) : null;
+        // Costo por kg de MATERIA PRIMA cruda (ej. S/. por kg de panceta).
+        var costoKgMateriaPrima = kgComprado > 0 ? (solesComprado / kgComprado) : 0;
+        // Costo por kg de PRODUCTO TERMINADO (ej. S/. por kg de chicharrón ya frito):
+        // como el rendimiento es < 100%, cada kg de producto final "contiene" más de
+        // 1 kg de materia prima cruda (si rinde 60%, 1kg de producto salió de 1/0.6 kg
+        // de materia prima). Sin este ajuste, la pérdida en soles salía subestimada.
+        var costoKgProducto = (rendProm !== null && rendProm > 0) ? (costoKgMateriaPrima / rendProm) : null;
+        perdidaSoles = (perdidaKg !== null && costoKgProducto !== null) ? (perdidaKg * costoKgProducto) : null;
+      }
+      return {
+        producto: r.producto, tienedatos: tienedatos, kgComprado: kgComprado, solesComprado: solesComprado,
+        rendProm: rendProm, kgEsperado: kgEsperado, kgVendido: kgVendido, perdidaKg: perdidaKg, perdidaSoles: perdidaSoles
+      };
+    });
+  }
+
+  // Nombre de hoja de Excel valido: max 31 caracteres, sin : \ / ? * [ ]
+  function excelSheetName(name){
+    return String(name).replace(/[:\\\/\?\*\[\]]/g, "").substring(0, 31);
+  }
+  // Nombre de archivo seguro (sin tildes ni espacios), para el nombre del .xlsx descargado.
+  function fileSlug(name){
+    return String(name).toLowerCase()
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  }
+
+  // Arma UNA hoja de Excel con formato de reporte (encabezado con el nombre del negocio,
+  // el rango de fechas y -- si se paso -- el producto puntual; columnas con color, montos
+  // en soles y % ya formateados, fila de totales, y las filas con pérdida resaltadas en
+  // rojo para que salten a la vista). La usan tanto el reporte de "todas las carnes" como
+  // el reporte de un solo producto -- mismo diseño, para que un reporte sacado aparte para
+  // Pavo se vea exactamente igual de "serio" que el resumen completo.
+  function buildCierreSheet(rows, negocio, f1, f2, tituloSufijo){
+    var HEAD = ["Producto","Compra materia prima (kg)","Compra (S/.)","Rendimiento prom. (lotes)",
+      "Kg esperado","Kg vendido en tienda","Pérdida (kg)","Pérdida (S/.)"];
+    var numCols = HEAD.length;
+    var aoa = [];
+    aoa.push([negocio + " — Cierre de Producción" + (tituloSufijo ? " — " + tituloSufijo : "")].concat(new Array(numCols-1).fill("")));
+    aoa.push(["Periodo: " + f1 + " al " + f2 + "   ·   Generado: " + new Date().toLocaleDateString("es-PE")].concat(new Array(numCols-1).fill("")));
+    aoa.push(new Array(numCols).fill(""));
+    aoa.push(HEAD.slice());
+    var firstDataRow = aoa.length; // fila (0-index) donde empiezan los datos
+    var sinDatosRows = []; // filas "sin compras ni lotes" -- se fusionan aparte, sin formato numerico
+    rows.forEach(function(r){
+      if(!r.tienedatos){
+        sinDatosRows.push(aoa.length);
+        aoa.push([r.producto, "Sin compras ni lotes registrados en este rango todavía.", "", "", "", "", "", ""]);
+      } else {
+        aoa.push([
+          r.producto, r.kgComprado, r.solesComprado,
+          r.rendProm === null ? "— (faltan lotes)" : r.rendProm,
+          r.kgEsperado === null ? "—" : r.kgEsperado,
+          r.kgVendido === null ? "—" : r.kgVendido,
+          r.perdidaKg === null ? "—" : r.perdidaKg,
+          r.perdidaSoles === null ? "—" : r.perdidaSoles
+        ]);
+      }
+    });
+    var lastDataRow = aoa.length - 1;
+    // Fila de totales (solo suma lo que tiene numero real; deja "—" donde no aplica).
+    var sum = function(key){ return rows.reduce(function(s,r){ return s + (typeof r[key] === "number" ? r[key] : 0); }, 0); };
+    aoa.push(["TOTAL", sum("kgComprado"), sum("solesComprado"), "", sum("kgEsperado"), sum("kgVendido"), sum("perdidaKg"), sum("perdidaSoles")]);
+    var totalRow = aoa.length - 1;
+    aoa.push(new Array(numCols).fill(""));
+    var noteRow = aoa.length;
+    aoa.push(["\"Kg esperado\" = compra de materia prima × rendimiento promedio de los lotes de ese rango. Si falta registrar lotes, no se calcula la pérdida (para no inventar un número)."].concat(new Array(numCols-1).fill("")));
+
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!merges"] = [
+      { s:{r:0,c:0}, e:{r:0,c:numCols-1} },
+      { s:{r:1,c:0}, e:{r:1,c:numCols-1} },
+      { s:{r:noteRow,c:0}, e:{r:noteRow,c:numCols-1} }
+    ].concat(sinDatosRows.map(function(rr){ return { s:{r:rr,c:1}, e:{r:rr,c:numCols-1} }; }));
+    ws["!cols"] = [{wch:20},{wch:20},{wch:14},{wch:20},{wch:14},{wch:18},{wch:12},{wch:14}];
+    try{
+      var setStyle = function(r,c,style){ var ref = XLSX.utils.encode_cell({r:r,c:c}); if(ws[ref]) ws[ref].s = style; };
+      var setFormat = function(r,c,fmt){ var ref = XLSX.utils.encode_cell({r:r,c:c}); if(ws[ref]) ws[ref].z = fmt; };
+      setStyle(0,0,{ font:{ bold:true, sz:16, color:{rgb:"C2660C"} }, alignment:{ horizontal:"center" } });
+      setStyle(1,0,{ font:{ italic:true, sz:10, color:{rgb:"666666"} }, alignment:{ horizontal:"center" } });
+      for(var c=0;c<numCols;c++){
+        setStyle(3,c,{ font:{ bold:true, color:{rgb:"FFFFFF"} }, fill:{ fgColor:{rgb:"4472C4"} }, alignment:{ horizontal:"center", wrapText:true } });
+      }
+      for(var rr=firstDataRow; rr<=lastDataRow; rr++){
+        var rowData = rows[rr-firstDataRow];
+        if(!rowData || !rowData.tienedatos){
+          setStyle(rr,1,{ font:{ italic:true, color:{rgb:"888888"} } });
+          continue; // fila "sin compras ni lotes": nada de formato numerico, solo el texto fusionado
+        }
+        setFormat(rr,1,"#,##0.00"); setFormat(rr,2,'"S/. "#,##0.00'); setFormat(rr,4,"#,##0.00");
+        setFormat(rr,5,"#,##0.00"); setFormat(rr,6,"#,##0.00"); setFormat(rr,7,'"S/. "#,##0.00');
+        if(rowData.rendProm !== null) setFormat(rr,3,"0%");
+        // Resalta en rojo suave la fila si hubo pérdida real (en soles > 0), para que
+        // salte a la vista igual que ya hace el semaforo de descuadre en Panes/Bebidas/etc.
+        if(typeof rowData.perdidaSoles === "number" && rowData.perdidaSoles > 0){
+          for(var cc=0;cc<numCols;cc++) setStyle(rr,cc,{ fill:{ fgColor:{rgb:"FCE4E4"} }, font:{ color:{rgb:"A61B1B"} } });
+        }
+      }
+      for(var c2=0;c2<numCols;c2++){
+        setStyle(totalRow,c2,{ font:{ bold:true }, fill:{ fgColor:{rgb:"E9E4DA"} } });
+      }
+      setFormat(totalRow,1,"#,##0.00"); setFormat(totalRow,2,'"S/. "#,##0.00'); setFormat(totalRow,4,"#,##0.00");
+      setFormat(totalRow,5,"#,##0.00"); setFormat(totalRow,6,"#,##0.00"); setFormat(totalRow,7,'"S/. "#,##0.00');
+      setStyle(noteRow,0,{ font:{ italic:true, sz:9, color:{rgb:"666666"} } });
+    }catch(e){}
+
+    return ws;
+  }
+
+  // Arma y descarga el archivo de Cierre. Si "producto" viene vacio (== "Todas las
+  // carnes"), el archivo trae una hoja "Resumen" con las 5 carnes juntas (igual que se ve
+  // en pantalla) MAS una hoja aparte por cada carne -- para que Jessie pueda, por ejemplo,
+  // mandarle a alguien solo la hoja de Pavo sin tener que armar un archivo distinto. Si
+  // eligio un producto puntual, el archivo trae solo esa hoja (mas liviano, un solo
+  // "reporte" enfocado en ese producto, como pidio).
+  function exportCierreWorkbook(f1, f2, producto, allRows){
+    if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo."); return; }
+    var negocio = (STATE.meta && STATE.meta.businessName) ? STATE.meta.businessName : "Panadería Carmelitas";
+    var wb = XLSX.utils.book_new();
+    if(!producto){
+      var wsResumen = buildCierreSheet(allRows, negocio, f1, f2, null);
+      XLSX.utils.book_append_sheet(wb, wsResumen, excelSheetName("Resumen"));
+      allRows.forEach(function(r){
+        var wsUno = buildCierreSheet([r], negocio, f1, f2, r.producto);
+        XLSX.utils.book_append_sheet(wb, wsUno, excelSheetName(r.producto));
+      });
+      XLSX.writeFile(wb, "cierre-produccion_" + f1 + "_a_" + f2 + ".xlsx");
+    } else {
+      var soloRow = allRows.filter(function(r){ return r.producto === producto; });
+      var wsSolo = buildCierreSheet(soloRow, negocio, f1, f2, producto);
+      XLSX.utils.book_append_sheet(wb, wsSolo, excelSheetName(producto));
+      XLSX.writeFile(wb, "cierre-" + fileSlug(producto) + "_" + f1 + "_a_" + f2 + ".xlsx");
+    }
+  }
+
+  function buildProduccionCierreView(){
+    var box = document.createElement("div");
+    var form = document.createElement("div");
+    form.className = "add-row";
+    form.style.flexWrap = "wrap";
+    var desde = document.createElement("input");
+    desde.type = "date"; desde.value = produccionCierreRango.desde || currentDate;
+    var hasta = document.createElement("input");
+    hasta.type = "date"; hasta.value = produccionCierreRango.hasta || currentDate;
+    var productoSel = document.createElement("select");
+    var optTodas = document.createElement("option");
+    optTodas.value = ""; optTodas.textContent = "Todas las carnes";
+    productoSel.appendChild(optTodas);
+    PRODUCCION_RECETAS.forEach(function(r){
+      var opt = document.createElement("option");
+      opt.value = r.producto; opt.textContent = r.producto;
+      productoSel.appendChild(opt);
+    });
+    productoSel.value = produccionCierreRango.producto || "";
+    var calcBtn = document.createElement("button");
+    calcBtn.type = "button"; calcBtn.className = "btn btn-sm"; calcBtn.textContent = "Calcular";
+    var exportBtn = document.createElement("button");
+    exportBtn.type = "button"; exportBtn.className = "btn btn-sm"; exportBtn.textContent = "Exportar a Excel";
+    form.appendChild(document.createTextNode("Desde: "));
+    form.appendChild(desde);
+    form.appendChild(document.createTextNode("Hasta: "));
+    form.appendChild(hasta);
+    form.appendChild(document.createTextNode("Producto: "));
+    form.appendChild(productoSel);
+    form.appendChild(calcBtn);
+    form.appendChild(exportBtn);
+    box.appendChild(form);
+
+    var hint2 = document.createElement("div");
+    hint2.className = "hint";
+    hint2.style.margin = ".4rem 0 0";
+    hint2.textContent = "Elige un producto para ver/exportar solo ese (por ejemplo, solo Pavo del 1 al 7). Con \"Todas las carnes\", el Excel exportado trae una hoja resumen con las 5 juntas más una hoja aparte para cada una.";
+    box.appendChild(hint2);
+
+    var results = document.createElement("div");
+    results.style.marginTop = "1rem";
+    box.appendChild(results);
+
+    function renderResults(){
+      var f1 = desde.value, f2 = hasta.value;
+      results.innerHTML = "";
+      if(!f1 || !f2 || f1 > f2){ results.innerHTML = '<div class="hint">Elige un rango de fechas válido.</div>'; return; }
+      var allRows = computeCierreRows(f1, f2);
+      var producto = productoSel.value;
+      var rows = producto ? allRows.filter(function(r){ return r.producto === producto; }) : allRows;
+      var table = document.createElement("table");
+      table.className = "data-table";
+      table.innerHTML = "<thead><tr><th>Producto</th><th>Compra materia prima (kg)</th><th>Compra (S/.)</th>" +
+        "<th>Rendimiento prom. (lotes)</th><th>Kg esperado</th><th>Kg vendido en tienda</th>" +
+        "<th>Pérdida (kg)</th><th>Pérdida (S/.)</th></tr></thead><tbody></tbody>";
+      var tbody = table.querySelector("tbody");
+      rows.forEach(function(row){
+        var tr = document.createElement("tr");
+        if(!row.tienedatos){
+          tr.innerHTML = "<td>" + esc(row.producto) + "</td><td colspan='7' class='hint' style='padding:.5rem'>Sin compras ni lotes registrados en este rango todavía.</td>";
+        } else {
+          if(typeof row.perdidaSoles === "number" && row.perdidaSoles > 0) tr.style.background = "#fce4e4";
+          tr.innerHTML = "<td>" + esc(row.producto) + "</td>" +
+            "<td>" + fmt(row.kgComprado) + "</td>" +
+            "<td>" + fmt(row.solesComprado) + "</td>" +
+            "<td>" + (row.rendProm===null?"— (faltan lotes)":fmt(row.rendProm*100)+"%") + "</td>" +
+            "<td>" + (row.kgEsperado===null?"—":fmt(row.kgEsperado)) + "</td>" +
+            "<td>" + (row.kgVendido===null?"—":fmt(row.kgVendido)) + "</td>" +
+            "<td>" + (row.perdidaKg===null?"—":fmt(row.perdidaKg)) + "</td>" +
+            "<td>" + (row.perdidaSoles===null?"—":fmt(row.perdidaSoles)) + "</td>";
+        }
+        tbody.appendChild(tr);
+      });
+      results.appendChild(table);
+      var note = document.createElement("div");
+      note.className = "hint";
+      note.style.marginTop = ".6rem";
+      note.textContent = "\"Kg esperado\" = compra de materia prima × rendimiento promedio de los lotes de ese rango. Si falta registrar lotes, no se calcula la pérdida (para no inventar un número).";
+      results.appendChild(note);
+    }
+    calcBtn.addEventListener("click", function(){
+      produccionCierreRango.desde = desde.value; produccionCierreRango.hasta = hasta.value;
+      produccionCierreRango.producto = productoSel.value;
+      renderResults();
+    });
+    productoSel.addEventListener("change", function(){
+      produccionCierreRango.producto = productoSel.value;
+      renderResults();
+    });
+    exportBtn.addEventListener("click", function(){
+      var f1 = desde.value, f2 = hasta.value;
+      if(!f1 || !f2 || f1 > f2){ showToast("Elige un rango de fechas válido antes de exportar."); return; }
+      exportCierreWorkbook(f1, f2, productoSel.value, computeCierreRows(f1, f2));
+    });
+    renderResults();
+    return box;
+  }
+
   function attachPedidosSync(){
     db.collection("pedidos").onSnapshot(function(snap){
       var list = [];
@@ -3558,6 +4071,7 @@ var TRIPLES = [
     });
     attachPedidosSync();
     attachClientesSync();
+    attachProduccionSync();
   }
 
   // ---------- lock screen (contraseña compartida del equipo) ----------
