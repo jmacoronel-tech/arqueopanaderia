@@ -142,12 +142,14 @@
   table.data-table tbody tr.pending-data:not(.flag) td:first-child{ box-shadow:inset 3px 0 0 var(--warn); }
   .num-input.pending-warn{ border-color:var(--warn); }
   .derived.pending-warn{ color:var(--warn); font-weight:700; }
-  .ing-group{ display:inline-flex; gap:.2rem; }
+  .ing-group{ display:inline-flex; gap:.25rem; }
   .num-input{ width:4.1rem; text-align:right; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:.3rem .35rem; font-size:.85rem; color:var(--ink); font-variant-numeric:tabular-nums; }
   .num-input.mini{ width:2.15rem; padding:.3rem .2rem; text-align:center; }
   .num-input.vc{ width:4.4rem; }
-  /* Cantidad y precio de cada línea de un Pedido: recuadros más grandes y fáciles de leer/tocar
-     que el resto de campos "mini" (los de Ingreso del Arqueo, que se quedan como están). */
+  /* Los 3 recuadros de "Ingresos" del Arqueo (Ingreso 1/2/3) más grandes: antes eran tan
+     chicos que no se alcanzaba a ver el gramaje completo ni el resto de lo que se anotaba ahí. */
+  .ing-group .num-input.mini{ width:3.5rem; padding:.4rem .3rem; font-size:.95rem; }
+  /* Cantidad y precio de cada línea de un Pedido: recuadros más grandes y fáciles de leer/tocar. */
   .num-input.mini.pedido-item-cantidad, .num-input.mini.pedido-item-precio{
     width:4.6rem; padding:.5rem .4rem; font-size:1.05rem; font-weight:700; text-align:center;
   }
@@ -191,7 +193,9 @@
   .lock-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:1.6rem 1.6rem 1.8rem; max-width:340px; width:100%; text-align:center; }
   .lock-title{ font-family:"Fraunces", Georgia, serif; font-weight:600; font-size:1.4rem; margin:0 0 .3rem; }
   .lock-sub{ font-size:.85rem; color:var(--ink-soft); margin:0 0 1.1rem; }
-  .lock-input{ width:100%; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.65rem .8rem; font-size:1rem; color:var(--ink); text-align:center; margin-bottom:.8rem; }
+  .lock-input-wrap{ position:relative; margin-bottom:.8rem; }
+  .lock-input{ width:100%; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.65rem 4.4rem .65rem .8rem; font-size:1rem; color:var(--ink); text-align:center; margin-bottom:0; }
+  .lock-toggle{ position:absolute; right:.35rem; top:50%; transform:translateY(-50%); border:none; background:transparent; color:var(--accent); font-size:.78rem; font-weight:700; padding:.3rem .5rem; cursor:pointer; }
   .lock-btn{ width:100%; }
   .lock-error{ color:var(--bad); font-size:.82rem; margin:.8rem 0 0; }
 
@@ -216,7 +220,9 @@
     #printArea tr.flagged td{ background:#fbdcd4; font-weight:700; }
     #printArea .print-empty{ color:#555; font-style:italic; margin:0 0 .8em; }
     #printArea .print-footer{ margin-top:1.2em; font-size:9px; color:#777; }
-    @page{ margin:14mm; }
+    /* Horizontal: con hasta 9 columnas (la vista "tal como se ve en pantalla" incluye
+       "Se agotó") una hoja vertical queda muy angosta. */
+    @page{ size: landscape; margin:12mm; }
   }
 </style>
 
@@ -224,7 +230,10 @@
   <form id="lockForm" class="lock-card">
     <h1 class="lock-title">Arqueo Diario</h1>
     <p class="lock-sub">Ingresa la contraseña del equipo para continuar.</p>
-    <input id="lockInput" class="lock-input" type="password" inputmode="text" autocomplete="off" placeholder="Contraseña" />
+    <div class="lock-input-wrap">
+      <input id="lockInput" class="lock-input" type="password" inputmode="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Contraseña" />
+      <button class="lock-toggle" id="lockToggle" type="button" aria-label="Mostrar contraseña">Mostrar</button>
+    </div>
     <button class="btn btn-primary lock-btn" type="submit">Entrar</button>
     <p id="lockError" class="lock-error" hidden>Contraseña incorrecta. Intenta de nuevo.</p>
   </form>
@@ -571,10 +580,17 @@ var TRIPLES = [
   var db = null;
   var lastSavedBySelf = null;
   var saveTimer = null, saving = false;
-  // Se pone en true cuando llega un cambio de OTRO dispositivo mientras acá había algo sin
-  // guardar todavía. Mientras esté en true, doSave() se niega a guardar (para nunca pisar por
-  // encima lo que ese otro dispositivo ya guardó) hasta que se toque "Actualizar ahora".
-  var remoteConflict = false;
+  // "baseline": la última versión de STATE que este dispositivo sabe con certeza que
+  // coincide con lo que hay guardado en Firestore (justo después de cargar, o de guardar,
+  // o de combinar cambios de otro dispositivo). Cada guardado compara STATE contra baseline
+  // para saber EXACTAMENTE qué cambió acá mismo, y solo mete esos cambios puntuales encima
+  // de lo último que haya en la base — así dos dispositivos pueden editar productos
+  // distintos (o hasta el mismo día) al mismo tiempo sin que uno le gane por encima al otro.
+  var baseline = null;
+  // Se incrementa cada vez que se edita algo de verdad. Sirve para darnos cuenta si se
+  // siguió escribiendo mientras un guardado ya estaba en camino, y así no perder esos
+  // cambios más nuevos.
+  var editGen = 0;
   var currentDate = todayISO();
   // Pedidos (delivery / recojo en tienda / masivo): viven en su propia colección de Firestore,
   // separada del documento "arqueo/state", para no hacer crecer sin límite el documento del
@@ -709,44 +725,6 @@ var TRIPLES = [
       sec.pm.push(emptyPmRow(prevFinal));
     }
   }
-  // Arregla dos cosas que quedaron mal SOLO por el cambio de "Saldo Final ya no arranca
-  // relleno": (1) filas que nadie tocó de verdad, donde "Saldo Final" se quedó con el número
-  // viejo (versión anterior del sistema, antes de que ese campo empezara en blanco) — esas se
-  // dejan pendientes; (2) el caso de Bebidas: como esa categoría no trae saldo de un día
-  // anterior, "Saldo Anterior" arranca en 0, y como "Saldo Final" es hoy el único recuadro que
-  // se ve vacío, el personal terminó anotando ahí el conteo real de la mañana en vez de en
-  // "Saldo Anterior". Se detecta con cuidado: solo se toca una fila si NADA más se registró
-  // todavía (sin ingresos, sin merma, sin caja) para no tocar ni un solo dato real ya cargado.
-  function cleanupSaldoFinalMigrado(day){
-    var changed = false;
-    PRODUCT_TABS.forEach(function(tab){
-      var section = SECTIONS[tab];
-      var sec = day[section.key];
-      if(!sec) return;
-      sec.am.forEach(function(row){
-        var untouched = row.i1===0 && row.i2===0 && row.i3===0 && row.m===0 && row.vc===null;
-        if(!untouched || row.f === null) return;
-        if(row.f === row.a){
-          row.f = null;
-          changed = true;
-        } else if(row.a === 0 && row.f !== 0){
-          row.a = row.f;
-          row.f = null;
-          changed = true;
-        }
-      });
-      sec.pm.forEach(function(row, idx){
-        var amRow = sec.am[idx];
-        var prevFinal = amRow ? amRow.a : 0;
-        var untouched = row.i1===0 && row.i2===0 && row.i3===0 && row.m===0 && row.vc===null;
-        if(untouched && row.f !== null && row.f === prevFinal){
-          row.f = null;
-          changed = true;
-        }
-      });
-    });
-    return changed;
-  }
   function backfillDay(day, date){
     var prevDate = latestDayBefore(date);
     var prevDay = prevDate ? STATE.days[prevDate] : null;
@@ -756,15 +734,18 @@ var TRIPLES = [
       var section = SECTIONS[tab];
       backfillSection(day, section.key, catalogFor(tab), prevDay);
     });
-    // OJO: esto antes guardaba solo, en automático, apenas detectaba algo para corregir.
-    // Era peligroso porque getDay()/backfillDay() se ejecuta en CADA render (no solo cuando
-    // alguien escribe algo) — así que podía disparar un guardado de fondo sin que nadie
-    // tocara nada, justo en el peor momento: cuando otro dispositivo ya tenía cambios más
-    // nuevos que acá todavía no se habían recibido. Ese guardado automático los pisaba por
-    // completo, sin avisar. Ahora la corrección se sigue aplicando (se ve bien en pantalla
-    // y viaja junto con cualquier guardado real que la persona haga por su cuenta al
-    // escribir algo), pero YA NO dispara un guardado por sí sola.
-    cleanupSaldoFinalMigrado(day);
+    // OJO: aquí ANTES se llamaba a cleanupSaldoFinalMigrado(day) en cada render para
+    // corregir un patrón puntual que venía de la migración del Excel de setiembre. Se quitó
+    // por completo: esa "corrección" asumía que, en una fila sin ningún otro movimiento
+    // (sin ingresos, sin merma, sin venta de caja) con Saldo Anterior en 0, cualquier Saldo
+    // Final que se ingresara ahí era en realidad un error de digitación (que la persona quiso
+    // escribir en Saldo Anterior) — y lo movía solo, en silencio, de Saldo Final a Saldo
+    // Anterior, dejando Saldo Final vacío otra vez. Eso es EXACTAMENTE lo que Jessica reportó
+    // como "Saldo Final no guarda": bastaba con escribir un Saldo Final en un producto que
+    // partió el día en cero (algo normal y frecuente) para que la app lo borrara solo, sin
+    // avisar, cada vez que la pantalla se volvía a dibujar (que pasa todo el tiempo). Como
+    // esa limpieza histórica del Excel ya se aplicó hace tiempo, no hace falta que siga
+    // corriendo para siempre sobre datos nuevos y legítimos.
   }
   // Quitar un producto de Otros: hay que correr el índice en todos los días ya guardados
   // (el arreglo de filas está indexado por posición), incluyendo los mapas de "se agotó".
@@ -805,6 +786,17 @@ var TRIPLES = [
   function ensureDay(date){
     if(!STATE.days[date]) STATE.days[date] = draftDay(date);
     else backfillDay(STATE.days[date], date);
+    // Si "baseline" (el punto de comparación para combinar cambios de otros dispositivos
+    // al guardar) todavía no conoce este día -- por ejemplo, la primera vez que se toca
+    // un día que antes solo se veía como borrador -- lo dejamos con una copia de cómo
+    // está el día RECIÉN AHORA, antes de aplicar la edición que sigue después de esto.
+    // Si no se hiciera esto, más adelante el sistema pensaría que TODOS los campos de
+    // este día se editaron acá (porque no tendría con qué compararlos) y podría pisar
+    // por encima datos que otro dispositivo ya guardó en campos que acá nunca se tocaron.
+    if(baseline){
+      if(!baseline.days) baseline.days = {};
+      if(!baseline.days[date]) baseline.days[date] = deepClone(STATE.days[date]);
+    }
     return STATE.days[date];
   }
 
@@ -820,16 +812,19 @@ var TRIPLES = [
   }
   function ventasOf(row, shift, amRow){ return shift === "am" ? ventasAm(row) : ventasPm(row, amRow); }
   function cuadreOf(row, ventasFisicas){
+    // Cuadre = Ventas Caja − Ventas Físicas. Positivo = hay más plata en caja de la que
+    // se debería (sobrante, para revisar). Negativo = falta plata en caja respecto a lo
+    // que se vendió físicamente (faltante, lo más urgente de revisar).
     if(ventasFisicas === null) return null;
     if(row.vc === null){
       // No se registró venta de caja para esta fila. Si tampoco hubo movimiento físico
       // (ventasFisicas === 0), no hay nada que cuadrar todavía -> queda "—" (neutral).
       // Pero si SÍ hubo una venta física real y no hay caja registrada, eso es justo lo
       // que hay que revisar: se trata como si la caja fuera 0, así que el cuadre sale en
-      // negativo (por ejemplo, se vendió 1 y no figura en caja -> Cuadre = -1).
+      // negativo -- falta esa plata (por ejemplo, se vendió 1 y no figura en caja -> Cuadre = -1).
       return ventasFisicas === 0 ? null : -ventasFisicas;
     }
-    return ventasFisicas - row.vc;
+    return row.vc - ventasFisicas;
   }
   function isFlagged(row, shift, amRow){
     var v = ventasOf(row, shift, amRow);
@@ -914,6 +909,13 @@ var TRIPLES = [
     if(same){ clearBackup(); return; }
     showBanner("info", "Tenías cambios sin guardar de tu última sesión (" + fmtDateLabel(backup.date) + ").",
       [{ label:"Recuperar", action:function(){
+          // Igual que en ensureDay(): si "baseline" no conoce este día todavía, lo
+          // dejamos con el valor que tenía ANTES de recuperar el respaldo, para que el
+          // guardado sepa distinguir bien lo recuperado de lo que ya había guardado.
+          if(baseline){
+            if(!baseline.days) baseline.days = {};
+            if(!baseline.days[backup.date] && current) baseline.days[backup.date] = deepClone(current);
+          }
           STATE.days[backup.date] = backup.day;
           clearBackup();
           markDirty();
@@ -967,7 +969,7 @@ var TRIPLES = [
     toastTimer = setTimeout(function(){ t.hidden = true; }, ms || 3200);
   }
 
-  function markDirty(){ dirty = true; setSaveStatus(); }
+  function markDirty(){ dirty = true; editGen++; setSaveStatus(); }
   function setSaveStatus(){
     var el = document.getElementById("saveStatus");
     var btn = document.getElementById("saveBtn");
@@ -984,26 +986,140 @@ var TRIPLES = [
 
   function scheduleAutosave(){ clearTimeout(saveTimer); saveTimer = setTimeout(function(){ doSave(); }, 1500); }
 
-  function doSave(){
-    if(readOnly || saving || !db) { setSaveStatus(); return; }
-    if(remoteConflict){
-      // Hay cambios de otro dispositivo que todavía no se cargaron acá. Guardar ahora
-      // significaría pisar por encima esos cambios con una copia vieja. Nos negamos a
-      // guardar y dejamos el aviso visible hasta que la persona toque "Actualizar ahora".
-      clearTimeout(saveTimer);
-      showBanner("bad", "No se guardó: otro dispositivo tiene cambios más nuevos. Toca \"Actualizar ahora\" arriba para traerlos antes de seguir.", []);
-      setSaveStatus();
-      return;
+  function deepClone(o){ return o == null ? o : JSON.parse(JSON.stringify(o)); }
+
+  // ---------- combinar cambios al guardar (para que dos dispositivos editando productos
+  // distintos -- o hasta el mismo día -- al mismo tiempo no se pisen entre sí) ----------
+  // "freshRemote": lo último que hay en Firestore justo antes de guardar.
+  // "local": STATE tal como está en ESTE dispositivo ahora mismo.
+  // "base": la última versión que este dispositivo sabe que coincidía con Firestore.
+  // Se compara local contra base para saber exactamente qué se editó acá, y esos cambios
+  // puntuales se aplican encima de freshRemote (que puede traer cosas nuevas de otro
+  // dispositivo que acá todavía no se habían visto).
+  function mergeFlatMap(mergedParent, key, localMap, baseMap){
+    var remoteMap = mergedParent[key] || {};
+    var out = Object.assign({}, remoteMap);
+    Object.keys(localMap).forEach(function(k){
+      if(localMap[k] !== baseMap[k]){ out[k] = localMap[k]; }
+    });
+    Object.keys(baseMap).forEach(function(k){
+      if(!(k in localMap) && remoteMap[k] === baseMap[k]){ delete out[k]; }
+    });
+    mergedParent[key] = out;
+  }
+  function mergeSection(mergedSec, localSec, baseSec){
+    ["am","pm"].forEach(function(shift){
+      var localArr = (localSec && localSec[shift]) || [];
+      var baseArr = (baseSec && baseSec[shift]) || [];
+      if(!mergedSec[shift]) mergedSec[shift] = [];
+      var fields = shift === "am" ? ["a","i1","i2","i3","m","f","vc"] : ["i1","i2","i3","m","f","vc"];
+      for(var i = 0; i < localArr.length; i++){
+        var localRow = localArr[i];
+        var baseRow = baseArr[i];
+        if(!mergedSec[shift][i]){ mergedSec[shift][i] = deepClone(localRow); continue; }
+        fields.forEach(function(f){
+          var baseVal = baseRow ? baseRow[f] : undefined;
+          if(localRow[f] !== baseVal){ mergedSec[shift][i][f] = localRow[f]; }
+        });
+      }
+    });
+    mergeFlatMap(mergedSec, "agAm", (localSec && localSec.agAm) || {}, (baseSec && baseSec.agAm) || {});
+    mergeFlatMap(mergedSec, "agPm", (localSec && localSec.agPm) || {}, (baseSec && baseSec.agPm) || {});
+  }
+  function mergeDay(mergedDay, localDay, baseDay){
+    var turnoFields = ["respAM","respPM","eAM","sAM","ePM","sPM","obsAM","obsPM","notas"];
+    if(!mergedDay.turno) mergedDay.turno = {};
+    turnoFields.forEach(function(f){
+      var baseVal = baseDay && baseDay.turno ? baseDay.turno[f] : undefined;
+      var localVal = localDay.turno ? localDay.turno[f] : undefined;
+      if(localVal !== undefined && localVal !== baseVal){ mergedDay.turno[f] = localVal; }
+    });
+    ["p","b","e","t","o"].forEach(function(key){
+      if(!localDay[key]) return;
+      if(!mergedDay[key]) mergedDay[key] = { am:[], pm:[], agAm:{}, agPm:{} };
+      mergeSection(mergedDay[key], localDay[key], baseDay ? baseDay[key] : null);
+    });
+  }
+  function mergeStateForSave(freshRemote, local, base){
+    var merged = deepClone(freshRemote);
+    if(!merged.meta) merged.meta = { businessName:"", lastSavedAt:null, schema:2 };
+    var baseBiz = base && base.meta ? base.meta.businessName : undefined;
+    if(local.meta && local.meta.businessName !== baseBiz){ merged.meta.businessName = local.meta.businessName; }
+    mergeFlatMap(merged, "precios", local.precios || {}, (base && base.precios) || {});
+    var baseCatalog = (base && base.customCatalog) || [];
+    if(JSON.stringify(local.customCatalog || []) !== JSON.stringify(baseCatalog)){
+      merged.customCatalog = deepClone(local.customCatalog || []);
     }
+    if(!merged.days) merged.days = {};
+    Object.keys(local.days || {}).forEach(function(date){
+      var localDay = local.days[date];
+      var baseDay = (base && base.days && base.days[date]) || null;
+      if(!merged.days[date]){ merged.days[date] = deepClone(localDay); return; }
+      mergeDay(merged.days[date], localDay, baseDay);
+    });
+    return merged;
+  }
+  // Rellena TODOS los días de un STATE suelto (uno que todavía no es el STATE en uso)
+  // con el mismo relleno que backfillDay ya hace normalmente -- para poder usarlo como
+  // "baseline" (punto de comparación) sin que le falten filas que STATE sí tiene, lo
+  // cual haría que la próxima comparación piense que todo cambió acá y pise por encima
+  // lo de otro dispositivo por error.
+  function backfillAllDays(state){
+    Object.keys(state.days || {}).forEach(function(date){
+      backfillDay(state.days[date], date);
+    });
+    return state;
+  }
+
+  function doSave(){
+    if(readOnly || saving || !db || !dirty) { setSaveStatus(); return; }
     clearTimeout(saveTimer);
     saving = true;
     setSaveStatus();
     stashBackup();
-    STATE.meta.lastSavedAt = Date.now();
-    lastSavedBySelf = STATE.meta.lastSavedAt;
-    db.collection("arqueo").doc("state").set(STATE)
-      .then(function(){ saving = false; dirty = false; clearBackup(); setSaveStatus(); })
-      .catch(function(err){ saving = false; handleSaveError(err); });
+    var genAtStart = editGen;
+    var localSnapshot = deepClone(STATE);
+    var baseSnapshot = deepClone(baseline) || {};
+    var ref = db.collection("arqueo").doc("state");
+    var remoteChangedElsewhere = false;
+    // Se usa una TRANSACCIÓN de Firestore (no un simple get()+set()) porque dos
+    // dispositivos pueden estar guardando casi al mismo instante: sin transacción,
+    // el segundo guardado podía leer la base de datos ANTES de que el primero
+    // terminara de escribir, calcular su combinación con esa foto vieja, y luego
+    // pisar por completo el guardado del primero. La transacción hace que Firestore
+    // detecte ese choque y reintente automáticamente con el dato más reciente, así
+    // que ningún guardado de otro dispositivo se puede perder de esta forma.
+    db.runTransaction(function(transaction){
+      return transaction.get(ref).then(function(snap){
+        var freshRemote = normalizeState(snap.exists ? snap.data() : {});
+        remoteChangedElsewhere = JSON.stringify(freshRemote) !== JSON.stringify(baseSnapshot);
+        var merged = mergeStateForSave(freshRemote, localSnapshot, baseSnapshot);
+        merged.meta.lastSavedAt = Date.now();
+        lastSavedBySelf = merged.meta.lastSavedAt;
+        transaction.set(ref, merged);
+        return merged;
+      });
+    }).then(function(merged){
+      saving = false;
+      baseline = deepClone(merged);
+      if(editGen === genAtStart){
+        STATE = merged;
+        dirty = false;
+      } else {
+        // Se siguió editando acá mismo mientras esto se guardaba -- no botamos esos
+        // cambios nuevos (STATE ya los tiene). El "baseline" recién actualizado hace que
+        // el próximo guardado los identifique bien y los mande sin perder nada.
+        dirty = true;
+        scheduleAutosave();
+      }
+      clearBackup();
+      setSaveStatus();
+      if(remoteChangedElsewhere) renderAll();
+    }).catch(function(err){
+      saving = false;
+      setSaveStatus();
+      handleSaveError(err);
+    });
   }
 
   function handleSaveError(err){
@@ -1349,15 +1465,41 @@ var TRIPLES = [
     html += '<div class="print-footer">Generado ' + esc(new Date().toLocaleString("es-PE",{ timeZone:"America/Lima" })) + "</div>";
     return html;
   }
+  // Si la persona aprieta Control+P (o usa el menú del navegador) directamente, SIN pasar
+  // por ninguno de los botones de "Imprimir...", igual queremos que salga algo -- lo mismo
+  // que se está viendo en pantalla ahora mismo, no una hoja en blanco (porque el resto de la
+  // app se oculta al imprimir; solo se ve lo que haya adentro de #printArea). "explicitPrint"
+  // se pone en true justo antes de que un botón de imprimir arme su propio contenido, para
+  // que este armado automático no lo pise.
+  var explicitPrint = false;
+  // Se actualiza en CADA render (no solo al momento de imprimir) porque en algunos
+  // navegadores/dispositivos apretar Control+P varias veces seguidas no siempre vuelve a
+  // avisar justo antes de imprimir -- así, #printArea ya viene lista de antemano con lo
+  // mismo que se está viendo en pantalla en ese momento, y no hace falta depender de que
+  // ese aviso llegue a tiempo.
+  function syncPrintAreaToCurrentView(){
+    if(explicitPrint) return;
+    if(!STATE) return;
+    var area = document.getElementById("printArea");
+    if(!area) return;
+    if(PRODUCT_TABS.indexOf(currentTab) !== -1){
+      area.innerHTML = buildPrintCurrentViewHTML(currentTab, shiftView[currentTab], currentDate);
+    } else {
+      area.innerHTML = buildPrintHTML(currentDate);
+    }
+  }
+  window.addEventListener("beforeprint", syncPrintAreaToCurrentView);
   function doWindowPrint(tempTitle){
     // Cambiamos el título de la página mientras se imprime para que el navegador
     // no muestre "Arqueo Diario" en el encabezado del PDF/impresión.
+    explicitPrint = true;
     var oldTitle = document.title;
     document.title = tempTitle;
     var restored = false;
     function restore(){
       if(restored) return;
       restored = true;
+      explicitPrint = false;
       document.title = oldTitle;
       window.removeEventListener("afterprint", restore);
     }
@@ -1371,6 +1513,116 @@ var TRIPLES = [
     var area = document.getElementById("printArea");
     area.innerHTML = buildPrintHTML(date);
     doWindowPrint("Arqueo " + (date || ""));
+  }
+
+  // ---------- resumen simple para imprimir (una sola tabla por categoría, mañana y tarde
+  // juntas en la misma fila, sin Ventas Físicas / Ventas Caja / Cuadre / Se agotó -- solo lo
+  // básico que Jessica pidió: Saldo Anterior, Ingreso AM, Ingreso PM, Merma y Saldo Final). ----
+  function printableRowsSimple(tabKey, day){
+    var section = SECTIONS[tabKey];
+    var amRows = day[section.key].am;
+    var pmRows = day[section.key].pm;
+    var out = [];
+    catalogFor(tabKey).forEach(function(name, idx){
+      var amRow = amRows[idx];
+      var pmRow = pmRows[idx];
+      var saldoAnt = amRow.a;
+      var ingAm = amRow.i1 + amRow.i2 + amRow.i3;
+      var ingPm = pmRow.i1 + pmRow.i2 + pmRow.i3;
+      var merma = amRow.m + pmRow.m;
+      // Saldo Final = el cierre real del día: el de la tarde si ya se contó, y si no,
+      // el de la mañana (por ejemplo, un producto que no tuvo movimiento en la tarde).
+      var saldoFinal = pmRow.f !== null ? pmRow.f : amRow.f;
+      var amFChanged = amRow.f !== null && amRow.f !== saldoAnt;
+      var pmFChanged = pmRow.f !== null && pmRow.f !== amRow.f;
+      var moved = ingAm || ingPm || merma || amFChanged || pmFChanged || amRow.vc !== null || pmRow.vc !== null;
+      if(!moved) return;
+      out.push({ name: name, saldoAnt: saldoAnt, ingAm: ingAm, ingPm: ingPm, merma: merma, saldoFinal: saldoFinal });
+    });
+    return out;
+  }
+  function buildPrintSimpleHTML(date){
+    var day = getDay(date);
+    var html = "";
+    html += "<h1>" + esc(STATE.meta.businessName || "Arqueo Diario") + "</h1>";
+    html += '<div class="print-sub">Resumen del ' + esc(fmtDateLabel(date)) + "</div>";
+    PRODUCT_TABS.forEach(function(tabKey){
+      var section = SECTIONS[tabKey];
+      if(tabKey === "otros" && catalogFor(tabKey).length === 0) return;
+      var rows = printableRowsSimple(tabKey, day);
+      html += "<h2>" + esc(section.label) + "</h2>";
+      if(rows.length === 0){ html += '<p class="print-empty">Sin movimientos registrados.</p>'; return; }
+      html += "<table><thead><tr><th>Producto</th><th>Saldo ant.</th><th>Ingreso AM</th><th>Ingreso PM</th>" +
+        "<th>Merma</th><th>Saldo final</th></tr></thead><tbody>";
+      rows.forEach(function(r){
+        html += "<tr><td>" + esc(r.name) + "</td><td>" + (r.saldoAnt === null ? "—" : fmt(r.saldoAnt)) +
+          "</td><td>" + fmt(r.ingAm) + "</td><td>" + fmt(r.ingPm) + "</td><td>" + fmt(r.merma) +
+          "</td><td>" + (r.saldoFinal === null ? "—" : fmt(r.saldoFinal)) + "</td></tr>";
+      });
+      html += "</tbody></table>";
+    });
+    html += '<div class="print-footer">Generado ' + esc(new Date().toLocaleString("es-PE",{ timeZone:"America/Lima" })) + "</div>";
+    return html;
+  }
+  function doPrintSimple(date){
+    var area = document.getElementById("printArea");
+    area.innerHTML = buildPrintSimpleHTML(date);
+    doWindowPrint("Resumen " + (date || ""));
+  }
+
+  // ---------- imprimir la vista tal como se ve en pantalla (una sola tabla, con las mismas
+  // columnas y el mismo orden que la tabla de la categoría/turno que se está viendo, incluido
+  // "Se agotó") -- para que no haga falta recortar una captura de pantalla y pegarla en Word. ----
+  function printableRowsCurrent(tabKey, shift, day){
+    var section = SECTIONS[tabKey];
+    var amRows = day[section.key].am;
+    var pmRows = day[section.key].pm;
+    var agMap = shift === "am" ? day[section.key].agAm : day[section.key].agPm;
+    var closeTime = shift === "am" ? day.turno.sAM : day.turno.sPM;
+    var out = [];
+    catalogFor(tabKey).forEach(function(name, idx){
+      var amRow = amRows[idx];
+      var row = shift === "am" ? amRow : pmRows[idx];
+      var saldoAnt = shift === "am" ? row.a : amRow.f;
+      var v = ventasOf(row, shift, amRow);
+      var c = cuadreOf(row, v);
+      var agTime = agMap[idx];
+      var dur = fmtDuration(minutesBetween(agTime, closeTime));
+      out.push({
+        name: name, saldoAnt: saldoAnt, ing: row.i1 + row.i2 + row.i3, m: row.m, f: row.f,
+        agLabel: agTime ? (agTime + (dur ? " — " + dur : "")) : "—",
+        v: v, vc: row.vc, c: c, flagged: isFlagged(row, shift, amRow)
+      });
+    });
+    return out;
+  }
+  function buildPrintCurrentViewHTML(tab, shift, date){
+    var day = getDay(date);
+    var section = SECTIONS[tab];
+    var rows = printableRowsCurrent(tab, shift, day);
+    var html = "";
+    html += "<h1>" + esc(STATE.meta.businessName || "Arqueo Diario") + "</h1>";
+    html += '<div class="print-sub">' + esc(section.label) + " — " + esc(SHIFT_LABEL[shift]) + " · " + esc(fmtDateLabel(date)) + "</div>";
+    if(rows.length === 0){
+      html += '<p class="print-empty">Sin productos registrados en esta categoría.</p>';
+    } else {
+      html += "<table><thead><tr><th>Producto</th><th>Saldo ant.</th><th>Ingresos</th><th>Merma</th>" +
+        "<th>Saldo final</th><th>Se agotó</th><th>Ventas físicas</th><th>Ventas caja</th><th>Cuadre</th></tr></thead><tbody>";
+      rows.forEach(function(r){
+        html += '<tr class="' + (r.flagged ? "flagged" : "") + '"><td>' + esc(r.name) + "</td><td>" + (r.saldoAnt === null ? "—" : fmt(r.saldoAnt)) +
+          "</td><td>" + fmt(r.ing) + "</td><td>" + fmt(r.m) + "</td><td>" + (r.f === null ? "—" : fmt(r.f)) +
+          "</td><td>" + esc(r.agLabel) + "</td><td>" + (r.v === null ? "—" : fmt(r.v)) +
+          "</td><td>" + (r.vc === null ? "—" : fmt(r.vc)) + "</td><td>" + (r.c === null ? "—" : fmt(r.c)) + "</td></tr>";
+      });
+      html += "</tbody></table>";
+    }
+    html += '<div class="print-footer">Generado ' + esc(new Date().toLocaleString("es-PE",{ timeZone:"America/Lima" })) + "</div>";
+    return html;
+  }
+  function doPrintCurrentView(tab, shift, date){
+    var area = document.getElementById("printArea");
+    area.innerHTML = buildPrintCurrentViewHTML(tab, shift, date);
+    doWindowPrint("Arqueo " + SECTIONS[tab].label + " " + SHIFT_LABEL[shift] + " " + (date || ""));
   }
 
   // ---------- Excel export (una hoja por categoría, un día opcionalmente) ----------
@@ -1516,6 +1768,7 @@ var TRIPLES = [
     renderTabs();
     renderPanel();
     setSaveStatus();
+    syncPrintAreaToCurrentView();
   }
 
   function renderTabs(){
@@ -1634,6 +1887,13 @@ var TRIPLES = [
       renderTableBody(tab, tbody, rowCount);
     });
     left.appendChild(input);
+    var printViewBtn = document.createElement("button");
+    printViewBtn.type = "button";
+    printViewBtn.className = "btn btn-sm";
+    printViewBtn.textContent = "Imprimir esta vista";
+    printViewBtn.title = "Imprime esta tabla tal como se ve en pantalla (mismo turno, mismas columnas).";
+    printViewBtn.addEventListener("click", function(){ doPrintCurrentView(tab, shiftView[tab], currentDate); });
+    left.appendChild(printViewBtn);
     searchRow.appendChild(left);
 
     var legend = document.createElement("div");
@@ -1863,6 +2123,13 @@ var TRIPLES = [
     printBtn.textContent = "Imprimir informe del día";
     printBtn.addEventListener("click", function(){ doPrint(currentDate); });
     turnoHead.appendChild(printBtn);
+    var printSimpleBtn = document.createElement("button");
+    printSimpleBtn.type = "button";
+    printSimpleBtn.className = "btn btn-sm";
+    printSimpleBtn.textContent = "Imprimir resumen simple";
+    printSimpleBtn.title = "Solo Saldo Anterior, Ingreso AM, Ingreso PM, Merma y Saldo Final — sin Ventas ni Cuadre.";
+    printSimpleBtn.addEventListener("click", function(){ doPrintSimple(currentDate); });
+    turnoHead.appendChild(printSimpleBtn);
     card.appendChild(turnoHead);
 
     function bindTurno(field){
@@ -3466,15 +3733,25 @@ var TRIPLES = [
         return;
       }
       if(dirty || saving){
-        remoteConflict = true;
-        showBanner("warn", "Otro dispositivo guardó cambios nuevos. Toca \"Actualizar ahora\" para traerlos — mientras tanto no se va a guardar nada acá, para no perder lo tuyo ni lo de ellos.",
-          [{ label:"Actualizar ahora", action:function(){
-              STATE = data; dirty = false; remoteConflict = false; clearBackup(); renderAll();
-            }}]);
+        // Llegó un cambio de otro dispositivo mientras acá había algo sin guardar todavía.
+        // Ya NO se bloquea el guardado ni hace falta actualizar a mano: se combinan los
+        // cambios de ese otro dispositivo con lo que se está editando acá mismo, campo por
+        // campo, para que no se pierda ni lo de uno ni lo del otro.
+        STATE = mergeStateForSave(data, STATE, baseline);
+        renderAll();
+        // OJO: "baseline" tiene que quedar con SOLO lo confirmado en la base de datos
+        // (relleno para que tenga la misma forma que STATE), nunca con lo que se está
+        // editando acá mismo todavía sin guardar -- si se guardara con eso mezclado, la
+        // próxima comparación ya no reconocería esos cambios como "cambios pendientes"
+        // y se quedarían sin guardar nunca.
+        baseline = backfillAllDays(deepClone(data));
+        showToast("Se combinaron cambios de otro dispositivo.");
+        scheduleAutosave();
         return;
       }
       STATE = data;
       renderAll();
+      baseline = deepClone(STATE);
     }, function(){
       readOnly = true;
       showBanner("bad", "No se pudo conectar con la base de datos. Revisa tu conexión a internet y recarga la página.", []);
@@ -3537,6 +3814,7 @@ var TRIPLES = [
     attachRemoteSync(function(data){
       STATE = data;
       renderAll();
+      baseline = deepClone(STATE);
       restoreBackupBanner();
     });
     attachPedidosSync();
@@ -3565,9 +3843,20 @@ var TRIPLES = [
     var form = document.getElementById("lockForm");
     var input = document.getElementById("lockInput");
     var err = document.getElementById("lockError");
+    var toggle = document.getElementById("lockToggle");
+    toggle.addEventListener("click", function(){
+      var show = input.type === "password";
+      input.type = show ? "text" : "password";
+      toggle.textContent = show ? "Ocultar" : "Mostrar";
+      input.focus();
+    });
     form.addEventListener("submit", function(ev){
       ev.preventDefault();
-      if(input.value === APP_PASSWORD){
+      // Recorta espacios de más al principio/final: en el celular es fácil que el
+      // teclado agregue un espacio sin que se note, sobre todo escribiendo a mano
+      // (con copiar y pegar eso no pasa, por eso ahí sí entraba).
+      var typed = input.value.replace(/^\s+|\s+$/g, "");
+      if(typed === APP_PASSWORD){
         setUnlocked();
         hideLock();
         init();
