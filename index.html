@@ -3869,8 +3869,14 @@ var TRIPLES = [
   function cajeroDolarConvertido(r){
     return num(r.dolarMonto) * num(r.dolarTipoCambio);
   }
+  // Efectivo que entró en soles de verdad (billetes + monedas), sin contar lo que vino en
+  // dólares -- separado de cajeroEfectivo() porque Jessica necesita mostrar esta parte sola
+  // (para diferenciar cuánto entró en soles y cuánto entró convertido de dólares).
+  function cajeroEfectivoSoles(r){
+    return cajeroBilletesTotal(r) + num(r.monedas);
+  }
   function cajeroEfectivo(r){
-    return cajeroBilletesTotal(r) + num(r.monedas) + cajeroDolarConvertido(r);
+    return cajeroEfectivoSoles(r) + cajeroDolarConvertido(r);
   }
   function cajeroGastosTotal(r){
     return (r.gastos || []).reduce(function(s, g){ return s + num(g.monto); }, 0);
@@ -3878,9 +3884,14 @@ var TRIPLES = [
   function cajeroTotalCalculado(r){
     return cajeroEfectivo(r) + num(r.depositoA) + num(r.depositoC) + cajeroGastosTotal(r);
   }
+  // Diferencia = lo que reportó el cajero MENOS lo que dice el sistema -- así, si el cajero
+  // cuenta más de lo que el sistema esperaba, la diferencia sale positiva ("sobra"), y si
+  // cuenta menos, sale negativa ("falta"). (Antes estaba al revés: restaba calculado al
+  // sistema, y por eso un sobrante de plata salía marcado como "falta" -- Jessica lo detectó
+  // con un caso real: cajero reportó S/1553, sistema S/1500, y eso es plata de más, no falta).
   function cajeroDiferencia(r){
     if(r.totalSistema === null || r.totalSistema === undefined) return null;
-    return num(r.totalSistema) - cajeroTotalCalculado(r);
+    return cajeroTotalCalculado(r) - num(r.totalSistema);
   }
 
   function buildCajerosPanel(){
@@ -3981,7 +3992,12 @@ var TRIPLES = [
     efectivoLine.style.marginTop = "0";
 
     function refreshEfectivo(){
-      efectivoLine.innerHTML = "<div>Efectivo total: <strong>S/ " + fmt(cajeroEfectivo(draft)) + "</strong></div>";
+      var html = "<div>Efectivo en soles: <strong>S/ " + fmt(cajeroEfectivoSoles(draft)) + "</strong></div>";
+      if(num(draft.dolarMonto) > 0){
+        html += "<div>Convertido de dólares (USD " + fmt(draft.dolarMonto) + " x " + fmt(draft.dolarTipoCambio) + "): <strong>S/ " + fmt(cajeroDolarConvertido(draft)) + "</strong></div>";
+      }
+      html += "<div>Efectivo total: <strong>S/ " + fmt(cajeroEfectivo(draft)) + "</strong></div>";
+      efectivoLine.innerHTML = html;
       refreshTotales();
     }
 
@@ -4005,7 +4021,6 @@ var TRIPLES = [
     var monedasField = buildField("Monedas (S/)", "number", draft.monedas || null, function(v){ draft.monedas = num(v); refreshEfectivo(); });
     billeteGrid.appendChild(monedasField);
     card.appendChild(billeteGrid);
-    card.appendChild(efectivoLine);
 
     var hintDolar = document.createElement("div");
     hintDolar.className = "hint";
@@ -4017,6 +4032,7 @@ var TRIPLES = [
     dolarGrid.appendChild(buildField("Tipo de cambio", "number", draft.dolarTipoCambio || null, function(v){ draft.dolarTipoCambio = num(v); refreshEfectivo(); }));
     dolarGrid.appendChild(buildField("Monto en dólares (USD)", "number", draft.dolarMonto || null, function(v){ draft.dolarMonto = num(v); refreshEfectivo(); }));
     card.appendChild(dolarGrid);
+    card.appendChild(efectivoLine);
 
     var hintDep = document.createElement("div");
     hintDep.className = "hint";
@@ -4335,27 +4351,45 @@ var TRIPLES = [
   function doExportCajeros(rows){
     if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo."); return; }
     try{
+      var ordenados = rows.slice().sort(function(a,b){ return (a.fecha||"").localeCompare(b.fecha||""); });
+
+      // Hoja 1: un resumen por reporte de turno/cajero -- sin el texto largo de gastos (eso
+      // va aparte, en su propia hoja, para que se pueda sumar/filtrar bien en Excel). El
+      // efectivo se separa en soles y dólares convertidos, tal como lo pidió Jessica.
       var aoa = [[
         "Fecha","Turno","Cajero","Caja","Billetes 200","Billetes 100","Billetes 50","Billetes 20","Billetes 10",
-        "Monedas","Tipo de cambio","Dólares (USD)","Efectivo","Depósito A","Depósito C","Gastos (detalle)","Total gastos",
-        "Total calculado","Total sistema","Diferencia","Notas"
+        "Monedas","Efectivo en soles","Tipo de cambio","Dólares (USD)","Convertido de dólares","Efectivo total",
+        "Depósito A","Depósito C","Total gastos","Total calculado","Total sistema","Diferencia","Notas"
       ]];
-      rows.slice().sort(function(a,b){ return (a.fecha||"").localeCompare(b.fecha||""); }).forEach(function(r){
+      ordenados.forEach(function(r){
         var diff = cajeroDiferencia(r);
-        var gastosDetalle = (r.gastos||[]).map(function(g){ return g.desc + ": S/ " + fmt(g.monto); }).join(" | ");
         aoa.push([
           r.fecha || "", TURNO_CAJERO_LABEL[r.turno] || r.turno || "", r.cajero || "", r.caja || "",
           num(r.billetes && r.billetes.b200), num(r.billetes && r.billetes.b100), num(r.billetes && r.billetes.b50),
           num(r.billetes && r.billetes.b20), num(r.billetes && r.billetes.b10),
-          round2(num(r.monedas)), num(r.dolarTipoCambio), round2(num(r.dolarMonto)),
-          round2(cajeroEfectivo(r)), round2(num(r.depositoA)), round2(num(r.depositoC)), gastosDetalle, round2(cajeroGastosTotal(r)),
+          round2(num(r.monedas)), round2(cajeroEfectivoSoles(r)),
+          num(r.dolarTipoCambio), round2(num(r.dolarMonto)), round2(cajeroDolarConvertido(r)), round2(cajeroEfectivo(r)),
+          round2(num(r.depositoA)), round2(num(r.depositoC)), round2(cajeroGastosTotal(r)),
           round2(cajeroTotalCalculado(r)), (r.totalSistema === null || r.totalSistema === undefined) ? "" : round2(num(r.totalSistema)),
           diff === null ? "" : round2(diff), r.notas || ""
         ]);
       });
-      var ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      // Hoja 2: el detalle de gastos, una fila por cada línea de gasto de cada reporte --
+      // así se puede sumar/filtrar por descripción (harina, movilidad, gas, etc.) en Excel.
+      var aoaGastos = [["Fecha","Turno","Cajero","Caja","Descripción","Monto"]];
+      ordenados.forEach(function(r){
+        (r.gastos||[]).forEach(function(g){
+          aoaGastos.push([
+            r.fecha || "", TURNO_CAJERO_LABEL[r.turno] || r.turno || "", r.cajero || "", r.caja || "",
+            g.desc || "", round2(num(g.monto))
+          ]);
+        });
+      });
+
       var wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Caja Cajeros");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), "Caja Cajeros");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaGastos), "Detalle de Gastos");
       XLSX.writeFile(wb, "caja-cajeros-historial.xlsx");
       showToast("Reporte descargado.");
     }catch(err){
