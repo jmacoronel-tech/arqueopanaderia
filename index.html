@@ -107,6 +107,17 @@
   .billete-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:.7rem 1rem; }
   .cajero-diff.good{ color:var(--good); font-weight:700; }
   .cajero-diff.bad{ color:var(--bad); font-weight:700; }
+  /* Letra un poco más grande solo dentro de Caja Cajeros (no toca Arqueo ni Pedidos). */
+  .cajero-form-card .field label{ font-size:.86rem; }
+  .cajero-form-card .field input, .cajero-form-card .field textarea{ font-size:1.05rem; }
+  .cajero-form-card .num-input{ font-size:1rem; width:4.6rem; padding:.35rem .4rem; }
+  .cajero-form-card select.cajero-dolar-monto{ font-size:1rem; padding:.35rem .4rem; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--ink); width:100%; }
+  .cajero-form-card input.cajero-dolar-serie, .cajero-form-card input.cajero-gasto-desc, .cajero-form-card input.cajero-gasto-monto{ font-size:1rem; }
+  .cajero-form-card .pedido-totals{ font-size:1rem; }
+  .cajero-form-card table.data-table th{ font-size:.74rem; }
+  .cajero-form-card table.data-table td{ font-size:.98rem; }
+  .cajero-historial-card table.data-table th{ font-size:.72rem; }
+  .cajero-historial-card table.data-table td{ font-size:.95rem; }
   .field{ display:flex; flex-direction:column; gap:.32rem; }
   .field.full{ grid-column:1 / -1; }
   .field label{ font-size:.78rem; color:var(--ink-soft); font-weight:600; }
@@ -3847,6 +3858,8 @@ var TRIPLES = [
     { key:"b10", label:"Billetes de 10", valor:10 }
   ];
   var TURNO_CAJERO_LABEL = { manana:"Mañana", tarde:"Tarde" };
+  // Denominaciones de billetes de dólar que se manejan normalmente (100, 50, 20, 10, 5).
+  var DOLAR_DENOMINACIONES = [100, 50, 20, 10, 5];
 
   function newCajeroDraft(){
     return {
@@ -3857,7 +3870,10 @@ var TRIPLES = [
       billetes: { b200:0, b100:0, b50:0, b20:0, b10:0 },
       monedas: 0,
       dolarTipoCambio: 0,
-      dolarMonto: 0,
+      // Cada billete de dólar se anota por separado con su serie (el número impreso en el
+      // billete), para poder identificar de cuál billete se trata si hace falta -- no se
+      // mezcla con los soles, solo se convierte para saber el total en soles.
+      dolares: [ { serie:"", monto:0 } ],
       depositoA: 0,
       depositoC: 0,
       gastos: [ { desc:"", monto:0 } ],
@@ -3873,8 +3889,19 @@ var TRIPLES = [
     BILLETE_VALORES.forEach(function(b){ t += num(r.billetes && r.billetes[b.key]) * b.valor; });
     return t;
   }
+  // Devuelve la lista de billetes de dólar de un reporte -- si es un reporte guardado ANTES de
+  // este cambio (que solo tenía un monto único "dolarMonto", sin lista de series), lo convierte
+  // a la nueva forma (un billete sin serie) para que no se pierda ni un sol de lo ya guardado.
+  function cajeroDolaresList(r){
+    if(r.dolares && r.dolares.length) return r.dolares;
+    if(num(r.dolarMonto) > 0) return [ { serie:"", monto: num(r.dolarMonto) } ];
+    return [];
+  }
+  function cajeroDolaresTotalUSD(r){
+    return cajeroDolaresList(r).reduce(function(s, d){ return s + num(d.monto); }, 0);
+  }
   function cajeroDolarConvertido(r){
-    return num(r.dolarMonto) * num(r.dolarTipoCambio);
+    return cajeroDolaresTotalUSD(r) * num(r.dolarTipoCambio);
   }
   // Efectivo que entró en soles de verdad (billetes + monedas), sin contar lo que vino en
   // dólares -- separado de cajeroEfectivo() porque Jessica necesita mostrar esta parte sola
@@ -3948,7 +3975,7 @@ var TRIPLES = [
     if(!cajeroDraft) cajeroDraft = newCajeroDraft();
     var draft = cajeroDraft;
     var card = document.createElement("div");
-    card.className = "card";
+    card.className = "card cajero-form-card";
 
     var headRow = document.createElement("div");
     headRow.style.display = "flex";
@@ -4004,7 +4031,7 @@ var TRIPLES = [
     var hintBilletes = document.createElement("div");
     hintBilletes.className = "hint";
     hintBilletes.style.margin = "0 0 .4rem";
-    hintBilletes.textContent = "Detalle de billetes y monedas";
+    hintBilletes.textContent = "Billetes soles y monedas";
     card.appendChild(hintBilletes);
 
     var billeteGrid = document.createElement("div");
@@ -4015,8 +4042,8 @@ var TRIPLES = [
 
     function refreshEfectivo(){
       var html = "<div>Efectivo en soles: <strong>S/ " + fmt(cajeroEfectivoSoles(draft)) + "</strong></div>";
-      if(num(draft.dolarMonto) > 0){
-        html += "<div>Convertido de dólares (USD " + fmt(draft.dolarMonto) + " x " + fmt(draft.dolarTipoCambio) + "): <strong>S/ " + fmt(cajeroDolarConvertido(draft)) + "</strong></div>";
+      if(cajeroDolaresTotalUSD(draft) > 0){
+        html += "<div>Convertido de dólares (USD " + fmt(cajeroDolaresTotalUSD(draft)) + " x " + fmt(draft.dolarTipoCambio) + "): <strong>S/ " + fmt(cajeroDolarConvertido(draft)) + "</strong></div>";
       }
       html += "<div>Efectivo total: <strong>S/ " + fmt(cajeroEfectivo(draft)) + "</strong></div>";
       efectivoLine.innerHTML = html;
@@ -4044,16 +4071,89 @@ var TRIPLES = [
     billeteGrid.appendChild(monedasField);
     card.appendChild(billeteGrid);
 
+    // Billetes en dólares -- se anota cada billete por separado con su serie (el número
+    // impreso), para poder identificar de cuál billete se trata. No se mezclan con los soles;
+    // solo se usa el tipo de cambio para saber a cuánto equivalen en soles en el total.
     var hintDolar = document.createElement("div");
     hintDolar.className = "hint";
     hintDolar.style.margin = "1rem 0 .4rem";
-    hintDolar.textContent = "Dólares (solo si entró efectivo en dólares -- déjalo así si no hubo)";
+    hintDolar.textContent = "Billetes dólares y serie (solo si entró efectivo en dólares -- déjalo así si no hubo)";
     card.appendChild(hintDolar);
-    var dolarGrid = document.createElement("div");
-    dolarGrid.className = "field-grid";
-    dolarGrid.appendChild(buildField("Tipo de cambio", "number", draft.dolarTipoCambio || null, function(v){ draft.dolarTipoCambio = num(v); refreshEfectivo(); }));
-    dolarGrid.appendChild(buildField("Monto en dólares (USD)", "number", draft.dolarMonto || null, function(v){ draft.dolarMonto = num(v); refreshEfectivo(); }));
-    card.appendChild(dolarGrid);
+
+    var tipoCambioField = buildField("Tipo de cambio", "number", draft.dolarTipoCambio || null, function(v){ draft.dolarTipoCambio = num(v); refreshEfectivo(); });
+    tipoCambioField.style.maxWidth = "220px";
+    card.appendChild(tipoCambioField);
+
+    var dolaresWrap = document.createElement("div");
+    dolaresWrap.className = "table-wrap";
+    dolaresWrap.style.marginTop = ".6rem";
+    var dolaresTable = document.createElement("table");
+    dolaresTable.className = "data-table";
+    dolaresTable.innerHTML = "<thead><tr><th>Denominación (USD)</th><th>Serie del billete</th><th></th></tr></thead><tbody></tbody>";
+    var dolaresBody = dolaresTable.querySelector("tbody");
+    dolaresWrap.appendChild(dolaresTable);
+    card.appendChild(dolaresWrap);
+
+    // Cada billete se elige por su denominación real (100, 50, 20 10 o 5) en vez de escribir
+    // un monto libre -- así no se puede anotar un valor que no existe en un billete de dólar.
+    // Si un reporte viejo tuviera un monto que no calza con ninguna de esas denominaciones, se
+    // agrega igual como opción para no perder ni un centavo de lo ya guardado.
+    function denomOptionsHTML(current){
+      var vals = DOLAR_DENOMINACIONES.slice();
+      if(current > 0 && vals.indexOf(current) === -1) vals.push(current);
+      vals.sort(function(a,b){ return b - a; });
+      var html = '<option value="0"' + (current === 0 ? ' selected' : '') + '>Elegir…</option>';
+      vals.forEach(function(v){
+        html += '<option value="' + v + '"' + (current === v ? ' selected' : '') + '>USD ' + v + '</option>';
+      });
+      return html;
+    }
+
+    function renderDolares(){
+      dolaresBody.innerHTML = "";
+      draft.dolares.forEach(function(d, idx){
+        var tr = document.createElement("tr");
+        tr.innerHTML =
+          '<td><select class="cajero-dolar-monto" data-idx="'+idx+'">' + denomOptionsHTML(num(d.monto)) + '</select></td>' +
+          '<td><input type="text" class="cajero-dolar-serie" data-idx="'+idx+'" value="'+esc(d.serie)+'" placeholder="Ej: LB 45930127 A"></td>' +
+          '<td>' + (draft.dolares.length > 1 ? '<button type="button" class="btn-del cajero-dolar-del" data-idx="'+idx+'" title="Quitar línea">✕</button>' : '') + '</td>';
+        dolaresBody.appendChild(tr);
+      });
+      if(readOnly){
+        dolaresBody.querySelectorAll("input, select, button").forEach(function(el){ el.disabled = true; });
+        return;
+      }
+      dolaresBody.querySelectorAll(".cajero-dolar-serie").forEach(function(input){
+        input.addEventListener("input", function(){ draft.dolares[+input.getAttribute("data-idx")].serie = input.value; });
+      });
+      dolaresBody.querySelectorAll(".cajero-dolar-monto").forEach(function(select){
+        select.addEventListener("change", function(){
+          draft.dolares[+select.getAttribute("data-idx")].monto = num(select.value);
+          refreshEfectivo();
+        });
+      });
+      dolaresBody.querySelectorAll(".cajero-dolar-del").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          draft.dolares.splice(+btn.getAttribute("data-idx"), 1);
+          renderDolares();
+          refreshEfectivo();
+        });
+      });
+    }
+    renderDolares();
+
+    var addDolarBtn = document.createElement("button");
+    addDolarBtn.type = "button";
+    addDolarBtn.className = "btn btn-sm";
+    addDolarBtn.style.marginTop = ".6rem";
+    addDolarBtn.textContent = "+ Agregar billete dólar";
+    if(readOnly) addDolarBtn.disabled = true;
+    addDolarBtn.addEventListener("click", function(){
+      draft.dolares.push({ serie:"", monto:0 });
+      renderDolares();
+    });
+    card.appendChild(addDolarBtn);
+
     card.appendChild(efectivoLine);
 
     var hintDep = document.createElement("div");
@@ -4191,7 +4291,9 @@ var TRIPLES = [
       },
       monedas: num(draft.monedas),
       dolarTipoCambio: num(draft.dolarTipoCambio),
-      dolarMonto: num(draft.dolarMonto),
+      dolares: (draft.dolares || []).filter(function(d){ return (d.serie && d.serie.trim()) || num(d.monto) > 0; }).map(function(d){
+        return { serie: (d.serie || "").trim(), monto: num(d.monto) };
+      }),
       depositoA: num(draft.depositoA),
       depositoC: num(draft.depositoC),
       gastos: (draft.gastos || []).filter(function(g){ return (g.desc && g.desc.trim()) || num(g.monto) > 0; }).map(function(g){
@@ -4234,7 +4336,7 @@ var TRIPLES = [
       },
       monedas: num(r.monedas),
       dolarTipoCambio: num(r.dolarTipoCambio),
-      dolarMonto: num(r.dolarMonto),
+      dolares: cajeroDolaresList(r).length ? cajeroDolaresList(r).map(function(d){ return { serie: d.serie||"", monto: num(d.monto) }; }) : [ { serie:"", monto:0 } ],
       depositoA: num(r.depositoA),
       depositoC: num(r.depositoC),
       gastos: (r.gastos && r.gastos.length) ? r.gastos.map(function(g){ return { desc: g.desc||"", monto: num(g.monto) }; }) : [ { desc:"", monto:0 } ],
@@ -4249,7 +4351,7 @@ var TRIPLES = [
   function buildCajerosHistorial(){
     var wrap = document.createElement("div");
     var card = document.createElement("div");
-    card.className = "card";
+    card.className = "card cajero-historial-card";
 
     var headRow = document.createElement("div");
     headRow.className = "search-row";
@@ -4390,7 +4492,7 @@ var TRIPLES = [
           num(r.billetes && r.billetes.b200), num(r.billetes && r.billetes.b100), num(r.billetes && r.billetes.b50),
           num(r.billetes && r.billetes.b20), num(r.billetes && r.billetes.b10),
           round2(num(r.monedas)), round2(cajeroEfectivoSoles(r)),
-          num(r.dolarTipoCambio), round2(num(r.dolarMonto)), round2(cajeroDolarConvertido(r)), round2(cajeroEfectivo(r)),
+          num(r.dolarTipoCambio), round2(cajeroDolaresTotalUSD(r)), round2(cajeroDolarConvertido(r)), round2(cajeroEfectivo(r)),
           round2(num(r.depositoA)), round2(num(r.depositoC)), round2(cajeroGastosTotal(r)),
           round2(cajeroTotalCalculado(r)), (r.totalSistema === null || r.totalSistema === undefined) ? "" : round2(num(r.totalSistema)),
           diff === null ? "" : round2(diff), r.notas || ""
@@ -4409,9 +4511,23 @@ var TRIPLES = [
         });
       });
 
+      // Hoja 3: el detalle de billetes de dólar, uno por fila con su serie -- para poder
+      // identificar de cuál billete se trata si hace falta, sin mezclarlo con los soles.
+      var aoaDolares = [["Fecha","Turno","Cajero","Caja","Serie","Monto USD"]];
+      ordenados.forEach(function(r){
+        cajeroDolaresList(r).forEach(function(d){
+          if(num(d.monto) <= 0 && !d.serie) return;
+          aoaDolares.push([
+            r.fecha || "", TURNO_CAJERO_LABEL[r.turno] || r.turno || "", r.cajero || "", r.caja || "",
+            d.serie || "", round2(num(d.monto))
+          ]);
+        });
+      });
+
       var wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), "Caja Cajeros");
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaGastos), "Detalle de Gastos");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaDolares), "Detalle de Dólares");
       XLSX.writeFile(wb, "caja-cajeros-historial.xlsx");
       showToast("Reporte descargado.");
     }catch(err){
@@ -4437,18 +4553,31 @@ var TRIPLES = [
     function seccion(titulo){
       return '<div style="background:' + PEDIDO_DARK + '; color:#fff; font-weight:700; font-size:11px; letter-spacing:.04em; padding:4px 10px; margin-top:10px;">' + titulo + '</div>';
     }
-    html += seccion("BILLETES Y MONEDAS");
+    html += seccion("BILLETES SOLES Y MONEDAS");
     var billRows = "";
     BILLETE_VALORES.forEach(function(b){
       var cant = num(r.billetes && r.billetes[b.key]);
       billRows += '<tr><td style="border:1px solid #ccc; padding:3px 6px;">' + cant + " x " + b.label + '</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(cant*b.valor) + '</td></tr>';
     });
     billRows += '<tr><td style="border:1px solid #ccc; padding:3px 6px;">Monedas</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(r.monedas) + '</td></tr>';
-    if(num(r.dolarMonto) > 0){
-      billRows += '<tr><td style="border:1px solid #ccc; padding:3px 6px;">Dólares (USD ' + fmtMoney(r.dolarMonto) + ' x ' + fmt(r.dolarTipoCambio) + ')</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(cajeroDolarConvertido(r)) + '</td></tr>';
-    }
     html += '<table style="width:100%; border-collapse:collapse; font-size:11px; margin-top:2px;">' + billRows + '</table>';
-    html += '<div style="text-align:right; font-weight:700; margin-top:4px;">Efectivo total: S/ ' + fmtMoney(cajeroEfectivo(r)) + '</div>';
+    html += '<div style="text-align:right; font-weight:700; margin-top:4px;">Efectivo en soles: S/ ' + fmtMoney(cajeroEfectivoSoles(r)) + '</div>';
+
+    // Los dólares se muestran aparte, billete por billete con su serie -- para poder identificar
+    // de quién es el billete si hace falta -- sin mezclarse con los soles. Solo se usa la
+    // conversión para saber cuánto suman en soles dentro del total general.
+    var dolaresList = cajeroDolaresList(r).filter(function(d){ return num(d.monto) > 0 || (d.serie && d.serie.trim()); });
+    if(dolaresList.length > 0){
+      html += seccion("BILLETES DÓLARES");
+      var dolarRows = dolaresList.map(function(d){
+        return '<tr><td style="border:1px solid #ccc; padding:3px 6px;">Serie: ' + esc(d.serie && d.serie.trim() ? d.serie : "—") + '</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">USD ' + fmtMoney(d.monto) + '</td></tr>';
+      }).join("");
+      html += '<table style="width:100%; border-collapse:collapse; font-size:11px; margin-top:2px;">' + dolarRows + '</table>';
+      html += '<div style="text-align:right; font-size:11px; margin-top:4px;">Total USD: ' + fmtMoney(cajeroDolaresTotalUSD(r)) + ' &nbsp;·&nbsp; Tipo de cambio: ' + fmt(r.dolarTipoCambio) + '</div>';
+      html += '<div style="text-align:right; font-weight:700; margin-top:2px;">Convertido a soles: S/ ' + fmtMoney(cajeroDolarConvertido(r)) + '</div>';
+    }
+
+    html += '<div style="text-align:right; font-weight:800; margin-top:6px; font-size:13px;">Efectivo total: S/ ' + fmtMoney(cajeroEfectivo(r)) + '</div>';
 
     // Algunas cajas (ej. "Caja 2") nunca manejan depósitos ni gastos -- esas cajas siempre las
     // llevan otras (ej. Caja 1 y Caja 3). En vez de adivinar por el nombre de la caja, se decide
