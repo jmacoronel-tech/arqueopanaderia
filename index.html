@@ -622,6 +622,13 @@ var TRIPLES = [
   // hay dos el fin de semana) -- vive en su propia colección de Firestore, separada de
   // "arqueo/state" y de "pedidos", igual que los pedidos, por la misma razón.
   var CAJACAJEROS = null;
+  // Si falla la conexión ANTES de que Jessica entre a la pestaña "Caja Cajeros" (lo normal,
+  // ya que se conecta apenas abre la app), el aviso de error no se mostraba porque en ese
+  // momento no estaba parada en esa pestaña -- y como el listener de Firestore no vuelve a
+  // avisar solo, se quedaba en "Cargando..." para siempre sin explicar por qué. Con esta
+  // bandera, apenas entra a la pestaña se le muestra el error real (con botón para reintentar)
+  // en vez de un cargando eterno.
+  var cajerosSyncError = false;
   var cajeroDraft = null;
   var cajerosView = "nuevo";
   var cajerosSaving = false;
@@ -3910,10 +3917,25 @@ var TRIPLES = [
     wrap.appendChild(viewToggle);
 
     if(CAJACAJEROS === null){
-      var loading = document.createElement("div");
-      loading.className = "empty-state";
-      loading.textContent = "Cargando reportes de caja…";
-      wrap.appendChild(loading);
+      if(cajerosSyncError){
+        var errorBox = document.createElement("div");
+        errorBox.className = "empty-state";
+        errorBox.innerHTML = "No se pudo conectar con el historial de caja de cajeros.<br>Revisa tu conexión a internet, o que las reglas de Firestore tengan el permiso de <code>cajaCajeros</code>, y prueba de nuevo.";
+        wrap.appendChild(errorBox);
+        var retryBtn = document.createElement("button");
+        retryBtn.type = "button";
+        retryBtn.className = "btn btn-sm";
+        retryBtn.style.display = "block";
+        retryBtn.style.margin = "0 auto";
+        retryBtn.textContent = "Reintentar";
+        retryBtn.addEventListener("click", function(){ attachCajerosSync(); renderPanel(); });
+        wrap.appendChild(retryBtn);
+      } else {
+        var loading = document.createElement("div");
+        loading.className = "empty-state";
+        loading.textContent = "Cargando reportes de caja…";
+        wrap.appendChild(loading);
+      }
       return wrap;
     }
 
@@ -4476,7 +4498,9 @@ var TRIPLES = [
   }
 
   function attachCajerosSync(){
+    cajerosSyncError = false;
     db.collection("cajaCajeros").onSnapshot(function(snap){
+      cajerosSyncError = false;
       var list = [];
       snap.forEach(function(doc){
         var data = doc.data();
@@ -4486,8 +4510,10 @@ var TRIPLES = [
       CAJACAJEROS = list;
       if(currentTab === "cajeros" && cajerosView !== "nuevo") renderPanel();
     }, function(){
+      cajerosSyncError = true;
       if(currentTab === "cajeros" && CAJACAJEROS === null){
         showToast("No se pudo cargar el historial de caja de cajeros.");
+        renderPanel();
       }
     });
   }
