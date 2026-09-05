@@ -104,6 +104,9 @@
 
   .field-grid{ display:grid; grid-template-columns:1fr 1fr; gap:.9rem 1.1rem; }
   @media (max-width:620px){ .field-grid{ grid-template-columns:1fr; } }
+  .billete-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:.7rem 1rem; }
+  .cajero-diff.good{ color:var(--good); font-weight:700; }
+  .cajero-diff.bad{ color:var(--bad); font-weight:700; }
   .field{ display:flex; flex-direction:column; gap:.32rem; }
   .field.full{ grid-column:1 / -1; }
   .field label{ font-size:.78rem; color:var(--ink-soft); font-weight:600; }
@@ -220,9 +223,13 @@
     #printArea tr.flagged td{ background:#fbdcd4; font-weight:700; }
     #printArea .print-empty{ color:#555; font-style:italic; margin:0 0 .8em; }
     #printArea .print-footer{ margin-top:1.2em; font-size:9px; color:#777; }
-    /* Horizontal: con hasta 9 columnas (la vista "tal como se ve en pantalla" incluye
-       "Se agotó") una hoja vertical queda muy angosta. */
-    @page{ size: landscape; margin:12mm; }
+    /* Tamaño de hoja por defecto: A4 vertical (Jessica: "siempre usamos hoja A4" -- se fija el
+       tamaño de página explícito, en vez de dejar que dependa de lo que cada computadora/
+       impresora tenga configurado por su cuenta). Las vistas del arqueo con muchas columnas
+       (hasta 9, con "Se agotó") cambian a horizontal justo antes de imprimir, vía
+       setPrintOrientation() -- así cada impresión sale en el tamaño que le queda bien, sin
+       afectar a las demás. */
+    @page{ size:A4; margin:10mm; }
   }
 </style>
 
@@ -264,6 +271,7 @@
       <button class="tab-btn" data-tab="triples" type="button">Triples</button>
       <button class="tab-btn" data-tab="otros" type="button">Otros</button>
       <button class="tab-btn" data-tab="pedidos" type="button">Pedidos</button>
+      <button class="tab-btn" data-tab="cajeros" type="button">Caja Cajeros</button>
       <button class="tab-btn" data-tab="turno" type="button">Turno</button>
       <button class="tab-btn" data-tab="historial" type="button">Historial</button>
     </nav>
@@ -610,6 +618,17 @@ var TRIPLES = [
   // registra un pedido, para que la próxima vez alcance con escribir el nombre y se rellene
   // el resto de sus datos automáticamente.
   var CLIENTES = null;
+  // Caja Cajeros: control de caja que llena cada cajero (mañana/tarde, uno por cajero cuando
+  // hay dos el fin de semana) -- vive en su propia colección de Firestore, separada de
+  // "arqueo/state" y de "pedidos", igual que los pedidos, por la misma razón.
+  var CAJACAJEROS = null;
+  var cajeroDraft = null;
+  var cajerosView = "nuevo";
+  var cajerosSaving = false;
+  var cajeroEditingId = null;
+  var cajerosFiltroDesde = "";
+  var cajerosFiltroHasta = "";
+  var cajerosFiltroCajero = "todos";
   var currentTab = "panes";
   var filters = { panes:"", bebidas:"", embutidos:"", triples:"", otros:"" };
   var shiftView = { panes:"am", bebidas:"am", embutidos:"am", triples:"am", otros:"am" };
@@ -632,6 +651,9 @@ var TRIPLES = [
     return (Math.round(n*100)/100).toFixed(2);
   }
   function num(v){ var n = parseFloat(v); return isFinite(n) ? n : 0; }
+  // Redondea a 2 decimales pero devolviendo un número (no texto) -- para celdas de Excel, donde
+  // interesa que sume y ordene bien, no solo que se vea bien (a diferencia de fmt()/fmtMoney()).
+  function round2(n){ return isFinite(n) ? Math.round(n*100)/100 : 0; }
   function numOrNull(v){
     if(v === "" || v === null || typeof v === "undefined") return null;
     var n = parseFloat(v);
@@ -1472,6 +1494,21 @@ var TRIPLES = [
   // se pone en true justo antes de que un botón de imprimir arme su propio contenido, para
   // que este armado automático no lo pise.
   var explicitPrint = false;
+  // Tamaño de hoja dinámico: las vistas del arqueo con muchas columnas necesitan hoja
+  // horizontal, pero las pre-órdenes de pedido y los reportes de pedidos son angostos y se
+  // ven mejor -- en su tamaño de hoja de siempre -- en vertical. En vez de un solo @page fijo
+  // para toda la app (que hacía que TODO saliera horizontal, incluida la pre-orden), esta
+  // función arma/actualiza un <style> aparte justo antes de cada impresión, según lo que
+  // corresponda a esa impresión en particular.
+  function setPrintOrientation(landscape){
+    var el = document.getElementById("printPageSize");
+    if(!el){
+      el = document.createElement("style");
+      el.id = "printPageSize";
+      (document.head || document.documentElement).appendChild(el);
+    }
+    el.textContent = landscape ? "@media print{ @page{ size:A4 landscape; margin:10mm; } }" : "";
+  }
   // Se actualiza en CADA render (no solo al momento de imprimir) porque en algunos
   // navegadores/dispositivos apretar Control+P varias veces seguidas no siempre vuelve a
   // avisar justo antes de imprimir -- así, #printArea ya viene lista de antemano con lo
@@ -1482,6 +1519,9 @@ var TRIPLES = [
     if(!STATE) return;
     var area = document.getElementById("printArea");
     if(!area) return;
+    // Las dos vistas que arma esta función (categoría/turno actual, o el reporte completo)
+    // siempre necesitan hoja horizontal.
+    setPrintOrientation(true);
     if(PRODUCT_TABS.indexOf(currentTab) !== -1){
       area.innerHTML = buildPrintCurrentViewHTML(currentTab, shiftView[currentTab], currentDate);
     } else {
@@ -1510,6 +1550,7 @@ var TRIPLES = [
     }, 30);
   }
   function doPrint(date){
+    setPrintOrientation(true);
     var area = document.getElementById("printArea");
     area.innerHTML = buildPrintHTML(date);
     doWindowPrint("Arqueo " + (date || ""));
@@ -1565,6 +1606,7 @@ var TRIPLES = [
     return html;
   }
   function doPrintSimple(date){
+    setPrintOrientation(false);
     var area = document.getElementById("printArea");
     area.innerHTML = buildPrintSimpleHTML(date);
     doWindowPrint("Resumen " + (date || ""));
@@ -1620,6 +1662,7 @@ var TRIPLES = [
     return html;
   }
   function doPrintCurrentView(tab, shift, date){
+    setPrintOrientation(true);
     var area = document.getElementById("printArea");
     area.innerHTML = buildPrintCurrentViewHTML(tab, shift, date);
     doWindowPrint("Arqueo " + SECTIONS[tab].label + " " + SHIFT_LABEL[shift] + " " + (date || ""));
@@ -1780,7 +1823,7 @@ var TRIPLES = [
       var n = alerts[tab];
       var countHtml = n ? '<span class="count">' + n + "</span>" : "";
       var label = SECTIONS[tab] ? SECTIONS[tab].label + countHtml
-        : (tab === "turno" ? "Turno" : (tab === "historial" ? "Historial" : (tab === "pedidos" ? "Pedidos" : "")));
+        : (tab === "turno" ? "Turno" : (tab === "historial" ? "Historial" : (tab === "pedidos" ? "Pedidos" : (tab === "cajeros" ? "Caja Cajeros" : ""))));
       btn.innerHTML = label;
     });
   }
@@ -1791,6 +1834,7 @@ var TRIPLES = [
     if(currentTab === "turno"){ panel.appendChild(buildTurnoPanel()); }
     else if(currentTab === "historial"){ panel.appendChild(buildHistorialPanel()); }
     else if(currentTab === "pedidos"){ panel.appendChild(buildPedidosPanel()); }
+    else if(currentTab === "cajeros"){ panel.appendChild(buildCajerosPanel()); }
     else { panel.appendChild(buildProductPanel(currentTab)); }
   }
 
@@ -3097,30 +3141,32 @@ var TRIPLES = [
     if(pedidosSaving) return;
     pedidosSaving = true;
     renderPanel();
-    var payload = {
-      canal: draft.canal,
-      origen: draft.origen || "whatsapp",
-      cliente: draft.cliente,
-      tipoPago: draft.tipoPago || "",
-      pagado: !!draft.pagado,
-      comprobante: draft.comprobante || null,
-      deliveryMonto: pedidoDeliveryTotal(draft),
-      masivoModo: draft.canal === "masivo" ? draft.masivoModo : "",
-      masivoDeliveryRate: draft.canal === "masivo" ? num(draft.masivoDeliveryRate) : 0,
-      hora: draft.hora || "",
-      notas: draft.notas || "",
-      numero: genPedidoNumero(),
-      items: validItems.map(function(it){
-        return { producto: it.producto.trim(), cantidad: num(it.cantidad), precio: num(it.precio), fecha: it.fecha || draft.fechaDefault, obs: (it.obs || "").trim() };
-      }),
-      createdAt: Date.now()
-    };
-    db.collection("pedidos").add(payload).then(function(){
-      pedidosSaving = false;
-      upsertCliente(payload.cliente);
-      pedidoDraft = newPedidoDraft(payload.canal);
-      showToast("Pedido guardado.");
-      renderPanel();
+    nextPedidoNumero().then(function(numero){
+      var payload = {
+        canal: draft.canal,
+        origen: draft.origen || "whatsapp",
+        cliente: draft.cliente,
+        tipoPago: draft.tipoPago || "",
+        pagado: !!draft.pagado,
+        comprobante: draft.comprobante || null,
+        deliveryMonto: pedidoDeliveryTotal(draft),
+        masivoModo: draft.canal === "masivo" ? draft.masivoModo : "",
+        masivoDeliveryRate: draft.canal === "masivo" ? num(draft.masivoDeliveryRate) : 0,
+        hora: draft.hora || "",
+        notas: draft.notas || "",
+        numero: numero,
+        items: validItems.map(function(it){
+          return { producto: it.producto.trim(), cantidad: num(it.cantidad), precio: num(it.precio), fecha: it.fecha || draft.fechaDefault, obs: (it.obs || "").trim() };
+        }),
+        createdAt: Date.now()
+      };
+      return db.collection("pedidos").add(payload).then(function(){
+        pedidosSaving = false;
+        upsertCliente(payload.cliente);
+        pedidoDraft = newPedidoDraft(payload.canal);
+        showToast("Pedido guardado.");
+        renderPanel();
+      });
     }).catch(function(){
       pedidosSaving = false;
       showToast("No se pudo guardar el pedido. Revisa tu conexión e intenta de nuevo.");
@@ -3211,9 +3257,13 @@ var TRIPLES = [
     });
   }
 
-  // ---------- Pre-orden de pedido en PDF (imprimir / guardar como PDF) ----------
-  // Replica el formato de la pre-orden de "Carmelitas Pan SAC" que usan hoy (Aniversario),
-  // para que el equipo la reconozca igual mientras se acostumbran al sistema nuevo.
+  // ---------- Orden de pedido en PDF (imprimir / guardar como PDF) ----------
+  // Formato pensado como una orden de compra formal: logo, numero correlativo, y el origen
+  // (Delivery / Recojo en Tienda) bien visible junto al titulo para que el equipo identifique
+  // de un vistazo cada orden impresa.
+  // Logo de Carmelitas incrustado como base64 -- así el PDF/impresión no depende de que la
+  // imagen esté subida en otro lado; queda siempre disponible con el resto del archivo.
+  var CARMELITAS_LOGO = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAYGBgYHBgcICAcKCwoLCg8ODAwODxYQERAREBYiFRkVFRkVIh4kHhweJB42KiYmKjY+NDI0PkxERExfWl98fKcBBgYGBgcGBwgIBwoLCgsKDw4MDA4PFhAREBEQFiIVGRUVGRUiHiQeHB4kHjYqJiYqNj40MjQ+TERETF9aX3x8p//CABEIAJsBYQMBIgACEQEDEQH/xAAwAAEAAgMBAQAAAAAAAAAAAAAABQYCAwQBBwEBAQEBAAAAAAAAAAAAAAAAAAECA//aAAwDAQACEAMQAAACtIAAAAAAAAAAAAAADzCNjXsAo0Y4uzHZmaG8aNmfNL0uYdI6ZAAAAAAAAAAAAAa9mjNe6s8a3a/MrMtWWRlq346mno52L0Gnpndq8wxrnSLOg7cxCk0qEkSHRFRpa1ZwLDvq24n865rLVz+8R176zmTuMBtLHqruwsftVtRr9p02TKnzhKc2rnzezzfrxrHfhgbNWzdZwd3gywx91MWvznrPo17OmQ1BzkBA6fohWtNyHmPlYLT5TJ8lHFGlg8qcoTfkLDFxcUOWVWrQa8uerlvzrNmKBc6F9HIKVr/eRUpU5AvGHLrjs8qXsto364mJ3GlWnU6+Vs49Nefnkbtmrd1x6NxXrDTjy5Vyxg5CpdMV9DKTJxs8cNUnvDvi7z87NMt3bSsy0R9FPmn035reSn2CuT5WfoVDu5Rfo9Ft5RLnVb6fNbVVvpZH0efzN1U+j/Ny/UW+0At8o2x7xbsue+Xb16I2Z45dcBSlXWpHdP0y5iDkIsjbfU+grH0D539QKHaKb9ENnzL6LQi/Vi3UYkJ/kFRsUVJldmlrOWOl68cU1w5HDZoSRKp9BpF3KJaalbjirmHeXWpWzAo13+dfS4CnnunLzfjkoajj7B8zxvXKVC7Z5lCkp/pKV9GjNhSPpMTtMK5ZMSV+d3PSSELIYEPNY5lC3W7E5uOfwNUTOYmnr0bYoVikt1QkHeOeK9JyvpX4q4664LZz9Ax1Y89dHO6D0dMgAEd4SSNEkjRJI0SSNEkjRJI0SSNEkjRJI0SSNHV0RG3F7MOYSWngwJHfG41I8mjLN7tXJgS+HN1Wavd4DcAAAAAAAAAAAAAA0b9OPPXRpx21qy3c0dLVjqb2jCXq0Yb4zHTIAAAAAAAAAAAAAAAAAARo86Gbo93ANwAAAAD/xAAC/9oADAMBAAIAAwAAACHzzzzzzzzzzzzzzznTz03847zzzzzzzzzzzzzyzAKpQ/UIDzzhASCiBiRhxDyDywXfhdTzwxjwgCSjxTzyjzw5lujI9XzxzwQRDDwwjzCBiiSSAJUH3yxDwTiQRzzDDCDhjjyTXz/byiBgSRSTQDiRii2j56RCbbzzjDDDDDDDDDDDONODv0//AM88888888888888f4p40j8888888888888888888uNfc88888//xAAC/9oADAMBAAIAAwAAABDzzzzzzzzzzzzzzzDviP8A5z/88888888888888GcO1pDoJB80oYQkQw0YMYswTSCqeQFN8o8kE4wQAAYwIgIUlE+rvyG848sEgko8McQgkgQAEs50r28YY0kQkI0MAcgoUg0wAlcvd8sA0AgI4YkQoosv8Lz4cimc8sYwwwwwwwwwgiBx2g+51c888MMMMMMMMMMMEQpNEU88888888888888888McufO888888//xAAzEQACAgAEAgYJBAMAAAAAAAABAgMRAAQSITFBExRRYXGhEBUiMDJAgZHBIEJTciOSsf/aAAgBAgEBPwD37yxIaZ1B7CcJIj/C6t4G/Q2aslYUMh5kbKPE4Eeace3ME7kH5bHVR/NNf98SdNl1MnSNIg3YMBYHaCMescl/N7+Vm1KimrBJPYBhJGBZo00qtlgfiYeeNX+OOaQaGB8SR2YYGQgztoQmljur/sfxiSOUoFiKKtVwPkRiB85HMI5kLIQakG9dx4YklVOO5PADicTTSMvQqo6VxwG4RTzOPUmT7/fzxF6ZeIBFXVg8sSRDSWe9TEBY6rcdmEKQFCyFqG2k6tHcBxx0MGYVisz78RqJ+6teMrBPA7q0gaKhp5EHDSMzFY6735DBnUs6Zclm4PNRau4VjLRwoh6M6iTbMd2J7/kSiMbKg7EfQ46plaroI/8AUYiykMUrSICCRRFkjDhSpDcK35YmlXMIFSVUhDUwUjUR+BhDpjTcmm+ALpJFUDWIN5Cexabx7Pp8ozKqlmIAA3JxMrZrQYogNLAiR9tu7mcNlJ4rlaQSADdQuk0N9jiMJoXRWkixXyjxJIU1C9JsD0TOI4ZHPAKcZZGjy8KNxVFB+g9+sitdah4qR/30WLqxeLF1fpfNFgeiXbnI4KouBeZZSQRE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";
   var MESES_LARGO = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Setiembre","Octubre","Noviembre","Diciembre"];
   var DIAS_LARGO = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
   function fmtFechaLarga(iso){
@@ -3229,8 +3279,33 @@ var TRIPLES = [
     var parts = iso.split("-");
     return parts.length === 3 ? (parts[2] + "/" + parts[1] + "/" + parts[0]) : iso;
   }
-  function genPedidoNumero(){
-    return Math.random().toString(36).slice(2, 10);
+  // Número correlativo de pedido (0001, 0002, ...), en vez del código al azar de antes --
+  // Jessica lo pidió así porque un código como "eodros0p" no le sirve para identificar/ordenar
+  // sus pedidos. Se guarda un contador en su propio documento de Firestore (separado de
+  // STATE, que ya tiene su propia lógica de fusión) y se actualiza dentro de una transacción
+  // para que dos personas guardando un pedido al mismo tiempo, desde equipos distintos, nunca
+  // se queden con el mismo número.
+  function nextPedidoNumero(){
+    var ref = db.collection("contadores").doc("pedidos");
+    return db.runTransaction(function(tx){
+      return tx.get(ref).then(function(snap){
+        var ultimo = (snap.exists && num(snap.data().ultimo)) || 0;
+        var siguiente = ultimo + 1;
+        tx.set(ref, { ultimo: siguiente });
+        return siguiente;
+      });
+    }).then(function(n){
+      var s = String(n);
+      while(s.length < 4) s = "0" + s;
+      return s;
+    });
+  }
+  // Etiqueta corta para mostrar junto al título -- Jessica pidió poder identificar de un
+  // vistazo de dónde vino el pedido, igual que responde el selector "¿De dónde vino este
+  // pedido?" (WhatsApp / Tienda) del formulario -- por eso usa el mismo campo "origen" y el
+  // mismo texto (ORIGEN_LABEL), en vez del canal de entrega (delivery/recojo/masivo).
+  function pedidoDestinoLabel(p){
+    return (ORIGEN_LABEL[p.origen] || ORIGEN_LABEL.whatsapp).toUpperCase();
   }
   function pedidoBannerHTML(p){
     if(p.canal === "masivo"){
@@ -3275,16 +3350,49 @@ var TRIPLES = [
       '<div>' + tipoPago + ' &nbsp;—&nbsp; ' + pagadoBadge + '</div></div>';
     return html;
   }
+  // Color principal de las franjas/encabezados oscuros de la orden -- un marrón café en vez
+  // del azul de la primera prueba (Jessica: "el azul con el amarillo se ve feo... uno sutil,
+  // que se vea bien, bonito y sofisticado"), a tono con la tinta del logo y el amarillo que
+  // ya tenía la franja de Recojo/Entrega. Un poco más claro que el primer marrón, a pedido
+  // de Jessica, pero todavía con suficiente contraste para el texto blanco encima.
+  var PEDIDO_DARK = "#8a5c3c";
+  // Filas mínimas que siempre se ven en la tabla, aunque el pedido tenga solo 1 o 2 productos
+  // -- Jessica: "yo quiero que se vea ahí más espacio... 8 filas" -- para que no se vea vacía o
+  // chica cuando el pedido es corto. Si el pedido tiene más productos que esto, no se recorta
+  // nada; solo se agregan filas en blanco hasta llegar al mínimo.
+  var PEDIDO_FILAS_MIN = 8;
+  // Un pedido masivo (varios productos x varios días de entrega) puede juntar muchas filas --
+  // Jessica: "es importante que salga todo en una hoja (siempre usamos hoja A4)". En vez de un
+  // tamaño de letra fijo, la tabla se va achicando por niveles según cuántas filas tenga, para
+  // que quepa completa en una sola hoja A4 vertical sin recortar productos. Con pocas filas se
+  // queda en el tamaño normal (igual que antes); estos niveles solo entran a tallar cuando el
+  // pedido realmente tiene muchas filas.
+  // Umbrales verificados imprimiendo (a PDF, con el mismo A4 y margen de 10mm que usa la app
+  // de verdad) pedidos de prueba de 8 a 140 filas y confirmando en cuáles se mantenía en 1 sola
+  // hoja -- no son números "a ojo". Cada nivel solo se usa hasta la cantidad de filas que de
+  // verdad le entra en una hoja A4 vertical; pasado ese punto se achica al siguiente nivel.
+  function pedidoTableDensity(n){
+    if(n <= 12) return { font:12, cell:"5px 6px", head:"6px 6px", margin:"10px 0 4px", obs:10 };
+    if(n <= 20) return { font:10.5, cell:"3px 6px", head:"4px 6px", margin:"8px 0 3px", obs:9 };
+    if(n <= 30) return { font:9.5, cell:"2px 5px", head:"3px 5px", margin:"6px 0 2px", obs:8.5 };
+    if(n <= 40) return { font:8.5, cell:"1.5px 4px", head:"2px 4px", margin:"5px 0 2px", obs:8 };
+    if(n <= 48) return { font:7.5, cell:"1px 3px", head:"1.5px 3px", margin:"4px 0 1px", obs:7 };
+    return { font:6.5, cell:"0.5px 2px", head:"1px 2px", margin:"3px 0 1px", obs:6 };
+  }
   function pedidoTableHTML(p){
     var isMasivo = p.canal === "masivo";
     var subtotal = 0;
-    var headStyle = "border:1px solid #111; padding:4px 6px; background:#fff;";
+    var items = p.items || [];
+    var filas = Math.max(items.length, PEDIDO_FILAS_MIN);
+    var d = pedidoTableDensity(filas);
+    var headStyle = "border:1px solid " + PEDIDO_DARK + "; padding:" + d.head + "; background:" + PEDIDO_DARK + "; color:#fff; font-size:11px; letter-spacing:.02em;";
     function th(label, align){ return '<th style="' + headStyle + 'text-align:' + align + ';">' + label + "</th>"; }
-    var head = (isMasivo ? th("FECHA ENTREGA", "left") : "") + th("CANT.", "center") + th("PRODUCTO", "left") + th("PRECIO", "right") + th("TOTAL", "right");
+    var head = th("N°", "center") + (isMasivo ? th("FECHA ENTREGA", "left") : "") + th("CANT.", "center") + th("PRODUCTO", "left") + th("PRECIO", "right") + th("TOTAL", "right");
     // Anchos fijos por columna (via colgroup + table-layout:fixed) para que Cantidad, Precio y
     // Total queden siempre alineados en la misma posición en todas las filas, en vez de que el
     // ancho se acomode según el texto más largo de cada pedido.
     var colgroup = "<colgroup>" +
+      '<col style="width:30px;">' +
       (isMasivo ? '<col style="width:80px;">' : "") +
       '<col style="width:44px;">' +
       "<col>" +
@@ -3292,23 +3400,36 @@ var TRIPLES = [
       '<col style="width:68px;">' +
       "</colgroup>";
     var body = "";
-    (p.items || []).forEach(function(it){
+    items.forEach(function(it, idx){
       var lineTotal = num(it.cantidad) * num(it.precio);
       subtotal += lineTotal;
-      var cellStyle = "border:1px solid #111; padding:4px 6px; vertical-align:top;";
+      var cellStyle = "border:1px solid #ccc; padding:" + d.cell + "; vertical-align:top;";
       var obsHtml = it.obs && it.obs.trim()
-        ? '<div style="font-size:10px; font-style:italic; color:#555;">' + esc(it.obs.trim()) + "</div>"
+        ? '<div style="font-size:' + d.obs + 'px; font-style:italic; color:#555;">' + esc(it.obs.trim()) + "</div>"
         : "";
       body += "<tr>" +
+        '<td style="' + cellStyle + 'text-align:center; color:#888;">' + (idx + 1) + "</td>" +
         (isMasivo ? '<td style="' + cellStyle + 'text-align:left;">' + esc(fmtFechaCorta(it.fecha)) + "</td>" : "") +
-        '<td style="' + cellStyle + 'text-align:center;">' + fmt(it.cantidad) + "</td>" +
+        '<td style="' + cellStyle + 'text-align:center; font-weight:700;">' + fmt(it.cantidad) + "</td>" +
         '<td style="' + cellStyle + 'text-align:left;">' + esc(it.producto) + obsHtml + "</td>" +
         '<td style="' + cellStyle + 'text-align:right;">S/' + fmtMoney(it.precio) + "</td>" +
-        '<td style="' + cellStyle + 'text-align:right;">S/' + fmtMoney(lineTotal) + "</td>" +
+        '<td style="' + cellStyle + 'text-align:right; font-weight:700;">S/' + fmtMoney(lineTotal) + "</td>" +
         "</tr>";
     });
+    // Filas en blanco de relleno hasta el mínimo -- mismo N° correlativo, sin datos.
+    for(var i = items.length; i < PEDIDO_FILAS_MIN; i++){
+      var blankCellStyle = "border:1px solid #ccc; padding:" + d.cell + ";";
+      body += "<tr>" +
+        '<td style="' + blankCellStyle + 'text-align:center; color:#bbb;">' + (i + 1) + "</td>" +
+        (isMasivo ? '<td style="' + blankCellStyle + '"></td>' : "") +
+        '<td style="' + blankCellStyle + '"></td>' +
+        '<td style="' + blankCellStyle + '"></td>' +
+        '<td style="' + blankCellStyle + '"></td>' +
+        '<td style="' + blankCellStyle + '"></td>' +
+        "</tr>";
+    }
     var theadHtml = "<thead><tr>" + head + "</tr></thead>";
-    return { html: '<table style="width:100%; border-collapse:collapse; table-layout:fixed; font-size:12px; margin:8px 0 4px;">' + colgroup + theadHtml + "<tbody>" + body + "</tbody></table>", subtotal: subtotal };
+    return { html: '<table style="width:100%; border-collapse:collapse; table-layout:fixed; font-size:' + d.font + 'px; margin:' + d.margin + ';">' + colgroup + theadHtml + "<tbody>" + body + "</tbody></table>", subtotal: subtotal };
   }
   function buildPedidoPrintCardHTML(p){
     var isMasivo = p.canal === "masivo";
@@ -3316,28 +3437,35 @@ var TRIPLES = [
     var tabla = pedidoTableHTML(p);
     var delivery = num(p.deliveryMonto);
     var total = tabla.subtotal + delivery;
-    var html = '<div class="pedido-print-card" style="font-family:Arial,Helvetica,sans-serif; color:#111; max-width:780px; margin:0 auto; -webkit-print-color-adjust:exact; print-color-adjust:exact;">';
-    html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #111; padding-bottom:8px;">';
-    html += '<div><div style="font-size:20px; font-weight:800;">CARMELITAS PAN SAC</div>' +
-      '<div style="font-size:12px;">Av. 28 de Julio 1328 - Miraflores -Lima</div>' +
-      '<div style="font-size:12px;">Tlf. 444-7105 / 959 176 479</div>' +
-      '<div style="font-size:12px; text-decoration:underline;">carmelitaspan@gmail.com</div></div>';
-    html += '<div style="text-align:right;">' +
-      '<div style="font-size:14px; font-weight:800; color:#c2660c;">PRE-ORDEN DE PEDIDO</div>' +
-      '<div style="font-size:12px; color:#c2660c;">Número: <strong>' + esc(p.numero || (p.id||"").slice(-8)) + '</strong></div>' +
-      '<div style="font-size:15px; font-weight:800; color:#cc0000; margin-top:2px;">' + (isMasivo ? "ENTREGA MULTIPLE" : "ENTREGA") + '</div>' +
+    // max-width en 700px (no 780px) a propósito: una hoja A4 vertical con margen de 10mm por
+    // lado deja unos 718px de ancho imprimible -- 780px se pasaba de ese límite y corría el
+    // riesgo de recortarse o depender de que la impresora/navegador reescale por su cuenta.
+    var html = '<div class="pedido-print-card" style="font-family:Arial,Helvetica,sans-serif; color:#111; max-width:700px; margin:0 auto; -webkit-print-color-adjust:exact; print-color-adjust:exact;">';
+    html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">';
+    html += '<div><img src="' + CARMELITAS_LOGO + '" style="height:78px; display:block; margin-bottom:6px;">' +
+      '<div style="font-size:11px; color:#333;">Av. 28 de Julio 1328 - Miraflores -Lima</div>' +
+      '<div style="font-size:11px; color:#333;">Tlf. 259 8036</div>' +
+      '<div style="font-size:11px; color:#333;">Delivery: 997 518 681 / 959 176 479</div>' +
+      '<div style="font-size:11px; color:#333; text-decoration:underline;">carmelitaspan@gmail.com</div></div>';
+    html += '<div style="text-align:right; padding-top:4px;">' +
+      '<div style="font-size:24px; font-weight:800; color:' + PEDIDO_DARK + '; line-height:1.08;">ORDEN DE PEDIDO</div>' +
+      '<div style="font-size:13px; font-weight:800; color:#c2660c; margin-top:2px;">(' + esc(pedidoDestinoLabel(p)) + ')</div>' +
+      '<div style="font-size:12px; color:#555; margin-top:4px;">N° de orden: <strong>' + esc(p.numero || (p.id||"").slice(-8)) + '</strong></div>' +
+      '<div style="font-size:14px; font-weight:800; color:#cc0000; margin-top:4px;">' + (isMasivo ? "ENTREGA MULTIPLE" : "ENTREGA") + '</div>' +
       (isMasivo ? "" : '<div style="font-size:12px; font-weight:700; color:#cc0000;">' + esc(fmtFechaLarga(primeraFecha)) + '</div>') +
       '</div>';
     html += '</div>';
-    html += '<div style="background:#fff200; color:#cc0000; font-weight:800; font-size:17px; text-align:center; padding:7px 4px; margin:8px 0;">' + pedidoBannerHTML(p) + '</div>';
-    html += '<div style="background:#f6e3bd; padding:7px 10px; margin-bottom:6px; font-size:12px;">' + pedidoInfoRowsHTML(p) + '</div>';
+    html += '<div style="border-bottom:2px solid ' + PEDIDO_DARK + '; margin-top:8px;"></div>';
+    html += '<div style="background:#fff200; color:#cc0000; font-weight:800; font-size:17px; text-align:center; padding:7px 4px; margin:10px 0 0;">' + pedidoBannerHTML(p) + '</div>';
+    html += '<div style="background:' + PEDIDO_DARK + '; color:#fff; font-weight:700; font-size:11px; letter-spacing:.04em; padding:4px 10px; margin-top:8px;">CLIENTE</div>';
+    html += '<div style="background:#f6e3bd; padding:8px 10px 7px; margin-bottom:2px; font-size:12px;">' + pedidoInfoRowsHTML(p) + '</div>';
     html += tabla.html;
     html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:4px;">' +
       '<div style="font-size:11px;">Importante: Poner su nombre en Whatsapp</div>' +
       '<div style="font-size:12px; text-align:right;">' +
       '<div>SubTotal Productos: <strong>S/' + fmtMoney(tabla.subtotal) + '</strong></div>' +
       '<div>Delivery: <strong>S/' + fmtMoney(delivery) + '</strong></div>' +
-      '<div>Total: <strong>S/' + fmtMoney(total) + '</strong></div>' +
+      '<div style="font-size:14px; border-top:1px solid ' + PEDIDO_DARK + '; margin-top:3px; padding-top:3px;">TOTAL: <strong>S/' + fmtMoney(total) + '</strong></div>' +
       '</div></div>';
     // Foto del Yape/transferencia (si se subió una): así queda el pago 100% confirmado junto
     // con el resto del pedido, no solo el texto "PAGADO".
@@ -3355,15 +3483,17 @@ var TRIPLES = [
   function doPrintPedido(id){
     var p = (PEDIDOS || []).filter(function(x){ return x.id === id; })[0];
     if(!p) return;
+    setPrintOrientation(false);
     var area = document.getElementById("printArea");
     area.innerHTML = buildPedidoPrintCardHTML(p);
-    doWindowPrint("Pre-orden " + (p.numero || ""));
+    doWindowPrint("Orden " + (p.numero || ""));
   }
   function doPrintPedidosDia(date){
     var list = (PEDIDOS || []).filter(function(p){
       return (p.items || []).some(function(it){ return it.fecha === date; });
     });
     if(list.length === 0){ showToast("No hay pedidos con entrega ese día."); return; }
+    setPrintOrientation(false);
     var area = document.getElementById("printArea");
     area.innerHTML = list.map(function(p, i){
       var pageBreak = i < list.length - 1 ? "page-break-after:always;" : "";
@@ -3457,6 +3587,7 @@ var TRIPLES = [
     return html;
   }
   function doPrintPedidosReporte(date, origen){
+    setPrintOrientation(false);
     var area = document.getElementById("printArea");
     area.innerHTML = buildPedidosReporteHTML(date, origen);
     doWindowPrint((origen === "tienda" ? "Pedidos Tienda " : "Pedidos Delivery ") + (date || ""));
@@ -3694,6 +3825,627 @@ var TRIPLES = [
     return wrap;
   }
 
+  // ---------- Caja Cajeros (control de caja que llena cada cajero, mañana y tarde) ----------
+  // Reemplaza la hoja de papel "HOJA RESUMEN AM" que llenaba a mano el cajero: anota los
+  // billetes/monedas, los depósitos y los gastos, y la app suma sola -- así se evita el error
+  // de suma a mano. El "Total del sistema" lo llena Jessica después, cuando lo descarga del
+  // sistema de ventas, para comparar contra lo que reportó el cajero y detectar diferencias
+  // (si falta o sobra dinero). Vive en su propia colección de Firestore ("cajaCajeros"),
+  // separada de "arqueo/state" y de "pedidos", por la misma razón que los pedidos.
+  var BILLETE_VALORES = [
+    { key:"b200", label:"Billetes de 200", valor:200 },
+    { key:"b100", label:"Billetes de 100", valor:100 },
+    { key:"b50", label:"Billetes de 50", valor:50 },
+    { key:"b20", label:"Billetes de 20", valor:20 },
+    { key:"b10", label:"Billetes de 10", valor:10 }
+  ];
+  var TURNO_CAJERO_LABEL = { manana:"Mañana", tarde:"Tarde" };
+
+  function newCajeroDraft(){
+    return {
+      fecha: currentDate,
+      turno: "manana",
+      cajero: "",
+      caja: "CR1",
+      billetes: { b200:0, b100:0, b50:0, b20:0, b10:0 },
+      monedas: 0,
+      dolarTipoCambio: 0,
+      dolarMonto: 0,
+      depositoA: 0,
+      depositoC: 0,
+      gastos: [ { desc:"", monto:0 } ],
+      totalSistema: null,
+      notas: ""
+    };
+  }
+
+  // Estas funciones de cálculo trabajan igual con un borrador (mientras se llena el
+  // formulario) que con un reporte ya guardado (documento de Firestore) -- misma forma.
+  function cajeroBilletesTotal(r){
+    var t = 0;
+    BILLETE_VALORES.forEach(function(b){ t += num(r.billetes && r.billetes[b.key]) * b.valor; });
+    return t;
+  }
+  function cajeroDolarConvertido(r){
+    return num(r.dolarMonto) * num(r.dolarTipoCambio);
+  }
+  function cajeroEfectivo(r){
+    return cajeroBilletesTotal(r) + num(r.monedas) + cajeroDolarConvertido(r);
+  }
+  function cajeroGastosTotal(r){
+    return (r.gastos || []).reduce(function(s, g){ return s + num(g.monto); }, 0);
+  }
+  function cajeroTotalCalculado(r){
+    return cajeroEfectivo(r) + num(r.depositoA) + num(r.depositoC) + cajeroGastosTotal(r);
+  }
+  function cajeroDiferencia(r){
+    if(r.totalSistema === null || r.totalSistema === undefined) return null;
+    return num(r.totalSistema) - cajeroTotalCalculado(r);
+  }
+
+  function buildCajerosPanel(){
+    var wrap = document.createElement("div");
+    var viewToggle = document.createElement("div");
+    viewToggle.className = "shift-toggle";
+    viewToggle.style.marginBottom = "1rem";
+    [["nuevo","Nuevo reporte"], ["historial","Historial"]].forEach(function(pair){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "shift-btn" + (cajerosView === pair[0] ? " active" : "");
+      b.textContent = pair[1];
+      b.addEventListener("click", function(){ cajerosView = pair[0]; renderPanel(); });
+      viewToggle.appendChild(b);
+    });
+    wrap.appendChild(viewToggle);
+
+    if(CAJACAJEROS === null){
+      var loading = document.createElement("div");
+      loading.className = "empty-state";
+      loading.textContent = "Cargando reportes de caja…";
+      wrap.appendChild(loading);
+      return wrap;
+    }
+
+    if(cajerosView === "historial"){ wrap.appendChild(buildCajerosHistorial()); }
+    else { wrap.appendChild(buildCajeroForm()); }
+    return wrap;
+  }
+
+  function buildCajeroForm(){
+    if(!cajeroDraft) cajeroDraft = newCajeroDraft();
+    var draft = cajeroDraft;
+    var card = document.createElement("div");
+    card.className = "card";
+
+    var headRow = document.createElement("div");
+    headRow.style.display = "flex";
+    headRow.style.justifyContent = "space-between";
+    headRow.style.alignItems = "center";
+    headRow.style.flexWrap = "wrap";
+    headRow.style.gap = ".5rem";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .8rem";
+    h2.textContent = cajeroEditingId ? "Editar reporte de caja" : "Nuevo reporte de caja";
+    headRow.appendChild(h2);
+    if(cajeroEditingId){
+      var volverBtn = document.createElement("button");
+      volverBtn.type = "button";
+      volverBtn.className = "btn btn-sm";
+      volverBtn.textContent = "Cancelar edición";
+      volverBtn.addEventListener("click", function(){
+        cajeroEditingId = null;
+        cajeroDraft = null;
+        cajerosView = "historial";
+        renderPanel();
+      });
+      headRow.appendChild(volverBtn);
+    }
+    card.appendChild(headRow);
+
+    var grid = document.createElement("div");
+    grid.className = "field-grid";
+    grid.appendChild(buildField("Fecha", "date", draft.fecha, function(v){ draft.fecha = v || currentDate; }));
+    grid.appendChild(buildField("Caja", "text", draft.caja, function(v){ draft.caja = v; }));
+    grid.appendChild(buildField("Nombre del cajero", "text", draft.cajero, function(v){ draft.cajero = v; }, true));
+    card.appendChild(grid);
+
+    var turnoHint = document.createElement("div");
+    turnoHint.className = "hint";
+    turnoHint.style.margin = "1rem 0 .4rem";
+    turnoHint.textContent = "Turno";
+    card.appendChild(turnoHint);
+    var turnoRow = document.createElement("div");
+    turnoRow.className = "shift-toggle";
+    turnoRow.style.marginBottom = "1rem";
+    ["manana","tarde"].forEach(function(t){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "shift-btn" + (draft.turno === t ? " active" : "");
+      b.textContent = TURNO_CAJERO_LABEL[t];
+      if(readOnly) b.disabled = true;
+      b.addEventListener("click", function(){ draft.turno = t; renderPanel(); });
+      turnoRow.appendChild(b);
+    });
+    card.appendChild(turnoRow);
+
+    var hintBilletes = document.createElement("div");
+    hintBilletes.className = "hint";
+    hintBilletes.style.margin = "0 0 .4rem";
+    hintBilletes.textContent = "Detalle de billetes y monedas";
+    card.appendChild(hintBilletes);
+
+    var billeteGrid = document.createElement("div");
+    billeteGrid.className = "billete-grid";
+    var efectivoLine = document.createElement("div");
+    efectivoLine.className = "pedido-totals";
+    efectivoLine.style.marginTop = "0";
+
+    function refreshEfectivo(){
+      efectivoLine.innerHTML = "<div>Efectivo total: <strong>S/ " + fmt(cajeroEfectivo(draft)) + "</strong></div>";
+      refreshTotales();
+    }
+
+    BILLETE_VALORES.forEach(function(b){
+      var f = document.createElement("div");
+      f.className = "field";
+      var lab = document.createElement("label");
+      lab.textContent = b.label;
+      f.appendChild(lab);
+      var input = document.createElement("input");
+      input.type = "number"; input.step = "1"; input.min = "0";
+      input.value = draft.billetes[b.key] || 0;
+      if(readOnly) input.disabled = true;
+      input.addEventListener("input", function(){
+        draft.billetes[b.key] = num(input.value);
+        refreshEfectivo();
+      });
+      f.appendChild(input);
+      billeteGrid.appendChild(f);
+    });
+    var monedasField = buildField("Monedas (S/)", "number", draft.monedas || null, function(v){ draft.monedas = num(v); refreshEfectivo(); });
+    billeteGrid.appendChild(monedasField);
+    card.appendChild(billeteGrid);
+    card.appendChild(efectivoLine);
+
+    var hintDolar = document.createElement("div");
+    hintDolar.className = "hint";
+    hintDolar.style.margin = "1rem 0 .4rem";
+    hintDolar.textContent = "Dólares (solo si entró efectivo en dólares -- déjalo así si no hubo)";
+    card.appendChild(hintDolar);
+    var dolarGrid = document.createElement("div");
+    dolarGrid.className = "field-grid";
+    dolarGrid.appendChild(buildField("Tipo de cambio", "number", draft.dolarTipoCambio || null, function(v){ draft.dolarTipoCambio = num(v); refreshEfectivo(); }));
+    dolarGrid.appendChild(buildField("Monto en dólares (USD)", "number", draft.dolarMonto || null, function(v){ draft.dolarMonto = num(v); refreshEfectivo(); }));
+    card.appendChild(dolarGrid);
+
+    var hintDep = document.createElement("div");
+    hintDep.className = "hint";
+    hintDep.style.margin = "1rem 0 .4rem";
+    hintDep.textContent = "Depósitos";
+    card.appendChild(hintDep);
+    var depGrid = document.createElement("div");
+    depGrid.className = "field-grid";
+    depGrid.appendChild(buildField("Depósito A", "number", draft.depositoA || null, function(v){ draft.depositoA = num(v); refreshTotales(); }));
+    depGrid.appendChild(buildField("Depósito C", "number", draft.depositoC || null, function(v){ draft.depositoC = num(v); refreshTotales(); }));
+    card.appendChild(depGrid);
+
+    var hintGastos = document.createElement("div");
+    hintGastos.className = "hint";
+    hintGastos.style.margin = "1rem 0 .4rem";
+    hintGastos.textContent = "Gastos";
+    card.appendChild(hintGastos);
+
+    var gastosWrap = document.createElement("div");
+    gastosWrap.className = "table-wrap";
+    var gastosTable = document.createElement("table");
+    gastosTable.className = "data-table";
+    gastosTable.innerHTML = "<thead><tr><th>Descripción</th><th>Monto</th><th></th></tr></thead><tbody></tbody>";
+    var gastosBody = gastosTable.querySelector("tbody");
+    gastosWrap.appendChild(gastosTable);
+    card.appendChild(gastosWrap);
+
+    var totalesBox = document.createElement("div");
+    totalesBox.className = "pedido-totals";
+
+    function refreshTotales(){
+      var diff = cajeroDiferencia(draft);
+      var html = "<div>Total gastos: <strong>S/ " + fmt(cajeroGastosTotal(draft)) + "</strong></div>";
+      html += "<div>Total calculado (efectivo + depósitos + gastos): <strong>S/ " + fmt(cajeroTotalCalculado(draft)) + "</strong></div>";
+      if(diff !== null){
+        var cls = Math.abs(diff) < 0.005 ? "good" : "bad";
+        html += '<div>Diferencia contra el sistema: <span class="cajero-diff ' + cls + '">S/ ' + fmt(diff) + (Math.abs(diff) < 0.005 ? " (cuadra)" : (diff > 0 ? " (sobra)" : " (falta)")) + '</span></div>';
+      }
+      totalesBox.innerHTML = html;
+    }
+
+    function renderGastos(){
+      gastosBody.innerHTML = "";
+      draft.gastos.forEach(function(g, idx){
+        var tr = document.createElement("tr");
+        tr.innerHTML =
+          '<td><input type="text" class="cajero-gasto-desc" data-idx="'+idx+'" value="'+esc(g.desc)+'" placeholder="Ej: Harina, movilidad, gas…"></td>' +
+          '<td><input type="number" step="any" class="cajero-gasto-monto num-input" data-idx="'+idx+'" value="'+g.monto+'"></td>' +
+          '<td>' + (draft.gastos.length > 1 ? '<button type="button" class="btn-del cajero-gasto-del" data-idx="'+idx+'" title="Quitar línea">✕</button>' : '') + '</td>';
+        gastosBody.appendChild(tr);
+      });
+      if(readOnly){
+        gastosBody.querySelectorAll("input, button").forEach(function(el){ el.disabled = true; });
+        return;
+      }
+      gastosBody.querySelectorAll(".cajero-gasto-desc").forEach(function(input){
+        input.addEventListener("input", function(){ draft.gastos[+input.getAttribute("data-idx")].desc = input.value; });
+      });
+      gastosBody.querySelectorAll(".cajero-gasto-monto").forEach(function(input){
+        input.addEventListener("input", function(){
+          draft.gastos[+input.getAttribute("data-idx")].monto = num(input.value);
+          refreshTotales();
+        });
+      });
+      gastosBody.querySelectorAll(".cajero-gasto-del").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          draft.gastos.splice(+btn.getAttribute("data-idx"), 1);
+          renderGastos();
+          refreshTotales();
+        });
+      });
+    }
+    renderGastos();
+
+    var addGastoBtn = document.createElement("button");
+    addGastoBtn.type = "button";
+    addGastoBtn.className = "btn btn-sm";
+    addGastoBtn.style.marginTop = ".6rem";
+    addGastoBtn.textContent = "+ Agregar gasto";
+    if(readOnly) addGastoBtn.disabled = true;
+    addGastoBtn.addEventListener("click", function(){
+      draft.gastos.push({ desc:"", monto:0 });
+      renderGastos();
+    });
+    card.appendChild(addGastoBtn);
+
+    var hintTotalSistema = document.createElement("div");
+    hintTotalSistema.className = "hint";
+    hintTotalSistema.style.margin = "1rem 0 .4rem";
+    hintTotalSistema.textContent = "Total del sistema (lo llena Jessica al descargarlo, para comparar -- déjalo vacío si todavía no lo tienes)";
+    card.appendChild(hintTotalSistema);
+    var totalSistemaField = buildField("Total del sistema (S/)", "number", draft.totalSistema === null ? "" : draft.totalSistema, function(v){
+      draft.totalSistema = numOrNull(v);
+      refreshTotales();
+    });
+    card.appendChild(totalSistemaField);
+
+    card.appendChild(buildField("Notas (opcional)", "textarea", draft.notas, function(v){ draft.notas = v; }, true));
+
+    card.appendChild(totalesBox);
+    refreshEfectivo();
+    refreshTotales();
+
+    var saveRow = document.createElement("div");
+    saveRow.style.marginTop = "1rem";
+    var saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "btn btn-primary";
+    saveBtn.textContent = cajerosSaving ? "Guardando…" : (cajeroEditingId ? "Guardar cambios" : "Guardar reporte");
+    saveBtn.disabled = cajerosSaving || readOnly;
+    saveBtn.addEventListener("click", saveCajero);
+    saveRow.appendChild(saveBtn);
+    card.appendChild(saveRow);
+
+    return card;
+  }
+
+  function saveCajero(){
+    var draft = cajeroDraft;
+    if(!draft || readOnly || !db) return;
+    if(!draft.cajero || !draft.cajero.trim()){ showToast("Falta el nombre del cajero."); return; }
+    if(!draft.fecha){ showToast("Falta la fecha."); return; }
+    if(cajerosSaving) return;
+    cajerosSaving = true;
+    renderPanel();
+    var payload = {
+      fecha: draft.fecha,
+      turno: draft.turno,
+      cajero: draft.cajero.trim(),
+      caja: (draft.caja || "").trim(),
+      billetes: {
+        b200: num(draft.billetes.b200), b100: num(draft.billetes.b100), b50: num(draft.billetes.b50),
+        b20: num(draft.billetes.b20), b10: num(draft.billetes.b10)
+      },
+      monedas: num(draft.monedas),
+      dolarTipoCambio: num(draft.dolarTipoCambio),
+      dolarMonto: num(draft.dolarMonto),
+      depositoA: num(draft.depositoA),
+      depositoC: num(draft.depositoC),
+      gastos: (draft.gastos || []).filter(function(g){ return (g.desc && g.desc.trim()) || num(g.monto) > 0; }).map(function(g){
+        return { desc: (g.desc || "").trim(), monto: num(g.monto) };
+      }),
+      totalSistema: numOrNull(draft.totalSistema),
+      notas: draft.notas || "",
+      updatedAt: Date.now()
+    };
+    var promise;
+    if(cajeroEditingId){
+      promise = db.collection("cajaCajeros").doc(cajeroEditingId).update(payload);
+    } else {
+      payload.createdAt = Date.now();
+      promise = db.collection("cajaCajeros").add(payload);
+    }
+    promise.then(function(){
+      cajerosSaving = false;
+      cajeroEditingId = null;
+      cajeroDraft = null;
+      cajerosView = "historial";
+      showToast("Reporte de caja guardado.");
+      renderPanel();
+    }).catch(function(){
+      cajerosSaving = false;
+      showToast("No se pudo guardar. Revisa tu conexión e intenta de nuevo.");
+      renderPanel();
+    });
+  }
+
+  function startEditCajero(r){
+    cajeroDraft = {
+      fecha: r.fecha || currentDate,
+      turno: r.turno || "manana",
+      cajero: r.cajero || "",
+      caja: r.caja || "",
+      billetes: {
+        b200: num(r.billetes && r.billetes.b200), b100: num(r.billetes && r.billetes.b100),
+        b50: num(r.billetes && r.billetes.b50), b20: num(r.billetes && r.billetes.b20), b10: num(r.billetes && r.billetes.b10)
+      },
+      monedas: num(r.monedas),
+      dolarTipoCambio: num(r.dolarTipoCambio),
+      dolarMonto: num(r.dolarMonto),
+      depositoA: num(r.depositoA),
+      depositoC: num(r.depositoC),
+      gastos: (r.gastos && r.gastos.length) ? r.gastos.map(function(g){ return { desc: g.desc||"", monto: num(g.monto) }; }) : [ { desc:"", monto:0 } ],
+      totalSistema: numOrNull(r.totalSistema),
+      notas: r.notas || ""
+    };
+    cajeroEditingId = r.id;
+    cajerosView = "nuevo";
+    renderPanel();
+  }
+
+  function buildCajerosHistorial(){
+    var wrap = document.createElement("div");
+    var card = document.createElement("div");
+    card.className = "card";
+
+    var headRow = document.createElement("div");
+    headRow.className = "search-row";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0";
+    h2.textContent = "Historial de caja de cajeros";
+    headRow.appendChild(h2);
+    var exportBtn = document.createElement("button");
+    exportBtn.type = "button";
+    exportBtn.className = "btn btn-sm";
+    exportBtn.textContent = "Exportar historial (Excel)";
+    exportBtn.title = "Descarga en un archivo de Excel todo lo que se ve en esta lista (según el filtro de fechas y cajero)";
+    headRow.appendChild(exportBtn);
+    card.appendChild(headRow);
+
+    var filterRow = document.createElement("div");
+    filterRow.className = "field-grid";
+    filterRow.style.marginBottom = "1rem";
+    filterRow.appendChild(buildField("Desde", "date", cajerosFiltroDesde, function(v){ cajerosFiltroDesde = v; renderPanel(); }));
+    filterRow.appendChild(buildField("Hasta", "date", cajerosFiltroHasta, function(v){ cajerosFiltroHasta = v; renderPanel(); }));
+    card.appendChild(filterRow);
+
+    var cajeroNombres = [];
+    (CAJACAJEROS || []).forEach(function(r){
+      if(r.cajero && cajeroNombres.indexOf(r.cajero) === -1) cajeroNombres.push(r.cajero);
+    });
+    cajeroNombres.sort();
+    var cajeroFilterRow = document.createElement("div");
+    cajeroFilterRow.className = "shift-toggle";
+    cajeroFilterRow.style.marginBottom = "1rem";
+    cajeroFilterRow.style.flexWrap = "wrap";
+    [["todos","Todos los cajeros"]].concat(cajeroNombres.map(function(n){ return [n, n]; })).forEach(function(pair){
+      var fb = document.createElement("button");
+      fb.type = "button";
+      fb.className = "shift-btn" + (cajerosFiltroCajero === pair[0] ? " active" : "");
+      fb.textContent = pair[1];
+      fb.addEventListener("click", function(){ cajerosFiltroCajero = pair[0]; renderPanel(); });
+      cajeroFilterRow.appendChild(fb);
+    });
+    card.appendChild(cajeroFilterRow);
+
+    var filtrados = (CAJACAJEROS || []).filter(function(r){
+      if(cajerosFiltroDesde && r.fecha < cajerosFiltroDesde) return false;
+      if(cajerosFiltroHasta && r.fecha > cajerosFiltroHasta) return false;
+      if(cajerosFiltroCajero !== "todos" && r.cajero !== cajerosFiltroCajero) return false;
+      return true;
+    }).sort(function(a,b){ return (b.fecha||"").localeCompare(a.fecha||"") || (b.createdAt||0) - (a.createdAt||0); });
+
+    exportBtn.disabled = filtrados.length === 0;
+    exportBtn.addEventListener("click", function(){ doExportCajeros(filtrados); });
+
+    if(filtrados.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = (CAJACAJEROS||[]).length === 0
+        ? "Todavía no hay reportes de caja guardados."
+        : "No hay reportes que coincidan con el filtro.";
+      card.appendChild(empty);
+      wrap.appendChild(card);
+      return wrap;
+    }
+
+    var tableWrap = document.createElement("div");
+    tableWrap.className = "table-wrap";
+    var table = document.createElement("table");
+    table.className = "data-table";
+    table.innerHTML = "<thead><tr><th>Fecha</th><th>Turno</th><th>Cajero</th><th>Caja</th><th>Efectivo</th><th>Dep. A</th><th>Dep. C</th><th>Gastos</th><th>Total calc.</th><th>Total sistema</th><th>Diferencia</th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
+    var tbody = table.querySelector("tbody");
+    filtrados.forEach(function(r){
+      var tr = document.createElement("tr");
+      var diff = cajeroDiferencia(r);
+      var diffHtml = diff === null ? "—" : ('<span class="cajero-diff ' + (Math.abs(diff) < 0.005 ? "good" : "bad") + '">S/ ' + fmt(diff) + '</span>');
+      tr.innerHTML =
+        "<td>" + esc(fmtFechaCorta(r.fecha)) + "</td>" +
+        "<td>" + esc(TURNO_CAJERO_LABEL[r.turno] || r.turno) + "</td>" +
+        "<td>" + esc(r.cajero || "—") + "</td>" +
+        "<td>" + esc(r.caja || "—") + "</td>" +
+        "<td>S/ " + fmt(cajeroEfectivo(r)) + "</td>" +
+        "<td>S/ " + fmt(r.depositoA) + "</td>" +
+        "<td>S/ " + fmt(r.depositoC) + "</td>" +
+        "<td>S/ " + fmt(cajeroGastosTotal(r)) + "</td>" +
+        "<td>S/ " + fmt(cajeroTotalCalculado(r)) + "</td>" +
+        "<td>" + (r.totalSistema === null || r.totalSistema === undefined ? "—" : "S/ " + fmt(r.totalSistema)) + "</td>" +
+        "<td>" + diffHtml + "</td>" +
+        "<td>" + (readOnly ? "" : "<button type='button' class='btn btn-sm cajero-editar' data-id='" + r.id + "'>Editar</button>") + "</td>" +
+        "<td><button type='button' class='btn btn-sm cajero-pdf' data-id='" + r.id + "'>PDF</button></td>" +
+        "<td>" + (readOnly ? "" : '<button type="button" class="btn-del cajero-del" data-id="' + r.id + '" title="Eliminar reporte">✕</button>') + "</td>";
+      tbody.appendChild(tr);
+    });
+    tableWrap.appendChild(table);
+    card.appendChild(tableWrap);
+    wrap.appendChild(card);
+
+    tbody.querySelectorAll(".cajero-pdf").forEach(function(btn){
+      btn.addEventListener("click", function(){ doPrintCajero(btn.getAttribute("data-id")); });
+    });
+    if(!readOnly){
+      tbody.querySelectorAll(".cajero-editar").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var id = btn.getAttribute("data-id");
+          var r = (CAJACAJEROS||[]).filter(function(x){ return x.id === id; })[0];
+          if(r) startEditCajero(r);
+        });
+      });
+      tbody.querySelectorAll(".cajero-del").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var id = btn.getAttribute("data-id");
+          var r = (CAJACAJEROS||[]).filter(function(x){ return x.id === id; })[0];
+          if(!r || !db) return;
+          if(!confirm('¿Eliminar el reporte de caja de "' + (r.cajero || "este cajero") + '" (' + fmtFechaCorta(r.fecha) + ')? No se puede deshacer.')) return;
+          db.collection("cajaCajeros").doc(id).delete().catch(function(){
+            showToast("No se pudo eliminar. Intenta de nuevo.");
+          });
+        });
+      });
+    }
+
+    return wrap;
+  }
+
+  function doExportCajeros(rows){
+    if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo."); return; }
+    try{
+      var aoa = [[
+        "Fecha","Turno","Cajero","Caja","Billetes 200","Billetes 100","Billetes 50","Billetes 20","Billetes 10",
+        "Monedas","Tipo de cambio","Dólares (USD)","Efectivo","Depósito A","Depósito C","Gastos (detalle)","Total gastos",
+        "Total calculado","Total sistema","Diferencia","Notas"
+      ]];
+      rows.slice().sort(function(a,b){ return (a.fecha||"").localeCompare(b.fecha||""); }).forEach(function(r){
+        var diff = cajeroDiferencia(r);
+        var gastosDetalle = (r.gastos||[]).map(function(g){ return g.desc + ": S/ " + fmt(g.monto); }).join(" | ");
+        aoa.push([
+          r.fecha || "", TURNO_CAJERO_LABEL[r.turno] || r.turno || "", r.cajero || "", r.caja || "",
+          num(r.billetes && r.billetes.b200), num(r.billetes && r.billetes.b100), num(r.billetes && r.billetes.b50),
+          num(r.billetes && r.billetes.b20), num(r.billetes && r.billetes.b10),
+          round2(num(r.monedas)), num(r.dolarTipoCambio), round2(num(r.dolarMonto)),
+          round2(cajeroEfectivo(r)), round2(num(r.depositoA)), round2(num(r.depositoC)), gastosDetalle, round2(cajeroGastosTotal(r)),
+          round2(cajeroTotalCalculado(r)), (r.totalSistema === null || r.totalSistema === undefined) ? "" : round2(num(r.totalSistema)),
+          diff === null ? "" : round2(diff), r.notas || ""
+        ]);
+      });
+      var ws = XLSX.utils.aoa_to_sheet(aoa);
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Caja Cajeros");
+      XLSX.writeFile(wb, "caja-cajeros-historial.xlsx");
+      showToast("Reporte descargado.");
+    }catch(err){
+      showToast("No se pudo generar el archivo. Intenta de nuevo.");
+    }
+  }
+
+  function buildCajeroPrintCardHTML(r){
+    var diff = cajeroDiferencia(r);
+    var html = '<div style="font-family:Arial,Helvetica,sans-serif; color:#111; max-width:700px; margin:0 auto;">';
+    html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">';
+    html += '<div><img src="' + CARMELITAS_LOGO + '" style="height:70px; display:block; margin-bottom:6px;"></div>';
+    html += '<div style="text-align:right;">' +
+      '<div style="font-size:20px; font-weight:800; color:' + PEDIDO_DARK + ';">RESUMEN DE CAJA</div>' +
+      '<div style="font-size:12px; color:#555; margin-top:4px;">' + esc(fmtFechaLarga(r.fecha)) + " · " + esc(TURNO_CAJERO_LABEL[r.turno] || r.turno) + '</div>' +
+      '</div>';
+    html += '</div>';
+    html += '<div style="border-bottom:2px solid ' + PEDIDO_DARK + '; margin-top:8px;"></div>';
+    html += '<table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:12px;"><tr>' +
+      '<td style="padding:2px 0;"><strong>Cajero:</strong> ' + esc(r.cajero || "—") + '</td>' +
+      '<td style="padding:2px 0; text-align:right;"><strong>Caja:</strong> ' + esc(r.caja || "—") + '</td></tr></table>';
+
+    function seccion(titulo){
+      return '<div style="background:' + PEDIDO_DARK + '; color:#fff; font-weight:700; font-size:11px; letter-spacing:.04em; padding:4px 10px; margin-top:10px;">' + titulo + '</div>';
+    }
+    html += seccion("BILLETES Y MONEDAS");
+    var billRows = "";
+    BILLETE_VALORES.forEach(function(b){
+      var cant = num(r.billetes && r.billetes[b.key]);
+      billRows += '<tr><td style="border:1px solid #ccc; padding:3px 6px;">' + cant + " x " + b.label + '</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(cant*b.valor) + '</td></tr>';
+    });
+    billRows += '<tr><td style="border:1px solid #ccc; padding:3px 6px;">Monedas</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(r.monedas) + '</td></tr>';
+    if(num(r.dolarMonto) > 0){
+      billRows += '<tr><td style="border:1px solid #ccc; padding:3px 6px;">Dólares (USD ' + fmtMoney(r.dolarMonto) + ' x ' + fmt(r.dolarTipoCambio) + ')</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(cajeroDolarConvertido(r)) + '</td></tr>';
+    }
+    html += '<table style="width:100%; border-collapse:collapse; font-size:11px; margin-top:2px;">' + billRows + '</table>';
+    html += '<div style="text-align:right; font-weight:700; margin-top:4px;">Efectivo total: S/ ' + fmtMoney(cajeroEfectivo(r)) + '</div>';
+
+    html += seccion("DEPÓSITOS");
+    html += '<table style="width:100%; border-collapse:collapse; font-size:11px; margin-top:2px;">' +
+      '<tr><td style="border:1px solid #ccc; padding:3px 6px;">Depósito A</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(r.depositoA) + '</td></tr>' +
+      '<tr><td style="border:1px solid #ccc; padding:3px 6px;">Depósito C</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(r.depositoC) + '</td></tr></table>';
+
+    html += seccion("GASTOS");
+    var gastoRows = (r.gastos||[]).map(function(g){
+      return '<tr><td style="border:1px solid #ccc; padding:3px 6px;">' + esc(g.desc || "") + '</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(g.monto) + '</td></tr>';
+    }).join("");
+    html += '<table style="width:100%; border-collapse:collapse; font-size:11px; margin-top:2px;">' + (gastoRows || '<tr><td style="border:1px solid #ccc; padding:3px 6px;" colspan="2">Sin gastos</td></tr>') + '</table>';
+    html += '<div style="text-align:right; font-weight:700; margin-top:4px;">Total gastos: S/ ' + fmtMoney(cajeroGastosTotal(r)) + '</div>';
+
+    html += '<div style="border-top:2px solid ' + PEDIDO_DARK + '; margin-top:10px; padding-top:6px; font-size:13px;">';
+    html += '<div style="display:flex; justify-content:space-between; font-weight:800;"><span>TOTAL CALCULADO</span><span>S/ ' + fmtMoney(cajeroTotalCalculado(r)) + '</span></div>';
+    if(diff !== null){
+      html += '<div style="display:flex; justify-content:space-between; margin-top:2px;"><span>Total del sistema</span><span>S/ ' + fmtMoney(r.totalSistema) + '</span></div>';
+      html += '<div style="display:flex; justify-content:space-between; margin-top:2px; font-weight:700; color:' + (Math.abs(diff) < 0.005 ? "#1a7a3c" : "#cc0000") + ';"><span>Diferencia</span><span>S/ ' + fmtMoney(diff) + '</span></div>';
+    }
+    html += '</div>';
+    if(r.notas && r.notas.trim()){
+      html += '<div style="margin-top:10px; font-size:11px; color:#555;"><strong>Notas:</strong> ' + esc(r.notas) + '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function doPrintCajero(id){
+    var r = (CAJACAJEROS || []).filter(function(x){ return x.id === id; })[0];
+    if(!r) return;
+    setPrintOrientation(false);
+    var area = document.getElementById("printArea");
+    area.innerHTML = buildCajeroPrintCardHTML(r);
+    doWindowPrint("Caja " + (r.cajero || "") + " " + (r.fecha || ""));
+  }
+
+  function attachCajerosSync(){
+    db.collection("cajaCajeros").onSnapshot(function(snap){
+      var list = [];
+      snap.forEach(function(doc){
+        var data = doc.data();
+        data.id = doc.id;
+        list.push(data);
+      });
+      CAJACAJEROS = list;
+      if(currentTab === "cajeros" && cajerosView !== "nuevo") renderPanel();
+    }, function(){
+      if(currentTab === "cajeros" && CAJACAJEROS === null){
+        showToast("No se pudo cargar el historial de caja de cajeros.");
+      }
+    });
+  }
+
   // ---------- wiring ----------
   function wireStatic(){
     document.getElementById("datePicker").value = currentDate;
@@ -3819,6 +4571,7 @@ var TRIPLES = [
     });
     attachPedidosSync();
     attachClientesSync();
+    attachCajerosSync();
   }
 
   // ---------- lock screen (contraseña compartida del equipo) ----------
