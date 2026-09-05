@@ -4428,17 +4428,29 @@ var TRIPLES = [
     html += '<table style="width:100%; border-collapse:collapse; font-size:11px; margin-top:2px;">' + billRows + '</table>';
     html += '<div style="text-align:right; font-weight:700; margin-top:4px;">Efectivo total: S/ ' + fmtMoney(cajeroEfectivo(r)) + '</div>';
 
-    html += seccion("DEPÓSITOS");
-    html += '<table style="width:100%; border-collapse:collapse; font-size:11px; margin-top:2px;">' +
-      '<tr><td style="border:1px solid #ccc; padding:3px 6px;">Depósito A</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(r.depositoA) + '</td></tr>' +
-      '<tr><td style="border:1px solid #ccc; padding:3px 6px;">Depósito C</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(r.depositoC) + '</td></tr></table>';
+    // Algunas cajas (ej. "Caja 2") nunca manejan depósitos ni gastos -- esas cajas siempre las
+    // llevan otras (ej. Caja 1 y Caja 3). En vez de adivinar por el nombre de la caja, se decide
+    // por si hay datos de verdad: si no hay ni Depósito A ni Depósito C, no se imprime esa
+    // sección; si no hay ninguna línea de gasto cargada, tampoco se imprime "Gastos" -- así no
+    // sale una sección vacía o en S/0 que solo confunda.
+    var tieneDepositos = num(r.depositoA) > 0 || num(r.depositoC) > 0;
+    var gastosConDatos = (r.gastos||[]).filter(function(g){ return (g.desc && g.desc.trim()) || num(g.monto) > 0; });
 
-    html += seccion("GASTOS");
-    var gastoRows = (r.gastos||[]).map(function(g){
-      return '<tr><td style="border:1px solid #ccc; padding:3px 6px;">' + esc(g.desc || "") + '</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(g.monto) + '</td></tr>';
-    }).join("");
-    html += '<table style="width:100%; border-collapse:collapse; font-size:11px; margin-top:2px;">' + (gastoRows || '<tr><td style="border:1px solid #ccc; padding:3px 6px;" colspan="2">Sin gastos</td></tr>') + '</table>';
-    html += '<div style="text-align:right; font-weight:700; margin-top:4px;">Total gastos: S/ ' + fmtMoney(cajeroGastosTotal(r)) + '</div>';
+    if(tieneDepositos){
+      html += seccion("DEPÓSITOS");
+      html += '<table style="width:100%; border-collapse:collapse; font-size:11px; margin-top:2px;">' +
+        '<tr><td style="border:1px solid #ccc; padding:3px 6px;">Depósito A</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(r.depositoA) + '</td></tr>' +
+        '<tr><td style="border:1px solid #ccc; padding:3px 6px;">Depósito C</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(r.depositoC) + '</td></tr></table>';
+    }
+
+    if(gastosConDatos.length > 0){
+      html += seccion("GASTOS");
+      var gastoRows = gastosConDatos.map(function(g){
+        return '<tr><td style="border:1px solid #ccc; padding:3px 6px;">' + esc(g.desc || "") + '</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(g.monto) + '</td></tr>';
+      }).join("");
+      html += '<table style="width:100%; border-collapse:collapse; font-size:11px; margin-top:2px;">' + gastoRows + '</table>';
+      html += '<div style="text-align:right; font-weight:700; margin-top:4px;">Total gastos: S/ ' + fmtMoney(cajeroGastosTotal(r)) + '</div>';
+    }
 
     html += '<div style="border-top:2px solid ' + PEDIDO_DARK + '; margin-top:10px; padding-top:6px; font-size:13px;">';
     html += '<div style="display:flex; justify-content:space-between; font-weight:800;"><span>TOTAL CALCULADO</span><span>S/ ' + fmtMoney(cajeroTotalCalculado(r)) + '</span></div>';
