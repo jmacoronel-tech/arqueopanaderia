@@ -647,6 +647,15 @@ var TRIPLES = [
   var cajerosFiltroDesde = "";
   var cajerosFiltroHasta = "";
   var cajerosFiltroCajero = "todos";
+  // Caja Cajeros maneja dinero, así que pide una clave aparte (distinta para mañana y tarde)
+  // cada vez que se entra a la pestaña -- no basta con la clave general de toda la app. No se
+  // guarda en sessionStorage a propósito: así, aunque el navegador quede abierto, apenas alguien
+  // se va a otra pestaña y vuelve a Caja Cajeros, se le vuelve a pedir la clave.
+  var CAJEROS_PASS_MANANA = "CajaAM2026";
+  var CAJEROS_PASS_TARDE = "CajaPM2026";
+  var cajerosDesbloqueado = false;
+  var cajerosLockTurno = "manana";
+  var cajerosLockError = false;
   var currentTab = "panes";
   var filters = { panes:"", bebidas:"", embutidos:"", triples:"", otros:"" };
   var shiftView = { panes:"am", bebidas:"am", embutidos:"am", triples:"am", otros:"am" };
@@ -3940,9 +3949,101 @@ var TRIPLES = [
     if(r.totalSistema === null || r.totalSistema === undefined) return null;
     return cajeroTotalCalculado(r) - num(r.totalSistema);
   }
+  // Según la caja, la transferencia a veces YA viene incluida en el "Total del sistema" que se
+  // descarga (ahí hay que dejarla fuera del calculado, ver cajeroDiferencia) y a veces NO viene
+  // incluida (ahí hay que sumarla para que cuadre) -- varía según cómo se arma ese reporte en
+  // cada caja, y no hay forma de saberlo desde la app. Por eso se muestran las dos diferencias
+  // una al lado de la otra: la que dé más cerca de cero es la que corresponde a esa caja.
+  function cajeroDiferenciaConTransferencias(r){
+    if(r.totalSistema === null || r.totalSistema === undefined) return null;
+    return cajeroTotalCalculado(r) + cajeroTransferenciasTotal(r) - num(r.totalSistema);
+  }
+
+  // Pantalla de clave de Caja Cajeros -- se muestra en vez de todo el contenido de la pestaña
+  // mientras no se haya ingresado la clave del turno correspondiente. Al elegir un turno y
+  // escribir la clave correcta, desbloquea toda la pestaña (nuevo reporte e historial) hasta que
+  // se salga de la pestaña -- no queda guardado entre visitas.
+  function buildCajerosLock(){
+    var card = document.createElement("div");
+    card.className = "card cajero-form-card";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .4rem";
+    h2.textContent = "Caja Cajeros";
+    card.appendChild(h2);
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.style.margin = "0 0 1rem";
+    hint.textContent = "Esta sección maneja el dinero de caja -- ingresa la clave de tu turno para entrar.";
+    card.appendChild(hint);
+
+    var turnoRow = document.createElement("div");
+    turnoRow.className = "shift-toggle";
+    turnoRow.style.marginBottom = "1rem";
+    [["manana","Mañana"], ["tarde","Tarde"]].forEach(function(pair){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "shift-btn" + (cajerosLockTurno === pair[0] ? " active" : "");
+      b.textContent = pair[1];
+      b.addEventListener("click", function(){ cajerosLockTurno = pair[0]; cajerosLockError = false; renderPanel(); });
+      turnoRow.appendChild(b);
+    });
+    card.appendChild(turnoRow);
+
+    var form = document.createElement("form");
+    form.style.maxWidth = "320px";
+    var field = document.createElement("div");
+    field.className = "field";
+    var label = document.createElement("label");
+    label.textContent = "Clave de " + (cajerosLockTurno === "manana" ? "la mañana" : "la tarde");
+    field.appendChild(label);
+    var input = document.createElement("input");
+    input.type = "password";
+    input.autocomplete = "off";
+    input.autocapitalize = "off";
+    input.autocorrect = "off";
+    input.spellcheck = false;
+    field.appendChild(input);
+    form.appendChild(field);
+
+    if(cajerosLockError){
+      var err = document.createElement("div");
+      err.className = "lock-error";
+      err.style.margin = ".6rem 0 0";
+      err.textContent = "Clave incorrecta. Intenta de nuevo.";
+      form.appendChild(err);
+    }
+
+    var submitBtn = document.createElement("button");
+    submitBtn.type = "submit";
+    submitBtn.className = "btn btn-primary";
+    submitBtn.style.marginTop = ".8rem";
+    submitBtn.textContent = "Entrar";
+    form.appendChild(submitBtn);
+
+    form.addEventListener("submit", function(ev){
+      ev.preventDefault();
+      var typed = input.value.replace(/^\s+|\s+$/g, "");
+      var esperado = cajerosLockTurno === "manana" ? CAJEROS_PASS_MANANA : CAJEROS_PASS_TARDE;
+      if(typed && typed === esperado){
+        cajerosDesbloqueado = true;
+        cajerosLockError = false;
+        renderPanel();
+      } else {
+        cajerosLockError = true;
+        renderPanel();
+      }
+    });
+    card.appendChild(form);
+    setTimeout(function(){ input.focus(); }, 30);
+    return card;
+  }
 
   function buildCajerosPanel(){
     var wrap = document.createElement("div");
+    if(!cajerosDesbloqueado){
+      wrap.appendChild(buildCajerosLock());
+      return wrap;
+    }
     var viewToggle = document.createElement("div");
     viewToggle.className = "shift-toggle";
     viewToggle.style.marginBottom = "1rem";
@@ -4197,13 +4298,20 @@ var TRIPLES = [
     var totalesBox = document.createElement("div");
     totalesBox.className = "pedido-totals";
 
+    function diffLine(etiqueta, diff){
+      if(diff === null) return "";
+      var cls = Math.abs(diff) < 0.005 ? "good" : "bad";
+      return '<div>' + etiqueta + ': <span class="cajero-diff ' + cls + '">S/ ' + fmt(diff) + (Math.abs(diff) < 0.005 ? " (cuadra)" : (diff > 0 ? " (sobra)" : " (falta)")) + '</span></div>';
+    }
     function refreshTotales(){
       var diff = cajeroDiferencia(draft);
+      var diffConTransf = cajeroDiferenciaConTransferencias(draft);
       var html = "<div>Total gastos: <strong>S/ " + fmt(cajeroGastosTotal(draft)) + "</strong></div>";
       html += "<div>Total calculado (efectivo + gastos): <strong>S/ " + fmt(cajeroTotalCalculado(draft)) + "</strong></div>";
-      if(diff !== null){
-        var cls = Math.abs(diff) < 0.005 ? "good" : "bad";
-        html += '<div>Diferencia contra el sistema: <span class="cajero-diff ' + cls + '">S/ ' + fmt(diff) + (Math.abs(diff) < 0.005 ? " (cuadra)" : (diff > 0 ? " (sobra)" : " (falta)")) + '</span></div>';
+      html += diffLine("Diferencia sin transferencias", diff);
+      html += diffLine("Diferencia con transferencias", diffConTransf);
+      if(diff !== null && cajeroTransferenciasTotal(draft) > 0){
+        html += '<div class="hint" style="margin-top:.3rem;">La transferencia a veces ya está incluida en el Total del sistema (usa "sin transferencias") y a veces no (usa "con transferencias") -- la que dé más cerca de cero es la que corresponde a esta caja.</div>';
       }
       totalesBox.innerHTML = html;
     }
@@ -4428,12 +4536,15 @@ var TRIPLES = [
     tableWrap.className = "table-wrap";
     var table = document.createElement("table");
     table.className = "data-table";
-    table.innerHTML = "<thead><tr><th>Fecha</th><th>Turno</th><th>Cajero</th><th>Caja</th><th>Efectivo</th><th>Transferencias</th><th>Gastos</th><th>Total calc.</th><th>Total sistema</th><th>Diferencia</th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
+    table.innerHTML = "<thead><tr><th>Fecha</th><th>Turno</th><th>Cajero</th><th>Caja</th><th>Efectivo</th><th>Transferencias</th><th>Gastos</th><th>Total calc.</th><th>Total sistema</th><th>Dif. sin transf.</th><th>Dif. con transf.</th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
     var tbody = table.querySelector("tbody");
+    function diffCellHtml(diff){
+      return diff === null ? "—" : ('<span class="cajero-diff ' + (Math.abs(diff) < 0.005 ? "good" : "bad") + '">S/ ' + fmt(diff) + '</span>');
+    }
     filtrados.forEach(function(r){
       var tr = document.createElement("tr");
       var diff = cajeroDiferencia(r);
-      var diffHtml = diff === null ? "—" : ('<span class="cajero-diff ' + (Math.abs(diff) < 0.005 ? "good" : "bad") + '">S/ ' + fmt(diff) + '</span>');
+      var diffConTransf = cajeroDiferenciaConTransferencias(r);
       tr.innerHTML =
         "<td>" + esc(fmtFechaCorta(r.fecha)) + "</td>" +
         "<td>" + esc(TURNO_CAJERO_LABEL[r.turno] || r.turno) + "</td>" +
@@ -4444,7 +4555,8 @@ var TRIPLES = [
         "<td>S/ " + fmt(cajeroGastosTotal(r)) + "</td>" +
         "<td>S/ " + fmt(cajeroTotalCalculado(r)) + "</td>" +
         "<td>" + (r.totalSistema === null || r.totalSistema === undefined ? "—" : "S/ " + fmt(r.totalSistema)) + "</td>" +
-        "<td>" + diffHtml + "</td>" +
+        "<td>" + diffCellHtml(diff) + "</td>" +
+        "<td>" + diffCellHtml(diffConTransf) + "</td>" +
         "<td>" + (readOnly ? "" : "<button type='button' class='btn btn-sm cajero-editar' data-id='" + r.id + "'>Editar</button>") + "</td>" +
         "<td><button type='button' class='btn btn-sm cajero-pdf' data-id='" + r.id + "'>PDF</button></td>" +
         "<td>" + (readOnly ? "" : '<button type="button" class="btn-del cajero-del" data-id="' + r.id + '" title="Eliminar reporte">✕</button>') + "</td>";
@@ -4492,10 +4604,12 @@ var TRIPLES = [
       var aoa = [[
         "Fecha","Turno","Cajero","Caja","Billetes 200","Billetes 100","Billetes 50","Billetes 20","Billetes 10",
         "Monedas","Efectivo en soles","Tipo de cambio","Dólares (USD)","Convertido de dólares","Efectivo total",
-        "Transferencias bancarias (no suma)","Total gastos","Total calculado","Total sistema","Diferencia","Notas"
+        "Transferencias bancarias","Total gastos","Total calculado (sin transferencias)","Total sistema",
+        "Diferencia sin transferencias","Diferencia con transferencias","Notas"
       ]];
       ordenados.forEach(function(r){
         var diff = cajeroDiferencia(r);
+        var diffConTransf = cajeroDiferenciaConTransferencias(r);
         aoa.push([
           r.fecha || "", TURNO_CAJERO_LABEL[r.turno] || r.turno || "", r.cajero || "", r.caja || "",
           num(r.billetes && r.billetes.b200), num(r.billetes && r.billetes.b100), num(r.billetes && r.billetes.b50),
@@ -4504,7 +4618,7 @@ var TRIPLES = [
           num(r.dolarTipoCambio), round2(cajeroDolaresTotalUSD(r)), round2(cajeroDolarConvertido(r)), round2(cajeroEfectivo(r)),
           round2(cajeroTransferenciasTotal(r)), round2(cajeroGastosTotal(r)),
           round2(cajeroTotalCalculado(r)), (r.totalSistema === null || r.totalSistema === undefined) ? "" : round2(num(r.totalSistema)),
-          diff === null ? "" : round2(diff), r.notas || ""
+          diff === null ? "" : round2(diff), diffConTransf === null ? "" : round2(diffConTransf), r.notas || ""
         ]);
       });
 
@@ -4546,6 +4660,7 @@ var TRIPLES = [
 
   function buildCajeroPrintCardHTML(r){
     var diff = cajeroDiferencia(r);
+    var diffConTransf = cajeroDiferenciaConTransferencias(r);
     var html = '<div style="font-family:Arial,Helvetica,sans-serif; color:#111; max-width:700px; margin:0 auto;">';
     html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">';
     html += '<div><img src="' + CARMELITAS_LOGO + '" style="height:70px; display:block; margin-bottom:6px;"></div>';
@@ -4600,7 +4715,7 @@ var TRIPLES = [
       html += seccion("TRANSFERENCIAS BANCARIAS");
       html += '<table style="width:100%; border-collapse:collapse; font-size:11px; margin-top:2px;">' +
         '<tr><td style="border:1px solid #ccc; padding:3px 6px;">Transferido directo por el cliente (no es efectivo)</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(transferenciasTotal) + '</td></tr></table>';
-      html += '<div style="text-align:right; font-size:10px; color:#777; margin-top:2px;">Solo como referencia -- no se suma al total calculado ni a la diferencia.</div>';
+      html += '<div style="text-align:right; font-size:10px; color:#777; margin-top:2px;">No se suma al total calculado -- ver abajo las dos diferencias (sin y con esta transferencia).</div>';
     }
 
     if(gastosConDatos.length > 0){
@@ -4616,7 +4731,11 @@ var TRIPLES = [
     html += '<div style="display:flex; justify-content:space-between; font-weight:800;"><span>TOTAL CALCULADO</span><span>S/ ' + fmtMoney(cajeroTotalCalculado(r)) + '</span></div>';
     if(diff !== null){
       html += '<div style="display:flex; justify-content:space-between; margin-top:2px;"><span>Total del sistema</span><span>S/ ' + fmtMoney(r.totalSistema) + '</span></div>';
-      html += '<div style="display:flex; justify-content:space-between; margin-top:2px; font-weight:700; color:' + (Math.abs(diff) < 0.005 ? "#1a7a3c" : "#cc0000") + ';"><span>Diferencia</span><span>S/ ' + fmtMoney(diff) + '</span></div>';
+      html += '<div style="display:flex; justify-content:space-between; margin-top:2px; font-weight:700; color:' + (Math.abs(diff) < 0.005 ? "#1a7a3c" : "#cc0000") + ';"><span>Diferencia sin transferencias</span><span>S/ ' + fmtMoney(diff) + '</span></div>';
+      if(transferenciasTotal > 0){
+        html += '<div style="display:flex; justify-content:space-between; margin-top:2px; font-weight:700; color:' + (Math.abs(diffConTransf) < 0.005 ? "#1a7a3c" : "#cc0000") + ';"><span>Diferencia con transferencias</span><span>S/ ' + fmtMoney(diffConTransf) + '</span></div>';
+        html += '<div style="text-align:right; font-size:10px; color:#777; margin-top:2px;">La que dé más cerca de cero es la que corresponde a esta caja.</div>';
+      }
     }
     html += '</div>';
     if(r.notas && r.notas.trim()){
@@ -4668,7 +4787,15 @@ var TRIPLES = [
     document.querySelectorAll(".tab-btn").forEach(function(btn){
       btn.addEventListener("click", function(){
         if(!STATE) return;
-        currentTab = btn.getAttribute("data-tab"); renderAll();
+        var destino = btn.getAttribute("data-tab");
+        // Al salir de Caja Cajeros hacia cualquier otra pestaña, se vuelve a pedir la clave la
+        // próxima vez que se entre -- así no queda abierto a la vista de todos aunque el
+        // navegador nunca se cierre.
+        if(currentTab === "cajeros" && destino !== "cajeros"){
+          cajerosDesbloqueado = false;
+          cajerosLockError = false;
+        }
+        currentTab = destino; renderAll();
       });
     });
   }
