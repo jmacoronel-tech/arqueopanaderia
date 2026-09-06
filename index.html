@@ -3874,8 +3874,11 @@ var TRIPLES = [
       // billete), para poder identificar de cuál billete se trata si hace falta -- no se
       // mezcla con los soles, solo se convierte para saber el total en soles.
       dolares: [ { serie:"", monto:0 } ],
-      depositoA: 0,
-      depositoC: 0,
+      // Dinero que el cliente transfirió directo al banco (se factura y por eso aparece en el
+      // Total del sistema), pero que nunca pasó físicamente por la caja. Se anota solo para que
+      // quede el registro -- no se suma al Total calculado ni afecta la diferencia, porque no es
+      // plata que el cajero deba tener en mano.
+      transferencias: 0,
       gastos: [ { desc:"", monto:0 } ],
       totalSistema: null,
       notas: ""
@@ -3915,8 +3918,18 @@ var TRIPLES = [
   function cajeroGastosTotal(r){
     return (r.gastos || []).reduce(function(s, g){ return s + num(g.monto); }, 0);
   }
+  // Compatibilidad con reportes guardados ANTES de este cambio, cuando este dinero se anotaba
+  // como "Depósito A" / "Depósito C" -- para que no se pierda lo ya guardado al verlos o editarlos.
+  function cajeroTransferenciasTotal(r){
+    if(r.transferencias !== undefined && r.transferencias !== null) return num(r.transferencias);
+    return num(r.depositoA) + num(r.depositoC);
+  }
+  // Las transferencias bancarias NO se suman aquí: el cliente le transfiere directo al banco,
+  // se factura esa venta (por eso aparece en el Total del sistema), pero esa plata nunca pasó
+  // físicamente por la caja -- así que no se le puede pedir al cajero que la tenga en mano. Se
+  // anotan aparte solo como referencia/registro, sin afectar el total calculado ni la diferencia.
   function cajeroTotalCalculado(r){
-    return cajeroEfectivo(r) + num(r.depositoA) + num(r.depositoC) + cajeroGastosTotal(r);
+    return cajeroEfectivo(r) + cajeroGastosTotal(r);
   }
   // Diferencia = lo que reportó el cajero MENOS lo que dice el sistema -- así, si el cajero
   // cuenta más de lo que el sistema esperaba, la diferencia sale positiva ("sobra"), y si
@@ -4156,16 +4169,15 @@ var TRIPLES = [
 
     card.appendChild(efectivoLine);
 
-    var hintDep = document.createElement("div");
-    hintDep.className = "hint";
-    hintDep.style.margin = "1rem 0 .4rem";
-    hintDep.textContent = "Depósitos";
-    card.appendChild(hintDep);
-    var depGrid = document.createElement("div");
-    depGrid.className = "field-grid";
-    depGrid.appendChild(buildField("Depósito A", "number", draft.depositoA || null, function(v){ draft.depositoA = num(v); refreshTotales(); }));
-    depGrid.appendChild(buildField("Depósito C", "number", draft.depositoC || null, function(v){ draft.depositoC = num(v); refreshTotales(); }));
-    card.appendChild(depGrid);
+    var hintTransf = document.createElement("div");
+    hintTransf.className = "hint";
+    hintTransf.style.margin = "1rem 0 .4rem";
+    hintTransf.textContent = "Transferencias bancarias (el cliente transfirió directo, no es efectivo -- solo queda anotado, no afecta el total ni la diferencia)";
+    card.appendChild(hintTransf);
+    var transfGrid = document.createElement("div");
+    transfGrid.className = "field-grid";
+    transfGrid.appendChild(buildField("Transferencias bancarias (S/)", "number", draft.transferencias || null, function(v){ draft.transferencias = num(v); }));
+    card.appendChild(transfGrid);
 
     var hintGastos = document.createElement("div");
     hintGastos.className = "hint";
@@ -4188,7 +4200,7 @@ var TRIPLES = [
     function refreshTotales(){
       var diff = cajeroDiferencia(draft);
       var html = "<div>Total gastos: <strong>S/ " + fmt(cajeroGastosTotal(draft)) + "</strong></div>";
-      html += "<div>Total calculado (efectivo + depósitos + gastos): <strong>S/ " + fmt(cajeroTotalCalculado(draft)) + "</strong></div>";
+      html += "<div>Total calculado (efectivo + gastos): <strong>S/ " + fmt(cajeroTotalCalculado(draft)) + "</strong></div>";
       if(diff !== null){
         var cls = Math.abs(diff) < 0.005 ? "good" : "bad";
         html += '<div>Diferencia contra el sistema: <span class="cajero-diff ' + cls + '">S/ ' + fmt(diff) + (Math.abs(diff) < 0.005 ? " (cuadra)" : (diff > 0 ? " (sobra)" : " (falta)")) + '</span></div>';
@@ -4294,8 +4306,7 @@ var TRIPLES = [
       dolares: (draft.dolares || []).filter(function(d){ return (d.serie && d.serie.trim()) || num(d.monto) > 0; }).map(function(d){
         return { serie: (d.serie || "").trim(), monto: num(d.monto) };
       }),
-      depositoA: num(draft.depositoA),
-      depositoC: num(draft.depositoC),
+      transferencias: num(draft.transferencias),
       gastos: (draft.gastos || []).filter(function(g){ return (g.desc && g.desc.trim()) || num(g.monto) > 0; }).map(function(g){
         return { desc: (g.desc || "").trim(), monto: num(g.monto) };
       }),
@@ -4337,8 +4348,7 @@ var TRIPLES = [
       monedas: num(r.monedas),
       dolarTipoCambio: num(r.dolarTipoCambio),
       dolares: cajeroDolaresList(r).length ? cajeroDolaresList(r).map(function(d){ return { serie: d.serie||"", monto: num(d.monto) }; }) : [ { serie:"", monto:0 } ],
-      depositoA: num(r.depositoA),
-      depositoC: num(r.depositoC),
+      transferencias: cajeroTransferenciasTotal(r),
       gastos: (r.gastos && r.gastos.length) ? r.gastos.map(function(g){ return { desc: g.desc||"", monto: num(g.monto) }; }) : [ { desc:"", monto:0 } ],
       totalSistema: numOrNull(r.totalSistema),
       notas: r.notas || ""
@@ -4418,7 +4428,7 @@ var TRIPLES = [
     tableWrap.className = "table-wrap";
     var table = document.createElement("table");
     table.className = "data-table";
-    table.innerHTML = "<thead><tr><th>Fecha</th><th>Turno</th><th>Cajero</th><th>Caja</th><th>Efectivo</th><th>Dep. A</th><th>Dep. C</th><th>Gastos</th><th>Total calc.</th><th>Total sistema</th><th>Diferencia</th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
+    table.innerHTML = "<thead><tr><th>Fecha</th><th>Turno</th><th>Cajero</th><th>Caja</th><th>Efectivo</th><th>Transferencias</th><th>Gastos</th><th>Total calc.</th><th>Total sistema</th><th>Diferencia</th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
     var tbody = table.querySelector("tbody");
     filtrados.forEach(function(r){
       var tr = document.createElement("tr");
@@ -4430,8 +4440,7 @@ var TRIPLES = [
         "<td>" + esc(r.cajero || "—") + "</td>" +
         "<td>" + esc(r.caja || "—") + "</td>" +
         "<td>S/ " + fmt(cajeroEfectivo(r)) + "</td>" +
-        "<td>S/ " + fmt(r.depositoA) + "</td>" +
-        "<td>S/ " + fmt(r.depositoC) + "</td>" +
+        "<td>S/ " + fmt(cajeroTransferenciasTotal(r)) + "</td>" +
         "<td>S/ " + fmt(cajeroGastosTotal(r)) + "</td>" +
         "<td>S/ " + fmt(cajeroTotalCalculado(r)) + "</td>" +
         "<td>" + (r.totalSistema === null || r.totalSistema === undefined ? "—" : "S/ " + fmt(r.totalSistema)) + "</td>" +
@@ -4483,7 +4492,7 @@ var TRIPLES = [
       var aoa = [[
         "Fecha","Turno","Cajero","Caja","Billetes 200","Billetes 100","Billetes 50","Billetes 20","Billetes 10",
         "Monedas","Efectivo en soles","Tipo de cambio","Dólares (USD)","Convertido de dólares","Efectivo total",
-        "Depósito A","Depósito C","Total gastos","Total calculado","Total sistema","Diferencia","Notas"
+        "Transferencias bancarias (no suma)","Total gastos","Total calculado","Total sistema","Diferencia","Notas"
       ]];
       ordenados.forEach(function(r){
         var diff = cajeroDiferencia(r);
@@ -4493,7 +4502,7 @@ var TRIPLES = [
           num(r.billetes && r.billetes.b20), num(r.billetes && r.billetes.b10),
           round2(num(r.monedas)), round2(cajeroEfectivoSoles(r)),
           num(r.dolarTipoCambio), round2(cajeroDolaresTotalUSD(r)), round2(cajeroDolarConvertido(r)), round2(cajeroEfectivo(r)),
-          round2(num(r.depositoA)), round2(num(r.depositoC)), round2(cajeroGastosTotal(r)),
+          round2(cajeroTransferenciasTotal(r)), round2(cajeroGastosTotal(r)),
           round2(cajeroTotalCalculado(r)), (r.totalSistema === null || r.totalSistema === undefined) ? "" : round2(num(r.totalSistema)),
           diff === null ? "" : round2(diff), r.notas || ""
         ]);
@@ -4579,19 +4588,19 @@ var TRIPLES = [
 
     html += '<div style="text-align:right; font-weight:800; margin-top:6px; font-size:13px;">Efectivo total: S/ ' + fmtMoney(cajeroEfectivo(r)) + '</div>';
 
-    // Algunas cajas (ej. "Caja 2") nunca manejan depósitos ni gastos -- esas cajas siempre las
-    // llevan otras (ej. Caja 1 y Caja 3). En vez de adivinar por el nombre de la caja, se decide
-    // por si hay datos de verdad: si no hay ni Depósito A ni Depósito C, no se imprime esa
-    // sección; si no hay ninguna línea de gasto cargada, tampoco se imprime "Gastos" -- así no
-    // sale una sección vacía o en S/0 que solo confunda.
-    var tieneDepositos = num(r.depositoA) > 0 || num(r.depositoC) > 0;
+    // Algunas cajas (ej. "Caja 2") nunca manejan transferencias ni gastos -- esas cajas siempre
+    // las llevan otras (ej. Caja 1 y Caja 3). En vez de adivinar por el nombre de la caja, se
+    // decide por si hay datos de verdad: si no hay transferencias, no se imprime esa sección; si
+    // no hay ninguna línea de gasto cargada, tampoco se imprime "Gastos" -- así no sale una
+    // sección vacía o en S/0 que solo confunda.
+    var transferenciasTotal = cajeroTransferenciasTotal(r);
     var gastosConDatos = (r.gastos||[]).filter(function(g){ return (g.desc && g.desc.trim()) || num(g.monto) > 0; });
 
-    if(tieneDepositos){
-      html += seccion("DEPÓSITOS");
+    if(transferenciasTotal > 0){
+      html += seccion("TRANSFERENCIAS BANCARIAS");
       html += '<table style="width:100%; border-collapse:collapse; font-size:11px; margin-top:2px;">' +
-        '<tr><td style="border:1px solid #ccc; padding:3px 6px;">Depósito A</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(r.depositoA) + '</td></tr>' +
-        '<tr><td style="border:1px solid #ccc; padding:3px 6px;">Depósito C</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(r.depositoC) + '</td></tr></table>';
+        '<tr><td style="border:1px solid #ccc; padding:3px 6px;">Transferido directo por el cliente (no es efectivo)</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(transferenciasTotal) + '</td></tr></table>';
+      html += '<div style="text-align:right; font-size:10px; color:#777; margin-top:2px;">Solo como referencia -- no se suma al total calculado ni a la diferencia.</div>';
     }
 
     if(gastosConDatos.length > 0){
