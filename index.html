@@ -3884,9 +3884,9 @@ var TRIPLES = [
       // mezcla con los soles, solo se convierte para saber el total en soles.
       dolares: [ { serie:"", monto:0 } ],
       // Dinero que el cliente transfirió directo al banco (se factura y por eso aparece en el
-      // Total del sistema), pero que nunca pasó físicamente por la caja. Se anota solo para que
-      // quede el registro -- no se suma al Total calculado ni afecta la diferencia, porque no es
-      // plata que el cajero deba tener en mano.
+      // Total del sistema). El cajero nunca lo tiene físicamente en la caja, pero sí se suma al
+      // Total calculado (ver cajeroTotalCalculado) para poder comparar contra el Total del
+      // sistema y ver si cuadra.
       transferencias: 0,
       gastos: [ { desc:"", monto:0 } ],
       totalSistema: null,
@@ -3933,12 +3933,13 @@ var TRIPLES = [
     if(r.transferencias !== undefined && r.transferencias !== null) return num(r.transferencias);
     return num(r.depositoA) + num(r.depositoC);
   }
-  // Las transferencias bancarias NO se suman aquí: el cliente le transfiere directo al banco,
-  // se factura esa venta (por eso aparece en el Total del sistema), pero esa plata nunca pasó
-  // físicamente por la caja -- así que no se le puede pedir al cajero que la tenga en mano. Se
-  // anotan aparte solo como referencia/registro, sin afectar el total calculado ni la diferencia.
+  // La transferencia bancaria SÍ se suma aquí: el cliente le transfiere directo al banco, se
+  // factura esa venta y por eso aparece en el Total del sistema -- aunque esa plata nunca pasó
+  // físicamente por la caja, hay que sumarla al total calculado para poder compararlo contra el
+  // Total del sistema y ver si cuadra (si no se suma, siempre va a "faltar" exactamente el monto
+  // de la transferencia, aunque en realidad esté todo correcto).
   function cajeroTotalCalculado(r){
-    return cajeroEfectivo(r) + cajeroGastosTotal(r);
+    return cajeroEfectivo(r) + cajeroGastosTotal(r) + cajeroTransferenciasTotal(r);
   }
   // Diferencia = lo que reportó el cajero MENOS lo que dice el sistema -- así, si el cajero
   // cuenta más de lo que el sistema esperaba, la diferencia sale positiva ("sobra"), y si
@@ -4264,7 +4265,7 @@ var TRIPLES = [
     var hintTransf = document.createElement("div");
     hintTransf.className = "hint";
     hintTransf.style.margin = "1rem 0 .4rem";
-    hintTransf.textContent = "Transferencias bancarias (el cliente transfirió directo, no es efectivo -- solo queda anotado, no afecta el total ni la diferencia)";
+    hintTransf.textContent = "Transferencias bancarias (el cliente transfirió directo, no es efectivo -- se suma al total calculado para comparar contra el Total del sistema)";
     card.appendChild(hintTransf);
     var transfGrid = document.createElement("div");
     transfGrid.className = "field-grid";
@@ -4292,7 +4293,7 @@ var TRIPLES = [
     function refreshTotales(){
       var diff = cajeroDiferencia(draft);
       var html = "<div>Total gastos: <strong>S/ " + fmt(cajeroGastosTotal(draft)) + "</strong></div>";
-      html += "<div>Total calculado (efectivo + gastos): <strong>S/ " + fmt(cajeroTotalCalculado(draft)) + "</strong></div>";
+      html += "<div>Total calculado (efectivo + gastos + transferencias): <strong>S/ " + fmt(cajeroTotalCalculado(draft)) + "</strong></div>";
       if(diff !== null){
         var cls = Math.abs(diff) < 0.005 ? "good" : "bad";
         html += '<div>Diferencia: <span class="cajero-diff ' + cls + '">S/ ' + fmt(diff) + (Math.abs(diff) < 0.005 ? " (cuadra)" : (diff > 0 ? " (sobra)" : " (falta)")) + '</span></div>';
@@ -4695,7 +4696,7 @@ var TRIPLES = [
       html += seccion("TRANSFERENCIAS BANCARIAS");
       html += '<table style="width:100%; border-collapse:collapse; font-size:11px; margin-top:2px;">' +
         '<tr><td style="border:1px solid #ccc; padding:3px 6px;">Transferido directo por el cliente (no es efectivo)</td><td style="border:1px solid #ccc; padding:3px 6px; text-align:right;">S/ ' + fmtMoney(transferenciasTotal) + '</td></tr></table>';
-      html += '<div style="text-align:right; font-size:10px; color:#777; margin-top:2px;">No se suma al total calculado.</div>';
+      html += '<div style="text-align:right; font-size:10px; color:#777; margin-top:2px;">Se suma al total calculado (aunque no la tenga en mano el cajero) para comparar contra el Total del sistema.</div>';
     }
 
     if(gastosConDatos.length > 0){
