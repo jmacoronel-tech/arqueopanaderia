@@ -181,6 +181,21 @@
   .cuadre-cell.pending{ color:var(--ink-muted); font-weight:500; }
   .row-count{ font-size:.78rem; color:var(--ink-muted); margin-top:.6rem; }
 
+  /* Metas (objetivo de venta del día) */
+  .metas-cats{ display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:1rem; margin-top:1rem; }
+  table.metas-table{ min-width:0; width:100%; }
+  .metas-cats table.metas-table{ table-layout:fixed; }
+  table.metas-reporte-table{ min-width:640px; }
+  table.metas-table th:first-child, table.metas-table td:first-child{ width:auto; }
+  table.metas-table tfoot td{ padding:.35rem .5rem; border-top:1px solid var(--border); border-bottom:none; text-align:right; background:var(--surface-2); font-weight:700; }
+  table.metas-table tfoot td:first-child{ text-align:left; font-size:.68rem; text-transform:uppercase; letter-spacing:.03em; color:var(--ink-soft); }
+  table.metas-table .meta-input{ background:var(--accent-soft); }
+  table.metas-table .metas-pct.good{ color:var(--good); }
+  table.metas-table .metas-falta{ color:var(--bad); }
+  table.metas-table .metas-falta.good{ color:var(--good); font-size:.78rem; }
+  table.metas-table tfoot td.good{ color:var(--good); }
+  .metas-num-input{ width:3.1rem; padding:.28rem .2rem; text-align:center; }
+
   .history-list{ display:flex; flex-direction:column; gap:.7rem; }
   .history-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:.85rem 1rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; cursor:pointer; text-align:left; width:100%; box-shadow:var(--shadow); }
   .history-card:hover{ border-color:var(--accent); }
@@ -281,6 +296,7 @@
       <button class="tab-btn" data-tab="embutidos" type="button">Embutidos</button>
       <button class="tab-btn" data-tab="triples" type="button">Triples</button>
       <button class="tab-btn" data-tab="otros" type="button">Otros</button>
+      <button class="tab-btn" data-tab="metas" type="button">Metas</button>
       <button class="tab-btn" data-tab="pedidos" type="button">Pedidos</button>
       <button class="tab-btn" data-tab="cajeros" type="button">Caja Cajeros</button>
       <button class="tab-btn" data-tab="turno" type="button">Turno</button>
@@ -305,7 +321,7 @@
 
   var PANES = [
     "Francés", "Pan Mini Francés", "Francés Especial", "Francés Intermedio",
-    "Francés Sanguchero", "Ciabatta por Kilo", "Pan Mini Ciabatta", "Yema",
+    "Francés Sanguchero", "Ciabatta", "Pan Mini Ciabatta", "Yema",
     "Integral", "Baguette", "Baguetino", "Croissant",
     "Hamburguesa", "Hamburguesa Brioche", "Chirimoya", "Chancay",
     "Coliza", "Caramanduca", "Molde 7 Semillas Chico", "Molde Especial Semillas Chico",
@@ -466,7 +482,7 @@ var TRIPLES = [
     {n:"BAGUETTE", p:4.9},
     {n:"CARAMANDUCA", p:1.1},
     {n:"CHANCAY", p:7},
-    {n:"CIABATTA POR KILO", p:13.2},
+    {n:"CIABATTA", p:1.3},
     {n:"COLIZA", p:1.1},
     {n:"CROISSANT", p:4},
     {n:"FRANCÉS", p:0.8},
@@ -594,6 +610,136 @@ var TRIPLES = [
     return section.catalog || STATE.customCatalog;
   }
 
+  // Productos descontinuados (ej. "ya no hacemos Molde 7 Semillas Chico"): se quedan en el
+  // catálogo de arriba, en la misma posición de siempre -- así el índice de cada día YA
+  // GUARDADO (que apunta a esa posición) no se corre ni se desordena -- pero se ocultan de la
+  // tabla de hoy en adelante (y de "Imprimir esta vista") para que el personal no siga
+  // contándolos. Si algún día lo vuelven a hacer, se saca de esta lista y reaparece con todo
+  // su historial intacto, en el mismo lugar de siempre.
+  var DESCONTINUADOS = {
+    panes: ["Molde 7 Semillas Chico"],
+    bebidas: [],
+    embutidos: [],
+    triples: []
+  };
+  function isDescontinuado(tabKey, name){
+    return (DESCONTINUADOS[tabKey] || []).indexOf(name) !== -1;
+  }
+
+  // ---------- Metas (objetivo de venta del día) ----------
+  // Pestaña aparte del arqueo/stock: acá no hay saldo ni merma, solo se anota cuánto se vendió
+  // de cada producto (mañana/tarde) y se compara contra una meta -- igual que el Excel "METAS"
+  // que Jessica ya usa. Catálogo y valores de meta por defecto sacados de ese Excel (METAS 2.xlsx).
+  var METAS_CATEGORIAS = [
+    { key:"frutas", label:"Frutas", conMeta:true,
+      subcols:[ {key:"jugos",label:"Jugos"}, {key:"batidos",label:"Batidos"}, {key:"frozen",label:"Frozen"} ],
+      items:["Fresa","Guanábana","Lúcuma","Mango","Piña","Fresa con arándanos","Naranja","Papaya","Melón",
+        "Maracuyá","Jugo de mandarina","Jugo mix bi","Jugo mix tri","Mix bi con naranja","Mix tri con naranja",
+        "Mix fresa/arándano/mango","Limonada"]
+    },
+    { key:"sanguches", label:"Sánguches", conMeta:true,
+      subcols:[ {key:"megas",label:"Megas"}, {key:"grandes",label:"Grandes"}, {key:"minis",label:"Minis"} ],
+      items:["Sándwich chicharrón","Sándwich butifarra","Sándwich glaseado","Sándwich asado","Sándwich pavo",
+        "Sándwich huachano","Mixto 100","Mixto clásico","Mixto especial","Croissant de jamón y queso"]
+    },
+    { key:"cafes", label:"Cafés", conMeta:true,
+      subcols:[ {key:"venta",label:"Venta"} ],
+      items:["Café americano chico","Café americano grande","Café con leche","Café tradicional chico",
+        "Café tradicional grande","Capuccino","Capuccino grande","Chocolate","Espresso","Leche sola",
+        "Té frutado caliente","Té manzanilla"]
+    },
+    { key:"dulces", label:"Dulces", conMeta:true,
+      subcols:[ {key:"unidad",label:"Unidad"} ],
+      items:["Muffin de arándanos","Muffin de manzana","Muffin de plátano y chocolate","Galletas full omega",
+        "Porción fondant de chocolate","Porción tarta de queso","Molde fondant de chocolate",
+        "Molde tarta de queso y vainilla","40 mini galletas","Miel frasco 200gr","Miel frasco 500gr",
+        "Miel frasco 1.1kg","Miel frasco 250gr"]
+    },
+    { key:"saludables", label:"Panes saludables", conMeta:false,
+      subcols:[ {key:"venta",label:"Venta"} ],
+      items:["Masa madre campesino","Masa madre centeno","Masa madre con frutos secos","Molde especial de semillas"]
+    },
+    { key:"empanadas", label:"Empanadas y pasteles salados", conMeta:false,
+      subcols:[ {key:"venta",label:"Venta"} ],
+      items:["Empanada de carne","Empanada mixta (jamón y queso)","Empanada de ají de gallina",
+        "Porción pastel de acelga","Molde pastel de acelga"]
+    }
+  ];
+  var METAS_WEEKDAY_KEYS = ["domingo","lunes","martes","miercoles","jueves","viernes","sabado"];
+  var METAS_WEEKDAY_LABEL = { domingo:"Domingo", lunes:"Lunes", martes:"Martes", miercoles:"Miércoles",
+    jueves:"Jueves", viernes:"Viernes", sabado:"Sábado" };
+  function weekdayKeyFor(iso){
+    var d = new Date(iso + "T12:00:00");
+    return METAS_WEEKDAY_KEYS[d.getDay()];
+  }
+  // Meta editable por día de la semana (no por fecha exacta): el lunes siempre tiene la misma
+  // meta, distinta a la del sábado. Estos son los valores con los que Jessica ya trabaja hoy.
+  var METAS_OBJETIVOS_DEFAULT = {
+    lunes:     { frutas:{am:[50,15,5], pm:[25,10,5]},  sanguches:{am:[30,80,25],  pm:[15,35,20]}, cafes:{am:[40], pm:[30]}, dulces:{am:[20], pm:[25]} },
+    martes:    { frutas:{am:[50,15,5], pm:[20,10,5]},  sanguches:{am:[30,80,25],  pm:[15,45,20]}, cafes:{am:[40], pm:[25]}, dulces:{am:[20], pm:[25]} },
+    miercoles: { frutas:{am:[50,15,5], pm:[20,10,5]},  sanguches:{am:[30,80,25],  pm:[15,45,20]}, cafes:{am:[40], pm:[25]}, dulces:{am:[20], pm:[25]} },
+    jueves:    { frutas:{am:[50,15,5], pm:[20,10,5]},  sanguches:{am:[30,80,25],  pm:[15,45,20]}, cafes:{am:[40], pm:[25]}, dulces:{am:[20], pm:[25]} },
+    viernes:   { frutas:{am:[50,15,5], pm:[20,10,5]},  sanguches:{am:[30,80,25],  pm:[15,45,20]}, cafes:{am:[40], pm:[25]}, dulces:{am:[20], pm:[25]} },
+    sabado:    { frutas:{am:[70,20,5], pm:[25,10,5]},  sanguches:{am:[30,150,50], pm:[15,35,20]}, cafes:{am:[75], pm:[30]}, dulces:{am:[20], pm:[25]} },
+    domingo:   { frutas:{am:[50,15,5], pm:[25,10,5]},  sanguches:{am:[30,150,25], pm:[15,35,20]}, cafes:{am:[40], pm:[30]}, dulces:{am:[20], pm:[25]} }
+  };
+  function makeMetasRow(cat){
+    var row = {};
+    cat.subcols.forEach(function(sc){ row[sc.key] = 0; });
+    return row;
+  }
+  function makeMetasSection(cat){
+    return {
+      am: cat.items.map(function(){ return makeMetasRow(cat); }),
+      pm: cat.items.map(function(){ return makeMetasRow(cat); })
+    };
+  }
+  function makeMetasDay(){
+    var out = {};
+    METAS_CATEGORIAS.forEach(function(cat){ out[cat.key] = makeMetasSection(cat); });
+    return out;
+  }
+  // Igual que backfillSection/backfillDay para el arqueo: si más adelante se agrega un ítem
+  // nuevo a una categoría, completamos la fila que falta en los días ya guardados.
+  function backfillMetasDay(day){
+    if(!day.metas) day.metas = {};
+    METAS_CATEGORIAS.forEach(function(cat){
+      var sec = day.metas[cat.key];
+      if(!sec){ day.metas[cat.key] = makeMetasSection(cat); return; }
+      ["am","pm"].forEach(function(shift){
+        if(!sec[shift]) sec[shift] = [];
+        for(var i = sec[shift].length; i < cat.items.length; i++){ sec[shift].push(makeMetasRow(cat)); }
+      });
+    });
+  }
+  function metasObjetivoDefaultFor(weekdayKey){ return deepClone(METAS_OBJETIVOS_DEFAULT[weekdayKey]); }
+  // Rellena STATE.metasObjetivos con los 7 días de la semana y las 4 categorías con meta, por
+  // si en el futuro se agrega una categoría nueva con meta -- igual patrón que backfillDay.
+  function normalizeMetasObjetivos(obj){
+    obj = obj || {};
+    METAS_WEEKDAY_KEYS.forEach(function(wk){
+      if(!obj[wk]) obj[wk] = metasObjetivoDefaultFor(wk);
+      METAS_CATEGORIAS.forEach(function(cat){
+        if(!cat.conMeta) return;
+        if(!obj[wk][cat.key]){ obj[wk][cat.key] = deepClone(METAS_OBJETIVOS_DEFAULT[wk][cat.key]); return; }
+        ["am","pm"].forEach(function(shift){
+          var arr = obj[wk][cat.key][shift];
+          if(!Array.isArray(arr)) arr = [];
+          for(var i = arr.length; i < cat.subcols.length; i++){ arr.push(METAS_OBJETIVOS_DEFAULT[wk][cat.key][shift][i] || 0); }
+          obj[wk][cat.key][shift] = arr;
+        });
+      });
+    });
+    return obj;
+  }
+  // Suma de una subcolumna de una categoría, en un turno, sobre todas las filas de producto.
+  function metasSubcolTotal(sec, shift, subcolKey){
+    var arr = (sec && sec[shift]) || [];
+    var total = 0;
+    arr.forEach(function(row){ total += num(row[subcolKey]); });
+    return total;
+  }
+
   var STATE = null;
   var readOnly = false, dirty = false;
   var db = null;
@@ -658,7 +804,15 @@ var TRIPLES = [
   var cajerosLockError = false;
   var currentTab = "panes";
   var filters = { panes:"", bebidas:"", embutidos:"", triples:"", otros:"" };
-  var shiftView = { panes:"am", bebidas:"am", embutidos:"am", triples:"am", otros:"am" };
+  var shiftView = { panes:"am", bebidas:"am", embutidos:"am", triples:"am", otros:"am", metas:"am" };
+  // Reporte de Metas por día de la semana (ej. "cómo fue la venta varios domingos"): compara,
+  // fecha por fecha, el total vendido contra la meta de cada categoría. Se queda en null hasta
+  // el primer dibujo de la pestaña Metas, ahí se le pone por defecto el día de la semana que se
+  // está viendo (currentDate), y desde ese momento la persona puede cambiarlo con los botones.
+  var metasReporteWeekday = null;
+  var metasReporteDesde = "";
+  var metasReporteHasta = "";
+  var metasReporteTurno = "ambos"; // "am" | "pm" | "ambos" (mañana + tarde sumadas)
 
   // ---------- helpers ----------
   function todayISO(){
@@ -759,7 +913,8 @@ var TRIPLES = [
       b: makeSection(BEBIDAS, prevDay, "b"),
       e: makeSection(EMBUTIDOS, prevDay, "e"),
       t: makeSection(TRIPLES, prevDay, "t"),
-      o: makeSection(STATE.customCatalog, prevDay, "o")
+      o: makeSection(STATE.customCatalog, prevDay, "o"),
+      metas: makeMetasDay()
     };
   }
   // Otros crece con el tiempo: cuando se agrega un producto nuevo, los días ya guardados
@@ -783,6 +938,7 @@ var TRIPLES = [
       var section = SECTIONS[tab];
       backfillSection(day, section.key, catalogFor(tab), prevDay);
     });
+    backfillMetasDay(day);
     // OJO: aquí ANTES se llamaba a cleanupSaldoFinalMigrado(day) en cada render para
     // corregir un patrón puntual que venía de la migración del Excel de setiembre. Se quitó
     // por completo: esa "corrección" asumía que, en una fila sin ningún otro movimiento
@@ -890,8 +1046,9 @@ var TRIPLES = [
       var key = SECTIONS[tab].key;
       var sec = day[key];
       if(!sec) return;
-      sec.am.forEach(function(row){ if(isFlagged(row, "am", null)) counts[tab]++; });
-      sec.pm.forEach(function(row, i){ if(isFlagged(row, "pm", sec.am[i])) counts[tab]++; });
+      var catalog = catalogFor(tab);
+      sec.am.forEach(function(row, i){ if(!isDescontinuado(tab, catalog[i]) && isFlagged(row, "am", null)) counts[tab]++; });
+      sec.pm.forEach(function(row, i){ if(!isDescontinuado(tab, catalog[i]) && isFlagged(row, "pm", sec.am[i])) counts[tab]++; });
     });
     counts.total = counts.panes + counts.bebidas + counts.embutidos + counts.triples + counts.otros;
     return counts;
@@ -926,6 +1083,7 @@ var TRIPLES = [
     if(!parsed.days) parsed.days = {};
     if(!parsed.customCatalog) parsed.customCatalog = [];
     if(!parsed.precios) parsed.precios = {};
+    parsed.metasObjetivos = normalizeMetasObjetivos(parsed.metasObjetivos);
     migrateStateObj(parsed);
     return parsed;
   }
@@ -1075,6 +1233,25 @@ var TRIPLES = [
     mergeFlatMap(mergedSec, "agAm", (localSec && localSec.agAm) || {}, (baseSec && baseSec.agAm) || {});
     mergeFlatMap(mergedSec, "agPm", (localSec && localSec.agPm) || {}, (baseSec && baseSec.agPm) || {});
   }
+  // Igual que mergeSection, pero para las filas de Metas (una fila por producto, con un
+  // valor por subcolumna -- p.ej. jugos/batidos/frozen en Frutas -- en vez de a/i1/i2/i3/m/f/vc).
+  function mergeMetasSection(mergedSec, localSec, baseSec, cat){
+    var fields = cat.subcols.map(function(sc){ return sc.key; });
+    ["am","pm"].forEach(function(shift){
+      var localArr = (localSec && localSec[shift]) || [];
+      var baseArr = (baseSec && baseSec[shift]) || [];
+      if(!mergedSec[shift]) mergedSec[shift] = [];
+      for(var i = 0; i < localArr.length; i++){
+        var localRow = localArr[i];
+        var baseRow = baseArr[i];
+        if(!mergedSec[shift][i]){ mergedSec[shift][i] = deepClone(localRow); continue; }
+        fields.forEach(function(f){
+          var baseVal = baseRow ? baseRow[f] : undefined;
+          if(localRow[f] !== baseVal){ mergedSec[shift][i][f] = localRow[f]; }
+        });
+      }
+    });
+  }
   function mergeDay(mergedDay, localDay, baseDay){
     var turnoFields = ["respAM","respPM","eAM","sAM","ePM","sPM","obsAM","obsPM","notas"];
     if(!mergedDay.turno) mergedDay.turno = {};
@@ -1088,6 +1265,40 @@ var TRIPLES = [
       if(!mergedDay[key]) mergedDay[key] = { am:[], pm:[], agAm:{}, agPm:{} };
       mergeSection(mergedDay[key], localDay[key], baseDay ? baseDay[key] : null);
     });
+    METAS_CATEGORIAS.forEach(function(cat){
+      if(!localDay.metas || !localDay.metas[cat.key]) return;
+      if(!mergedDay.metas) mergedDay.metas = {};
+      if(!mergedDay.metas[cat.key]) mergedDay.metas[cat.key] = { am:[], pm:[] };
+      mergeMetasSection(mergedDay.metas[cat.key], localDay.metas[cat.key], (baseDay && baseDay.metas) ? baseDay.metas[cat.key] : null, cat);
+    });
+  }
+  // Metas de venta por día de la semana (STATE.metasObjetivos): igual patrón que mergeFlatMap,
+  // comparando valor por valor (semana/categoría/turno/subcolumna) para que dos dispositivos
+  // editando metas de días distintos de la semana no se pisen entre sí.
+  function mergeMetasObjetivos(merged, local, base){
+    if(!merged.metasObjetivos) merged.metasObjetivos = {};
+    var localObj = local.metasObjetivos || {};
+    var baseObj = base.metasObjetivos || {};
+    METAS_WEEKDAY_KEYS.forEach(function(wk){
+      if(!localObj[wk]) return;
+      if(!merged.metasObjetivos[wk]) merged.metasObjetivos[wk] = metasObjetivoDefaultFor(wk);
+      METAS_CATEGORIAS.forEach(function(cat){
+        if(!cat.conMeta) return;
+        var localCat = localObj[wk][cat.key];
+        if(!localCat) return;
+        var baseCat = (baseObj[wk] && baseObj[wk][cat.key]) || null;
+        if(!merged.metasObjetivos[wk][cat.key]) merged.metasObjetivos[wk][cat.key] = { am:[], pm:[] };
+        ["am","pm"].forEach(function(shift){
+          var localArr = localCat[shift] || [];
+          var baseArr = (baseCat && baseCat[shift]) || [];
+          if(!merged.metasObjetivos[wk][cat.key][shift]) merged.metasObjetivos[wk][cat.key][shift] = localArr.slice();
+          var out = merged.metasObjetivos[wk][cat.key][shift];
+          for(var i = 0; i < localArr.length; i++){
+            if(localArr[i] !== baseArr[i]){ out[i] = localArr[i]; }
+          }
+        });
+      });
+    });
   }
   function mergeStateForSave(freshRemote, local, base){
     var merged = deepClone(freshRemote);
@@ -1095,6 +1306,7 @@ var TRIPLES = [
     var baseBiz = base && base.meta ? base.meta.businessName : undefined;
     if(local.meta && local.meta.businessName !== baseBiz){ merged.meta.businessName = local.meta.businessName; }
     mergeFlatMap(merged, "precios", local.precios || {}, (base && base.precios) || {});
+    mergeMetasObjetivos(merged, local, base || {});
     var baseCatalog = (base && base.customCatalog) || [];
     if(JSON.stringify(local.customCatalog || []) !== JSON.stringify(baseCatalog)){
       merged.customCatalog = deepClone(local.customCatalog || []);
@@ -1193,6 +1405,7 @@ var TRIPLES = [
     "MASA MADRE CON FRUTOS ENTERO": "Masa Madre con Frutos",
     "ACEITUNA ENTERA POR KILO": "Aceituna",
     "ACEITUNA ENTERA X KG": "Aceituna",
+    "CIABATTA POR KILO": "Ciabatta",
     "LECHE LIGTH CAJA LT - SEMI": "Leche Light Caja LT - Semi",
     "MIEL FRASCO 200 GR": "Miel Frasco 200g",
     "MIEL FRASCO 250 GR": "Miel Frasco 250g",
@@ -1650,6 +1863,7 @@ var TRIPLES = [
     var closeTime = shift === "am" ? day.turno.sAM : day.turno.sPM;
     var out = [];
     catalogFor(tabKey).forEach(function(name, idx){
+      if(isDescontinuado(tabKey, name)) return;
       var amRow = amRows[idx];
       var row = shift === "am" ? amRow : pmRows[idx];
       var saldoAnt = shift === "am" ? row.a : amRow.f;
@@ -1850,7 +2064,7 @@ var TRIPLES = [
       var n = alerts[tab];
       var countHtml = n ? '<span class="count">' + n + "</span>" : "";
       var label = SECTIONS[tab] ? SECTIONS[tab].label + countHtml
-        : (tab === "turno" ? "Turno" : (tab === "historial" ? "Historial" : (tab === "pedidos" ? "Pedidos" : (tab === "cajeros" ? "Caja Cajeros" : ""))));
+        : (tab === "turno" ? "Turno" : (tab === "historial" ? "Historial" : (tab === "pedidos" ? "Pedidos" : (tab === "cajeros" ? "Caja Cajeros" : (tab === "metas" ? "Metas" : "")))));
       btn.innerHTML = label;
     });
   }
@@ -1862,6 +2076,7 @@ var TRIPLES = [
     else if(currentTab === "historial"){ panel.appendChild(buildHistorialPanel()); }
     else if(currentTab === "pedidos"){ panel.appendChild(buildPedidosPanel()); }
     else if(currentTab === "cajeros"){ panel.appendChild(buildCajerosPanel()); }
+    else if(currentTab === "metas"){ panel.appendChild(buildMetasPanel()); }
     else { panel.appendChild(buildProductPanel(currentTab)); }
   }
 
@@ -2105,7 +2320,10 @@ var TRIPLES = [
     tbody.innerHTML = "";
     var shown = 0;
     var catalog = catalogFor(tab);
+    var visibleCount = 0;
     catalog.forEach(function(name, idx){
+      if(isDescontinuado(tab, name)) return;
+      visibleCount++;
       if(q && name.toLowerCase().indexOf(q) === -1) return;
       shown++;
       var amRow = sec.am[idx];
@@ -2159,9 +2377,383 @@ var TRIPLES = [
       if(tab === "otros" && catalog.length === 0){
         rowCountEl.textContent = "Todavía no registraste nada en Otros. Usa el campo de arriba cuando haya un regalo, bonificación u otra situación.";
       } else {
-        rowCountEl.textContent = shown + " de " + catalog.length + " productos" + (q ? " (filtrados)" : "");
+        rowCountEl.textContent = shown + " de " + visibleCount + " productos" + (q ? " (filtrados)" : "");
       }
     }
+  }
+
+  function buildMetasCategoryCard(cat, day, shift, weekdayKey){
+    var card = document.createElement("div");
+    card.className = "card";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .6rem";
+    h2.textContent = cat.label;
+    card.appendChild(h2);
+
+    var sec = day.metas[cat.key];
+    var objetivos = cat.conMeta ? (STATE.metasObjetivos[weekdayKey] && STATE.metasObjetivos[weekdayKey][cat.key]) : null;
+    var metaArr = objetivos ? (objetivos[shift] || []) : [];
+
+    var tableWrap = document.createElement("div");
+    tableWrap.className = "table-wrap";
+    var table = document.createElement("table");
+    table.className = "data-table metas-table";
+    table.setAttribute("data-cat", cat.key);
+
+    var theadHtml = "<thead><tr><th>Producto</th>";
+    cat.subcols.forEach(function(sc){ theadHtml += "<th>" + esc(sc.label) + "</th>"; });
+    theadHtml += "</tr></thead>";
+
+    var tbodyHtml = "<tbody>";
+    cat.items.forEach(function(name, idx){
+      var row = sec[shift][idx] || {};
+      tbodyHtml += "<tr><td>" + esc(name) + "</td>";
+      cat.subcols.forEach(function(sc){
+        var v = row[sc.key];
+        tbodyHtml += '<td><input class="num-input metas-num-input field-input" type="number" step="any" min="0" ' +
+          'data-kind="item" data-cat="' + cat.key + '" data-idx="' + idx + '" data-sub="' + sc.key + '" ' +
+          'value="' + (v ? v : "") + '" placeholder="0"></td>';
+      });
+      tbodyHtml += "</tr>";
+    });
+    tbodyHtml += "</tbody>";
+
+    var tfootHtml = "<tfoot>";
+    tfootHtml += '<tr class="metas-total-row"><td>TOTAL</td>';
+    cat.subcols.forEach(function(sc){
+      tfootHtml += '<td class="metas-total" data-cat="' + cat.key + '" data-sub="' + sc.key + '"></td>';
+    });
+    tfootHtml += "</tr>";
+    if(cat.conMeta){
+      tfootHtml += '<tr class="metas-meta-row"><td>META</td>';
+      cat.subcols.forEach(function(sc, si){
+        var mv = metaArr[si];
+        tfootHtml += '<td><input class="num-input metas-num-input meta-input" type="number" step="any" min="0" ' +
+          'data-kind="meta" data-cat="' + cat.key + '" data-subidx="' + si + '" ' +
+          'value="' + (mv === undefined || mv === null ? 0 : mv) + '"></td>';
+      });
+      tfootHtml += "</tr>";
+      tfootHtml += '<tr class="metas-pct-row"><td>PORCENTAJE</td>';
+      cat.subcols.forEach(function(sc){
+        tfootHtml += '<td class="metas-pct" data-cat="' + cat.key + '" data-sub="' + sc.key + '"></td>';
+      });
+      tfootHtml += "</tr>";
+      tfootHtml += '<tr class="metas-falta-row"><td>FALTA PARA LA META</td>';
+      cat.subcols.forEach(function(sc){
+        tfootHtml += '<td class="metas-falta" data-cat="' + cat.key + '" data-sub="' + sc.key + '"></td>';
+      });
+      tfootHtml += "</tr>";
+    }
+    tfootHtml += "</tfoot>";
+
+    table.innerHTML = theadHtml + tbodyHtml + tfootHtml;
+    tableWrap.appendChild(table);
+    card.appendChild(tableWrap);
+    if(readOnly){ card.querySelectorAll("input").forEach(function(i){ i.disabled = true; }); }
+    return card;
+  }
+
+  function updateMetasCategoryComputed(panelEl, cat, day, shift, weekdayKey){
+    var sec = day.metas[cat.key];
+    var objetivos = cat.conMeta ? (STATE.metasObjetivos[weekdayKey] && STATE.metasObjetivos[weekdayKey][cat.key]) : null;
+    var metaArr = objetivos ? (objetivos[shift] || []) : [];
+    cat.subcols.forEach(function(sc, si){
+      var total = metasSubcolTotal(sec, shift, sc.key);
+      var totalCell = panelEl.querySelector('.metas-total[data-cat="' + cat.key + '"][data-sub="' + sc.key + '"]');
+      if(totalCell) totalCell.textContent = fmt(total);
+      if(cat.conMeta){
+        var meta = num(metaArr[si]);
+        var pctCell = panelEl.querySelector('.metas-pct[data-cat="' + cat.key + '"][data-sub="' + sc.key + '"]');
+        var faltaCell = panelEl.querySelector('.metas-falta[data-cat="' + cat.key + '"][data-sub="' + sc.key + '"]');
+        if(pctCell){
+          if(meta > 0){
+            var pct = Math.round((total / meta) * 100);
+            pctCell.textContent = pct + "%";
+            pctCell.className = "metas-pct " + (pct >= 100 ? "good" : "");
+          } else {
+            pctCell.textContent = "—";
+            pctCell.className = "metas-pct";
+          }
+        }
+        if(faltaCell){
+          var falta = meta - total;
+          if(falta <= 0){
+            faltaCell.textContent = "¡Meta lograda!";
+            faltaCell.className = "metas-falta good";
+          } else {
+            faltaCell.textContent = fmt(falta);
+            faltaCell.className = "metas-falta";
+          }
+        }
+      }
+    });
+  }
+
+  function buildMetasPanel(){
+    var wrap = document.createElement("div");
+    wrap.appendChild(buildStrip());
+
+    var day = ensureDay(currentDate);
+    backfillMetasDay(day);
+    var weekdayKey = weekdayKeyFor(currentDate);
+    var shift = shiftView.metas;
+
+    var topCard = document.createElement("div");
+    topCard.className = "card";
+
+    var searchRow = document.createElement("div");
+    searchRow.className = "search-row";
+    var left = document.createElement("div");
+    left.className = "search-left";
+    var toggle = document.createElement("div");
+    toggle.className = "shift-toggle";
+    ["am","pm"].forEach(function(s){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "shift-btn" + (shiftView.metas===s ? " active" : "");
+      b.textContent = SHIFT_LABEL[s];
+      b.addEventListener("click", function(){
+        shiftView.metas = s;
+        renderPanel();
+      });
+      toggle.appendChild(b);
+    });
+    left.appendChild(toggle);
+    searchRow.appendChild(left);
+    topCard.appendChild(searchRow);
+
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.style.margin = "0";
+    hint.textContent = "Meta u objetivo de venta del día, comparado contra lo vendido en " + SHIFT_LABEL[shift].toLowerCase() +
+      ". La META es por día de la semana (" + METAS_WEEKDAY_LABEL[weekdayKey] + "): si la cambias acá, cambia para todos los " +
+      METAS_WEEKDAY_LABEL[weekdayKey].toLowerCase() + "s, no solo para esta fecha.";
+    topCard.appendChild(hint);
+    wrap.appendChild(topCard);
+
+    var catsWrap = document.createElement("div");
+    catsWrap.className = "metas-cats";
+    METAS_CATEGORIAS.forEach(function(cat){
+      catsWrap.appendChild(buildMetasCategoryCard(cat, day, shift, weekdayKey));
+    });
+    wrap.appendChild(catsWrap);
+
+    METAS_CATEGORIAS.forEach(function(cat){
+      updateMetasCategoryComputed(catsWrap, cat, day, shift, weekdayKey);
+    });
+
+    catsWrap.addEventListener("input", function(ev){ handleMetasInput(ev, catsWrap, day, shift, weekdayKey); });
+    catsWrap.addEventListener("change", function(ev){ handleMetasInput(ev, catsWrap, day, shift, weekdayKey); });
+
+    if(metasReporteWeekday === null) metasReporteWeekday = weekdayKey;
+    wrap.appendChild(buildMetasReporteCard());
+
+    return wrap;
+  }
+
+  // ---------- Reporte de Metas por día de la semana ----------
+  // Para comparar, por ejemplo, "cómo fue la venta varios domingos": junta todos los días
+  // guardados que caigan en el día de la semana elegido (dentro del rango de fechas) y compara,
+  // categoría por categoría, lo vendido contra la meta de ese día de la semana.
+  function metasReporteShifts(turno){
+    return turno === "ambos" ? ["am","pm"] : [turno];
+  }
+  function computeMetasReporteRows(weekdayKey, desde, hasta, turno){
+    var shifts = metasReporteShifts(turno);
+    var dates = Object.keys(STATE.days).filter(function(d){
+      if(weekdayKeyFor(d) !== weekdayKey) return false;
+      if(desde && d < desde) return false;
+      if(hasta && d > hasta) return false;
+      return true;
+    }).sort();
+    return dates.map(function(d){
+      var day = getDay(d);
+      var row = { fecha: d, cats: {} };
+      METAS_CATEGORIAS.forEach(function(cat){
+        var sec = day.metas[cat.key];
+        var total = 0;
+        shifts.forEach(function(shift){
+          cat.subcols.forEach(function(sc){ total += metasSubcolTotal(sec, shift, sc.key); });
+        });
+        var entry = { total: total };
+        if(cat.conMeta){
+          var meta = 0;
+          shifts.forEach(function(shift){
+            var arr = (STATE.metasObjetivos[weekdayKey] && STATE.metasObjetivos[weekdayKey][cat.key] && STATE.metasObjetivos[weekdayKey][cat.key][shift]) || [];
+            arr.forEach(function(v){ meta += num(v); });
+          });
+          entry.meta = meta;
+          entry.pct = meta > 0 ? Math.round((total / meta) * 100) : null;
+        }
+        row.cats[cat.key] = entry;
+      });
+      return row;
+    });
+  }
+  function buildMetasReporteCard(){
+    var card = document.createElement("div");
+    card.className = "card";
+    card.style.marginTop = "1rem";
+
+    var head = document.createElement("div");
+    head.className = "search-row";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0";
+    h2.textContent = "Reporte por día de la semana";
+    head.appendChild(h2);
+    var exportBtn = document.createElement("button");
+    exportBtn.type = "button";
+    exportBtn.className = "btn btn-sm";
+    exportBtn.textContent = "Descargar Excel";
+    head.appendChild(exportBtn);
+    card.appendChild(head);
+
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.style.margin = "0 0 .7rem";
+    hint.textContent = "Compara, fecha por fecha, cuánto se vendió contra la meta de cada categoría -- por ejemplo, varios domingos seguidos.";
+    card.appendChild(hint);
+
+    var dayRow = document.createElement("div");
+    dayRow.className = "shift-toggle";
+    dayRow.style.flexWrap = "wrap";
+    dayRow.style.marginBottom = ".7rem";
+    METAS_WEEKDAY_KEYS.forEach(function(wk){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "shift-btn" + (metasReporteWeekday === wk ? " active" : "");
+      b.textContent = METAS_WEEKDAY_LABEL[wk];
+      b.addEventListener("click", function(){ metasReporteWeekday = wk; renderPanel(); });
+      dayRow.appendChild(b);
+    });
+    card.appendChild(dayRow);
+
+    var filterRow = document.createElement("div");
+    filterRow.className = "field-grid";
+    filterRow.style.marginBottom = ".7rem";
+    filterRow.appendChild(buildField("Desde", "date", metasReporteDesde, function(v){ metasReporteDesde = v; renderPanel(); }));
+    filterRow.appendChild(buildField("Hasta", "date", metasReporteHasta, function(v){ metasReporteHasta = v; renderPanel(); }));
+    card.appendChild(filterRow);
+
+    var turnoRow = document.createElement("div");
+    turnoRow.className = "shift-toggle";
+    turnoRow.style.marginBottom = ".9rem";
+    [["am","Mañana"],["pm","Tarde"],["ambos","Todo el día"]].forEach(function(pair){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "shift-btn" + (metasReporteTurno === pair[0] ? " active" : "");
+      b.textContent = pair[1];
+      b.addEventListener("click", function(){ metasReporteTurno = pair[0]; renderPanel(); });
+      turnoRow.appendChild(b);
+    });
+    card.appendChild(turnoRow);
+
+    var rows = computeMetasReporteRows(metasReporteWeekday, metasReporteDesde, metasReporteHasta, metasReporteTurno);
+    exportBtn.disabled = rows.length === 0;
+    exportBtn.addEventListener("click", function(){ doExportMetasReporte(rows, metasReporteWeekday, metasReporteTurno); });
+
+    if(rows.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "No hay días guardados de " + METAS_WEEKDAY_LABEL[metasReporteWeekday].toLowerCase() + " que coincidan con el filtro.";
+      card.appendChild(empty);
+      return card;
+    }
+
+    var tableWrap = document.createElement("div");
+    tableWrap.className = "table-wrap";
+    var table = document.createElement("table");
+    table.className = "data-table metas-table metas-reporte-table";
+    var theadHtml = "<thead><tr><th>Fecha</th>";
+    METAS_CATEGORIAS.forEach(function(cat){ theadHtml += "<th>" + esc(cat.label) + "</th>"; });
+    theadHtml += "</tr></thead>";
+    var tbodyHtml = "<tbody>";
+    rows.forEach(function(row){
+      tbodyHtml += "<tr><td>" + esc(fmtDateLabel(row.fecha)) + "</td>";
+      METAS_CATEGORIAS.forEach(function(cat){
+        var entry = row.cats[cat.key];
+        if(cat.conMeta){
+          var pctTxt = entry.pct === null ? "—" : entry.pct + "%";
+          var cls = entry.pct !== null && entry.pct >= 100 ? "good" : "";
+          tbodyHtml += '<td>' + fmt(entry.total) + " / " + fmt(entry.meta) + ' <span class="metas-pct ' + cls + '">(' + pctTxt + ")</span></td>";
+        } else {
+          tbodyHtml += "<td>" + fmt(entry.total) + "</td>";
+        }
+      });
+      tbodyHtml += "</tr>";
+    });
+    tbodyHtml += "</tbody>";
+    // Fila de promedio, para ver la tendencia general de esas fechas de un vistazo.
+    var tfootHtml = "<tfoot><tr><td>PROMEDIO</td>";
+    METAS_CATEGORIAS.forEach(function(cat){
+      if(!cat.conMeta){ tfootHtml += "<td></td>"; return; }
+      var pcts = rows.map(function(r){ return r.cats[cat.key].pct; }).filter(function(p){ return p !== null; });
+      if(pcts.length === 0){ tfootHtml += "<td>—</td>"; return; }
+      var avg = Math.round(pcts.reduce(function(a,b){ return a + b; }, 0) / pcts.length);
+      tfootHtml += '<td class="' + (avg >= 100 ? "good" : "") + '">' + avg + "%</td>";
+    });
+    tfootHtml += "</tr></tfoot>";
+
+    table.innerHTML = theadHtml + tbodyHtml + tfootHtml;
+    tableWrap.appendChild(table);
+    card.appendChild(tableWrap);
+    return card;
+  }
+  function doExportMetasReporte(rows, weekdayKey, turno){
+    if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo."); return; }
+    if(!rows.length){ showToast("No hay datos para exportar con este filtro."); return; }
+    try{
+      var header = ["Fecha"];
+      METAS_CATEGORIAS.forEach(function(cat){
+        if(cat.conMeta){ header.push(cat.label + " - Vendido", cat.label + " - Meta", cat.label + " - %"); }
+        else { header.push(cat.label + " - Vendido"); }
+      });
+      var aoa = [header];
+      rows.forEach(function(row){
+        var line = [row.fecha];
+        METAS_CATEGORIAS.forEach(function(cat){
+          var entry = row.cats[cat.key];
+          if(cat.conMeta){ line.push(round2(entry.total), round2(entry.meta), entry.pct === null ? "" : entry.pct); }
+          else { line.push(round2(entry.total)); }
+        });
+        aoa.push(line);
+      });
+      var ws = XLSX.utils.aoa_to_sheet(aoa);
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Reporte " + METAS_WEEKDAY_LABEL[weekdayKey]);
+      var filename = "metas-" + weekdayKey + "-" + turno + ".xlsx";
+      XLSX.writeFile(wb, filename);
+      showToast("Reporte descargado.");
+    }catch(err){
+      showToast("No se pudo generar el archivo. Intenta de nuevo.");
+    }
+  }
+
+  function handleMetasInput(ev, panelEl, day, shift, weekdayKey){
+    var t = ev.target;
+    var kind = t.getAttribute("data-kind");
+    if(!kind) return;
+    var catKey = t.getAttribute("data-cat");
+    var cat = METAS_CATEGORIAS.filter(function(c){ return c.key === catKey; })[0];
+    if(!cat) return;
+
+    if(kind === "item"){
+      var idx = parseInt(t.getAttribute("data-idx"), 10);
+      var sub = t.getAttribute("data-sub");
+      day.metas[cat.key][shift][idx][sub] = num(t.value);
+    } else if(kind === "meta"){
+      var subidx = parseInt(t.getAttribute("data-subidx"), 10);
+      if(!STATE.metasObjetivos[weekdayKey]) STATE.metasObjetivos[weekdayKey] = metasObjetivoDefaultFor(weekdayKey);
+      if(!STATE.metasObjetivos[weekdayKey][cat.key]) STATE.metasObjetivos[weekdayKey][cat.key] = { am:[], pm:[] };
+      if(!STATE.metasObjetivos[weekdayKey][cat.key][shift]) STATE.metasObjetivos[weekdayKey][cat.key][shift] = [];
+      STATE.metasObjetivos[weekdayKey][cat.key][shift][subidx] = num(t.value);
+    } else {
+      return;
+    }
+
+    markDirty();
+    scheduleAutosave();
+    updateMetasCategoryComputed(panelEl, cat, day, shift, weekdayKey);
   }
 
   function buildTurnoPanel(){
@@ -2348,7 +2940,7 @@ var TRIPLES = [
     return {
       canal: canal,
       origen: "whatsapp",
-      cliente: { nombre:"", dni:"", ruc:"", direccion: canal === "tienda" ? "Recojo en tienda" : "", referencia:"", telefono:"", correo:"" },
+      cliente: { nombre:"", dni:"", ruc:"", direccion: canal === "tienda" ? "Recojo en tienda" : "", referencia:"", telefono:"", correo:"", diasCredito:0 },
       tipoPago: "",
       pagado: false,
       comprobante: null,
@@ -2495,6 +3087,7 @@ var TRIPLES = [
       referencia: cliente.referencia || "",
       telefono: cliente.telefono || "",
       correo: cliente.correo || "",
+      diasCredito: num(cliente.diasCredito),
       updatedAt: Date.now()
     };
     if(match){
@@ -2580,7 +3173,7 @@ var TRIPLES = [
     var viewToggle = document.createElement("div");
     viewToggle.className = "shift-toggle";
     viewToggle.style.marginBottom = "1rem";
-    [["nuevo","Nuevo pedido"], ["produccion","Producción por día"], ["lista","Todos los pedidos"]].forEach(function(pair){
+    [["nuevo","Nuevo pedido"], ["produccion","Producción por día"], ["lista","Todos los pedidos"], ["cobrar","Cuentas por Cobrar"]].forEach(function(pair){
       var b = document.createElement("button");
       b.type = "button";
       b.className = "shift-btn" + (pedidosView === pair[0] ? " active" : "");
@@ -2600,6 +3193,7 @@ var TRIPLES = [
 
     if(pedidosView === "produccion"){ wrap.appendChild(buildProduccionView()); }
     else if(pedidosView === "lista"){ wrap.appendChild(buildPedidosLista()); }
+    else if(pedidosView === "cobrar"){ wrap.appendChild(buildCuentasPorCobrarView()); }
     else { wrap.appendChild(buildPedidoForm()); }
 
     return wrap;
@@ -2800,12 +3394,16 @@ var TRIPLES = [
         draft.cliente.referencia = c.referencia || "";
         draft.cliente.telefono = c.telefono || "";
         draft.cliente.correo = c.correo || "";
+        draft.cliente.diasCredito = num(c.diasCredito);
         dniInput.value = draft.cliente.dni;
         rucInput.value = draft.cliente.ruc;
         direccionInput.value = draft.cliente.direccion;
         referenciaInput.value = draft.cliente.referencia;
         telefonoInput.value = draft.cliente.telefono;
         correoInput.value = draft.cliente.correo;
+        Object.keys(creditoBtns).forEach(function(k){
+          creditoBtns[k].className = "shift-btn" + (+k === draft.cliente.diasCredito ? " active" : "");
+        });
         showToast("Cliente encontrado: se rellenaron sus datos.");
       }
     });
@@ -2824,6 +3422,37 @@ var TRIPLES = [
     pagoInput.addEventListener("input", function(){ draft.tipoPago = pagoInput.value; });
     pagoField.appendChild(pagoInput);
     grid.appendChild(pagoField);
+
+    // Crédito del cliente (7 o 15 días): queda guardado en el cliente, no en cada pedido suelto
+    // -- así un cliente habitual a crédito no hay que marcarlo cada vez, se rellena solo al
+    // elegirlo (igual que el DNI o el teléfono). "Contado" (0 días) es lo normal / por defecto.
+    var creditoField = document.createElement("div");
+    creditoField.className = "field";
+    var creditoLabel = document.createElement("label");
+    creditoLabel.textContent = "Crédito";
+    creditoField.appendChild(creditoLabel);
+    var creditoToggle = document.createElement("div");
+    creditoToggle.className = "shift-toggle";
+    var creditoBtns = {};
+    [[0,"Contado"], [7,"7 días"], [15,"15 días"]].forEach(function(pair){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "shift-btn" + ((num(draft.cliente.diasCredito)) === pair[0] ? " active" : "");
+      b.textContent = pair[1];
+      if(readOnly) b.disabled = true;
+      b.addEventListener("click", function(){
+        draft.cliente.diasCredito = pair[0];
+        Object.keys(creditoBtns).forEach(function(k){
+          creditoBtns[k].className = "shift-btn" + (+k === pair[0] ? " active" : "");
+        });
+        if(pedidoEditingId) schedulePedidoAutosave();
+      });
+      creditoBtns[pair[0]] = b;
+      creditoToggle.appendChild(b);
+    });
+    creditoField.appendChild(creditoToggle);
+    grid.appendChild(creditoField);
+
     if(draft.canal === "delivery"){
       grid.appendChild(buildField("Monto delivery (S/)", "number", draft.deliveryMonto, function(v){
         draft.deliveryMonto = num(v);
@@ -3112,7 +3741,16 @@ var TRIPLES = [
     wireQtyPrice(".pedido-item-precio", "precio");
     tbody.querySelectorAll(".pedido-item-del").forEach(function(btn){
       btn.addEventListener("click", function(){
-        draft.items.splice(+btn.getAttribute("data-idx"), 1);
+        var idx = +btn.getAttribute("data-idx");
+        // Si es un pedido NUEVO (todavía no guardado), quitar una línea no pierde nada real.
+        // Pero si ya se está EDITANDO un pedido guardado, esto autoguarda solo (sin botón
+        // "Guardar" de por medio) -- así que sin este aviso, un toque de más borraba un
+        // producto ya agendado/pagado sin que nadie se diera cuenta ni pudiera deshacerlo.
+        if(pedidoEditingId){
+          var nombreProd = draft.items[idx] && draft.items[idx].producto ? '"' + draft.items[idx].producto + '"' : "este producto";
+          if(!confirm('¿Quitar ' + nombreProd + ' de este pedido ya guardado? Se guarda solo, al toque, y no se puede deshacer.')) return;
+        }
+        draft.items.splice(idx, 1);
         renderPedidoItems(tbody, totalsRow);
         updatePedidoTotals(totalsRow);
         if(pedidoEditingId) schedulePedidoAutosave();
@@ -3216,7 +3854,8 @@ var TRIPLES = [
         direccion: (p.cliente && p.cliente.direccion) || "",
         referencia: (p.cliente && p.cliente.referencia) || "",
         telefono: (p.cliente && p.cliente.telefono) || "",
-        correo: (p.cliente && p.cliente.correo) || ""
+        correo: (p.cliente && p.cliente.correo) || "",
+        diasCredito: num(p.cliente && p.cliente.diasCredito)
       },
       tipoPago: p.tipoPago || "",
       pagado: !!p.pagado,
@@ -3305,6 +3944,34 @@ var TRIPLES = [
     if(!iso) return "";
     var parts = iso.split("-");
     return parts.length === 3 ? (parts[2] + "/" + parts[1] + "/" + parts[0]) : iso;
+  }
+  // Suma días de calendario a una fecha ISO (yyyy-mm-dd) -- usado para calcular el vencimiento
+  // de un pedido a crédito (fecha de entrega + días de crédito del cliente).
+  function addDaysISO(iso, days){
+    if(!iso) return "";
+    var d = new Date(iso + "T12:00:00");
+    d.setDate(d.getDate() + (parseInt(days, 10) || 0));
+    var y = d.getFullYear();
+    var m = (d.getMonth() + 1 < 10 ? "0" : "") + (d.getMonth() + 1);
+    var dd = (d.getDate() < 10 ? "0" : "") + d.getDate();
+    return y + "-" + m + "-" + dd;
+  }
+  // Fecha base de entrega de un pedido (la más próxima si es masivo con varias fechas), para
+  // calcular desde ahí el vencimiento del crédito.
+  function pedidoFechaBase(p){
+    var fechas = (p.items || []).map(function(it){ return it.fecha; }).filter(Boolean).sort();
+    return fechas[0] || "";
+  }
+  // Vencimiento de un pedido a crédito: null si el cliente es "Contado" (sin crédito) o si no
+  // hay fecha de entrega. El plazo se guarda en el propio pedido (cliente.diasCredito, tomado
+  // del cliente al momento de crear/editar el pedido) para no correr fechas ya calculadas si
+  // el plazo del cliente cambia después.
+  function pedidoVencimiento(p){
+    var dias = num(p.cliente && p.cliente.diasCredito);
+    if(!(dias > 0)) return null;
+    var base = pedidoFechaBase(p);
+    if(!base) return null;
+    return addDaysISO(base, dias);
   }
   // Número correlativo de pedido (0001, 0002, ...), en vez del código al azar de antes --
   // Jessica lo pidió así porque un código como "eodros0p" no le sirve para identificar/ordenar
@@ -3486,6 +4153,12 @@ var TRIPLES = [
     html += '<div style="background:#fff200; color:#cc0000; font-weight:800; font-size:17px; text-align:center; padding:7px 4px; margin:10px 0 0;">' + pedidoBannerHTML(p) + '</div>';
     html += '<div style="background:' + PEDIDO_DARK + '; color:#fff; font-weight:700; font-size:11px; letter-spacing:.04em; padding:4px 10px; margin-top:8px;">CLIENTE</div>';
     html += '<div style="background:#f6e3bd; padding:8px 10px 7px; margin-bottom:2px; font-size:12px;">' + pedidoInfoRowsHTML(p) + '</div>';
+    // Notas generales del pedido (distintas de la observación de cada línea, que va debajo del
+    // producto): antes se guardaban pero nunca salían impresas -- Jessica lo reportó porque el
+    // personal no veía la indicación al preparar/entregar el pedido.
+    if(p.notas && String(p.notas).trim()){
+      html += '<div style="background:#fff8e1; border:1px solid #e0c48a; padding:5px 10px; margin-top:4px; font-size:11px;"><strong>NOTAS:</strong> ' + esc(String(p.notas).trim()) + '</div>';
+    }
     html += tabla.html;
     html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:4px;">' +
       '<div style="font-size:11px;">Importante: Poner su nombre en Whatsapp</div>' +
@@ -3642,15 +4315,20 @@ var TRIPLES = [
     dateRow.appendChild(dl);
     var dateInput = document.createElement("input");
     dateInput.type = "date";
-    dateInput.value = pedidosProduccionDate || currentDate;
+    // OJO: esta fecha es la de PEDIDOS (cuándo se entrega), no la del Arqueo -- son cosas
+    // separadas. Por eso el valor por defecto es "hoy de verdad" (todayISO()), no currentDate
+    // (que es la fecha que se esté viendo en el Arqueo en ese momento, y puede ser otro día).
+    // Antes, si alguien dejaba el Arqueo en una fecha pasada y entraba a Pedidos, el botón de
+    // PDF salía vacío o con el día equivocado sin que se notara la causa.
+    dateInput.value = pedidosProduccionDate || todayISO();
     dateInput.addEventListener("change", function(){
-      pedidosProduccionDate = dateInput.value || currentDate;
+      pedidosProduccionDate = dateInput.value || todayISO();
       renderPanel();
     });
     dateRow.appendChild(dateInput);
     card.appendChild(dateRow);
 
-    var targetDate = pedidosProduccionDate || currentDate;
+    var targetDate = pedidosProduccionDate || todayISO();
 
     var printDiaBtn = document.createElement("button");
     printDiaBtn.type = "button";
@@ -3841,13 +4519,120 @@ var TRIPLES = [
           var id = btn.getAttribute("data-id");
           var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
           if(!p || !db) return;
-          if(!confirm('¿Eliminar el pedido de "' + ((p.cliente && p.cliente.nombre) || "este cliente") + '"? No se puede deshacer.')) return;
+          // Antes bastaba un solo "Aceptar" en el confirm() del navegador -- muy fácil de tocar
+          // sin querer, sobre todo en celular, y sin vuelta atrás. Ahora hay que escribir
+          // "ELIMINAR" a propósito, con una advertencia aparte si el pedido ya está pagado.
+          var nombre = (p.cliente && p.cliente.nombre) || "este cliente";
+          var msg = 'Vas a eliminar el pedido de "' + nombre + '". Esto no se puede deshacer.';
+          if(p.pagado) msg += '\n\n⚠ OJO: este pedido ya está marcado como PAGADO.';
+          msg += '\n\nEscribe ELIMINAR (en mayúsculas) para confirmar:';
+          var typed = prompt(msg);
+          if(typed === null) return;
+          if(typed.trim().toUpperCase() !== "ELIMINAR"){
+            showToast("No se eliminó: no escribiste ELIMINAR.");
+            return;
+          }
           db.collection("pedidos").doc(id).delete().catch(function(){
             showToast("No se pudo eliminar. Intenta de nuevo.");
           });
         });
       });
     }
+
+    return wrap;
+  }
+
+  // ---------- Cuentas por Cobrar (pedidos a crédito, 7 o 15 días) ----------
+  // Jessica: "en la sección de pedidos trabajamos con algunos clientes a crédito 7 y 15 días".
+  // Esta vista junta solo los pedidos de clientes a crédito que todavía no están pagados, con
+  // su fecha de vencimiento (fecha de entrega + días de crédito del cliente), para saber de un
+  // vistazo a quién cobrarle y qué ya se pasó de la fecha.
+  function diasHasta(iso){
+    var hoy = new Date(todayISO() + "T12:00:00");
+    var d = new Date(iso + "T12:00:00");
+    return Math.round((d - hoy) / 86400000);
+  }
+  function buildCuentasPorCobrarView(){
+    var wrap = document.createElement("div");
+    var card = document.createElement("div");
+    card.className = "card";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .4rem";
+    h2.textContent = "Cuentas por Cobrar";
+    card.appendChild(h2);
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.textContent = "Pedidos de clientes a crédito (7 o 15 días) que todavía no están marcados como pagados, ordenados por fecha de vencimiento — primero los más urgentes.";
+    card.appendChild(hint);
+
+    var pendientes = (PEDIDOS || []).filter(function(p){
+      return !p.pagado && num(p.cliente && p.cliente.diasCredito) > 0;
+    }).map(function(p){
+      var venc = pedidoVencimiento(p);
+      var total = (p.items||[]).reduce(function(s,it){ return s + num(it.cantidad)*num(it.precio); }, 0) + num(p.deliveryMonto);
+      return { p: p, venc: venc, total: total, dias: venc ? diasHasta(venc) : null };
+    });
+    pendientes.sort(function(a, b){
+      if(a.venc === b.venc) return 0;
+      if(!a.venc) return 1;
+      if(!b.venc) return -1;
+      return a.venc < b.venc ? -1 : 1;
+    });
+
+    if(pendientes.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "No hay pedidos a crédito pendientes de cobro.";
+      card.appendChild(empty);
+      wrap.appendChild(card);
+      return wrap;
+    }
+
+    var totalDeuda = pendientes.reduce(function(s, r){ return s + r.total; }, 0);
+    var totalVencido = pendientes.filter(function(r){ return r.dias !== null && r.dias < 0; }).reduce(function(s, r){ return s + r.total; }, 0);
+    var resumen = document.createElement("div");
+    resumen.style.margin = "0 0 1rem";
+    resumen.style.fontSize = "0.95rem";
+    resumen.innerHTML = "Total por cobrar: <strong>S/ " + fmt(totalDeuda) + "</strong>" +
+      (totalVencido > 0 ? ' &nbsp;·&nbsp; <span style="color:#B34428; font-weight:700;">Vencido: S/ ' + fmt(totalVencido) + "</span>" : "");
+    card.appendChild(resumen);
+
+    var tableWrap = document.createElement("div");
+    tableWrap.className = "table-wrap";
+    var table = document.createElement("table");
+    table.className = "data-table";
+    table.innerHTML = "<thead><tr><th>Cliente</th><th>Teléfono</th><th>Fecha entrega</th><th>Días crédito</th><th>Vencimiento</th><th>Estado</th><th>Total</th><th></th></tr></thead><tbody></tbody>";
+    var tbody = table.querySelector("tbody");
+    pendientes.forEach(function(r){
+      var p = r.p;
+      var tr = document.createElement("tr");
+      var estadoHtml;
+      if(r.dias === null){ estadoHtml = '<span class="chip">Sin fecha de entrega</span>'; }
+      else if(r.dias < 0){ estadoHtml = '<span class="chip bad">Vencido hace ' + Math.abs(r.dias) + (Math.abs(r.dias) === 1 ? " día" : " días") + '</span>'; }
+      else if(r.dias <= 2){ estadoHtml = '<span class="chip" style="background:#fff3cd; color:#8a6300;">Vence en ' + r.dias + (r.dias === 1 ? " día" : " días") + '</span>'; }
+      else { estadoHtml = '<span class="chip good">Vence en ' + r.dias + " días</span>"; }
+      tr.innerHTML =
+        "<td>" + esc((p.cliente && p.cliente.nombre) || "—") + "</td>" +
+        "<td>" + esc((p.cliente && p.cliente.telefono) || "—") + "</td>" +
+        "<td>" + esc(fmtFechaCorta(pedidoFechaBase(p))) + "</td>" +
+        "<td style='text-align:center;'>" + num(p.cliente && p.cliente.diasCredito) + "</td>" +
+        "<td>" + esc(r.venc ? fmtFechaCorta(r.venc) : "—") + "</td>" +
+        "<td>" + estadoHtml + "</td>" +
+        "<td>S/ " + fmt(r.total) + "</td>" +
+        "<td><button type='button' class='btn btn-sm cobrar-editar' data-id='" + p.id + "'>Ver / Editar</button></td>";
+      tbody.appendChild(tr);
+    });
+    tableWrap.appendChild(table);
+    card.appendChild(tableWrap);
+    wrap.appendChild(card);
+
+    tbody.querySelectorAll(".cobrar-editar").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var id = btn.getAttribute("data-id");
+        var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
+        if(p) startEditPedido(p);
+      });
+    });
 
     return wrap;
   }
