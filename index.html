@@ -665,6 +665,101 @@ var TRIPLES = [
         "Porción pastel de acelga","Molde pastel de acelga"]
     }
   ];
+
+  // Enlace de cada producto de Metas con su fuente real de venta, para que se llene solo al
+  // importar el reporte de ventas de todos los días (el mismo botón que ya llena Panes/Bebidas/
+  // Embutidos/Triples) -- Jessica lo pidió porque hoy escribe la venta dos veces: una en el
+  // reporte que ya sube, y otra a mano en Metas.
+  //
+  // Dos tipos de fuente, según el producto:
+  //  - "cod": el producto NO existe en ningún catálogo del Arqueo (jugos, batidos, frozen,
+  //    sánguches, cafés, el molde de pastel de acelga) -- se toma directo del código de
+  //    producto de su reporte de ventas. Los códigos salen del Excel "FORMATO DE VENTAS" que
+  //    Jessica ya usa (hoja PLANTILLA), verificados también contra sus hojas de Lunes/Martes
+  //    ya llenadas -- son estables, los mismos en las tres hojas.
+  //  - "cat": el producto SÍ existe en el catálogo de Panes (Dulces, Panes saludables, y casi
+  //    toda Empanadas) -- se copia el mismo dato de venta que ya se calcula ahí (ventasAm/
+  //    ventasPm), en vez de depender de un código aparte. Así la Miel en sus 4 tamaños queda
+  //    bien, sin tener que adivinar a qué tamaño corresponde cada código de su reporte.
+  //
+  // OJO: esto solo LEE lo que ya está en Panes/Bebidas/Embutidos/Triples para copiarlo a Metas
+  // -- nunca escribe ni cambia nada en esas pestañas ni en cómo se ven o se llenan.
+  var METAS_ITEM_LINKS = {
+    frutas: {
+      "Fresa": { src:"cod", codes:[3501,3514,3521] },
+      "Guanábana": { src:"cod", codes:[3502,3515,3522] },
+      "Lúcuma": { src:"cod", codes:[3503,3516,3524] },
+      "Mango": { src:"cod", codes:[3504,3517,3525] },
+      "Piña": { src:"cod", codes:[3507,3519,3528] },
+      "Fresa con arándanos": { src:"cod", codes:[3513,3520,3530] },
+      "Naranja": { src:"cod", codes:[3512,null,3529] },
+      "Papaya": { src:"cod", codes:[3506,3518,null] },
+      "Melón": { src:"cod", codes:[3505,null,3527] },
+      "Maracuyá": { src:"cod", codes:[3508,null,3526] },
+      "Jugo de mandarina": { src:"cod", codes:[3511,null,null] },
+      "Jugo mix bi": { src:"cod", codes:[3532,null,null] },
+      "Jugo mix tri": { src:"cod", codes:[3533,null,null] },
+      "Mix bi con naranja": { src:"cod", codes:[3534,null,null] },
+      "Mix tri con naranja": { src:"cod", codes:[3535,null,null] },
+      "Mix fresa/arándano/mango": { src:"cod", codes:[3536,null,null] },
+      "Limonada": { src:"cod", codes:[3540,null,3523] }
+    },
+    sanguches: {
+      "Sándwich chicharrón": { src:"cod", codes:[2101,2006,2016] },
+      "Sándwich butifarra": { src:"cod", codes:[2102,2007,2017] },
+      "Sándwich glaseado": { src:"cod", codes:[2105,2010,2020] },
+      "Sándwich asado": { src:"cod", codes:[2104,2009,2019] },
+      "Sándwich pavo": { src:"cod", codes:[2103,2008,2018] },
+      "Sándwich huachano": { src:"cod", codes:[2106,2011,null] },
+      "Mixto 100": { src:"cod", codes:[null,2015,null] },
+      "Mixto clásico": { src:"cod", codes:[null,2013,null] },
+      "Mixto especial": { src:"cod", codes:[null,2014,null] },
+      "Croissant de jamón y queso": { src:"cod", codes:[null,2012,2021] }
+    },
+    cafes: {
+      "Café americano chico": { src:"cod", codes:[4103] },
+      "Café americano grande": { src:"cod", codes:[4107] },
+      "Café con leche": { src:"cod", codes:[4104] },
+      "Café tradicional chico": { src:"cod", codes:[4102] },
+      "Café tradicional grande": { src:"cod", codes:[4106] },
+      "Capuccino": { src:"cod", codes:[4105] },
+      "Capuccino grande": { src:"cod", codes:[4108] },
+      "Chocolate": { src:"cod", codes:[4110] },
+      "Espresso": { src:"cod", codes:[4101] },
+      "Leche sola": { src:"cod", codes:[4109] },
+      "Té frutado caliente": { src:"cod", codes:[4112] },
+      "Té manzanilla": { src:"cod", codes:[4111] }
+    },
+    dulces: {
+      "Muffin de arándanos": { src:"cat", name:"Muffins de Arándanos" },
+      "Muffin de manzana": { src:"cat", name:"Muffins de Manzana" },
+      "Muffin de plátano y chocolate": { src:"cat", name:"Muffins de Plátano y Chocolate" },
+      "Galletas full omega": { src:"cat", name:"Galletas Full Omega" },
+      "Porción fondant de chocolate": { src:"cat", name:"Porción Fondant Chocolate" },
+      "Porción tarta de queso": { src:"cat", name:"Porción de Tarta de Queso y Vainilla" },
+      "Molde fondant de chocolate": { src:"cat", name:"Molde Fondant de Chocolate" },
+      "Molde tarta de queso y vainilla": { src:"cat", name:"Molde Tarta de Queso y Vainilla" },
+      "40 mini galletas": { src:"cat", name:"40 Mini Galletas" },
+      "Miel frasco 200gr": { src:"cat", name:"Miel Frasco 200g" },
+      "Miel frasco 500gr": { src:"cat", name:"Miel Frasco 500g" },
+      "Miel frasco 1.1kg": { src:"cat", name:"Miel Frasco 1.1 Kg" },
+      "Miel frasco 250gr": { src:"cat", name:"Miel Frasco 250g" }
+    },
+    saludables: {
+      "Masa madre campesino": { src:"cat", name:"Pan Masa Madre Campesino" },
+      "Masa madre centeno": { src:"cat", name:"Pan de Centeno Masa Madre" },
+      "Masa madre con frutos secos": { src:"cat", name:"Masa Madre con Frutos" },
+      "Molde especial de semillas": { src:"cat", name:"Molde Especial Semillas Chico" }
+    },
+    empanadas: {
+      "Empanada de carne": { src:"cat", name:"Empanada de Carne" },
+      "Empanada mixta (jamón y queso)": { src:"cat", name:"Empanada Mixta" },
+      "Empanada de ají de gallina": { src:"cat", name:"Empanada Ají de Gallina" },
+      "Porción pastel de acelga": { src:"cat", name:"Porción Pastel de Acelga con 3 Quesos" },
+      "Molde pastel de acelga": { src:"cod", codes:[4005] }
+    }
+  };
+
   var METAS_WEEKDAY_KEYS = ["domingo","lunes","martes","miercoles","jueves","viernes","sabado"];
   var METAS_WEEKDAY_LABEL = { domingo:"Domingo", lunes:"Lunes", martes:"Martes", miercoles:"Miércoles",
     jueves:"Jueves", viernes:"Viernes", sabado:"Sábado" };
@@ -914,7 +1009,8 @@ var TRIPLES = [
       e: makeSection(EMBUTIDOS, prevDay, "e"),
       t: makeSection(TRIPLES, prevDay, "t"),
       o: makeSection(STATE.customCatalog, prevDay, "o"),
-      metas: makeMetasDay()
+      metas: makeMetasDay(),
+      movimientos: { am: [], pm: [] }
     };
   }
   // Otros crece con el tiempo: cuando se agrega un producto nuevo, los días ya guardados
@@ -939,6 +1035,11 @@ var TRIPLES = [
       backfillSection(day, section.key, catalogFor(tab), prevDay);
     });
     backfillMetasDay(day);
+    // Días guardados antes de que existiera "Movimientos" (Otros como lista de salidas) no
+    // tienen este campo todavía -- se completa vacío, nunca se inventa nada.
+    if(!day.movimientos) day.movimientos = { am: [], pm: [] };
+    if(!day.movimientos.am) day.movimientos.am = [];
+    if(!day.movimientos.pm) day.movimientos.pm = [];
     // OJO: aquí ANTES se llamaba a cleanupSaldoFinalMigrado(day) en cada render para
     // corregir un patrón puntual que venía de la migración del Excel de setiembre. Se quitó
     // por completo: esa "corrección" asumía que, en una fila sin ningún otro movimiento
@@ -1252,6 +1353,32 @@ var TRIPLES = [
       }
     });
   }
+  // Movimientos (lista de salidas de Otros: producto + cantidad + nota, ver buildMovimientosPanel)
+  // es una LISTA, no columnas fijas por posición -- así que se combina distinto a mergeSection:
+  // cada entrada tiene su propio "id" que nunca cambia, y solo se agrega o se borra entera (nunca
+  // se edita a la mitad). Dos dispositivos agregando entradas distintas al mismo tiempo se quedan
+  // con las dos; si uno borra una entrada que el otro no tocó, se borra igual.
+  function mergeMovimientosSection(mergedSec, localSec, baseSec){
+    ["am","pm"].forEach(function(shift){
+      var localArr = (localSec && localSec[shift]) || [];
+      var baseArr = (baseSec && baseSec[shift]) || [];
+      var remoteArr = mergedSec[shift] || [];
+      var remoteMap = {}; remoteArr.forEach(function(e){ remoteMap[e.id] = e; });
+      var baseMap = {}; baseArr.forEach(function(e){ baseMap[e.id] = e; });
+      var out = Object.assign({}, remoteMap);
+      localArr.forEach(function(e){
+        if(!baseMap[e.id] || JSON.stringify(baseMap[e.id]) !== JSON.stringify(e)){ out[e.id] = e; }
+      });
+      Object.keys(baseMap).forEach(function(id){
+        var stillLocal = localArr.some(function(e){ return e.id === id; });
+        if(!stillLocal && remoteMap[id] && JSON.stringify(remoteMap[id]) === JSON.stringify(baseMap[id])){
+          delete out[id];
+        }
+      });
+      mergedSec[shift] = Object.keys(out).map(function(id){ return out[id]; })
+        .sort(function(a, b){ return (a.hora || "").localeCompare(b.hora || "") || String(a.id).localeCompare(String(b.id)); });
+    });
+  }
   function mergeDay(mergedDay, localDay, baseDay){
     var turnoFields = ["respAM","respPM","eAM","sAM","ePM","sPM","obsAM","obsPM","notas"];
     if(!mergedDay.turno) mergedDay.turno = {};
@@ -1265,6 +1392,10 @@ var TRIPLES = [
       if(!mergedDay[key]) mergedDay[key] = { am:[], pm:[], agAm:{}, agPm:{} };
       mergeSection(mergedDay[key], localDay[key], baseDay ? baseDay[key] : null);
     });
+    if(localDay.movimientos){
+      if(!mergedDay.movimientos) mergedDay.movimientos = { am:[], pm:[] };
+      mergeMovimientosSection(mergedDay.movimientos, localDay.movimientos, baseDay ? baseDay.movimientos : null);
+    }
     METAS_CATEGORIAS.forEach(function(cat){
       if(!localDay.metas || !localDay.metas[cat.key]) return;
       if(!mergedDay.metas) mergedDay.metas = {};
@@ -1557,6 +1688,63 @@ var TRIPLES = [
       totalRestadoPm: shift === "pm" ? totalRestadoPm : null
     };
   }
+  // Llena Metas a partir del mismo reporte de ventas que ya se importa para Panes/Bebidas/
+  // Embutidos/Triples -- usa METAS_ITEM_LINKS (ver más arriba) para saber, de cada producto de
+  // Metas, si toca buscarlo por código en el reporte ("cod") o copiar el dato que ya se calculó
+  // en el catálogo de Panes ("cat"). Se llama SIEMPRE después de applyImport, con la misma
+  // fecha/turno, sobre el mismo día -- así lo de "cat" ya encuentra el dato de Panes fresco.
+  // Nunca escribe en Panes/Bebidas/Embutidos/Triples, solo lee de ahí.
+  function applyImportToMetas(items, date, shift){
+    var day = ensureDay(date);
+    var codeSums = {};
+    items.forEach(function(item){
+      if(!(item.code in codeSums)) codeSums[item.code] = 0;
+      codeSums[item.code] += item.qty;
+    });
+    var catIndex = buildCatalogIndex();
+    var updatedMetas = 0;
+    METAS_CATEGORIAS.forEach(function(cat){
+      var linkMap = METAS_ITEM_LINKS[cat.key];
+      if(!linkMap) return;
+      var sec = day.metas[cat.key];
+      if(!sec) return;
+      cat.items.forEach(function(itemName, idx){
+        var link = linkMap[itemName];
+        if(!link) return;
+        if(!sec.am[idx]) sec.am[idx] = {};
+        if(!sec.pm[idx]) sec.pm[idx] = {};
+        if(link.src === "cod"){
+          cat.subcols.forEach(function(sc, si){
+            var code = link.codes[si];
+            if(code === null || code === undefined) return;
+            if(!(code in codeSums)) return;
+            var general = codeSums[code];
+            if(shift === "pm"){
+              var amVal = (sec.am[idx][sc.key] != null) ? sec.am[idx][sc.key] : 0;
+              sec.pm[idx][sc.key] = general - amVal;
+            } else {
+              sec.am[idx][sc.key] = general;
+            }
+            updatedMetas++;
+          });
+        } else if(link.src === "cat"){
+          var hit = catIndex[normName(link.name)];
+          if(!hit) return; // no debería pasar, pero por seguridad no se rompe nada si el nombre cambia
+          var panSec = day[SECTIONS[hit.tab].key];
+          var amRow = panSec.am[hit.idx];
+          var prow = shift === "am" ? amRow : panSec.pm[hit.idx];
+          var venta = shift === "am" ? ventasAm(prow) : ventasPm(prow, amRow);
+          // Si todavía no se puede calcular la venta (falta el conteo físico "Saldo Final"),
+          // no se toca la casilla de Metas -- se queda como estaba hasta que sí se pueda.
+          if(venta === null) return;
+          var subKey = cat.subcols[0].key;
+          sec[shift][idx][subKey] = venta;
+          updatedMetas++;
+        }
+      });
+    });
+    return { updatedMetas: updatedMetas };
+  }
   function handleImportFile(file, date, shift, statusEl){
     if(readOnly){ showToast("Vista de solo lectura: no puedes importar aquí."); return; }
     if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo."); return; }
@@ -1573,6 +1761,7 @@ var TRIPLES = [
           return;
         }
         var result = applyImport(items, date, shift);
+        result.updatedMetas = applyImportToMetas(items, date, shift).updatedMetas;
         markDirty();
         scheduleAutosave();
         // Guardamos el resumen ANTES de repintar el panel, para que el bloque "Última
@@ -1623,6 +1812,7 @@ var TRIPLES = [
     var msg = n + " producto" + (n===1?"":"s") + " actualizado" + (n===1?"":"s") +
       " (Panes " + result.updated.panes + " · Bebidas " + result.updated.bebidas + " · Embutidos " + result.updated.embutidos +
       " · Triples " + result.updated.triples + " · Otros " + result.updated.otros + ")" +
+      (result.updatedMetas ? " · Metas " + result.updatedMetas + " casilla" + (result.updatedMetas===1?"":"s") : "") +
       (s ? " — " + s + " fila" + (s===1?"":"s") + " del archivo no está" + (s===1?"":"n") + " en tu arqueo." : "");
     if(shift === "pm" && result.totalGeneralPm !== null){
       msg += " — Total del reporte (día completo): " + fmt(result.totalGeneralPm) +
@@ -2077,6 +2267,7 @@ var TRIPLES = [
     else if(currentTab === "pedidos"){ panel.appendChild(buildPedidosPanel()); }
     else if(currentTab === "cajeros"){ panel.appendChild(buildCajerosPanel()); }
     else if(currentTab === "metas"){ panel.appendChild(buildMetasPanel()); }
+    else if(currentTab === "otros"){ panel.appendChild(buildMovimientosPanel()); }
     else { panel.appendChild(buildProductPanel(currentTab)); }
   }
 
@@ -2380,6 +2571,222 @@ var TRIPLES = [
         rowCountEl.textContent = shown + " de " + visibleCount + " productos" + (q ? " (filtrados)" : "");
       }
     }
+  }
+
+  // ---------- Otros, como lista de movimientos (salidas que no son venta normal) ----------
+  // Jessica: "productos que tenemos en la tienda que los enviamos para otro destino" -- en vez
+  // de llenar Saldo Anterior/Ingresos/Merma/Saldo Final por producto (como el resto del Arqueo),
+  // acá se busca el producto (donde sea que viva: Panes, Bebidas, Embutidos, Triples, o algo
+  // nuevo que no está en ningún catálogo), se pone la cantidad y, si quieres, una nota de a
+  // dónde fue -- y se agrega a una lista del día. Se puede agregar el mismo producto varias
+  // veces (ej. Francés 15 para desayuno, Francés 10 para lonche, por separado).
+  //
+  // Cuando el producto SÍ existe en Panes/Bebidas/Embutidos/Triples (o en el Otros de antes),
+  // la cantidad se resta sola de la Merma de esa fila real, ese turno -- así el Saldo Final de
+  // ese producto sigue exacto sin anotarlo dos veces. Si el producto no existe en NINGÚN
+  // catálogo (ej. "Sandwich de Chicharrón"), queda solo como registro en esta lista, sin
+  // afectar ningún Saldo (no se crea un producto nuevo solo).
+  function horaAhora(){
+    var d = new Date();
+    var h = (d.getHours() < 10 ? "0" : "") + d.getHours();
+    var m = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+    return h + ":" + m;
+  }
+  function buildMovimientoProductList(){
+    var out = PANES.concat(BEBIDAS, EMBUTIDOS, TRIPLES, STATE.customCatalog || []);
+    var seen = {}, list = [];
+    out.forEach(function(n){
+      var k = n.toLowerCase();
+      if(seen[k]) return;
+      seen[k] = true;
+      list.push(n);
+    });
+    return list.sort();
+  }
+  function doAgregarMovimiento(date, shift, productoInput, cantidadInput, notaInput){
+    var nombre = productoInput.value.trim();
+    var cantidad = num(cantidadInput.value);
+    if(!nombre){ showToast("Escribe o elige un producto."); return; }
+    if(!(cantidad > 0)){ showToast("Escribe una cantidad mayor a 0."); return; }
+    // ensureDay (no getDay): si hoy todavía no tiene ningún dato guardado, getDay() devuelve
+    // un borrador nuevo cada vez que se llama y cualquier cambio ahí se perdería solo -- hay
+    // que "afirmar" el día en STATE.days antes de tocarlo, como hace el resto del Arqueo.
+    var day = ensureDay(date);
+    var catIndex = buildCatalogIndex();
+    var resolved = resolveCatalogEntry(catIndex, nombre);
+    var entry = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+      producto: resolved ? resolved.hit.name : nombre,
+      tab: resolved ? resolved.hit.tab : null,
+      idx: resolved ? resolved.hit.idx : null,
+      cantidad: cantidad,
+      nota: notaInput.value.trim(),
+      hora: horaAhora()
+    };
+    day.movimientos[shift].push(entry);
+    if(resolved){
+      var key = SECTIONS[resolved.hit.tab].key;
+      var row = day[key][shift][resolved.hit.idx];
+      row.m = round2(num(row.m) + cantidad);
+    }
+    markDirty();
+    scheduleAutosave();
+    productoInput.value = "";
+    cantidadInput.value = "";
+    notaInput.value = "";
+    showToast('"' + entry.producto + '" agregado' + (resolved ? " — se descontó de " + SECTIONS[resolved.hit.tab].label + "." : ", como registro nuevo (no está en ningún catálogo)."));
+    productoInput.focus();
+    renderPanel();
+  }
+  function doQuitarMovimiento(date, shift, id){
+    var day = ensureDay(date);
+    var idx = -1;
+    day.movimientos[shift].forEach(function(e, i){ if(e.id === id) idx = i; });
+    if(idx === -1) return;
+    var entry = day.movimientos[shift][idx];
+    var destino = entry.tab ? (" Esto también le devuelve " + fmt(entry.cantidad) + " a la Merma de \"" + entry.producto + "\" en " + SECTIONS[entry.tab].label + ".") : "";
+    if(!confirm('¿Quitar "' + entry.producto + '" (' + fmt(entry.cantidad) + ') de la lista?' + destino)) return;
+    if(entry.tab){
+      var key = SECTIONS[entry.tab].key;
+      var row = day[key] && day[key][shift] && day[key][shift][entry.idx];
+      if(row){ row.m = round2(Math.max(0, num(row.m) - entry.cantidad)); }
+    }
+    day.movimientos[shift].splice(idx, 1);
+    markDirty();
+    scheduleAutosave();
+    renderPanel();
+  }
+  function buildMovimientosPanel(){
+    var day = getDay(currentDate);
+    var wrap = document.createElement("div");
+    wrap.appendChild(buildStrip());
+
+    var card = document.createElement("div");
+    card.className = "card";
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.style.margin = "0 0 .8rem";
+    hint.textContent = "Aquí anotas lo que sale de la tienda sin ser venta normal: para otro local, regalos, consumo del personal, etc. Busca el producto (si ya existe en tu Arqueo, se descuenta solo de su Merma), pon la cantidad y, si quieres, una nota de a dónde fue.";
+    card.appendChild(hint);
+
+    var shiftRow = document.createElement("div");
+    shiftRow.className = "shift-toggle";
+    shiftRow.style.marginBottom = "1rem";
+    ["am","pm"].forEach(function(s){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "shift-btn" + (shiftView.otros === s ? " active" : "");
+      b.textContent = SHIFT_LABEL[s] + (shiftView.otros === s ? " (nuevos se agregan aquí)" : "");
+      b.addEventListener("click", function(){ shiftView.otros = s; renderPanel(); });
+      shiftRow.appendChild(b);
+    });
+    card.appendChild(shiftRow);
+
+    var datalist = document.createElement("datalist");
+    datalist.id = "movimientoProductList";
+    buildMovimientoProductList().forEach(function(n){
+      var opt = document.createElement("option");
+      opt.value = n;
+      datalist.appendChild(opt);
+    });
+    card.appendChild(datalist);
+
+    var addRow = document.createElement("div");
+    addRow.className = "field-grid";
+    var prodField = document.createElement("div");
+    prodField.className = "field";
+    var prodLabel = document.createElement("label");
+    prodLabel.textContent = "Producto";
+    prodField.appendChild(prodLabel);
+    var prodInput = document.createElement("input");
+    prodInput.type = "text";
+    prodInput.setAttribute("list", "movimientoProductList");
+    prodInput.placeholder = "Buscar producto en tu Arqueo o escribir uno nuevo…";
+    if(readOnly) prodInput.disabled = true;
+    prodField.appendChild(prodInput);
+    addRow.appendChild(prodField);
+
+    var cantField = document.createElement("div");
+    cantField.className = "field";
+    var cantLabel = document.createElement("label");
+    cantLabel.textContent = "Cantidad";
+    cantField.appendChild(cantLabel);
+    var cantInput = document.createElement("input");
+    cantInput.type = "number";
+    cantInput.step = "any";
+    cantInput.min = "0";
+    if(readOnly) cantInput.disabled = true;
+    cantField.appendChild(cantInput);
+    addRow.appendChild(cantField);
+
+    var notaField = document.createElement("div");
+    notaField.className = "field";
+    var notaLabel = document.createElement("label");
+    notaLabel.textContent = "Nota (opcional)";
+    notaField.appendChild(notaLabel);
+    var notaInput = document.createElement("input");
+    notaInput.type = "text";
+    notaInput.placeholder = "Ej: Taller, Sra Karissa, Casa, Desayuno…";
+    if(readOnly) notaInput.disabled = true;
+    notaField.appendChild(notaInput);
+    addRow.appendChild(notaField);
+    card.appendChild(addRow);
+
+    var addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "btn btn-primary btn-sm";
+    addBtn.style.margin = ".6rem 0 1rem";
+    addBtn.textContent = "Agregar";
+    if(readOnly) addBtn.disabled = true;
+    addBtn.addEventListener("click", function(){
+      doAgregarMovimiento(currentDate, shiftView.otros, prodInput, cantInput, notaInput);
+    });
+    card.appendChild(addBtn);
+
+    var entradas = (day.movimientos.am || []).map(function(e){ return { e:e, shift:"am" }; })
+      .concat((day.movimientos.pm || []).map(function(e){ return { e:e, shift:"pm" }; }));
+    entradas.sort(function(a, b){ return (a.e.hora||"").localeCompare(b.e.hora||""); });
+
+    if(entradas.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "Todavía no anotaste ninguna salida hoy.";
+      card.appendChild(empty);
+    } else {
+      var tableWrap = document.createElement("div");
+      tableWrap.className = "table-wrap";
+      var table = document.createElement("table");
+      table.className = "data-table";
+      table.innerHTML = "<thead><tr><th>Hora</th><th>Turno</th><th>Producto</th><th>Cantidad</th><th>Nota</th><th></th><th></th></tr></thead><tbody></tbody>";
+      var tbody = table.querySelector("tbody");
+      entradas.forEach(function(item){
+        var e = item.e;
+        var tr = document.createElement("tr");
+        var badge = e.tab ? '<span class="chip good">' + esc(SECTIONS[e.tab].label) + '</span>' : '<span class="chip">Nuevo</span>';
+        tr.innerHTML =
+          "<td>" + esc(e.hora || "—") + "</td>" +
+          "<td>" + SHIFT_LABEL[item.shift] + "</td>" +
+          "<td>" + esc(e.producto) + "</td>" +
+          "<td>" + fmt(e.cantidad) + "</td>" +
+          "<td>" + esc(e.nota || "—") + "</td>" +
+          "<td>" + badge + "</td>" +
+          "<td>" + (readOnly ? "" : '<button type="button" class="btn-del movimiento-del" data-id="' + esc(e.id) + '" data-shift="' + item.shift + '" title="Quitar">✕</button>') + "</td>";
+        tbody.appendChild(tr);
+      });
+      tableWrap.appendChild(table);
+      card.appendChild(tableWrap);
+
+      if(!readOnly){
+        tbody.querySelectorAll(".movimiento-del").forEach(function(btn){
+          btn.addEventListener("click", function(){
+            doQuitarMovimiento(currentDate, btn.getAttribute("data-shift"), btn.getAttribute("data-id"));
+          });
+        });
+      }
+    }
+
+    wrap.appendChild(card);
+    return wrap;
   }
 
   function buildMetasCategoryCard(cat, day, shift, weekdayKey){
@@ -2944,6 +3351,7 @@ var TRIPLES = [
       tipoPago: "",
       pagado: false,
       comprobante: null,
+      comprobante2: null,
       deliveryMonto: 0,
       notas: "",
       fechaDefault: fecha,
@@ -3617,6 +4025,76 @@ var TRIPLES = [
       if(pedidoEditingId) schedulePedidoAutosave();
     });
 
+    // Segundo pago/comprobante: Jessica pidió esto porque a veces el cliente paga incompleto y,
+    // cuando se detecta la diferencia, manda un pago aparte para completarlo. Es solo una foto
+    // de respaldo adicional (sin desglosar montos ni sumar automáticamente) para tener ambas
+    // capturas juntas en el mismo pedido.
+    var comprobante2Row = document.createElement("div");
+    comprobante2Row.className = "field";
+    comprobante2Row.style.margin = ".8rem 0 0";
+    var comprobante2Label = document.createElement("label");
+    comprobante2Label.textContent = "Foto de un segundo pago (opcional)";
+    comprobante2Row.appendChild(comprobante2Label);
+
+    var comprobante2PreviewWrap = document.createElement("div");
+    comprobante2PreviewWrap.style.display = "flex";
+    comprobante2PreviewWrap.style.alignItems = "center";
+    comprobante2PreviewWrap.style.gap = ".6rem";
+    comprobante2PreviewWrap.style.flexWrap = "wrap";
+
+    var comprobante2Img = document.createElement("img");
+    comprobante2Img.style.maxWidth = "90px";
+    comprobante2Img.style.maxHeight = "90px";
+    comprobante2Img.style.borderRadius = "6px";
+    comprobante2Img.style.border = "1px solid var(--border)";
+    comprobante2Img.hidden = !draft.comprobante2;
+    if(draft.comprobante2) comprobante2Img.src = draft.comprobante2;
+    comprobante2PreviewWrap.appendChild(comprobante2Img);
+
+    var comprobante2FileInput = document.createElement("input");
+    comprobante2FileInput.type = "file";
+    comprobante2FileInput.accept = "image/*";
+    if(readOnly) comprobante2FileInput.disabled = true;
+    comprobante2PreviewWrap.appendChild(comprobante2FileInput);
+
+    var comprobante2RemoveBtn = document.createElement("button");
+    comprobante2RemoveBtn.type = "button";
+    comprobante2RemoveBtn.className = "btn btn-sm";
+    comprobante2RemoveBtn.textContent = "Quitar foto";
+    comprobante2RemoveBtn.hidden = !draft.comprobante2;
+    if(readOnly) comprobante2RemoveBtn.disabled = true;
+    comprobante2PreviewWrap.appendChild(comprobante2RemoveBtn);
+
+    comprobante2Row.appendChild(comprobante2PreviewWrap);
+    var comprobante2Hint = document.createElement("div");
+    comprobante2Hint.className = "hint";
+    comprobante2Hint.textContent = "Úsala cuando el cliente pagó incompleto y después envía un pago aparte con la diferencia: sube esa segunda captura acá.";
+    comprobante2Row.appendChild(comprobante2Hint);
+    card.appendChild(comprobante2Row);
+
+    comprobante2FileInput.addEventListener("change", function(){
+      var file = comprobante2FileInput.files && comprobante2FileInput.files[0];
+      if(!file) return;
+      showToast("Cargando foto…");
+      compressImageFile(file, function(dataUrl){
+        comprobante2FileInput.value = "";
+        if(!dataUrl){ showToast("No se pudo cargar la foto. Intenta con otra imagen."); return; }
+        draft.comprobante2 = dataUrl;
+        comprobante2Img.src = dataUrl;
+        comprobante2Img.hidden = false;
+        comprobante2RemoveBtn.hidden = false;
+        showToast("Foto agregada.");
+        if(pedidoEditingId) schedulePedidoAutosave();
+      });
+    });
+    comprobante2RemoveBtn.addEventListener("click", function(){
+      draft.comprobante2 = null;
+      comprobante2Img.hidden = true;
+      comprobante2Img.src = "";
+      comprobante2RemoveBtn.hidden = true;
+      if(pedidoEditingId) schedulePedidoAutosave();
+    });
+
     card.appendChild(buildField("Notas (opcional)", "textarea", draft.notas, function(v){ draft.notas = v; }, true));
 
     card.appendChild(totalsRow);
@@ -3806,7 +4284,7 @@ var TRIPLES = [
     if(pedidosSaving) return;
     pedidosSaving = true;
     renderPanel();
-    nextPedidoNumero().then(function(numero){
+    nextPedidoNumero(draft.canal).then(function(numero){
       var payload = {
         canal: draft.canal,
         origen: draft.origen || "whatsapp",
@@ -3814,6 +4292,7 @@ var TRIPLES = [
         tipoPago: draft.tipoPago || "",
         pagado: !!draft.pagado,
         comprobante: draft.comprobante || null,
+        comprobante2: draft.comprobante2 || null,
         deliveryMonto: pedidoDeliveryTotal(draft),
         masivoModo: draft.canal === "masivo" ? draft.masivoModo : "",
         masivoDeliveryRate: draft.canal === "masivo" ? num(draft.masivoDeliveryRate) : 0,
@@ -3860,6 +4339,7 @@ var TRIPLES = [
       tipoPago: p.tipoPago || "",
       pagado: !!p.pagado,
       comprobante: p.comprobante || null,
+      comprobante2: p.comprobante2 || null,
       deliveryMonto: num(p.deliveryMonto),
       masivoModo: p.masivoModo || "recojo",
       masivoDeliveryRate: num(p.masivoDeliveryRate),
@@ -3901,6 +4381,7 @@ var TRIPLES = [
       tipoPago: draft.tipoPago || "",
       pagado: !!draft.pagado,
       comprobante: draft.comprobante || null,
+      comprobante2: draft.comprobante2 || null,
       deliveryMonto: pedidoDeliveryTotal(draft),
       masivoModo: draft.canal === "masivo" ? draft.masivoModo : "",
       masivoDeliveryRate: draft.canal === "masivo" ? num(draft.masivoDeliveryRate) : 0,
@@ -3979,19 +4460,33 @@ var TRIPLES = [
   // STATE, que ya tiene su propia lógica de fusión) y se actualiza dentro de una transacción
   // para que dos personas guardando un pedido al mismo tiempo, desde equipos distintos, nunca
   // se queden con el mismo número.
-  function nextPedidoNumero(){
+  //
+  // Más adelante Jessica pidió un correlativo POR CANAL (uno para Tienda, otro para Delivery),
+  // para poder identificar de un vistazo de qué canal viene cada orden. Se guardan contadores
+  // nuevos y separados (ultimoTienda / ultimoDelivery / ultimoMasivo) en el mismo documento,
+  // sin tocar "ultimo" (el contador viejo, único): así los pedidos ya guardados con su número
+  // antiguo (sin prefijo) quedan intactos, y solo los pedidos nuevos usan el formato con
+  // prefijo de canal (T-0001, D-0001, M-0001).
+  var PEDIDO_NUMERO_PREFIJO = { tienda:"T", delivery:"D", masivo:"M" };
+  var PEDIDO_NUMERO_CAMPO = { tienda:"ultimoTienda", delivery:"ultimoDelivery", masivo:"ultimoMasivo" };
+  function nextPedidoNumero(canal){
+    var prefijo = PEDIDO_NUMERO_PREFIJO[canal] || "D";
+    var campo = PEDIDO_NUMERO_CAMPO[canal] || "ultimoDelivery";
     var ref = db.collection("contadores").doc("pedidos");
     return db.runTransaction(function(tx){
       return tx.get(ref).then(function(snap){
-        var ultimo = (snap.exists && num(snap.data().ultimo)) || 0;
+        var data = (snap.exists && snap.data()) || {};
+        var ultimo = num(data[campo]) || 0;
         var siguiente = ultimo + 1;
-        tx.set(ref, { ultimo: siguiente });
+        var patch = {};
+        patch[campo] = siguiente;
+        tx.set(ref, patch, { merge: true });
         return siguiente;
       });
     }).then(function(n){
       var s = String(n);
       while(s.length < 4) s = "0" + s;
-      return s;
+      return prefijo + "-" + s;
     });
   }
   // Etiqueta corta para mostrar junto al título -- Jessica pidió poder identificar de un
@@ -4135,6 +4630,14 @@ var TRIPLES = [
     // lado deja unos 718px de ancho imprimible -- 780px se pasaba de ese límite y corría el
     // riesgo de recortarse o depender de que la impresora/navegador reescale por su cuenta.
     var html = '<div class="pedido-print-card" style="font-family:Arial,Helvetica,sans-serif; color:#111; max-width:700px; margin:0 auto; -webkit-print-color-adjust:exact; print-color-adjust:exact;">';
+    // Si el pedido está anulado, se avisa bien arriba y bien visible -- por si alguien lo
+    // reimprime desde "Todos los pedidos" para revisar el caso, nunca debe verse como un
+    // pedido normal listo para preparar/entregar.
+    if(p.anulado){
+      html += '<div style="background:#cc0000; color:#fff; font-weight:800; font-size:15px; text-align:center; padding:8px; margin-bottom:8px;">' +
+        '❌ PEDIDO ANULADO' + (p.motivoAnulacion ? ' — Motivo: ' + esc(p.motivoAnulacion) : '') +
+        (p.fechaAnulacion ? ' (' + esc(fmtFechaCorta(p.fechaAnulacion)) + ')' : '') + '</div>';
+    }
     html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">';
     html += '<div><img src="' + CARMELITAS_LOGO + '" style="height:78px; display:block; margin-bottom:6px;">' +
       '<div style="font-size:11px; color:#333;">Av. 28 de Julio 1328 - Miraflores -Lima</div>' +
@@ -4171,8 +4674,15 @@ var TRIPLES = [
     // con el resto del pedido, no solo el texto "PAGADO".
     if(p.comprobante){
       html += '<div style="margin-top:8px; text-align:center;">' +
-        '<div style="font-size:10px; font-weight:700; color:#555; margin-bottom:3px;">COMPROBANTE DE PAGO</div>' +
+        '<div style="font-size:10px; font-weight:700; color:#555; margin-bottom:3px;">' + (p.comprobante2 ? "COMPROBANTE DE PAGO 1" : "COMPROBANTE DE PAGO") + '</div>' +
         '<img src="' + p.comprobante + '" style="max-width:260px; max-height:260px; border:1px solid #ccc; border-radius:4px;">' +
+        '</div>';
+    }
+    // Segundo comprobante (pago de la diferencia, cuando el primero llegó incompleto).
+    if(p.comprobante2){
+      html += '<div style="margin-top:8px; text-align:center;">' +
+        '<div style="font-size:10px; font-weight:700; color:#555; margin-bottom:3px;">COMPROBANTE DE PAGO 2</div>' +
+        '<img src="' + p.comprobante2 + '" style="max-width:260px; max-height:260px; border:1px solid #ccc; border-radius:4px;">' +
         '</div>';
     }
     html += '<div style="text-align:center; color:#cc0000; font-weight:700; font-size:11px; margin-top:14px;">40 años... Tradición en Evolución, a tu servicio</div>';
@@ -4190,6 +4700,7 @@ var TRIPLES = [
   }
   function doPrintPedidosDia(date){
     var list = (PEDIDOS || []).filter(function(p){
+      if(p.anulado) return false;
       return (p.items || []).some(function(it){ return it.fecha === date; });
     });
     if(list.length === 0){ showToast("No hay pedidos con entrega ese día."); return; }
@@ -4230,6 +4741,7 @@ var TRIPLES = [
   function buildPedidosReporteRows(date, origen){
     var rows = [];
     (PEDIDOS || []).forEach(function(p){
+      if(p.anulado) return;
       if((p.origen || "whatsapp") !== origen) return;
       (p.items || []).forEach(function(it){
         if(it.fecha !== date) return;
@@ -4339,6 +4851,7 @@ var TRIPLES = [
     card.appendChild(printDiaBtn);
     var totals = {};
     PEDIDOS.forEach(function(p){
+      if(p.anulado) return;
       (p.items || []).forEach(function(it){
         if(it.fecha !== targetDate) return;
         if(!totals[it.producto]) totals[it.producto] = { delivery:0, tienda:0, masivo:0 };
@@ -4455,10 +4968,11 @@ var TRIPLES = [
     tableWrap.className = "table-wrap";
     var table = document.createElement("table");
     table.className = "data-table";
-    table.innerHTML = "<thead><tr><th>Fecha(s)</th><th>Hora</th><th>Cliente</th><th>Origen</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
+    table.innerHTML = "<thead><tr><th>N°</th><th>Fecha(s)</th><th>Hora</th><th>Cliente</th><th>Origen</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th></th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
     var tbody = table.querySelector("tbody");
     pedidosFiltrados.forEach(function(p){
       var tr = document.createElement("tr");
+      if(p.anulado) tr.style.background = "#fdecea";
       var seen = {};
       var fechas = [];
       (p.items||[]).forEach(function(it){
@@ -4474,10 +4988,18 @@ var TRIPLES = [
         canalLabel += " (" + (p.masivoModo === "delivery" ? "Delivery" : "Recojo") + ")";
       }
       var origenLabel = ORIGEN_LABEL[p.origen] || ORIGEN_LABEL.whatsapp;
+      var clienteCell = esc((p.cliente && p.cliente.nombre) || "—");
+      if(p.anulado){
+        clienteCell += ' <span class="chip bad" title="' + esc(p.motivoAnulacion || "Sin motivo registrado") + '">ANULADO</span>';
+      }
+      var anularBtnHtml = p.anulado
+        ? (readOnly ? "" : "<button type='button' class='btn btn-sm pedido-reactivar' data-id='" + p.id + "'>Reactivar</button>")
+        : (readOnly ? "" : "<button type='button' class='btn btn-sm pedido-anular' data-id='" + p.id + "'>Anular</button>");
       tr.innerHTML =
+        "<td>" + esc(p.numero || "—") + "</td>" +
         "<td>" + esc(fechaLabel) + "</td>" +
         "<td>" + esc(p.hora || "—") + "</td>" +
-        "<td>" + esc((p.cliente && p.cliente.nombre) || "—") + "</td>" +
+        "<td>" + clienteCell + "</td>" +
         "<td>" + esc(origenLabel) + "</td>" +
         "<td>" + esc(canalLabel) + "</td>" +
         "<td class='pedido-productos-cell'>" + esc(productosLabel) + "</td>" +
@@ -4485,6 +5007,7 @@ var TRIPLES = [
         "<td><button type='button' class='" + pagadoClass + "' data-id='" + p.id + "'>" + (p.pagado ? "Pagado" : "Pendiente") + "</button></td>" +
         "<td>" + (readOnly ? "" : "<button type='button' class='btn btn-sm pedido-editar' data-id='" + p.id + "'>Editar</button>") + "</td>" +
         "<td><button type='button' class='btn btn-sm pedido-pdf' data-id='" + p.id + "'>Generar PDF</button></td>" +
+        "<td>" + anularBtnHtml + "</td>" +
         "<td>" + (readOnly ? "" : '<button type="button" class="btn-del pedido-del" data-id="' + p.id + '" title="Eliminar pedido">✕</button>') + "</td>";
       tbody.appendChild(tr);
     });
@@ -4537,6 +5060,42 @@ var TRIPLES = [
           });
         });
       });
+      // Anular: a diferencia de Eliminar, no borra el pedido -- se queda visible en la lista
+      // marcado como ANULADO junto con el motivo, y deja de contar en Producción, Cuentas por
+      // Cobrar y los reportes del día (para que el equipo no lo prepare por error).
+      tbody.querySelectorAll(".pedido-anular").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var id = btn.getAttribute("data-id");
+          var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
+          if(!p || !db) return;
+          var nombre = (p.cliente && p.cliente.nombre) || "este cliente";
+          var motivo = prompt('Vas a anular el pedido de "' + nombre + '".\n\nEscribe el motivo de la anulación:');
+          if(motivo === null) return;
+          if(!motivo.trim()){ showToast("No se anuló: falta el motivo."); return; }
+          db.collection("pedidos").doc(id).update({
+            anulado: true,
+            motivoAnulacion: motivo.trim(),
+            fechaAnulacion: todayISO()
+          }).then(function(){
+            showToast("Pedido anulado.");
+          }).catch(function(){
+            showToast("No se pudo anular. Intenta de nuevo.");
+          });
+        });
+      });
+      tbody.querySelectorAll(".pedido-reactivar").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var id = btn.getAttribute("data-id");
+          var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
+          if(!p || !db) return;
+          if(!confirm('¿Reactivar este pedido? Volverá a contar en Producción, reportes y Cuentas por Cobrar.')) return;
+          db.collection("pedidos").doc(id).update({ anulado: false }).then(function(){
+            showToast("Pedido reactivado.");
+          }).catch(function(){
+            showToast("No se pudo reactivar. Intenta de nuevo.");
+          });
+        });
+      });
     }
 
     return wrap;
@@ -4566,7 +5125,7 @@ var TRIPLES = [
     card.appendChild(hint);
 
     var pendientes = (PEDIDOS || []).filter(function(p){
-      return !p.pagado && num(p.cliente && p.cliente.diasCredito) > 0;
+      return !p.pagado && !p.anulado && num(p.cliente && p.cliente.diasCredito) > 0;
     }).map(function(p){
       var venc = pedidoVencimiento(p);
       var total = (p.items||[]).reduce(function(s,it){ return s + num(it.cantidad)*num(it.precio); }, 0) + num(p.deliveryMonto);
