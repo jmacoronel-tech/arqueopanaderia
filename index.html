@@ -1968,8 +1968,8 @@ var TRIPLES = [
       : alerts.total + " producto" + (alerts.total===1?"":"s") + " por revisar (Panes " + alerts.panes + " · Bebidas " + alerts.bebidas + " · Embutidos " + alerts.embutidos + " · Triples " + alerts.triples + " · Otros " + alerts.otros + ").") + "</p>";
 
     PRODUCT_TABS.forEach(function(tabKey){
+      if(tabKey === "otros") return; // Otros se imprime aparte más abajo, como bitácora de salidas.
       var section = SECTIONS[tabKey];
-      if(tabKey === "otros" && catalogFor(tabKey).length === 0) return;
       ["am","pm"].forEach(function(shift){
         var rows = printableRows(tabKey, shift, day);
         html += "<h2>" + esc(section.label) + " — " + SHIFT_LABEL[shift] + "</h2>";
@@ -1984,6 +1984,19 @@ var TRIPLES = [
         html += "</tbody></table>";
       });
     });
+    var movEntradas = printableMovimientosRows(day);
+    html += "<h2>Otros — salidas del día</h2>";
+    if(movEntradas.length === 0){
+      html += '<p class="print-empty">Sin movimientos registrados.</p>';
+    } else {
+      html += "<table><thead><tr><th>Hora</th><th>Turno</th><th>Producto</th><th>Cantidad</th><th>Nota</th></tr></thead><tbody>";
+      movEntradas.forEach(function(item){
+        var e = item.e;
+        html += "<tr><td>" + esc(e.hora || "—") + "</td><td>" + SHIFT_LABEL[item.shift] + "</td><td>" + esc(e.producto) +
+          "</td><td>" + fmt(e.cantidad) + "</td><td>" + esc(e.nota || "—") + "</td></tr>";
+      });
+      html += "</tbody></table>";
+    }
     html += '<div class="print-footer">Generado ' + esc(new Date().toLocaleString("es-PE",{ timeZone:"America/Lima" })) + "</div>";
     return html;
   }
@@ -2091,8 +2104,8 @@ var TRIPLES = [
     html += "<h1>" + esc(STATE.meta.businessName || "Arqueo Diario") + "</h1>";
     html += '<div class="print-sub">Resumen del ' + esc(fmtDateLabel(date)) + "</div>";
     PRODUCT_TABS.forEach(function(tabKey){
+      if(tabKey === "otros") return; // Otros se imprime aparte más abajo, como bitácora de salidas.
       var section = SECTIONS[tabKey];
-      if(tabKey === "otros" && catalogFor(tabKey).length === 0) return;
       var rows = printableRowsSimple(tabKey, day);
       html += "<h2>" + esc(section.label) + "</h2>";
       if(rows.length === 0){ html += '<p class="print-empty">Sin movimientos registrados.</p>'; return; }
@@ -2105,6 +2118,19 @@ var TRIPLES = [
       });
       html += "</tbody></table>";
     });
+    var movEntradasR = printableMovimientosRows(day);
+    html += "<h2>Otros — salidas del día</h2>";
+    if(movEntradasR.length === 0){
+      html += '<p class="print-empty">Sin movimientos registrados.</p>';
+    } else {
+      html += "<table><thead><tr><th>Hora</th><th>Turno</th><th>Producto</th><th>Cantidad</th><th>Nota</th></tr></thead><tbody>";
+      movEntradasR.forEach(function(item){
+        var e = item.e;
+        html += "<tr><td>" + esc(e.hora || "—") + "</td><td>" + SHIFT_LABEL[item.shift] + "</td><td>" + esc(e.producto) +
+          "</td><td>" + fmt(e.cantidad) + "</td><td>" + esc(e.nota || "—") + "</td></tr>";
+      });
+      html += "</tbody></table>";
+    }
     html += '<div class="print-footer">Generado ' + esc(new Date().toLocaleString("es-PE",{ timeZone:"America/Lima" })) + "</div>";
     return html;
   }
@@ -2171,6 +2197,104 @@ var TRIPLES = [
     var area = document.getElementById("printArea");
     area.innerHTML = buildPrintCurrentViewHTML(tab, shift, date);
     doWindowPrint("Arqueo " + SECTIONS[tab].label + " " + SHIFT_LABEL[shift] + " " + (date || ""));
+  }
+
+  // ---------- imprimir la vista de Otros (lista de movimientos/salidas) tal como se ve en
+  // pantalla -- separado de printableRowsCurrent porque Otros ya no es una tabla de productos
+  // con Saldo/Ingreso/Merma, es una bitácora de salidas (Hora/Turno/Producto/Cantidad/Nota). ----
+  function printableMovimientosRows(day){
+    var entradas = (day.movimientos.am || []).map(function(e){ return { e:e, shift:"am" }; })
+      .concat((day.movimientos.pm || []).map(function(e){ return { e:e, shift:"pm" }; }));
+    entradas.sort(function(a, b){ return (a.e.hora||"").localeCompare(b.e.hora||""); });
+    return entradas;
+  }
+  function buildPrintMovimientosHTML(date){
+    var day = getDay(date);
+    backfillDay(day, date);
+    var entradas = printableMovimientosRows(day);
+    var html = "";
+    html += "<h1>" + esc(STATE.meta.businessName || "Arqueo Diario") + "</h1>";
+    html += '<div class="print-sub">Otros (salidas) · ' + esc(fmtDateLabel(date)) + "</div>";
+    if(entradas.length === 0){
+      html += '<p class="print-empty">Todavía no se anotó ninguna salida este día.</p>';
+    } else {
+      html += "<table><thead><tr><th>Hora</th><th>Turno</th><th>Producto</th><th>Cantidad</th><th>Nota</th></tr></thead><tbody>";
+      var totalCant = 0;
+      entradas.forEach(function(item){
+        var e = item.e;
+        totalCant += num(e.cantidad);
+        html += "<tr><td>" + esc(e.hora || "—") + "</td><td>" + SHIFT_LABEL[item.shift] + "</td><td>" + esc(e.producto) +
+          "</td><td>" + fmt(e.cantidad) + "</td><td>" + esc(e.nota || "—") + "</td></tr>";
+      });
+      html += "</tbody></table>";
+      html += '<p class="print-summary">Total de unidades: ' + fmt(totalCant) + "</p>";
+    }
+    html += '<div class="print-footer">Generado ' + esc(new Date().toLocaleString("es-PE",{ timeZone:"America/Lima" })) + "</div>";
+    return html;
+  }
+  function doPrintMovimientos(date){
+    setPrintOrientation(false);
+    var area = document.getElementById("printArea");
+    area.innerHTML = buildPrintMovimientosHTML(date);
+    doWindowPrint("Arqueo Otros " + (date || ""));
+  }
+
+  // ---------- imprimir la vista de Metas tal como se ve en pantalla (una tabla por
+  // categoría, con TOTAL/META/PORCENTAJE cuando esa categoría tiene meta, igual que
+  // buildMetasCategoryCard pero como HTML de impresión). ----
+  function buildPrintMetasHTML(date, shift){
+    var day = getDay(date);
+    backfillMetasDay(day);
+    var weekdayKey = weekdayKeyFor(date);
+    var html = "";
+    html += "<h1>" + esc(STATE.meta.businessName || "Arqueo Diario") + "</h1>";
+    html += '<div class="print-sub">Metas — ' + esc(SHIFT_LABEL[shift]) + " · " + esc(fmtDateLabel(date)) + "</div>";
+    METAS_CATEGORIAS.forEach(function(cat){
+      var sec = day.metas[cat.key];
+      var objetivos = cat.conMeta ? (STATE.metasObjetivos[weekdayKey] && STATE.metasObjetivos[weekdayKey][cat.key]) : null;
+      var metaArr = objetivos ? (objetivos[shift] || []) : [];
+      html += "<h2>" + esc(cat.label) + "</h2>";
+      html += "<table><thead><tr><th>Producto</th>";
+      cat.subcols.forEach(function(sc){ html += "<th>" + esc(sc.label) + "</th>"; });
+      html += "</tr></thead><tbody>";
+      cat.items.forEach(function(name, idx){
+        var row = (sec[shift] || [])[idx] || {};
+        html += "<tr><td>" + esc(name) + "</td>";
+        cat.subcols.forEach(function(sc){
+          var v = row[sc.key];
+          html += "<td>" + (v ? fmt(v) : "—") + "</td>";
+        });
+        html += "</tr>";
+      });
+      html += "</tbody><tfoot>";
+      html += '<tr class="metas-total-row"><td>TOTAL</td>';
+      cat.subcols.forEach(function(sc){ html += "<td>" + fmt(metasSubcolTotal(sec, shift, sc.key)) + "</td>"; });
+      html += "</tr>";
+      if(cat.conMeta){
+        html += '<tr><td>META</td>';
+        cat.subcols.forEach(function(sc, si){
+          var mv = metaArr[si];
+          html += "<td>" + (mv ? fmt(mv) : "—") + "</td>";
+        });
+        html += "</tr>";
+        html += '<tr><td>PORCENTAJE</td>';
+        cat.subcols.forEach(function(sc, si){
+          var total = metasSubcolTotal(sec, shift, sc.key);
+          var meta = num(metaArr[si]);
+          html += "<td>" + (meta > 0 ? Math.round((total/meta)*100) + "%" : "—") + "</td>";
+        });
+        html += "</tr>";
+      }
+      html += "</tfoot></table>";
+    });
+    html += '<div class="print-footer">Generado ' + esc(new Date().toLocaleString("es-PE",{ timeZone:"America/Lima" })) + "</div>";
+    return html;
+  }
+  function doPrintMetas(date, shift){
+    setPrintOrientation(true);
+    var area = document.getElementById("printArea");
+    area.innerHTML = buildPrintMetasHTML(date, shift);
+    doWindowPrint("Metas " + SHIFT_LABEL[shift] + " " + (date || ""));
   }
 
   // ---------- Excel export (una hoja por categoría, un día opcionalmente) ----------
@@ -2275,6 +2399,128 @@ var TRIPLES = [
     }catch(e){}
     return ws;
   }
+  // ---------- Reporte de Otros para Excel (a partir de day.movimientos -- el catálogo viejo
+  // de "Otros" como tabla de productos ya no se usa, quedó reemplazado por esta bitácora de
+  // salidas; este reporte reemplaza el que antes salía siempre vacío). Diseño aprobado por
+  // Jessica (vista previa en scratch_otros/): título + tabla Fecha/Turno/Hora/Producto/
+  // Cantidad/Nota + total de unidades + resumen por producto, para cuadrar contra la Merma. ----
+  function buildMovimientosReportRows(dateFilter){
+    var out = [];
+    var dates = Object.keys(STATE.days).sort();
+    if(dateFilter) dates = dates.filter(function(d){ return d === dateFilter; });
+    dates.forEach(function(d){
+      var day = STATE.days[d];
+      backfillDay(day, d);
+      ["am","pm"].forEach(function(shift){
+        (day.movimientos[shift] || []).forEach(function(e){
+          out.push({ fecha: d, turno: SHIFT_LABEL[shift], hora: e.hora || "", producto: e.producto, cantidad: num(e.cantidad), nota: e.nota || "" });
+        });
+      });
+    });
+    out.sort(function(a, b){
+      if(a.fecha !== b.fecha) return a.fecha < b.fecha ? -1 : 1;
+      return (a.hora || "").localeCompare(b.hora || "");
+    });
+    return out;
+  }
+  function buildMovimientosReportSheet(rows, dateFilter){
+    var DARK = "5A3A22", ORANGE = "C2660C", BLUE = "4472C4", LIGHT = "F6E3BD";
+    var headers = ["Fecha","Turno","Hora","Producto","Cantidad","Nota"];
+    var aoa = [];
+    aoa.push(["PANADERÍA CARMELITAS — MOVIMIENTOS (OTROS)","","","","",""]);
+    aoa.push(["Salidas que no son venta normal: regalos, bonificaciones, consumo del personal, envíos a otro local, etc.","","","","",""]);
+    aoa.push([dateFilter ? fmtDateLabel(dateFilter) : "Historial completo (todas las fechas guardadas)","","","","",""]);
+    aoa.push(["","","","","",""]);
+    var headerRowIdx = aoa.length;
+    aoa.push(headers.slice());
+    var firstDataIdx = aoa.length;
+    rows.forEach(function(r){ aoa.push([r.fecha, r.turno, r.hora, r.producto, r.cantidad, r.nota]); });
+    var lastDataIdx = aoa.length - 1;
+
+    var totalRowIdx = -1, resumenTitleIdx = -1, resumenHeaderIdx = -1, resumenFirstIdx = -1, seen = [];
+    if(rows.length === 0){
+      aoa.push(["Todavía no hay salidas anotadas" + (dateFilter ? " para este día." : "."), "", "", "", "", ""]);
+    } else {
+      var totalUnidades = rows.reduce(function(s, r){ return s + num(r.cantidad); }, 0);
+      aoa.push(["","","","","",""]);
+      totalRowIdx = aoa.length;
+      aoa.push([dateFilter ? "TOTAL UNIDADES DEL DÍA" : "TOTAL UNIDADES DEL PERIODO","","","",round2(totalUnidades),""]);
+      aoa.push(["","","","","",""]);
+      resumenTitleIdx = aoa.length;
+      aoa.push(["RESUMEN POR PRODUCTO (para cuadrar contra la Merma)","","","","",""]);
+      resumenHeaderIdx = aoa.length;
+      aoa.push(["Producto","","","","Cantidad total",""]);
+      var totalsByProduct = {};
+      rows.forEach(function(r){
+        if(totalsByProduct[r.producto] === undefined){ totalsByProduct[r.producto] = 0; seen.push(r.producto); }
+        totalsByProduct[r.producto] += num(r.cantidad);
+      });
+      resumenFirstIdx = aoa.length;
+      // El nombre del producto va en A:D (igual de ancho que la columna Producto de la tabla de
+      // arriba, más el resto) para que no se corte "Empanada de Carne", "Café Americano Chico",
+      // etc. -- antes iba solo en la columna A (angosta, pensada para "Fecha") y se cortaba.
+      seen.forEach(function(p){ aoa.push([p, "", "", "", round2(totalsByProduct[p]), ""]); });
+    }
+
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [{wch:13},{wch:10},{wch:8},{wch:28},{wch:12},{wch:38}];
+    var merges = [
+      { s:{r:0,c:0}, e:{r:0,c:5} },
+      { s:{r:1,c:0}, e:{r:1,c:5} },
+      { s:{r:2,c:0}, e:{r:2,c:5} }
+    ];
+    if(totalRowIdx !== -1){
+      merges.push({ s:{r:totalRowIdx,c:0}, e:{r:totalRowIdx,c:3} });
+      merges.push({ s:{r:resumenTitleIdx,c:0}, e:{r:resumenTitleIdx,c:5} });
+      merges.push({ s:{r:resumenHeaderIdx,c:0}, e:{r:resumenHeaderIdx,c:3} });
+      merges.push({ s:{r:resumenHeaderIdx,c:4}, e:{r:resumenHeaderIdx,c:5} });
+      seen.forEach(function(p, i){ merges.push({ s:{r:resumenFirstIdx+i,c:0}, e:{r:resumenFirstIdx+i,c:3} }); });
+    }
+    ws["!merges"] = merges;
+
+    try{
+      var ref;
+      ref = XLSX.utils.encode_cell({r:0,c:0});
+      if(ws[ref]) ws[ref].s = { font:{ bold:true, underline:true, sz:14, color:{rgb:ORANGE} }, alignment:{ horizontal:"center" } };
+      ref = XLSX.utils.encode_cell({r:1,c:0});
+      if(ws[ref]) ws[ref].s = { font:{ italic:true, sz:10, color:{rgb:"666666"} }, alignment:{ horizontal:"center" } };
+      ref = XLSX.utils.encode_cell({r:2,c:0});
+      if(ws[ref]) ws[ref].s = { font:{ bold:true, sz:11, color:{rgb:DARK} }, alignment:{ horizontal:"center" } };
+      for(var hc=0; hc<headers.length; hc++){
+        ref = XLSX.utils.encode_cell({r:headerRowIdx, c:hc});
+        if(ws[ref]) ws[ref].s = { font:{ bold:true, color:{rgb:"FFFFFF"} }, fill:{ fgColor:{rgb:BLUE} }, alignment:{ horizontal:"center" } };
+      }
+      for(var ri=firstDataIdx; ri<=lastDataIdx; ri++){
+        for(var ci=0; ci<headers.length; ci++){
+          ref = XLSX.utils.encode_cell({r:ri, c:ci});
+          if(!ws[ref]) continue;
+          var st = { font:{ sz:10 } };
+          if(ci === 4) st.alignment = { horizontal:"center" };
+          if((ri - firstDataIdx) % 2 === 1) st.fill = { fgColor:{rgb:"FBF7F0"} };
+          ws[ref].s = st;
+        }
+      }
+      if(totalRowIdx !== -1){
+        ref = XLSX.utils.encode_cell({r:totalRowIdx, c:0});
+        if(ws[ref]) ws[ref].s = { font:{ bold:true, color:{rgb:DARK} }, alignment:{ horizontal:"right" } };
+        ref = XLSX.utils.encode_cell({r:totalRowIdx, c:4});
+        if(ws[ref]) ws[ref].s = { font:{ bold:true, color:{rgb:DARK} }, alignment:{ horizontal:"center" }, fill:{ fgColor:{rgb:LIGHT} } };
+        ref = XLSX.utils.encode_cell({r:resumenTitleIdx, c:0});
+        if(ws[ref]) ws[ref].s = { font:{ bold:true, sz:11, color:{rgb:ORANGE} } };
+        [0, 4].forEach(function(rc){
+          var href = XLSX.utils.encode_cell({r:resumenHeaderIdx, c:rc});
+          if(ws[href]) ws[href].s = { font:{ bold:true, color:{rgb:"FFFFFF"} }, fill:{ fgColor:{rgb:BLUE} }, alignment:{ horizontal:"center" } };
+        });
+        seen.forEach(function(p, i){
+          var rref = XLSX.utils.encode_cell({r:resumenFirstIdx+i, c:0});
+          if(ws[rref]) ws[rref].s = { font:{ sz:10 } };
+          var cref = XLSX.utils.encode_cell({r:resumenFirstIdx+i, c:4});
+          if(ws[cref]) ws[cref].s = { font:{ sz:10 }, alignment:{ horizontal:"center" } };
+        });
+      }
+    }catch(e){}
+    return ws;
+  }
   function buildTurnoRows(dateFilter){
     var rows = [["Fecha","Responsable AM","Hora Entrada AM","Hora Cierre AM","Observaciones AM",
       "Responsable PM","Hora Entrada PM","Hora Cierre PM","Observaciones PM","Notas del día"]];
@@ -2297,9 +2543,14 @@ var TRIPLES = [
       var wb = XLSX.utils.book_new();
       var SHEET_NAMES = { panes:"Panes", bebidas:"Bebidas", embutidos:"Embutidos", triples:"Triples", otros:"Otros" };
       PRODUCT_TABS.forEach(function(tabKey){
-        var ws = SIMPLE_REPORT_TABS.indexOf(tabKey) !== -1
-          ? buildSimpleReportSheet(tabKey, simpleByTab[tabKey])
-          : XLSX.utils.aoa_to_sheet(byTab[tabKey]);
+        var ws;
+        if(tabKey === "otros"){
+          ws = buildMovimientosReportSheet(buildMovimientosReportRows(dateFilter), dateFilter);
+        } else {
+          ws = SIMPLE_REPORT_TABS.indexOf(tabKey) !== -1
+            ? buildSimpleReportSheet(tabKey, simpleByTab[tabKey])
+            : XLSX.utils.aoa_to_sheet(byTab[tabKey]);
+        }
         XLSX.utils.book_append_sheet(wb, ws, SHEET_NAMES[tabKey]);
       });
       var wsTurno = XLSX.utils.aoa_to_sheet(buildTurnoRows(dateFilter));
@@ -2757,9 +3008,11 @@ var TRIPLES = [
     hint.textContent = "Aquí anotas lo que sale de la tienda sin ser venta normal: para otro local, regalos, consumo del personal, etc. Busca el producto (si ya existe en tu Arqueo, se descuenta solo de su Merma), pon la cantidad y, si quieres, una nota de a dónde fue.";
     card.appendChild(hint);
 
+    var topRow = document.createElement("div");
+    topRow.className = "search-row";
+    topRow.style.marginBottom = "1rem";
     var shiftRow = document.createElement("div");
     shiftRow.className = "shift-toggle";
-    shiftRow.style.marginBottom = "1rem";
     ["am","pm"].forEach(function(s){
       var b = document.createElement("button");
       b.type = "button";
@@ -2768,7 +3021,15 @@ var TRIPLES = [
       b.addEventListener("click", function(){ shiftView.otros = s; renderPanel(); });
       shiftRow.appendChild(b);
     });
-    card.appendChild(shiftRow);
+    topRow.appendChild(shiftRow);
+    var otrosPrintBtn = document.createElement("button");
+    otrosPrintBtn.type = "button";
+    otrosPrintBtn.className = "btn btn-sm";
+    otrosPrintBtn.textContent = "Imprimir esta vista";
+    otrosPrintBtn.title = "Imprime la lista de salidas de este día tal como se ve en pantalla.";
+    otrosPrintBtn.addEventListener("click", function(){ doPrintMovimientos(currentDate); });
+    topRow.appendChild(otrosPrintBtn);
+    card.appendChild(topRow);
 
     var datalist = document.createElement("datalist");
     datalist.id = "movimientoProductList";
@@ -3015,6 +3276,13 @@ var TRIPLES = [
     });
     left.appendChild(toggle);
     searchRow.appendChild(left);
+    var metasPrintBtn = document.createElement("button");
+    metasPrintBtn.type = "button";
+    metasPrintBtn.className = "btn btn-sm";
+    metasPrintBtn.textContent = "Imprimir esta vista";
+    metasPrintBtn.title = "Imprime las tablas de Metas de este día y turno tal como se ven en pantalla.";
+    metasPrintBtn.addEventListener("click", function(){ doPrintMetas(currentDate, shiftView.metas); });
+    searchRow.appendChild(metasPrintBtn);
     topCard.appendChild(searchRow);
 
     var hint = document.createElement("div");
