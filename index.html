@@ -206,7 +206,10 @@
   .chip{ font-size:.74rem; font-weight:700; border-radius:999px; padding:.2rem .6rem; white-space:nowrap; }
   .chip.good{ background:var(--good-soft); color:var(--good); }
   .chip.bad{ background:var(--bad-soft); color:var(--bad); }
-  .chip.pedido-pagado-toggle{ border:none; cursor:pointer; font-family:inherit; }
+  /* Jessica: "en la sección de pedidos donde dice pagado que se vea muy grande visible" --
+     este chip en particular (Pagado/Pendiente en Todos los pedidos) sale más grande y más
+     grueso que el resto de chips de la app, para que se note de un vistazo en la lista. */
+  .chip.pedido-pagado-toggle{ border:none; cursor:pointer; font-family:inherit; font-size:1rem; font-weight:800; padding:.4rem 1rem; }
   .pedido-totals{ margin-top:1rem; padding-top:.8rem; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:.25rem; font-size:.92rem; }
   .pedido-checkbox-label{ display:flex; align-items:center; gap:.5rem; font-size:.9rem; font-weight:600; cursor:pointer; }
   .pedido-checkbox-label input{ width:auto; }
@@ -216,6 +219,16 @@
   .toast{ position:fixed; left:50%; bottom:1.2rem; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:.6rem 1rem; border-radius:999px; font-size:.84rem; box-shadow:var(--shadow); z-index:40; max-width:90vw; text-align:center; }
   @media (prefers-color-scheme:dark){ .toast{ background:var(--surface-2); color:var(--ink); border:1px solid var(--border); } }
   :root[data-theme="dark"] .toast{ background:var(--surface-2); color:var(--ink); border:1px solid var(--border); }
+
+  /* Vista previa de un pedido en pantalla (para que Jessica le tome captura y la mande por
+     WhatsApp al cliente, sin pasar por el diálogo de imprimir del navegador). */
+  .pedido-preview-overlay{ position:fixed; inset:0; z-index:150; background:rgba(30,20,10,.55); display:flex; align-items:flex-start; justify-content:center; padding:1.2rem; overflow-y:auto; }
+  .pedido-preview-box{ background:#fff; color:#111; border-radius:12px; max-width:600px; width:100%; margin:1rem 0; box-shadow:0 10px 40px rgba(0,0,0,.35); overflow:hidden; }
+  .pedido-preview-head{ display:flex; align-items:center; justify-content:space-between; gap:.6rem; padding:.7rem 1rem; background:#5a3a22; color:#fff; flex-wrap:wrap; }
+  .pedido-preview-head strong{ font-size:.92rem; }
+  .pedido-preview-hint{ font-size:.72rem; color:#f6e3bd; }
+  .pedido-preview-close{ background:#fff; color:#5a3a22; border:none; border-radius:999px; width:30px; height:30px; font-size:1rem; font-weight:800; cursor:pointer; flex:none; }
+  .pedido-preview-body{ padding:.9rem 1rem 1.2rem; }
 
   .lock-screen{ position:fixed; inset:0; z-index:100; background:var(--bg); align-items:center; justify-content:center; padding:1.2rem; }
   .lock-screen:not([hidden]){ display:flex; }
@@ -3774,6 +3787,10 @@ var TRIPLES = [
   // de un cliente que lo pide directo en la tienda (ej. Tanta pidiendo pan para toda la semana).
   var ORIGEN_LABEL = { whatsapp:"WhatsApp", tienda:"Tienda" };
   var pedidosProduccionDate = null;
+  // Fecha del nuevo reporte "Pedidos tomados" -- Jessica: "reporte de todos los pedidos que
+  // tome en el día, quien lo tomo". A diferencia de pedidosProduccionDate (que filtra por fecha
+  // de ENTREGA), este filtra por la fecha en que el pedido se registró en el sistema (createdAt).
+  var pedidosTomadosDate = null;
 
   function newPedidoDraft(canal){
     canal = canal || "delivery";
@@ -4016,7 +4033,7 @@ var TRIPLES = [
     var viewToggle = document.createElement("div");
     viewToggle.className = "shift-toggle";
     viewToggle.style.marginBottom = "1rem";
-    [["nuevo","Nuevo pedido"], ["produccion","Producción por día"], ["lista","Todos los pedidos"], ["cobrar","Cuentas por Cobrar"]].forEach(function(pair){
+    [["nuevo","Nuevo pedido"], ["produccion","Producción por día"], ["lista","Todos los pedidos"], ["tomados","Pedidos tomados"], ["cobrar","Cuentas por Cobrar"]].forEach(function(pair){
       var b = document.createElement("button");
       b.type = "button";
       b.className = "shift-btn" + (pedidosView === pair[0] ? " active" : "");
@@ -4036,6 +4053,7 @@ var TRIPLES = [
 
     if(pedidosView === "produccion"){ wrap.appendChild(buildProduccionView()); }
     else if(pedidosView === "lista"){ wrap.appendChild(buildPedidosLista()); }
+    else if(pedidosView === "tomados"){ wrap.appendChild(buildPedidosTomadosView()); }
     else if(pedidosView === "cobrar"){ wrap.appendChild(buildCuentasPorCobrarView()); }
     else { wrap.appendChild(buildPedidoForm()); }
 
@@ -4103,6 +4121,25 @@ var TRIPLES = [
       pedidoSaveStatus.className = "hint";
       pedidoSaveStatus.textContent = pedidoAutosaving ? "Guardando…" : "Los cambios se guardan solos";
       editControls.appendChild(pedidoSaveStatus);
+      // Vista previa en pantalla del pedido tal como va quedando (incluye lo que todavía no
+      // terminó de autoguardarse) -- para revisar con el cliente antes de darlo por cerrado.
+      var previewBtn = document.createElement("button");
+      previewBtn.type = "button";
+      previewBtn.className = "btn btn-sm";
+      previewBtn.textContent = "Vista previa";
+      previewBtn.addEventListener("click", function(){
+        var original = PEDIDOS.filter(function(x){ return x.id === pedidoEditingId; })[0] || {};
+        var previewObj = Object.assign({}, original, pedidoDraft, {
+          id: original.id,
+          numero: original.numero,
+          createdAt: original.createdAt,
+          entregadoEn: original.entregadoEn,
+          entregadoPor: original.entregadoPor,
+          items: (pedidoDraft.items || []).filter(function(it){ return it.producto && it.producto.trim(); })
+        });
+        showPedidoVistaPrevia(previewObj);
+      });
+      editControls.appendChild(previewBtn);
       var volverBtn = document.createElement("button");
       volverBtn.type = "button";
       volverBtn.className = "btn btn-sm";
@@ -4579,6 +4616,7 @@ var TRIPLES = [
     });
     card.appendChild(pagoDatalist);
 
+    sortPedidoItemsPorFecha();
     renderPedidoItems(tbody, totalsRow);
     updatePedidoTotals(totalsRow);
 
@@ -4648,11 +4686,33 @@ var TRIPLES = [
       return { producto: item.producto, cantidad: item.cantidad, precio: item.precio, fecha: f, obs: item.obs || "" };
     });
     draft.items.splice.apply(draft.items, [idx + 1, 0].concat(nuevasLineas));
+    sortPedidoItemsPorFecha();
     renderPedidoItems(tbody, totalsRow);
     updatePedidoTotals(totalsRow);
     showToast(nuevasLineas.length + " línea" + (nuevasLineas.length === 1 ? "" : "s") + " nueva" + (nuevasLineas.length === 1 ? "" : "s") + " agregada" + (nuevasLineas.length === 1 ? "" : "s") + ".");
     if(pedidoEditingId) schedulePedidoAutosave();
   }
+  // En un pedido masivo, las líneas se van agregando en el orden en que se escriben (una fecha
+  // a la vez, o en tandas con "Repetir en más fechas") -- pero Jessica las necesita ORDENADAS
+  // por fecha de entrega para que no queden mezcladas (ej. 10 francés del 15 al 20/09, y luego
+  // 15 especiales para el 15/09, deben verse las dos líneas del 15/09 juntas, no una al final).
+  // Se ordena solo para masivo (los demás canales entregan en una sola fecha, no aplica) y es
+  // un "sort" estable: entre líneas de la MISMA fecha se respeta el orden en que se escribieron.
+  function sortPedidoItemsPorFecha(){
+    if(pedidoDraft.canal !== "masivo") return;
+    pedidoDraft.items.sort(function(a, b){
+      var fa = a.fecha || "";
+      var fb = b.fecha || "";
+      if(fa === fb) return 0;
+      return fa < fb ? -1 : 1;
+    });
+  }
+  // OJO: renderPedidoItems NO ordena por su cuenta -- si lo hiciera, una línea recién agregada
+  // con "+ Agregar línea" (que arranca con la fecha de hoy, antes de que se le ponga la fecha
+  // de verdad) saltaría sola a media tabla apenas se crea, sin que nadie la haya tocado todavía.
+  // Por eso sortPedidoItemsPorFecha() se llama a propósito solo en los 3 momentos en que sí
+  // tiene sentido reacomodar: al abrir el formulario (línea siguiente), al usar "Repetir en más
+  // fechas", y al cambiar la fecha de una línea ya existente.
   function renderPedidoItems(tbody, totalsRow){
     var draft = pedidoDraft;
     var isMasivo = draft.canal === "masivo";
@@ -4682,6 +4742,11 @@ var TRIPLES = [
     tbody.querySelectorAll(".pedido-item-fecha").forEach(function(input){
       input.addEventListener("change", function(){
         draft.items[+input.getAttribute("data-idx")].fecha = input.value || draft.fechaDefault;
+        // Al cambiar la fecha de una línea, se vuelve a ordenar toda la tabla al toque --
+        // así la línea se acomoda sola junto a las demás de su misma fecha.
+        sortPedidoItemsPorFecha();
+        renderPedidoItems(tbody, totalsRow);
+        updatePedidoTotals(totalsRow);
       });
     });
     tbody.querySelectorAll(".pedido-item-producto").forEach(function(input){
@@ -5047,13 +5112,20 @@ var TRIPLES = [
     // y siempre visibles — a diferencia de los datos de arriba, esto sí le importa al equipo
     // aunque no se haya llenado la forma de pago todavía.
     var tipoPago = p.tipoPago && String(p.tipoPago).trim() ? esc(p.tipoPago) : "—";
-    var pagadoBadge = p.pagado
-      ? '<span style="color:#3D7A57; font-weight:800;">✓ PAGADO</span>'
-      : '<span style="color:#B34428; font-weight:800;">PENDIENTE DE PAGO</span>';
     html += '<div style="display:flex; padding:1px 0; align-items:center;">' +
-      '<div style="width:130px; flex:none; font-weight:700;">PAGO:</div>' +
-      '<div>' + tipoPago + ' &nbsp;—&nbsp; ' + pagadoBadge + '</div></div>';
+      '<div style="width:130px; flex:none; font-weight:700;">FORMA DE PAGO:</div>' +
+      '<div>' + tipoPago + '</div></div>';
     return html;
+  }
+  // Banner grande de PAGADO/PENDIENTE, igual de destacado que el de Entrega/Recojo de arriba --
+  // Jessica: "en la sección de pedidos donde dice pagado que se vea muy grande visible". Antes
+  // era una sola línea chica mezclada con la forma de pago (fácil de pasar por alto tanto para
+  // el equipo como para el cliente al revisar su pedido por WhatsApp); ahora es imposible no
+  // verlo, para bien o para mal (rojo si falta pagar, verde si ya está pagado).
+  function pedidoPagoBannerHTML(p){
+    var color = p.pagado ? "#2f7a4d" : "#cc0000";
+    var texto = p.pagado ? "✓ PEDIDO PAGADO" : "⚠ PENDIENTE DE PAGO";
+    return '<div style="background:' + color + '; color:#fff; font-weight:800; font-size:16px; text-align:center; padding:6px 4px; margin-top:6px;">' + texto + '</div>';
   }
   // Convierte un timestamp en milisegundos (Date.now()) al formato "dd/mm/aaaa hh:mm a.m./p.m."
   // en hora de Lima -- usado para "Creado el" y "Entregado el" en la orden impresa. Distinto de
@@ -5198,6 +5270,7 @@ var TRIPLES = [
     html += '</div>';
     html += '<div style="border-bottom:2px solid ' + PEDIDO_DARK + '; margin-top:8px;"></div>';
     html += '<div style="background:#fff200; color:#cc0000; font-weight:800; font-size:17px; text-align:center; padding:7px 4px; margin:10px 0 0;">' + pedidoBannerHTML(p) + '</div>';
+    html += pedidoPagoBannerHTML(p);
     html += '<div style="background:' + PEDIDO_DARK + '; color:#fff; font-weight:700; font-size:11px; letter-spacing:.04em; padding:4px 10px; margin-top:8px;">CLIENTE</div>';
     html += '<div style="background:#f6e3bd; padding:8px 10px 7px; margin-bottom:2px; font-size:12px;">' + pedidoInfoRowsHTML(p) + buildPedidoMetaHTML(p) + '</div>';
     // Notas generales del pedido (distintas de la observación de cada línea, que va debajo del
@@ -5233,6 +5306,53 @@ var TRIPLES = [
     html += '<div style="text-align:center; color:#111; font-size:11px; margin-top:2px;">¡Gracias por tu compra!</div>';
     html += '</div>';
     return html;
+  }
+  // ---------- Vista previa de un pedido en pantalla (para WhatsApp) ----------
+  // Jessica: "Necesito Vista previa de pedidos, puedo enviar al WhatsApp del cliente para que
+  // lo verifique". Reutiliza la misma tarjeta de la orden impresa (buildPedidoPrintCardHTML),
+  // pero mostrada dentro de la app en una ventana flotante en vez de abrir el diálogo de
+  // imprimir del navegador -- así puede revisarla al toque y tomarle una captura de pantalla
+  // para mandarla directo por WhatsApp, sin tener que guardar ni buscar ningún archivo PDF.
+  function closePedidoVistaPrevia(){
+    var ov = document.getElementById("pedidoPreviewOverlay");
+    if(ov) ov.remove();
+    document.removeEventListener("keydown", pedidoVistaPreviaEscHandler);
+  }
+  function pedidoVistaPreviaEscHandler(ev){
+    if(ev.key === "Escape") closePedidoVistaPrevia();
+  }
+  function showPedidoVistaPrevia(p){
+    closePedidoVistaPrevia();
+    var overlay = document.createElement("div");
+    overlay.className = "pedido-preview-overlay";
+    overlay.id = "pedidoPreviewOverlay";
+    overlay.addEventListener("click", function(ev){ if(ev.target === overlay) closePedidoVistaPrevia(); });
+
+    var box = document.createElement("div");
+    box.className = "pedido-preview-box";
+
+    var head = document.createElement("div");
+    head.className = "pedido-preview-head";
+    var headText = document.createElement("div");
+    headText.innerHTML = '<strong>Vista previa del pedido</strong><br><span class="pedido-preview-hint">Tómale una captura de pantalla y mándala por WhatsApp al cliente</span>';
+    head.appendChild(headText);
+    var closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "pedido-preview-close";
+    closeBtn.textContent = "✕";
+    closeBtn.title = "Cerrar";
+    closeBtn.addEventListener("click", closePedidoVistaPrevia);
+    head.appendChild(closeBtn);
+    box.appendChild(head);
+
+    var body = document.createElement("div");
+    body.className = "pedido-preview-body";
+    body.innerHTML = buildPedidoPrintCardHTML(p);
+    box.appendChild(body);
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    document.addEventListener("keydown", pedidoVistaPreviaEscHandler);
   }
   function doPrintPedido(id){
     var p = (PEDIDOS || []).filter(function(x){ return x.id === id; })[0];
@@ -5354,6 +5474,295 @@ var TRIPLES = [
     var area = document.getElementById("printArea");
     area.innerHTML = buildPedidosReporteHTML(date, origen);
     doWindowPrint((origen === "tienda" ? "Pedidos Tienda " : "Pedidos Delivery ") + (date || ""));
+  }
+
+  // ---------- Reporte "Pedidos tomados" (quién atendió cada pedido, por día) ----------
+  // Jessica: "Dónde puedo sacar el reporte de todos los pedidos que tome en el día quien lo
+  // tomo". A diferencia de "Producción por día" y de "Reportes del día" de arriba (que juntan
+  // por FECHA DE ENTREGA), este reporte junta por la fecha en que el pedido se registró en el
+  // sistema (p.createdAt) -- para poder revisar al cerrar el día cuántos pedidos tomó cada
+  // persona del equipo, sin importar para cuándo eran esos pedidos. Muestra el detalle completo
+  // de cada pedido (así lo pidió ella), agrupado por "Atendido por".
+  function isoDateFromMillis(ms){
+    try{ return new Date(ms).toLocaleDateString("en-CA", { timeZone:"America/Lima" }); }
+    catch(e){ return new Date(ms).toISOString().slice(0,10); }
+  }
+  function fmtHoraCortaMillis(ms){
+    if(!ms) return "";
+    try{ return new Date(ms).toLocaleTimeString("es-PE", { timeZone:"America/Lima", hour:"2-digit", minute:"2-digit", hour12:true }); }
+    catch(e){ return ""; }
+  }
+  function buildPedidosTomadosRows(date){
+    var rows = [];
+    (PEDIDOS || []).forEach(function(p){
+      if(p.anulado) return;
+      if(!p.createdAt) return;
+      if(isoDateFromMillis(p.createdAt) !== date) return;
+      var productosLabel = (p.items || []).map(function(it){ return fmt(it.cantidad) + "x " + it.producto; }).join(", ");
+      var total = (p.items || []).reduce(function(s, it){ return s + num(it.cantidad) * num(it.precio); }, 0) + num(p.deliveryMonto);
+      var canalLabel = CANAL_LABEL[p.canal] || p.canal;
+      if(p.canal === "masivo" && p.masivoModo){ canalLabel += " (" + (p.masivoModo === "delivery" ? "Delivery" : "Recojo") + ")"; }
+      rows.push({
+        id: p.id,
+        atendidoPor: (p.atendidoPor && String(p.atendidoPor).trim()) ? String(p.atendidoPor).trim() : "Sin especificar",
+        numero: p.numero || "—",
+        hora: fmtHoraCortaMillis(p.createdAt),
+        horaSort: p.createdAt,
+        cliente: (p.cliente && p.cliente.nombre) || "—",
+        canal: canalLabel,
+        productos: productosLabel || "—",
+        total: round2(total),
+        pagado: !!p.pagado
+      });
+    });
+    rows.sort(function(a, b){
+      if(a.atendidoPor !== b.atendidoPor) return a.atendidoPor.localeCompare(b.atendidoPor);
+      return a.horaSort - b.horaSort;
+    });
+    return rows;
+  }
+  function pedidosTomadosResumenPorPersona(rows){
+    var map = {};
+    var orden = [];
+    rows.forEach(function(r){
+      if(!map[r.atendidoPor]){ map[r.atendidoPor] = { pedidos:0, total:0 }; orden.push(r.atendidoPor); }
+      map[r.atendidoPor].pedidos += 1;
+      map[r.atendidoPor].total += r.total;
+    });
+    return orden.map(function(nombre){ return { nombre:nombre, pedidos:map[nombre].pedidos, total:round2(map[nombre].total) }; });
+  }
+  function buildPedidosTomadosHTML(date){
+    var rows = buildPedidosTomadosRows(date);
+    var thStyle = "background:#4472c4; color:#fff; font-weight:700; padding:5px 8px; border:1px solid #ccc; text-align:left;";
+    var tdStyle = "padding:4px 8px; border-bottom:1px solid #ddd;";
+    var html = '<div style="font-family:Arial,Helvetica,sans-serif; max-width:1000px; margin:0 auto 1.5rem; background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact;">';
+    html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 4px; border-bottom:2px solid #ddd; flex-wrap:wrap; gap:.4rem;">';
+    html += '<div style="font-size:18px; font-weight:800; color:#5a3a22;">PEDIDOS TOMADOS EN EL DÍA</div>';
+    html += '<div style="font-size:14px; font-weight:700; color:#111;">' + esc(fmtFechaReporte(date)) + '</div>';
+    html += "</div>";
+
+    if(rows.length === 0){
+      html += '<div style="padding:16px; text-align:center; color:#777; font-style:italic;">No se tomó ningún pedido este día.</div></div>';
+      return html;
+    }
+
+    var resumen = pedidosTomadosResumenPorPersona(rows);
+    var totalPedidos = rows.length;
+    var totalGeneral = round2(rows.reduce(function(s, r){ return s + r.total; }, 0));
+
+    html += '<div style="font-size:14px; font-weight:800; color:#c2660c; margin:14px 4px 4px;">RESUMEN POR PERSONA</div>';
+    html += '<table style="width:100%; max-width:520px; border-collapse:collapse; font-size:12px; margin:4px 0 12px;">';
+    html += '<thead><tr><th style="' + thStyle + '">Atendido por</th><th style="' + thStyle + 'text-align:center;">Pedidos</th><th style="' + thStyle + 'text-align:center;">Total S/</th></tr></thead><tbody>';
+    resumen.forEach(function(r){
+      html += "<tr><td style='" + tdStyle + "font-weight:700;'>" + esc(r.nombre) + "</td><td style='" + tdStyle + "text-align:center;'>" + r.pedidos + "</td><td style='" + tdStyle + "text-align:center;'>S/ " + fmtMoney(r.total) + "</td></tr>";
+    });
+    html += "<tr><td style='" + tdStyle + "font-weight:800;'>TOTAL</td><td style='" + tdStyle + "text-align:center; font-weight:800;'>" + totalPedidos + "</td><td style='" + tdStyle + "text-align:center; font-weight:800;'>S/ " + fmtMoney(totalGeneral) + "</td></tr>";
+    html += "</tbody></table>";
+
+    html += '<div style="font-size:14px; font-weight:800; color:#c2660c; margin:14px 4px 4px;">DETALLE</div>';
+    html += '<table style="width:100%; border-collapse:collapse; font-size:11.5px; margin-top:4px;">';
+    html += '<thead><tr>' +
+      '<th style="' + thStyle + '">Atendido por</th>' +
+      '<th style="' + thStyle + '">N°</th>' +
+      '<th style="' + thStyle + 'text-align:center;">Hora</th>' +
+      '<th style="' + thStyle + '">Cliente</th>' +
+      '<th style="' + thStyle + '">Canal</th>' +
+      '<th style="' + thStyle + '">Productos</th>' +
+      '<th style="' + thStyle + 'text-align:center;">Total S/</th>' +
+      '<th style="' + thStyle + 'text-align:center;">Pagado</th>' +
+      '</tr></thead><tbody>';
+    var lastPersona = null;
+    rows.forEach(function(r, i){
+      var nuevoGrupo = r.atendidoPor !== lastPersona && i > 0;
+      lastPersona = r.atendidoPor;
+      var rowBorder = nuevoGrupo ? "border-top:2px solid #5a3a22;" : "";
+      html += "<tr>" +
+        "<td style='" + tdStyle + rowBorder + "font-weight:700;'>" + esc(r.atendidoPor) + "</td>" +
+        "<td style='" + tdStyle + rowBorder + "'>" + esc(r.numero) + "</td>" +
+        "<td style='" + tdStyle + rowBorder + "text-align:center;'>" + esc(r.hora) + "</td>" +
+        "<td style='" + tdStyle + rowBorder + "'>" + esc(r.cliente) + "</td>" +
+        "<td style='" + tdStyle + rowBorder + "'>" + esc(r.canal) + "</td>" +
+        "<td style='" + tdStyle + rowBorder + "'>" + esc(r.productos) + "</td>" +
+        "<td style='" + tdStyle + rowBorder + "text-align:center;'>" + fmtMoney(r.total) + "</td>" +
+        "<td style='" + tdStyle + rowBorder + "text-align:center;'>" + (r.pagado ? "Sí" : "No") + "</td>" +
+        "</tr>";
+    });
+    html += "</tbody></table></div>";
+    return html;
+  }
+  function doPrintPedidosTomados(date){
+    var rows = buildPedidosTomadosRows(date);
+    if(rows.length === 0){ showToast("No se tomó ningún pedido este día."); return; }
+    setPrintOrientation(true);
+    var area = document.getElementById("printArea");
+    area.innerHTML = buildPedidosTomadosHTML(date);
+    doWindowPrint("Pedidos tomados " + (date || ""));
+  }
+  function doExportPedidosTomados(date){
+    if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo."); return; }
+    var rows = buildPedidosTomadosRows(date);
+    if(rows.length === 0){ showToast("No hay pedidos tomados ese día para exportar."); return; }
+    try{
+      var resumen = pedidosTomadosResumenPorPersona(rows);
+      var DARK = "5A3A22", ORANGE = "C2660C", BLUE = "4472C4", LIGHT = "F6E3BD";
+      var headers = ["Atendido por","N°","Hora","Cliente","Canal","Productos","Total S/","Pagado"];
+      var aoa = [];
+      aoa.push(["PANADERÍA CARMELITAS — PEDIDOS TOMADOS","","","","","","",""]);
+      aoa.push(["Todos los pedidos registrados este día, agrupados por quién los atendió.","","","","","","",""]);
+      aoa.push([fmtDateLabel(date),"","","","","","",""]);
+      aoa.push(["","","","","","","",""]);
+      var resumenTitleIdx = aoa.length;
+      aoa.push(["RESUMEN POR PERSONA","","","","","","",""]);
+      var resumenHeaderIdx = aoa.length;
+      aoa.push(["Atendido por","","Pedidos","","Total S/","","",""]);
+      var resumenFirstIdx = aoa.length;
+      resumen.forEach(function(r){ aoa.push([r.nombre,"",r.pedidos,"",round2(r.total),"","",""]); });
+      var totalPedidos = rows.length;
+      var totalGeneral = round2(rows.reduce(function(s, r){ return s + r.total; }, 0));
+      var resumenTotalIdx = aoa.length;
+      aoa.push(["TOTAL","",totalPedidos,"",totalGeneral,"","",""]);
+      aoa.push(["","","","","","","",""]);
+      var detalleTitleIdx = aoa.length;
+      aoa.push(["DETALLE","","","","","","",""]);
+      var headerRowIdx = aoa.length;
+      aoa.push(headers.slice());
+      var firstDataIdx = aoa.length;
+      rows.forEach(function(r){
+        aoa.push([r.atendidoPor, r.numero, r.hora, r.cliente, r.canal, r.productos, r.total, r.pagado ? "Sí" : "No"]);
+      });
+      var lastDataIdx = aoa.length - 1;
+
+      var ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!cols"] = [{wch:18},{wch:9},{wch:9},{wch:20},{wch:14},{wch:45},{wch:11},{wch:9}];
+      var merges = [
+        { s:{r:0,c:0}, e:{r:0,c:7} },
+        { s:{r:1,c:0}, e:{r:1,c:7} },
+        { s:{r:2,c:0}, e:{r:2,c:7} },
+        { s:{r:resumenTitleIdx,c:0}, e:{r:resumenTitleIdx,c:7} },
+        { s:{r:resumenHeaderIdx,c:0}, e:{r:resumenHeaderIdx,c:1} },
+        { s:{r:resumenHeaderIdx,c:2}, e:{r:resumenHeaderIdx,c:3} },
+        { s:{r:resumenHeaderIdx,c:4}, e:{r:resumenHeaderIdx,c:5} },
+        { s:{r:resumenTotalIdx,c:0}, e:{r:resumenTotalIdx,c:1} },
+        { s:{r:resumenTotalIdx,c:2}, e:{r:resumenTotalIdx,c:3} },
+        { s:{r:resumenTotalIdx,c:4}, e:{r:resumenTotalIdx,c:5} },
+        { s:{r:detalleTitleIdx,c:0}, e:{r:detalleTitleIdx,c:7} }
+      ];
+      resumen.forEach(function(r, i){
+        var ri = resumenFirstIdx + i;
+        merges.push({ s:{r:ri,c:0}, e:{r:ri,c:1} });
+        merges.push({ s:{r:ri,c:2}, e:{r:ri,c:3} });
+        merges.push({ s:{r:ri,c:4}, e:{r:ri,c:5} });
+      });
+      ws["!merges"] = merges;
+
+      try{
+        var ref;
+        ref = XLSX.utils.encode_cell({r:0,c:0});
+        if(ws[ref]) ws[ref].s = { font:{ bold:true, underline:true, sz:14, color:{rgb:ORANGE} }, alignment:{ horizontal:"center" } };
+        ref = XLSX.utils.encode_cell({r:1,c:0});
+        if(ws[ref]) ws[ref].s = { font:{ italic:true, sz:10, color:{rgb:"666666"} }, alignment:{ horizontal:"center" } };
+        ref = XLSX.utils.encode_cell({r:2,c:0});
+        if(ws[ref]) ws[ref].s = { font:{ bold:true, sz:11, color:{rgb:DARK} }, alignment:{ horizontal:"center" } };
+        ref = XLSX.utils.encode_cell({r:resumenTitleIdx,c:0});
+        if(ws[ref]) ws[ref].s = { font:{ bold:true, sz:11, color:{rgb:ORANGE} } };
+        [0,2,4].forEach(function(c){
+          var href = XLSX.utils.encode_cell({r:resumenHeaderIdx, c:c});
+          if(ws[href]) ws[href].s = { font:{ bold:true, color:{rgb:"FFFFFF"} }, fill:{ fgColor:{rgb:BLUE} }, alignment:{ horizontal:"center" } };
+        });
+        resumen.forEach(function(r, i){
+          var ri = resumenFirstIdx + i;
+          [0,2,4].forEach(function(c){
+            var rref = XLSX.utils.encode_cell({r:ri, c:c});
+            if(ws[rref]) ws[rref].s = { font:{ sz:10 }, alignment:{ horizontal: c===0 ? "left" : "center" } };
+          });
+        });
+        [0,2,4].forEach(function(c){
+          var tref = XLSX.utils.encode_cell({r:resumenTotalIdx, c:c});
+          if(ws[tref]) ws[tref].s = { font:{ bold:true, color:{rgb:DARK} }, alignment:{ horizontal: c===0 ? "left" : "center" }, fill:{ fgColor:{rgb:LIGHT} } };
+        });
+        ref = XLSX.utils.encode_cell({r:detalleTitleIdx,c:0});
+        if(ws[ref]) ws[ref].s = { font:{ bold:true, sz:11, color:{rgb:ORANGE} } };
+        for(var hc=0; hc<headers.length; hc++){
+          ref = XLSX.utils.encode_cell({r:headerRowIdx, c:hc});
+          if(ws[ref]) ws[ref].s = { font:{ bold:true, color:{rgb:"FFFFFF"} }, fill:{ fgColor:{rgb:BLUE} }, alignment:{ horizontal:"center" } };
+        }
+        for(var ri2=firstDataIdx; ri2<=lastDataIdx; ri2++){
+          for(var ci=0; ci<headers.length; ci++){
+            ref = XLSX.utils.encode_cell({r:ri2, c:ci});
+            if(!ws[ref]) continue;
+            var st = { font:{ sz:10 } };
+            if(ci === 1 || ci === 2 || ci === 6 || ci === 7) st.alignment = { horizontal:"center" };
+            if((ri2 - firstDataIdx) % 2 === 1) st.fill = { fgColor:{rgb:"FBF7F0"} };
+            ws[ref].s = st;
+          }
+        }
+      }catch(e){}
+
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Pedidos tomados");
+      XLSX.writeFile(wb, "pedidos-tomados-" + date + ".xlsx");
+      showToast("Reporte descargado.");
+    }catch(err){
+      showToast("No se pudo generar el archivo. Intenta de nuevo.");
+    }
+  }
+  function buildPedidosTomadosView(){
+    var wrap = document.createElement("div");
+    var card = document.createElement("div");
+    card.className = "card";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .4rem";
+    h2.textContent = "Pedidos tomados";
+    card.appendChild(h2);
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.textContent = "Todos los pedidos que se registraron en el sistema este día (sin importar para cuándo son), agrupados por quién los atendió — para revisar al cerrar el día cuánto tomó cada persona.";
+    card.appendChild(hint);
+
+    var dateRow = document.createElement("div");
+    dateRow.className = "field";
+    dateRow.style.maxWidth = "260px";
+    dateRow.style.margin = "1rem 0";
+    var dl = document.createElement("label");
+    dl.textContent = "Fecha en que se tomó el pedido";
+    dateRow.appendChild(dl);
+    var dateInput = document.createElement("input");
+    dateInput.type = "date";
+    dateInput.value = pedidosTomadosDate || todayISO();
+    dateInput.addEventListener("change", function(){
+      pedidosTomadosDate = dateInput.value || todayISO();
+      renderPanel();
+    });
+    dateRow.appendChild(dateInput);
+    card.appendChild(dateRow);
+
+    var targetDate = pedidosTomadosDate || todayISO();
+
+    var btnRow = document.createElement("div");
+    btnRow.style.display = "flex";
+    btnRow.style.gap = ".5rem";
+    btnRow.style.flexWrap = "wrap";
+    btnRow.style.margin = "0 0 1rem";
+    var printBtn = document.createElement("button");
+    printBtn.type = "button";
+    printBtn.className = "btn btn-sm";
+    printBtn.textContent = "Imprimir esta vista";
+    printBtn.addEventListener("click", function(){ doPrintPedidosTomados(targetDate); });
+    btnRow.appendChild(printBtn);
+    var excelBtn = document.createElement("button");
+    excelBtn.type = "button";
+    excelBtn.className = "btn btn-sm";
+    excelBtn.textContent = "Descargar Excel";
+    excelBtn.addEventListener("click", function(){ doExportPedidosTomados(targetDate); });
+    btnRow.appendChild(excelBtn);
+    card.appendChild(btnRow);
+
+    var contentWrap = document.createElement("div");
+    contentWrap.innerHTML = buildPedidosTomadosHTML(targetDate);
+    card.appendChild(contentWrap);
+
+    wrap.appendChild(card);
+    return wrap;
   }
 
   function buildProduccionView(){
@@ -5519,7 +5928,7 @@ var TRIPLES = [
     tableWrap.className = "table-wrap";
     var table = document.createElement("table");
     table.className = "data-table";
-    table.innerHTML = "<thead><tr><th>N°</th><th>Fecha(s)</th><th>Hora</th><th>Cliente</th><th>Origen</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th>Entregado</th><th></th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
+    table.innerHTML = "<thead><tr><th>N°</th><th>Fecha(s)</th><th>Hora</th><th>Cliente</th><th>Origen</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th>Entregado</th><th></th><th></th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
     var tbody = table.querySelector("tbody");
     pedidosFiltrados.forEach(function(p){
       var tr = document.createElement("tr");
@@ -5566,6 +5975,7 @@ var TRIPLES = [
         "<td>" + entregadoBtnHtml + "</td>" +
         "<td>" + (readOnly ? "" : "<button type='button' class='btn btn-sm pedido-editar' data-id='" + p.id + "'>Editar</button>") + "</td>" +
         "<td><button type='button' class='btn btn-sm pedido-pdf' data-id='" + p.id + "'>Generar PDF</button></td>" +
+        "<td><button type='button' class='btn btn-sm pedido-preview' data-id='" + p.id + "'>Vista previa</button></td>" +
         "<td>" + anularBtnHtml + "</td>" +
         "<td>" + (readOnly ? "" : '<button type="button" class="btn-del pedido-del" data-id="' + p.id + '" title="Eliminar pedido">✕</button>') + "</td>";
       tbody.appendChild(tr);
@@ -5576,6 +5986,12 @@ var TRIPLES = [
 
     tbody.querySelectorAll(".pedido-pdf").forEach(function(btn){
       btn.addEventListener("click", function(){ doPrintPedido(btn.getAttribute("data-id")); });
+    });
+    tbody.querySelectorAll(".pedido-preview").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var p = PEDIDOS.filter(function(x){ return x.id === btn.getAttribute("data-id"); })[0];
+        if(p) showPedidoVistaPrevia(p);
+      });
     });
 
     if(!readOnly){
@@ -5759,7 +6175,7 @@ var TRIPLES = [
         tableWrap.className = "table-wrap";
         var table = document.createElement("table");
         table.className = "data-table";
-        table.innerHTML = "<thead><tr><th>N°</th><th>Fecha(s)</th><th>Cliente</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th></th></tr></thead><tbody></tbody>";
+        table.innerHTML = "<thead><tr><th>N°</th><th>Fecha(s)</th><th>Cliente</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th></th><th></th></tr></thead><tbody></tbody>";
         var tbody = table.querySelector("tbody");
         pedidosBusquedaResultados.forEach(function(p){
           var tr = document.createElement("tr");
@@ -5782,7 +6198,8 @@ var TRIPLES = [
             "<td class='pedido-productos-cell'>" + esc(productosLabel) + "</td>" +
             "<td>S/ " + fmt(subtotal) + "</td>" +
             "<td>" + (p.pagado ? "Pagado" : "Pendiente") + "</td>" +
-            "<td><button type='button' class='btn btn-sm pedido-busqueda-pdf' data-id='" + esc(p.id) + "'>Generar PDF</button></td>";
+            "<td><button type='button' class='btn btn-sm pedido-busqueda-pdf' data-id='" + esc(p.id) + "'>Generar PDF</button></td>" +
+            "<td><button type='button' class='btn btn-sm pedido-busqueda-preview' data-id='" + esc(p.id) + "'>Vista previa</button></td>";
           tbody.appendChild(tr);
         });
         tableWrap.appendChild(table);
@@ -5792,6 +6209,13 @@ var TRIPLES = [
             var id = btn.getAttribute("data-id");
             var p = pedidosBusquedaResultados.filter(function(x){ return x.id === id; })[0];
             if(p) doPrintPedidoObj(p);
+          });
+        });
+        tbody.querySelectorAll(".pedido-busqueda-preview").forEach(function(btn){
+          btn.addEventListener("click", function(){
+            var id = btn.getAttribute("data-id");
+            var p = pedidosBusquedaResultados.filter(function(x){ return x.id === id; })[0];
+            if(p) showPedidoVistaPrevia(p);
           });
         });
       }
