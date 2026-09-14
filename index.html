@@ -109,7 +109,7 @@
   .cajero-diff.bad{ color:var(--bad); font-weight:700; }
   /* Letra un poco más grande solo dentro de Caja Cajeros (no toca Arqueo ni Pedidos). */
   .cajero-form-card .field label{ font-size:.86rem; }
-  .cajero-form-card .field input, .cajero-form-card .field textarea{ font-size:1.05rem; }
+  .cajero-form-card .field input, .cajero-form-card .field textarea, .cajero-form-card .field select{ font-size:1.05rem; }
   .cajero-form-card .num-input{ font-size:1rem; width:4.6rem; padding:.35rem .4rem; }
   .cajero-form-card select.cajero-dolar-monto{ font-size:1rem; padding:.35rem .4rem; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--ink); width:100%; }
   .cajero-form-card input.cajero-dolar-serie, .cajero-form-card input.cajero-gasto-desc, .cajero-form-card input.cajero-gasto-monto{ font-size:1rem; }
@@ -121,7 +121,7 @@
   .field{ display:flex; flex-direction:column; gap:.32rem; }
   .field.full{ grid-column:1 / -1; }
   .field label{ font-size:.78rem; color:var(--ink-soft); font-weight:600; }
-  .field input, .field textarea{ background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.55rem .65rem; font-size:.92rem; color:var(--ink); width:100%; }
+  .field input, .field textarea, .field select{ background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.55rem .65rem; font-size:.92rem; color:var(--ink); width:100%; }
   .field textarea{ min-height:4.2rem; resize:vertical; font-family:inherit; }
 
   .shift-toggle{ display:inline-flex; background:var(--surface-2); border-radius:999px; padding:.2rem; gap:.15rem; }
@@ -866,6 +866,20 @@ var TRIPLES = [
   // igual a como Jessica separaba sus reportes en Universalio ("Hoy Canal Tienda" / "Hoy
   // Canal Whatsapp"). Es independiente del canal de entrega (delivery/recojo/masivo).
   var pedidosOrigenFilter = "todos";
+  // Cuántos pedidos (los más recientes, por "createdAt") se cargan en vivo -- ver
+  // attachPedidosSync() más abajo, sección "rendimiento a futuro". Un LÍMITE POR CANTIDAD
+  // (no por días) es a propósito: así el tamaño de lo que se carga y se dibuja en pantalla
+  // queda fijo pase lo que pase con el ritmo real de pedidos -- 50 al día, 500 al día, no
+  // importa, este número nunca cambia. Es solo esta variable; se puede subir o bajar cuando
+  // quieras sin tocar nada más.
+  var PEDIDOS_LIMITE_RECIENTES = 1500;
+  // Búsqueda de pedidos más antiguos que la ventana de arriba: es una consulta aparte, de una
+  // sola vez (NO un listener en vivo), para no volver a cargar todo el historial siempre.
+  var pedidosBusquedaDesde = "";
+  var pedidosBusquedaHasta = "";
+  var pedidosBusquedaResultados = null; // null = todavía no se buscó nada
+  var pedidosBusquedaCargando = false;
+  var pedidosBusquedaError = false;
   // Clientes guardados (colección "clientes"): se guardan/actualizan solos cada vez que se
   // registra un pedido, para que la próxima vez alcance con escribir el nombre y se rellene
   // el resto de sus datos automáticamente.
@@ -897,6 +911,17 @@ var TRIPLES = [
   var cajerosDesbloqueado = false;
   var cajerosLockTurno = "manana";
   var cajerosLockError = false;
+  // Nombres reales del equipo de cajeros (Jessica, 14/09/2026) -- catálogo de referencia para
+  // la herramienta "Corregir nombres de cajero" del Historial: sugiere a cuál de estos 5
+  // nombres corresponde cada variante mal escrita que ya esté guardada ("EVA"/"eva" -> "Eva
+  // Tarazona"). Igual que TRIPLE_IMPORT_MAP: si cambia el equipo, se actualiza esta lista a
+  // pedido de Jessica.
+  var CAJERO_NOMBRES_REALES = ["Eva Tarazona", "Paola Sotillo", "Xiomara Guevara", "Viviana Saavedra", "Keynner Luján"];
+  // Selección de a qué nombre real corregir cada variante encontrada -- vive fuera del render
+  // para no perderse cada vez que se repinta el panel (rawName -> nombre real elegido, o ""
+  // para no tocar esa variante).
+  var cajeroCorreccionSeleccion = {};
+  var cajeroCorrigiendo = false;
   var currentTab = "panes";
   var filters = { panes:"", bebidas:"", embutidos:"", triples:"", otros:"" };
   var shiftView = { panes:"am", bebidas:"am", embutidos:"am", triples:"am", otros:"am", metas:"am" };
@@ -1139,6 +1164,35 @@ var TRIPLES = [
     var c = cuadreOf(row, v);
     if(c !== null && Math.abs(c) > 0.004) return true;
     return false;
+  }
+
+  // ---------- Otros dentro de Panes/Bebidas/Embutidos/Triples (columna aparte) ----------
+  // Jessica pidió ver "Otros" como su propia columna en cada categoría, en vez de mezclado
+  // con la Merma. La pestaña Otros (day.movimientos) NO cambia en nada -- se sigue anotando
+  // igual, con hora y nota. Esto solo SUMA lo que ya está ahí para mostrarlo aparte.
+  //
+  // OJO con esto: row.m (Merma) ya viene sumando el Otros desde que existe doAgregarMovimiento
+  // (cada vez que se agrega un movimiento de un producto que sí existe en su catálogo, la
+  // cantidad se suma sola a la Merma de esa fila/turno -- así el Saldo Final seguía exacto sin
+  // anotarlo dos veces). O sea: row.m YA ES "Merma real + Otros" -- nunca cambia cómo se guarda
+  // ni cómo se calculan Ventas/Cuadre (ventasAm/ventasPm siguen restando row.m tal cual, sin
+  // tocar). Lo único que cambia es cómo se MUESTRA: la Merma real (lo que se ve y se edita en
+  // pantalla/reportes) es row.m menos lo que corresponde a Otros.
+  function otrosSumFor(tabKey, idx, shift, day){
+    var list = (day.movimientos && day.movimientos[shift]) || [];
+    var sum = 0;
+    list.forEach(function(e){
+      if(e.tab === tabKey && e.idx === idx) sum += num(e.cantidad);
+    });
+    return round2(sum);
+  }
+  // Solo para mostrar/editar: si algún día guardado tiene menos Merma que Otros (por ejemplo,
+  // alguien escribió un número más chico encima antes de que existiera esta columna), no se
+  // muestra un negativo que confunda -- se ve 0, pero row.m (lo guardado) no se toca para nada
+  // hasta que la persona misma edite el campo.
+  function mermaRealFor(row, otros){
+    var real = round2(num(row.m) - otros);
+    return real < 0 ? 0 : real;
   }
 
   function dayAlerts(day){
@@ -1568,6 +1622,16 @@ var TRIPLES = [
     "UND T POLLO CON JAMON Y QUESO": { name: "Triple Pollo Jamón y Queso", mult: 1 },
     "TIRA DE POLLO CON JAMON Y QUESO": { name: "Triple Pollo Jamón y Queso", mult: 3 }
   };
+  // Mismo patrón que TRIPLE_IMPORT_MAP de arriba (nombre del reporte -> nombre real del
+  // catálogo + multiplicador), pero para productos donde el reporte de ventas vende por CAJA
+  // y el arqueo se cuenta por UNIDAD suelta. Por ahora solo Huevos de Corral: Jessica cuenta
+  // el stock físico en unidades sueltas, pero la caja que se vende trae 8 -- cada "1" vendido
+  // en el reporte son 8 unidades físicas que salieron. Nombre exacto y código (3020)
+  // verificados contra su Excel real (FORMATO DE VENTAS, hojas Lunes y Jueves, ambas con el
+  // mismo código y el mismo texto).
+  var IMPORT_MULT_MAP = {
+    "HUEVOS DE CORRAL CAJA": { name: "Huevos de Corral (Unid)", mult: 8 }
+  };
   function normName(s){
     s = String(s || "").trim().toUpperCase();
     if(s.normalize) s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -1592,6 +1656,11 @@ var TRIPLES = [
     if(tri){
       var tn = normName(tri.name);
       if(catIndex[tn]) return { hit: catIndex[tn], mult: tri.mult };
+    }
+    var mm = IMPORT_MULT_MAP[n];
+    if(mm){
+      var mn = normName(mm.name);
+      if(catIndex[mn]) return { hit: catIndex[mn], mult: mm.mult };
     }
     var alias = IMPORT_ALIASES[n];
     if(alias){
@@ -1874,8 +1943,9 @@ var TRIPLES = [
       if(!moved) return;
       var v = ventasOf(row, shift, amRow);
       var c = cuadreOf(row, v);
+      var otros = tabKey === "otros" ? 0 : otrosSumFor(tabKey, idx, shift, day);
       out.push({
-        name: name, saldoAnt: saldoAnt, ing: row.i1 + row.i2 + row.i3, m: row.m, f: row.f,
+        name: name, saldoAnt: saldoAnt, ing: row.i1 + row.i2 + row.i3, otros: otros, m: mermaRealFor(row, otros), f: row.f,
         v: v, vc: row.vc, c: c, flagged: isFlagged(row, shift, amRow)
       });
     });
@@ -1904,11 +1974,11 @@ var TRIPLES = [
         var rows = printableRows(tabKey, shift, day);
         html += "<h2>" + esc(section.label) + " — " + SHIFT_LABEL[shift] + "</h2>";
         if(rows.length === 0){ html += '<p class="print-empty">Sin movimientos registrados.</p>'; return; }
-        html += "<table><thead><tr><th>Producto</th><th>Saldo ant.</th><th>Ingresos</th><th>Merma</th>" +
+        html += "<table><thead><tr><th>Producto</th><th>Saldo ant.</th><th>Ingresos</th><th>Otros</th><th>Merma</th>" +
           "<th>Saldo final</th><th>Ventas físicas</th><th>Ventas caja</th><th>Cuadre</th></tr></thead><tbody>";
         rows.forEach(function(r){
           html += '<tr class="' + (r.flagged ? "flagged" : "") + '"><td>' + esc(r.name) + "</td><td>" + (r.saldoAnt === null ? "—" : fmt(r.saldoAnt)) +
-            "</td><td>" + fmt(r.ing) + "</td><td>" + fmt(r.m) + "</td><td>" + (r.f === null ? "—" : fmt(r.f)) + "</td><td>" + (r.v === null ? "—" : fmt(r.v)) +
+            "</td><td>" + fmt(r.ing) + "</td><td>" + (r.otros ? fmt(r.otros) : "—") + "</td><td>" + fmt(r.m) + "</td><td>" + (r.f === null ? "—" : fmt(r.f)) + "</td><td>" + (r.v === null ? "—" : fmt(r.v)) +
             "</td><td>" + (r.vc === null ? "—" : fmt(r.vc)) + "</td><td>" + (r.c === null ? "—" : fmt(r.c)) + "</td></tr>";
         });
         html += "</tbody></table>";
@@ -2000,15 +2070,18 @@ var TRIPLES = [
       var saldoAnt = amRow.a;
       var ingAm = amRow.i1 + amRow.i2 + amRow.i3;
       var ingPm = pmRow.i1 + pmRow.i2 + pmRow.i3;
-      var merma = amRow.m + pmRow.m;
+      var otrosAm = tabKey === "otros" ? 0 : otrosSumFor(tabKey, idx, "am", day);
+      var otrosPm = tabKey === "otros" ? 0 : otrosSumFor(tabKey, idx, "pm", day);
+      var otros = round2(otrosAm + otrosPm);
+      var merma = round2(mermaRealFor(amRow, otrosAm) + mermaRealFor(pmRow, otrosPm));
       // Saldo Final = el cierre real del día: el de la tarde si ya se contó, y si no,
       // el de la mañana (por ejemplo, un producto que no tuvo movimiento en la tarde).
       var saldoFinal = pmRow.f !== null ? pmRow.f : amRow.f;
       var amFChanged = amRow.f !== null && amRow.f !== saldoAnt;
       var pmFChanged = pmRow.f !== null && pmRow.f !== amRow.f;
-      var moved = ingAm || ingPm || merma || amFChanged || pmFChanged || amRow.vc !== null || pmRow.vc !== null;
+      var moved = ingAm || ingPm || amRow.m || pmRow.m || amFChanged || pmFChanged || amRow.vc !== null || pmRow.vc !== null;
       if(!moved) return;
-      out.push({ name: name, saldoAnt: saldoAnt, ingAm: ingAm, ingPm: ingPm, merma: merma, saldoFinal: saldoFinal });
+      out.push({ name: name, saldoAnt: saldoAnt, ingAm: ingAm, ingPm: ingPm, otros: otros, merma: merma, saldoFinal: saldoFinal });
     });
     return out;
   }
@@ -2023,11 +2096,11 @@ var TRIPLES = [
       var rows = printableRowsSimple(tabKey, day);
       html += "<h2>" + esc(section.label) + "</h2>";
       if(rows.length === 0){ html += '<p class="print-empty">Sin movimientos registrados.</p>'; return; }
-      html += "<table><thead><tr><th>Producto</th><th>Saldo ant.</th><th>Ingreso AM</th><th>Ingreso PM</th>" +
+      html += "<table><thead><tr><th>Producto</th><th>Saldo ant.</th><th>Ingreso AM</th><th>Ingreso PM</th><th>Otros</th>" +
         "<th>Merma</th><th>Saldo final</th></tr></thead><tbody>";
       rows.forEach(function(r){
         html += "<tr><td>" + esc(r.name) + "</td><td>" + (r.saldoAnt === null ? "—" : fmt(r.saldoAnt)) +
-          "</td><td>" + fmt(r.ingAm) + "</td><td>" + fmt(r.ingPm) + "</td><td>" + fmt(r.merma) +
+          "</td><td>" + fmt(r.ingAm) + "</td><td>" + fmt(r.ingPm) + "</td><td>" + (r.otros ? fmt(r.otros) : "—") + "</td><td>" + fmt(r.merma) +
           "</td><td>" + (r.saldoFinal === null ? "—" : fmt(r.saldoFinal)) + "</td></tr>";
       });
       html += "</tbody></table>";
@@ -2061,8 +2134,9 @@ var TRIPLES = [
       var c = cuadreOf(row, v);
       var agTime = agMap[idx];
       var dur = fmtDuration(minutesBetween(agTime, closeTime));
+      var otros = tabKey === "otros" ? 0 : otrosSumFor(tabKey, idx, shift, day);
       out.push({
-        name: name, saldoAnt: saldoAnt, ing: row.i1 + row.i2 + row.i3, m: row.m, f: row.f,
+        name: name, saldoAnt: saldoAnt, ing: row.i1 + row.i2 + row.i3, otros: otros, m: mermaRealFor(row, otros), f: row.f,
         agLabel: agTime ? (agTime + (dur ? " — " + dur : "")) : "—",
         v: v, vc: row.vc, c: c, flagged: isFlagged(row, shift, amRow)
       });
@@ -2079,11 +2153,11 @@ var TRIPLES = [
     if(rows.length === 0){
       html += '<p class="print-empty">Sin productos registrados en esta categoría.</p>';
     } else {
-      html += "<table><thead><tr><th>Producto</th><th>Saldo ant.</th><th>Ingresos</th><th>Merma</th>" +
+      html += "<table><thead><tr><th>Producto</th><th>Saldo ant.</th><th>Ingresos</th><th>Otros</th><th>Merma</th>" +
         "<th>Saldo final</th><th>Se agotó</th><th>Ventas físicas</th><th>Ventas caja</th><th>Cuadre</th></tr></thead><tbody>";
       rows.forEach(function(r){
         html += '<tr class="' + (r.flagged ? "flagged" : "") + '"><td>' + esc(r.name) + "</td><td>" + (r.saldoAnt === null ? "—" : fmt(r.saldoAnt)) +
-          "</td><td>" + fmt(r.ing) + "</td><td>" + fmt(r.m) + "</td><td>" + (r.f === null ? "—" : fmt(r.f)) +
+          "</td><td>" + fmt(r.ing) + "</td><td>" + (r.otros ? fmt(r.otros) : "—") + "</td><td>" + fmt(r.m) + "</td><td>" + (r.f === null ? "—" : fmt(r.f)) +
           "</td><td>" + esc(r.agLabel) + "</td><td>" + (r.v === null ? "—" : fmt(r.v)) +
           "</td><td>" + (r.vc === null ? "—" : fmt(r.vc)) + "</td><td>" + (r.c === null ? "—" : fmt(r.c)) + "</td></tr>";
       });
@@ -2103,8 +2177,8 @@ var TRIPLES = [
   // Una fila por producto por día, con Mañana y Tarde lado a lado (como en el reporte de
   // papel que mandan a la dueña), en vez de dos filas separadas por turno.
   var REPORT_HEADER = ["Fecha","Producto",
-    "Saldo Anterior","Ingreso AM","Merma AM","Saldo Final AM","Ventas AM","Ventas Caja AM","Cuadre AM",
-    "Ingreso PM","Merma PM","Saldo Final PM","Ventas PM","Ventas Caja PM","Cuadre PM",
+    "Saldo Anterior","Ingreso AM","Otros AM","Merma AM","Saldo Final AM","Ventas AM","Ventas Caja AM","Cuadre AM",
+    "Ingreso PM","Otros PM","Merma PM","Saldo Final PM","Ventas PM","Ventas Caja PM","Cuadre PM",
     "Responsable AM","Hora Cierre AM","Responsable PM","Hora Cierre PM"];
   function buildReportRowsByCategory(dateFilter){
     var byTab = {};
@@ -2127,11 +2201,13 @@ var TRIPLES = [
           var cPm = cuadreOf(pmRow, vPm);
           var ingresoAm = amRow.i1 + amRow.i2 + amRow.i3;
           var ingresoPm = pmRow.i1 + pmRow.i2 + pmRow.i3;
+          var otrosAm = tabKey === "otros" ? 0 : otrosSumFor(tabKey, idx, "am", day);
+          var otrosPm = tabKey === "otros" ? 0 : otrosSumFor(tabKey, idx, "pm", day);
           byTab[tabKey].push([
             d, name,
-            amRow.a===null ? "" : fmt(amRow.a), fmt(ingresoAm), fmt(amRow.m), amRow.f===null ? "" : fmt(amRow.f), vAm===null ? "" : fmt(vAm),
+            amRow.a===null ? "" : fmt(amRow.a), fmt(ingresoAm), otrosAm ? fmt(otrosAm) : "", fmt(mermaRealFor(amRow, otrosAm)), amRow.f===null ? "" : fmt(amRow.f), vAm===null ? "" : fmt(vAm),
             amRow.vc===null ? "" : fmt(amRow.vc), cAm===null ? "" : fmt(cAm),
-            fmt(ingresoPm), fmt(pmRow.m), pmRow.f===null ? "" : fmt(pmRow.f), vPm===null ? "" : fmt(vPm),
+            fmt(ingresoPm), otrosPm ? fmt(otrosPm) : "", fmt(mermaRealFor(pmRow, otrosPm)), pmRow.f===null ? "" : fmt(pmRow.f), vPm===null ? "" : fmt(vPm),
             pmRow.vc===null ? "" : fmt(pmRow.vc), cPm===null ? "" : fmt(cPm),
             t.respAM || "", t.sAM || "", t.respPM || "", t.sPM || ""
           ]);
@@ -2147,7 +2223,7 @@ var TRIPLES = [
   // Excel que ella misma armó a mano como ejemplo. Bebidas y Otros, por ahora, se quedan con el
   // reporte de siempre (no lo pidió para esas dos todavía).
   var SIMPLE_REPORT_TABS = ["panes","embutidos","triples"];
-  var SIMPLE_REPORT_HEADER = ["Fecha","Producto","Saldo Anterior","Ingreso AM","Ingreso PM","Merma PM","Saldo Final PM","Ventas Caja PM","Cuadre PM"];
+  var SIMPLE_REPORT_HEADER = ["Fecha","Producto","Saldo Anterior","Ingreso AM","Ingreso PM","Otros PM","Merma PM","Saldo Final PM","Ventas Caja PM","Cuadre PM"];
   var SIMPLE_REPORT_TITLES = { panes:"ARQUEO DE PANES", embutidos:"ARQUEO DE EMBUTIDOS", triples:"ARQUEO DE TRIPLES" };
   function buildSimpleReportRowsByCategory(dateFilter){
     var byTab = {};
@@ -2167,8 +2243,9 @@ var TRIPLES = [
           var cPm = cuadreOf(pmRow, vPm);
           var ingresoAm = amRow.i1 + amRow.i2 + amRow.i3;
           var ingresoPm = pmRow.i1 + pmRow.i2 + pmRow.i3;
+          var otrosPm = tabKey === "otros" ? 0 : otrosSumFor(tabKey, idx, "pm", day);
           byTab[tabKey].push([
-            d, name, amRow.a===null ? "" : fmt(amRow.a), fmt(ingresoAm), fmt(ingresoPm), fmt(pmRow.m), pmRow.f===null ? "" : fmt(pmRow.f),
+            d, name, amRow.a===null ? "" : fmt(amRow.a), fmt(ingresoAm), fmt(ingresoPm), otrosPm ? fmt(otrosPm) : "", fmt(mermaRealFor(pmRow, otrosPm)), pmRow.f===null ? "" : fmt(pmRow.f),
             pmRow.vc===null ? "" : fmt(pmRow.vc), cPm===null ? "" : fmt(cPm)
           ]);
         });
@@ -2184,7 +2261,7 @@ var TRIPLES = [
     var aoa = [titleRow, SIMPLE_REPORT_HEADER.slice()].concat(rows);
     var ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!merges"] = [{ s:{r:0,c:0}, e:{r:0,c:numCols-1} }];
-    ws["!cols"] = [{wch:12},{wch:26},{wch:14},{wch:12},{wch:12},{wch:10},{wch:14},{wch:14},{wch:10}];
+    ws["!cols"] = [{wch:12},{wch:26},{wch:14},{wch:12},{wch:12},{wch:10},{wch:10},{wch:14},{wch:14},{wch:10}];
     // Negrita y color para el título y el encabezado — si el lector de Excel de quien lo abre
     // no llega a pintar el color, igual queda bien: el contenido y el orden de columnas es lo
     // que más importa.
@@ -2395,7 +2472,7 @@ var TRIPLES = [
     table.className = "data-table";
     table.innerHTML =
       "<thead><tr>" +
-        "<th>Producto</th><th>Saldo ant.</th><th>Ingresos (hasta 3)</th><th>Merma</th><th>Saldo final</th>" +
+        "<th>Producto</th><th>Saldo ant.</th><th>Ingresos (hasta 3)</th><th>Otros</th><th>Merma</th><th>Saldo final</th>" +
         "<th>Se agotó</th><th>Ventas físicas</th><th>Ventas caja</th><th>Cuadre</th>" +
       "</tr></thead><tbody></tbody>";
     var tbody = table.querySelector("tbody");
@@ -2437,6 +2514,13 @@ var TRIPLES = [
     if(t.classList.contains("field-input")){
       var field = t.getAttribute("data-field");
       if(field === "vc" || field === "f" || field === "a"){ row[field] = numOrNull(t.value); }
+      else if(field === "m"){
+        // Lo que se ve/edita en pantalla es la Merma real (sin Otros) -- al guardar se le
+        // vuelve a sumar Otros, para que row.m (Merma real + Otros) quede igual que siempre
+        // y Ventas/Cuadre no cambien por esto.
+        var otrosNow = tab === "otros" ? 0 : otrosSumFor(tab, idx, shift, day);
+        row.m = round2(num(t.value) + otrosNow);
+      }
       else { row[field] = num(t.value); }
     } else if(t.classList.contains("ag-input")){
       var map = shift === "am" ? sec.agAm : sec.agPm;
@@ -2546,6 +2630,9 @@ var TRIPLES = [
           '</td>'
         : "<td>" + esc(name) + "</td>";
 
+      var otros = tab === "otros" ? 0 : otrosSumFor(tab, idx, shift, day);
+      var mermaReal = mermaRealFor(row, otros);
+
       tr.innerHTML =
         nameCell +
         "<td>" + saldoAntCell + "</td>" +
@@ -2554,7 +2641,8 @@ var TRIPLES = [
           '<input class="num-input mini field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="i2" value="'+row.i2+'" title="Ingreso 2">' +
           '<input class="num-input mini field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="i3" value="'+row.i3+'" title="Ingreso 3">' +
         '</span></td>' +
-        '<td><input class="num-input field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="m" value="'+row.m+'"></td>' +
+        '<td class="otros-cell" data-ridx="'+idx+'" title="Suma de lo anotado en la pestaña Otros para este producto y turno.">' + (otros ? fmt(otros) : "—") + '</td>' +
+        '<td><input class="num-input field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="m" value="'+mermaReal+'"></td>' +
         '<td><input class="num-input field-input" type="number" step="any" min="0" data-idx="'+idx+'" data-field="f" value="'+(row.f===null?"":row.f)+'" placeholder="—"></td>' +
         '<td><input class="time-input ag-input" type="time" data-idx="'+idx+'" value="'+esc(agTime)+'">' +
           '<div class="ag-note" data-ridx="'+idx+'">' + esc(fmtDuration(mins)) + '</div></td>' +
@@ -3259,8 +3347,86 @@ var TRIPLES = [
     return field;
   }
 
+  var respaldoDescargando = false;
+  // Respaldo completo (Jessica, 14/09/2026: "mi gran miedo es que se pierda la información"):
+  // a diferencia de "Exportar historial (Excel)" -- que solo exporta el Arqueo -- esto baja UN
+  // archivo con absolutamente todo: el Arqueo (STATE, ya cargado), y además Pedidos, Caja
+  // Cajeros y Clientes leídos frescos y COMPLETOS directo de Firestore (no desde la memoria de
+  // la app, porque Pedidos en memoria solo trae los últimos 1500 + las deudas sin pagar --
+  // ver PEDIDOS_LIMITE_RECIENTES -- y un respaldo tiene que traer TODO, sin ese límite). Es un
+  // .json (no Excel) a propósito: así se puede volver a subir a Firestore tal cual si algún día
+  // hiciera falta restaurar, sin perder ni un dato por el camino. Nunca toca las colecciones
+  // "carmelitasPan_*" del otro proyecto que comparte este mismo Firebase.
+  function doDescargarRespaldoCompleto(btn){
+    if(!db || respaldoDescargando) return;
+    respaldoDescargando = true;
+    if(btn){ btn.disabled = true; btn.textContent = "Preparando respaldo…"; }
+    showToast("Preparando el respaldo completo… puede tardar unos segundos.");
+    Promise.all([
+      db.collection("pedidos").get(),
+      db.collection("cajaCajeros").get(),
+      db.collection("clientes").get(),
+      db.collection("contadores").get()
+    ]).then(function(results){
+      function snapToArray(snap){
+        var arr = [];
+        snap.forEach(function(doc){ var d = doc.data(); d.id = doc.id; arr.push(d); });
+        return arr;
+      }
+      var respaldo = {
+        negocio: "Panadería Carmelitas - Arqueo Diario",
+        generadoEl: new Date().toISOString(),
+        arqueoState: STATE,
+        pedidos: snapToArray(results[0]),
+        cajaCajeros: snapToArray(results[1]),
+        clientes: snapToArray(results[2]),
+        contadores: snapToArray(results[3])
+      };
+      var blob = new Blob([JSON.stringify(respaldo, null, 2)], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "respaldo-arqueo-carmelitas-" + todayISO() + ".json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      respaldoDescargando = false;
+      if(btn){ btn.disabled = false; btn.textContent = "Descargar respaldo completo"; }
+      showToast("Respaldo descargado. Guárdalo en tu Drive, correo o donde tú quieras.");
+    }).catch(function(){
+      respaldoDescargando = false;
+      if(btn){ btn.disabled = false; btn.textContent = "Descargar respaldo completo"; }
+      showToast("No se pudo generar el respaldo. Revisa tu conexión e intenta de nuevo.");
+    });
+  }
+  function buildRespaldoCompletoCard(){
+    var card = document.createElement("div");
+    card.className = "card";
+    card.style.border = "1px solid #7aa87a";
+    card.style.background = "#f1f8f1";
+    card.style.marginBottom = "1rem";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .3rem";
+    h2.textContent = "Respaldo completo";
+    card.appendChild(h2);
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.style.margin = "0 0 .8rem";
+    hint.textContent = "Descarga TODO lo guardado (Arqueo, Pedidos, Caja Cajeros y Clientes) en un solo archivo, para que tengas tu propia copia fuera de la app. Recomendado bajarlo cada cierto tiempo y guardarlo en tu Drive, correo o donde prefieras.";
+    card.appendChild(hint);
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-primary";
+    btn.textContent = respaldoDescargando ? "Preparando respaldo…" : "Descargar respaldo completo";
+    btn.disabled = respaldoDescargando;
+    btn.addEventListener("click", function(){ doDescargarRespaldoCompleto(btn); });
+    card.appendChild(btn);
+    return card;
+  }
   function buildHistorialPanel(){
     var wrap = document.createElement("div");
+    wrap.appendChild(buildRespaldoCompletoCard());
     var card = document.createElement("div");
     card.className = "card";
     var headRow = document.createElement("div");
@@ -3349,6 +3515,7 @@ var TRIPLES = [
       origen: "whatsapp",
       cliente: { nombre:"", dni:"", ruc:"", direccion: canal === "tienda" ? "Recojo en tienda" : "", referencia:"", telefono:"", correo:"", diasCredito:0 },
       tipoPago: "",
+      atendidoPor: "",
       pagado: false,
       comprobante: null,
       comprobante2: null,
@@ -3831,6 +3998,11 @@ var TRIPLES = [
     pagoField.appendChild(pagoInput);
     grid.appendChild(pagoField);
 
+    // "Atendido por": quién tomó/creó el pedido -- texto libre a propósito, porque la app no
+    // tiene usuarios con clave individual (todos entran con la misma clave). Sale impreso en
+    // la orden junto con "Creado el" y "Entregado el" (ver buildPedidoMetaHTML).
+    grid.appendChild(buildField("Atendido por", "text", draft.atendidoPor, function(v){ draft.atendidoPor = v; }));
+
     // Crédito del cliente (7 o 15 días): queda guardado en el cliente, no en cada pedido suelto
     // -- así un cliente habitual a crédito no hay que marcarlo cada vez, se rellena solo al
     // elegirlo (igual que el DNI o el teléfono). "Contado" (0 días) es lo normal / por defecto.
@@ -4150,6 +4322,69 @@ var TRIPLES = [
     return card;
   }
 
+  // "Repetir esta línea en más fechas" (Pedido Masivo): en vez de agregar y editar la fecha
+  // de cada fila a mano para 15 o 30 días de entrega, se llena UNA línea completa y se repite
+  // sola hasta la fecha que se indique, saltando los días de la semana que no correspondan.
+  var DIA_LETRA_A_INDEX = { D:0, L:1, M:2, X:3, J:4, V:5, S:6 };
+  function isoAddDias(iso, n){
+    var d = new Date(iso + "T12:00:00");
+    d.setDate(d.getDate() + n);
+    var y = d.getFullYear();
+    var m = (d.getMonth() + 1 < 10 ? "0" : "") + (d.getMonth() + 1);
+    var dd = (d.getDate() < 10 ? "0" : "") + d.getDate();
+    return y + "-" + m + "-" + dd;
+  }
+  function isoDiaSemana(iso){
+    return new Date(iso + "T12:00:00").getDay();
+  }
+  // Genera las fechas ISO entre el día siguiente a "desdeISO" y "hastaISO" (ambos incluidos),
+  // saltando los días de semana en "saltarLetras" (subconjunto de D/L/M/X/J/V/S). Función pura
+  // -- sin tocar el draft ni el DOM -- para poder probarla sola.
+  function generarFechasRepetidas(desdeISO, hastaISO, saltarLetras){
+    var saltar = {};
+    (saltarLetras || []).forEach(function(l){
+      if(DIA_LETRA_A_INDEX[l] !== undefined) saltar[DIA_LETRA_A_INDEX[l]] = true;
+    });
+    var out = [];
+    var cursor = desdeISO;
+    var guard = 0;
+    while(true){
+      cursor = isoAddDias(cursor, 1);
+      if(cursor > hastaISO) break;
+      if(!saltar[isoDiaSemana(cursor)]) out.push(cursor);
+      guard++;
+      if(guard > 3660) break; // salvaguarda: nunca más de ~10 años de filas de una sola vez
+    }
+    return out;
+  }
+  function doRepetirLineaMasivo(idx, tbody, totalsRow){
+    var draft = pedidoDraft;
+    var item = draft.items[idx];
+    if(!item) return;
+    if(!item.producto || !item.producto.trim()){ showToast("Completa el producto de esta línea antes de repetirla."); return; }
+    var desde = item.fecha || draft.fechaDefault;
+    var hastaStr = prompt('Vas a repetir "' + item.producto + '" (mismo producto, cantidad y precio) desde el ' + fmtFechaCorta(desde) + ' hasta qué fecha.\n\nEscribe la fecha final (AAAA-MM-DD):', desde);
+    if(hastaStr === null) return;
+    hastaStr = hastaStr.trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(hastaStr) || isNaN(new Date(hastaStr + "T12:00:00").getTime())){
+      showToast("Fecha no válida. Usa el formato AAAA-MM-DD.");
+      return;
+    }
+    if(hastaStr <= desde){ showToast("La fecha final debe ser posterior a la de esta línea."); return; }
+    var saltarStr = prompt('¿Hay algún día de la semana que se deba saltar (no entregar)?\n\nEscribe las letras separadas por coma -- D=Domingo, L=Lunes, M=Martes, X=Miércoles, J=Jueves, V=Viernes, S=Sábado.\nDéjalo en blanco para repetir TODOS los días.', "");
+    if(saltarStr === null) return;
+    var letras = saltarStr.toUpperCase().split(",").map(function(s){ return s.trim(); }).filter(function(s){ return s; });
+    var fechasNuevas = generarFechasRepetidas(desde, hastaStr, letras);
+    if(fechasNuevas.length === 0){ showToast("No se generó ninguna fecha nueva -- revisa el rango o los días a saltar."); return; }
+    var nuevasLineas = fechasNuevas.map(function(f){
+      return { producto: item.producto, cantidad: item.cantidad, precio: item.precio, fecha: f, obs: item.obs || "" };
+    });
+    draft.items.splice.apply(draft.items, [idx + 1, 0].concat(nuevasLineas));
+    renderPedidoItems(tbody, totalsRow);
+    updatePedidoTotals(totalsRow);
+    showToast(nuevasLineas.length + " línea" + (nuevasLineas.length === 1 ? "" : "s") + " nueva" + (nuevasLineas.length === 1 ? "" : "s") + " agregada" + (nuevasLineas.length === 1 ? "" : "s") + ".");
+    if(pedidoEditingId) schedulePedidoAutosave();
+  }
   function renderPedidoItems(tbody, totalsRow){
     var draft = pedidoDraft;
     var isMasivo = draft.canal === "masivo";
@@ -4166,7 +4401,10 @@ var TRIPLES = [
         '<td><input type="number" step="any" min="0" class="pedido-item-cantidad num-input mini" data-idx="'+idx+'" value="'+item.cantidad+'"></td>' +
         '<td><input type="number" step="any" min="0" class="pedido-item-precio num-input mini" data-idx="'+idx+'" value="'+item.precio+'"></td>' +
         '<td class="pedido-item-total" data-idx="'+idx+'">S/ ' + fmt(item.cantidad*item.precio) + '</td>' +
-        '<td>' + (draft.items.length > 1 ? '<button type="button" class="btn-del pedido-item-del" data-idx="'+idx+'" title="Quitar línea">✕</button>' : '') + '</td>';
+        '<td>' +
+          (isMasivo ? '<button type="button" class="btn btn-sm pedido-item-repetir" data-idx="'+idx+'" title="Repetir esta línea (mismo producto/cantidad/precio) en más fechas">📅 Repetir</button> ' : '') +
+          (draft.items.length > 1 ? '<button type="button" class="btn-del pedido-item-del" data-idx="'+idx+'" title="Quitar línea">✕</button>' : '') +
+        '</td>';
       tbody.appendChild(tr);
     });
     if(readOnly){
@@ -4217,6 +4455,11 @@ var TRIPLES = [
     }
     wireQtyPrice(".pedido-item-cantidad", "cantidad");
     wireQtyPrice(".pedido-item-precio", "precio");
+    tbody.querySelectorAll(".pedido-item-repetir").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        doRepetirLineaMasivo(+btn.getAttribute("data-idx"), tbody, totalsRow);
+      });
+    });
     tbody.querySelectorAll(".pedido-item-del").forEach(function(btn){
       btn.addEventListener("click", function(){
         var idx = +btn.getAttribute("data-idx");
@@ -4290,6 +4533,7 @@ var TRIPLES = [
         origen: draft.origen || "whatsapp",
         cliente: draft.cliente,
         tipoPago: draft.tipoPago || "",
+        atendidoPor: draft.atendidoPor || "",
         pagado: !!draft.pagado,
         comprobante: draft.comprobante || null,
         comprobante2: draft.comprobante2 || null,
@@ -4302,7 +4546,9 @@ var TRIPLES = [
         items: validItems.map(function(it){
           return { producto: it.producto.trim(), cantidad: num(it.cantidad), precio: num(it.precio), fecha: it.fecha || draft.fechaDefault, obs: (it.obs || "").trim() };
         }),
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        entregadoEn: null,
+        entregadoPor: ""
       };
       return db.collection("pedidos").add(payload).then(function(){
         pedidosSaving = false;
@@ -4337,6 +4583,7 @@ var TRIPLES = [
         diasCredito: num(p.cliente && p.cliente.diasCredito)
       },
       tipoPago: p.tipoPago || "",
+      atendidoPor: p.atendidoPor || "",
       pagado: !!p.pagado,
       comprobante: p.comprobante || null,
       comprobante2: p.comprobante2 || null,
@@ -4379,6 +4626,7 @@ var TRIPLES = [
       origen: draft.origen || "whatsapp",
       cliente: draft.cliente,
       tipoPago: draft.tipoPago || "",
+      atendidoPor: draft.atendidoPor || "",
       pagado: !!draft.pagado,
       comprobante: draft.comprobante || null,
       comprobante2: draft.comprobante2 || null,
@@ -4539,6 +4787,34 @@ var TRIPLES = [
       '<div>' + tipoPago + ' &nbsp;—&nbsp; ' + pagadoBadge + '</div></div>';
     return html;
   }
+  // Convierte un timestamp en milisegundos (Date.now()) al formato "dd/mm/aaaa hh:mm a.m./p.m."
+  // en hora de Lima -- usado para "Creado el" y "Entregado el" en la orden impresa. Distinto de
+  // fmtFechaCorta/fmtFechaLarga (que trabajan con una fecha "yyyy-mm-dd" sin hora) porque acá
+  // sí importa la hora exacta, no solo el día.
+  function fmtFechaHoraMillis(ms){
+    if(!ms) return "";
+    var s = new Date(ms).toLocaleString("es-PE", { timeZone:"America/Lima", day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit", hour12:true });
+    return s.replace(",", "");
+  }
+  // Datos de trazabilidad del pedido (quién lo atendió, cuándo se creó, cuándo se entregó de
+  // verdad) -- lo que Jessica pidió para superar en información a la hoja del sistema viejo
+  // ("Creado por / Creado el / Fecha Entrega Única"). Cada línea solo aparece si hay dato --
+  // un pedido antiguo, de antes de este cambio, simplemente no trae "Atendido por" ni
+  // "Entregado el" y no debe salir con datos en blanco.
+  function buildPedidoMetaHTML(p){
+    var rows = [];
+    if(p.atendidoPor && String(p.atendidoPor).trim()) rows.push(["Atendido por:", esc(p.atendidoPor)]);
+    if(p.createdAt) rows.push(["Creado el:", esc(fmtFechaHoraMillis(p.createdAt))]);
+    if(p.entregadoEn){
+      var entregadoTxt = fmtFechaHoraMillis(p.entregadoEn) + (p.entregadoPor && String(p.entregadoPor).trim() ? " — " + p.entregadoPor : "");
+      rows.push(["Entregado el:", esc(entregadoTxt)]);
+    }
+    if(rows.length === 0) return "";
+    var html = '<div style="font-size:10px; color:#666; margin-top:4px; padding-top:3px; border-top:1px dashed #ccc;">';
+    html += rows.map(function(r){ return '<span style="margin-right:14px;"><strong>' + r[0] + '</strong> ' + r[1] + '</span>'; }).join("");
+    html += '</div>';
+    return html;
+  }
   // Color principal de las franjas/encabezados oscuros de la orden -- un marrón café en vez
   // del azul de la primera prueba (Jessica: "el azul con el amarillo se ve feo... uno sutil,
   // que se vea bien, bonito y sofisticado"), a tono con la tinta del logo y el amarillo que
@@ -4655,7 +4931,7 @@ var TRIPLES = [
     html += '<div style="border-bottom:2px solid ' + PEDIDO_DARK + '; margin-top:8px;"></div>';
     html += '<div style="background:#fff200; color:#cc0000; font-weight:800; font-size:17px; text-align:center; padding:7px 4px; margin:10px 0 0;">' + pedidoBannerHTML(p) + '</div>';
     html += '<div style="background:' + PEDIDO_DARK + '; color:#fff; font-weight:700; font-size:11px; letter-spacing:.04em; padding:4px 10px; margin-top:8px;">CLIENTE</div>';
-    html += '<div style="background:#f6e3bd; padding:8px 10px 7px; margin-bottom:2px; font-size:12px;">' + pedidoInfoRowsHTML(p) + '</div>';
+    html += '<div style="background:#f6e3bd; padding:8px 10px 7px; margin-bottom:2px; font-size:12px;">' + pedidoInfoRowsHTML(p) + buildPedidoMetaHTML(p) + '</div>';
     // Notas generales del pedido (distintas de la observación de cada línea, que va debajo del
     // producto): antes se guardaban pero nunca salían impresas -- Jessica lo reportó porque el
     // personal no veía la indicación al preparar/entregar el pedido.
@@ -4693,6 +4969,13 @@ var TRIPLES = [
   function doPrintPedido(id){
     var p = (PEDIDOS || []).filter(function(x){ return x.id === id; })[0];
     if(!p) return;
+    doPrintPedidoObj(p);
+  }
+  // Igual que doPrintPedido(id), pero recibe el pedido ya en mano -- para poder imprimir un
+  // pedido que viene de la búsqueda de pedidos antiguos (ver más abajo), que puede no estar en
+  // el arreglo PEDIDOS en memoria (puede quedar fuera de los recientes que se cargan en vivo,
+  // ver PEDIDOS_LIMITE_RECIENTES).
+  function doPrintPedidoObj(p){
     setPrintOrientation(false);
     var area = document.getElementById("printArea");
     area.innerHTML = buildPedidoPrintCardHTML(p);
@@ -4968,7 +5251,7 @@ var TRIPLES = [
     tableWrap.className = "table-wrap";
     var table = document.createElement("table");
     table.className = "data-table";
-    table.innerHTML = "<thead><tr><th>N°</th><th>Fecha(s)</th><th>Hora</th><th>Cliente</th><th>Origen</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th></th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
+    table.innerHTML = "<thead><tr><th>N°</th><th>Fecha(s)</th><th>Hora</th><th>Cliente</th><th>Origen</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th>Entregado</th><th></th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
     var tbody = table.querySelector("tbody");
     pedidosFiltrados.forEach(function(p){
       var tr = document.createElement("tr");
@@ -4995,6 +5278,13 @@ var TRIPLES = [
       var anularBtnHtml = p.anulado
         ? (readOnly ? "" : "<button type='button' class='btn btn-sm pedido-reactivar' data-id='" + p.id + "'>Reactivar</button>")
         : (readOnly ? "" : "<button type='button' class='btn btn-sm pedido-anular' data-id='" + p.id + "'>Anular</button>");
+      // Entrega real (distinta de "Pagado"): un pedido puede estar pagado pero aún no
+      // entregado, o entregado antes de recibir el pago (contraentrega) -- son dos cosas
+      // independientes. Al marcar, se guarda la fecha/hora real y (opcional) quién entregó;
+      // se ve en el PDF junto con "Creado el" (ver buildPedidoMetaHTML).
+      var entregadoBtnHtml = p.entregadoEn
+        ? ("<button type='button' class='chip good pedido-quitar-entrega' data-id='" + p.id + "' title='" + esc(fmtFechaHoraMillis(p.entregadoEn) + (p.entregadoPor ? " — " + p.entregadoPor : "")) + "'>✓ Entregado</button>")
+        : (readOnly ? "—" : "<button type='button' class='btn btn-sm pedido-entregar' data-id='" + p.id + "'>Marcar entregado</button>");
       tr.innerHTML =
         "<td>" + esc(p.numero || "—") + "</td>" +
         "<td>" + esc(fechaLabel) + "</td>" +
@@ -5005,6 +5295,7 @@ var TRIPLES = [
         "<td class='pedido-productos-cell'>" + esc(productosLabel) + "</td>" +
         "<td>S/ " + fmt(subtotal) + "</td>" +
         "<td><button type='button' class='" + pagadoClass + "' data-id='" + p.id + "'>" + (p.pagado ? "Pagado" : "Pendiente") + "</button></td>" +
+        "<td>" + entregadoBtnHtml + "</td>" +
         "<td>" + (readOnly ? "" : "<button type='button' class='btn btn-sm pedido-editar' data-id='" + p.id + "'>Editar</button>") + "</td>" +
         "<td><button type='button' class='btn btn-sm pedido-pdf' data-id='" + p.id + "'>Generar PDF</button></td>" +
         "<td>" + anularBtnHtml + "</td>" +
@@ -5033,6 +5324,32 @@ var TRIPLES = [
           var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
           if(!p || !db) return;
           db.collection("pedidos").doc(id).update({ pagado: !p.pagado }).catch(function(){
+            showToast("No se pudo actualizar. Intenta de nuevo.");
+          });
+        });
+      });
+      tbody.querySelectorAll(".pedido-entregar").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var id = btn.getAttribute("data-id");
+          var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
+          if(!p || !db) return;
+          var nombre = (p.cliente && p.cliente.nombre) || "este cliente";
+          var quien = prompt('Vas a marcar como entregado el pedido de "' + nombre + '".\n\n¿Quién lo entregó? (opcional, puedes dejarlo en blanco):');
+          if(quien === null) return;
+          db.collection("pedidos").doc(id).update({ entregadoEn: Date.now(), entregadoPor: quien.trim() }).then(function(){
+            showToast("Pedido marcado como entregado.");
+          }).catch(function(){
+            showToast("No se pudo actualizar. Intenta de nuevo.");
+          });
+        });
+      });
+      tbody.querySelectorAll(".pedido-quitar-entrega").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var id = btn.getAttribute("data-id");
+          var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
+          if(!p || !db) return;
+          if(!confirm('¿Quitar la marca de "entregado" de este pedido? (por si se marcó por error)')) return;
+          db.collection("pedidos").doc(id).update({ entregadoEn: null, entregadoPor: "" }).catch(function(){
             showToast("No se pudo actualizar. Intenta de nuevo.");
           });
         });
@@ -5098,7 +5415,121 @@ var TRIPLES = [
       });
     }
 
+    wrap.appendChild(buildPedidosBusquedaAntiguaCard());
+
     return wrap;
+  }
+
+  // Pedidos que ya quedaron fuera de los PEDIDOS_LIMITE_RECIENTES más nuevos (y ya no están
+  // sin pagar, si no seguirían apareciendo arriba): esta tarjeta busca por rango de fechas, de
+  // una sola vez, sin cargar todo el historial. Los resultados salen en su propia tabla, más
+  // simple (solo ver y generar PDF) -- para editar, anular o marcar como pagado un pedido tan
+  // viejo, hay que abrirlo primero (aparece en la lista de arriba en cuanto se le hace algún
+  // cambio, porque queda "pagado: false" o porque vuelve a estar entre los más recientes).
+  function buildPedidosBusquedaAntiguaCard(){
+    var card = document.createElement("div");
+    card.className = "card";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .4rem";
+    h2.textContent = "Buscar pedidos antiguos";
+    card.appendChild(h2);
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.textContent = "La lista de arriba solo carga los " + PEDIDOS_LIMITE_RECIENTES + " pedidos más recientes (y las deudas sin pagar, sin importar la antigüedad) -- así la app no se pone lenta aunque pase el tiempo y crezca el negocio. Para encontrar uno más viejo y ya pagado, busca aquí por la fecha en que se tomó el pedido.";
+    card.appendChild(hint);
+
+    var filterRow = document.createElement("div");
+    filterRow.className = "field-grid";
+    var desdeField = document.createElement("div");
+    desdeField.className = "field";
+    var desdeLabel = document.createElement("label");
+    desdeLabel.textContent = "Desde";
+    desdeField.appendChild(desdeLabel);
+    var desdeInput = document.createElement("input");
+    desdeInput.type = "date";
+    desdeInput.value = pedidosBusquedaDesde;
+    desdeInput.addEventListener("change", function(){ pedidosBusquedaDesde = desdeInput.value; });
+    desdeField.appendChild(desdeInput);
+    filterRow.appendChild(desdeField);
+
+    var hastaField = document.createElement("div");
+    hastaField.className = "field";
+    var hastaLabel = document.createElement("label");
+    hastaLabel.textContent = "Hasta";
+    hastaField.appendChild(hastaLabel);
+    var hastaInput = document.createElement("input");
+    hastaInput.type = "date";
+    hastaInput.value = pedidosBusquedaHasta;
+    hastaInput.addEventListener("change", function(){ pedidosBusquedaHasta = hastaInput.value; });
+    hastaField.appendChild(hastaInput);
+    filterRow.appendChild(hastaField);
+    card.appendChild(filterRow);
+
+    var buscarBtn = document.createElement("button");
+    buscarBtn.type = "button";
+    buscarBtn.className = "btn btn-sm";
+    buscarBtn.style.margin = ".6rem 0 1rem";
+    buscarBtn.textContent = pedidosBusquedaCargando ? "Buscando…" : "Buscar";
+    buscarBtn.disabled = pedidosBusquedaCargando;
+    buscarBtn.addEventListener("click", doBuscarPedidosAntiguos);
+    card.appendChild(buscarBtn);
+
+    if(pedidosBusquedaError){
+      var errEl = document.createElement("div");
+      errEl.className = "hint";
+      errEl.style.color = "var(--bad)";
+      errEl.textContent = "No se pudo buscar. Revisa tu conexión e intenta de nuevo.";
+      card.appendChild(errEl);
+    } else if(pedidosBusquedaResultados !== null){
+      if(pedidosBusquedaResultados.length === 0){
+        var empty = document.createElement("div");
+        empty.className = "empty-state";
+        empty.textContent = "No se encontraron pedidos tomados en ese rango de fechas.";
+        card.appendChild(empty);
+      } else {
+        var tableWrap = document.createElement("div");
+        tableWrap.className = "table-wrap";
+        var table = document.createElement("table");
+        table.className = "data-table";
+        table.innerHTML = "<thead><tr><th>N°</th><th>Fecha(s)</th><th>Cliente</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th></th></tr></thead><tbody></tbody>";
+        var tbody = table.querySelector("tbody");
+        pedidosBusquedaResultados.forEach(function(p){
+          var tr = document.createElement("tr");
+          if(p.anulado) tr.style.background = "#fdecea";
+          var seen = {};
+          var fechas = [];
+          (p.items||[]).forEach(function(it){ if(it.fecha && !seen[it.fecha]){ seen[it.fecha] = true; fechas.push(it.fecha); } });
+          fechas.sort();
+          var fechaLabel = fechas.length <= 1 ? (fechas[0] || "—") : (fechas[0] + " → " + fechas[fechas.length-1]);
+          var productosLabel = (p.items||[]).map(function(it){ return it.cantidad + "x " + it.producto; }).join(", ");
+          var subtotal = (p.items||[]).reduce(function(s,it){ return s + num(it.cantidad)*num(it.precio); }, 0) + num(p.deliveryMonto);
+          var canalLabel = CANAL_LABEL[p.canal] || p.canal;
+          var clienteCell = esc((p.cliente && p.cliente.nombre) || "—");
+          if(p.anulado){ clienteCell += ' <span class="chip bad" title="' + esc(p.motivoAnulacion || "Sin motivo registrado") + '">ANULADO</span>'; }
+          tr.innerHTML =
+            "<td>" + esc(p.numero || "—") + "</td>" +
+            "<td>" + esc(fechaLabel) + "</td>" +
+            "<td>" + clienteCell + "</td>" +
+            "<td>" + esc(canalLabel) + "</td>" +
+            "<td class='pedido-productos-cell'>" + esc(productosLabel) + "</td>" +
+            "<td>S/ " + fmt(subtotal) + "</td>" +
+            "<td>" + (p.pagado ? "Pagado" : "Pendiente") + "</td>" +
+            "<td><button type='button' class='btn btn-sm pedido-busqueda-pdf' data-id='" + esc(p.id) + "'>Generar PDF</button></td>";
+          tbody.appendChild(tr);
+        });
+        tableWrap.appendChild(table);
+        card.appendChild(tableWrap);
+        tbody.querySelectorAll(".pedido-busqueda-pdf").forEach(function(btn){
+          btn.addEventListener("click", function(){
+            var id = btn.getAttribute("data-id");
+            var p = pedidosBusquedaResultados.filter(function(x){ return x.id === id; })[0];
+            if(p) doPrintPedidoObj(p);
+          });
+        });
+      }
+    }
+
+    return card;
   }
 
   // ---------- Cuentas por Cobrar (pedidos a crédito, 7 o 15 días) ----------
@@ -5295,6 +5726,166 @@ var TRIPLES = [
     return cajeroTotalCalculado(r) - num(r.totalSistema);
   }
 
+  // Lista de nombres de cajero ya usados, sin duplicados -- se arma sola a partir de los
+  // reportes ya guardados en "cajaCajeros" (no hay que mantenerla a mano en ningún lado). Se
+  // usa tanto para el desplegable de "Nombre del cajero" al crear/editar un reporte como para
+  // los botones de filtro del Historial, así los dos lugares siempre muestran exactamente los
+  // mismos nombres. La comparación es sin distinguir mayúsculas/minúsculas para que "EVA" y
+  // "eva" cuenten como el mismo nombre (se queda con la primera forma en que se vio guardada);
+  // esto es justo lo que Jessica pidió evitar -- que la misma cajera aparezca varias veces con
+  // el nombre escrito distinto.
+  function getCajeroNombresConocidos(){
+    var vistos = {};
+    var lista = [];
+    (CAJACAJEROS || []).forEach(function(r){
+      var n = (r.cajero || "").trim();
+      if(!n) return;
+      var key = n.toLowerCase();
+      if(!vistos[key]){ vistos[key] = true; lista.push(n); }
+    });
+    lista.sort(function(a, b){ return a.localeCompare(b, "es"); });
+    return lista;
+  }
+
+  // Todos los nombres de cajero EXACTAMENTE como están guardados (sin fusionar nada), con
+  // cuántos reportes tiene cada uno -- a diferencia de getCajeroNombresConocidos, esta versión
+  // no une mayúsculas/minúsculas porque la usa la herramienta de corrección de más abajo, que
+  // necesita ver cada variante suelta tal cual está en Firestore para poder corregirla.
+  function getCajeroNombresCrudos(){
+    var conteo = {};
+    (CAJACAJEROS || []).forEach(function(r){
+      var n = (r.cajero || "").trim();
+      if(!n) return;
+      conteo[n] = (conteo[n] || 0) + 1;
+    });
+    return Object.keys(conteo).map(function(n){ return { nombre: n, cantidad: conteo[n] }; })
+      .sort(function(a, b){ return a.nombre.localeCompare(b.nombre, "es"); });
+  }
+  // Mayúsculas y sin tildes, para comparar nombres sin que "Ñuñoa"/"NUNOA" o "José"/"JOSE"
+  // cuenten como distintos.
+  function normNombreCajero(s){
+    return (s || "").toString().trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+  // Sugiere a cuál de los CAJERO_NOMBRES_REALES corresponde una variante ya guardada -- por
+  // coincidencia exacta (sin mayúsculas/tildes) o porque la variante es solo el primer nombre
+  // (ej. "eva" -> "Eva Tarazona", "keynner" -> "Keynner Luján"). Si no hay una sugerencia clara
+  // devuelve "" y Jessica elige a mano cuál es -- nunca se adivina con poca certeza.
+  function sugerirNombreReal(variante){
+    var nv = normNombreCajero(variante);
+    if(!nv) return "";
+    var exacto = CAJERO_NOMBRES_REALES.filter(function(n){ return normNombreCajero(n) === nv; })[0];
+    if(exacto) return exacto;
+    var porPrimerNombre = CAJERO_NOMBRES_REALES.filter(function(n){
+      return normNombreCajero(n).split(" ")[0] === nv;
+    })[0];
+    return porPrimerNombre || "";
+  }
+  // Tarjeta "Corregir nombres de cajero" del Historial: lista las variantes guardadas que NO
+  // calzan exacto con ninguno de los 5 nombres reales del equipo, y deja elegir a cuál
+  // corresponde cada una antes de aplicar. Devuelve null (no se dibuja nada) cuando ya no
+  // queda ninguna variante por corregir -- así la tarjeta desaparece sola una vez que todo
+  // está corregido, en vez de quedar ahí para siempre.
+  function buildCajeroCorreccionCard(){
+    var crudos = getCajeroNombresCrudos();
+    var pendientes = crudos.filter(function(c){ return CAJERO_NOMBRES_REALES.indexOf(c.nombre) === -1; });
+    if(pendientes.length === 0) return null;
+
+    pendientes.forEach(function(c){
+      if(!(c.nombre in cajeroCorreccionSeleccion)) cajeroCorreccionSeleccion[c.nombre] = sugerirNombreReal(c.nombre);
+    });
+
+    var card = document.createElement("div");
+    card.className = "card";
+    card.style.border = "1px solid #e0a458";
+    card.style.background = "#fff8e1";
+    card.style.marginBottom = "1rem";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .3rem";
+    h2.textContent = "Corregir nombres de cajero";
+    card.appendChild(h2);
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.style.margin = "0 0 .8rem";
+    hint.textContent = "Estos nombres guardados no calzan exacto con tu equipo (" + CAJERO_NOMBRES_REALES.join(", ") + "). Elige a cuál corresponde cada uno y aplica -- se corrige el nombre en los reportes ya guardados, sin borrar ningún dato.";
+    card.appendChild(hint);
+
+    var rows = document.createElement("div");
+    rows.style.display = "flex";
+    rows.style.flexDirection = "column";
+    rows.style.gap = ".6rem";
+    pendientes.forEach(function(c){
+      var row = document.createElement("div");
+      row.style.display = "flex";
+      row.style.alignItems = "center";
+      row.style.gap = ".6rem";
+      row.style.flexWrap = "wrap";
+      var label = document.createElement("div");
+      label.innerHTML = '<strong>"' + esc(c.nombre) + '"</strong> <span style="color:var(--ink-muted); font-size:.82rem;">(' + c.cantidad + " reporte" + (c.cantidad === 1 ? "" : "s") + ")</span>";
+      label.style.minWidth = "220px";
+      row.appendChild(label);
+      var select = document.createElement("select");
+      select.className = "cajero-correccion-select";
+      select.setAttribute("data-raw", c.nombre);
+      select.style.maxWidth = "260px";
+      var optNone = document.createElement("option");
+      optNone.value = "";
+      optNone.textContent = "-- Dejar como está --";
+      select.appendChild(optNone);
+      CAJERO_NOMBRES_REALES.forEach(function(n){
+        var opt = document.createElement("option");
+        opt.value = n;
+        opt.textContent = "→ " + n;
+        if(cajeroCorreccionSeleccion[c.nombre] === n) opt.selected = true;
+        select.appendChild(opt);
+      });
+      select.addEventListener("change", function(){ cajeroCorreccionSeleccion[c.nombre] = select.value; });
+      row.appendChild(select);
+      rows.appendChild(row);
+    });
+    card.appendChild(rows);
+
+    var applyBtn = document.createElement("button");
+    applyBtn.type = "button";
+    applyBtn.className = "btn btn-primary cajero-correccion-aplicar";
+    applyBtn.style.marginTop = ".9rem";
+    applyBtn.textContent = cajeroCorrigiendo ? "Corrigiendo…" : "Aplicar correcciones";
+    applyBtn.disabled = cajeroCorrigiendo;
+    applyBtn.addEventListener("click", function(){ doAplicarCorreccionCajeros(pendientes); });
+    card.appendChild(applyBtn);
+
+    return card;
+  }
+  function doAplicarCorreccionCajeros(pendientes){
+    if(!db || cajeroCorrigiendo) return;
+    var cambios = pendientes.filter(function(c){ return cajeroCorreccionSeleccion[c.nombre]; });
+    if(cambios.length === 0){ showToast("Elige a qué nombre corregir al menos uno."); return; }
+    var resumen = cambios.map(function(c){
+      return '"' + c.nombre + '" -> "' + cajeroCorreccionSeleccion[c.nombre] + '" (' + c.cantidad + " reporte" + (c.cantidad === 1 ? "" : "s") + ")";
+    }).join("\n");
+    if(!confirm("Se va a corregir el nombre en estos reportes ya guardados (no se borra nada):\n\n" + resumen + "\n\n¿Confirmas?")) return;
+    cajeroCorrigiendo = true;
+    renderPanel();
+    var tareas = [];
+    cambios.forEach(function(c){
+      var destino = cajeroCorreccionSeleccion[c.nombre];
+      (CAJACAJEROS || []).forEach(function(r){
+        if((r.cajero || "").trim() === c.nombre){
+          tareas.push(db.collection("cajaCajeros").doc(r.id).update({ cajero: destino }));
+        }
+      });
+    });
+    Promise.all(tareas).then(function(){
+      cambios.forEach(function(c){ delete cajeroCorreccionSeleccion[c.nombre]; });
+      cajeroCorrigiendo = false;
+      showToast("Nombres corregidos.");
+      renderPanel();
+    }).catch(function(){
+      cajeroCorrigiendo = false;
+      showToast("Algo falló corrigiendo los nombres. Intenta de nuevo.");
+      renderPanel();
+    });
+  }
+
   // Pantalla de clave de Caja Cajeros -- se muestra en vez de todo el contenido de la pestaña
   // mientras no se haya ingresado la clave del turno correspondiente. Al elegir un turno y
   // escribir la clave correcta, desbloquea toda la pestaña (nuevo reporte e historial) hasta que
@@ -5421,6 +6012,95 @@ var TRIPLES = [
     return wrap;
   }
 
+  // Campo "Nombre del cajero": desplegable con los nombres ya usados (ver
+  // getCajeroNombresConocidos) más una opción "+ Nuevo cajero…" que revela una casilla de
+  // texto. Al escribir un nombre nuevo, si ya existe uno igual (sin distinguir mayúsculas) se
+  // usa la ortografía ya guardada en vez de crear una variante -- así se evita exactamente el
+  // problema que reportó Jessica ("EVA" / "eva" / "Eva Tarazona" como si fueran personas
+  // distintas). El cambio entre desplegable y casilla de texto se hace tocando el DOM
+  // directamente (mostrar/ocultar), sin volver a dibujar todo el formulario -- así nunca se
+  // pierde el foco ni se corre el riesgo de que un clic en "Guardar" se pierda a mitad de un
+  // renderPanel().
+  function buildCajeroNombreField(draft){
+    var field = document.createElement("div");
+    field.className = "field full";
+    var label = document.createElement("label");
+    label.textContent = "Nombre del cajero";
+    field.appendChild(label);
+
+    var conocidos = getCajeroNombresConocidos();
+    var actual = (draft.cajero || "").trim();
+    var matchExacto = conocidos.some(function(n){ return n === actual; });
+    // Empieza en modo "escribir" solo si todavía no hay ningún nombre guardado (primera vez
+    // que se usa Caja Cajeros) o si el valor actual no calza con ninguno conocido -- en
+    // cualquier otro caso, se ve el desplegable de una vez.
+    var modoNuevo = conocidos.length === 0 || (!!actual && !matchExacto);
+
+    var select = document.createElement("select");
+    select.className = "cajero-nombre-select";
+    select.style.display = modoNuevo ? "none" : "";
+    var optPlaceholder = document.createElement("option");
+    optPlaceholder.value = "";
+    optPlaceholder.textContent = "Elige un cajero…";
+    select.appendChild(optPlaceholder);
+    conocidos.forEach(function(n){
+      var opt = document.createElement("option");
+      opt.value = n;
+      opt.textContent = n;
+      if(n === actual) opt.selected = true;
+      select.appendChild(opt);
+    });
+    var optNuevo = document.createElement("option");
+    optNuevo.value = "__nuevo__";
+    optNuevo.textContent = "+ Nuevo cajero…";
+    select.appendChild(optNuevo);
+    if(readOnly) select.disabled = true;
+
+    var nuevoInput = document.createElement("input");
+    nuevoInput.type = "text";
+    nuevoInput.className = "cajero-nombre-nuevo-input";
+    nuevoInput.placeholder = "Escribe el nombre completo (ej. Eva Tarazona)…";
+    nuevoInput.style.marginTop = ".4rem";
+    nuevoInput.style.display = modoNuevo ? "" : "none";
+    nuevoInput.value = modoNuevo ? actual : "";
+    if(readOnly) nuevoInput.disabled = true;
+
+    select.addEventListener("change", function(){
+      if(select.value === "__nuevo__"){
+        select.style.display = "none";
+        nuevoInput.style.display = "";
+        nuevoInput.value = "";
+        draft.cajero = "";
+        if(!readOnly) nuevoInput.focus();
+      } else {
+        draft.cajero = select.value;
+      }
+    });
+    nuevoInput.addEventListener("input", function(){ draft.cajero = nuevoInput.value; });
+    // Al salir de la casilla (blur), si lo escrito ya existe con otra ortografía, se corrige
+    // solo a la versión ya guardada -- sin volver a dibujar el formulario entero (para no
+    // arriesgar perder un clic en "Guardar" que haya disparado este mismo blur).
+    nuevoInput.addEventListener("blur", function(){
+      var typed = nuevoInput.value.trim();
+      draft.cajero = typed;
+      if(!typed) return;
+      var existente = conocidos.filter(function(n){ return n.toLowerCase() === typed.toLowerCase(); })[0];
+      if(existente && existente !== typed){
+        draft.cajero = existente;
+        nuevoInput.value = existente;
+        showToast('Ya existe como "' + existente + '" — se usó ese nombre para no duplicarlo.');
+      }
+    });
+
+    field.appendChild(select);
+    field.appendChild(nuevoInput);
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.textContent = "Elige un nombre ya guardado, o \"+ Nuevo cajero\" si es la primera vez que se anota.";
+    field.appendChild(hint);
+    return field;
+  }
+
   function buildCajeroForm(){
     if(!cajeroDraft) cajeroDraft = newCajeroDraft();
     var draft = cajeroDraft;
@@ -5456,7 +6136,7 @@ var TRIPLES = [
     grid.className = "field-grid";
     grid.appendChild(buildField("Fecha", "date", draft.fecha, function(v){ draft.fecha = v || currentDate; }));
     grid.appendChild(buildField("Caja", "text", draft.caja, function(v){ draft.caja = v; }));
-    grid.appendChild(buildField("Nombre del cajero", "text", draft.cajero, function(v){ draft.cajero = v; }, true));
+    grid.appendChild(buildCajeroNombreField(draft));
     card.appendChild(grid);
 
     var turnoHint = document.createElement("div");
@@ -5797,6 +6477,8 @@ var TRIPLES = [
 
   function buildCajerosHistorial(){
     var wrap = document.createElement("div");
+    var correccionCard = buildCajeroCorreccionCard();
+    if(correccionCard) wrap.appendChild(correccionCard);
     var card = document.createElement("div");
     card.className = "card cajero-historial-card";
 
@@ -5821,11 +6503,7 @@ var TRIPLES = [
     filterRow.appendChild(buildField("Hasta", "date", cajerosFiltroHasta, function(v){ cajerosFiltroHasta = v; renderPanel(); }));
     card.appendChild(filterRow);
 
-    var cajeroNombres = [];
-    (CAJACAJEROS || []).forEach(function(r){
-      if(r.cajero && cajeroNombres.indexOf(r.cajero) === -1) cajeroNombres.push(r.cajero);
-    });
-    cajeroNombres.sort();
+    var cajeroNombres = getCajeroNombresConocidos();
     var cajeroFilterRow = document.createElement("div");
     cajeroFilterRow.className = "shift-toggle";
     cajeroFilterRow.style.marginBottom = "1rem";
@@ -5843,7 +6521,10 @@ var TRIPLES = [
     var filtrados = (CAJACAJEROS || []).filter(function(r){
       if(cajerosFiltroDesde && r.fecha < cajerosFiltroDesde) return false;
       if(cajerosFiltroHasta && r.fecha > cajerosFiltroHasta) return false;
-      if(cajerosFiltroCajero !== "todos" && r.cajero !== cajerosFiltroCajero) return false;
+      // Sin distinguir mayúsculas/minúsculas -- así elegir "Eva Tarazona" en el filtro también
+      // encuentra reportes viejos guardados como "eva" o "EVA", aunque todavía no se hayan
+      // corregido esos reportes (ver getCajeroNombresConocidos).
+      if(cajerosFiltroCajero !== "todos" && (r.cajero || "").trim().toLowerCase() !== cajerosFiltroCajero.trim().toLowerCase()) return false;
       return true;
     }).sort(function(a,b){ return (b.fecha||"").localeCompare(a.fecha||"") || (b.createdAt||0) - (a.createdAt||0); });
 
@@ -6169,25 +6850,77 @@ var TRIPLES = [
     });
   }
 
+  // Rendimiento a futuro: cargar TODA la colección con un solo onSnapshot (como era antes)
+  // crece sin límite -- entre más pedidos se guarden con los años, más lento se pone abrir la
+  // app, sin importar cuántos sean por día. En vez de eso, se mantienen dos listeners en vivo,
+  // chicos y de tamaño FIJO, que se combinan en PEDIDOS:
+  //  1) Los últimos PEDIDOS_LIMITE_RECIENTES pedidos (por "createdAt", cuándo se tomaron) --
+  //     alimenta "Todos los pedidos" y "Producción". Por CANTIDAD, no por días: así el
+  //     tamaño de lo que se carga y se dibuja en pantalla queda igual de rápido así el
+  //     negocio haga 50 pedidos al día o 500 -- nunca crece más de ese número.
+  //  2) TODAS las deudas sin pagar, sin importar la antigüedad -- así "Cuentas por Cobrar"
+  //     nunca deja de mostrar una deuda vieja solo porque quedó fuera de los recientes de
+  //     arriba. Esta sí puede crecer con el tiempo, pero solo si se acumulan deudas de
+  //     verdad sin cobrar -- no con el volumen total de pedidos.
+  // Un pedido antiguo y ya pagado que quede fuera de ambos se puede seguir encontrando con el
+  // buscador de "Pedidos antiguos" en la pestaña Pedidos (una consulta aparte, no un listener
+  // en vivo -- no vuelve a cargar todo el historial cada vez).
   function attachPedidosSync(){
-    db.collection("pedidos").onSnapshot(function(snap){
-      var list = [];
-      snap.forEach(function(doc){
-        var data = doc.data();
-        data.id = doc.id;
-        list.push(data);
-      });
+    var recientesMap = {};
+    var impagosMap = {};
+    function mergeAndSetPedidos(){
+      var merged = {};
+      Object.keys(recientesMap).forEach(function(id){ merged[id] = recientesMap[id]; });
+      Object.keys(impagosMap).forEach(function(id){ merged[id] = impagosMap[id]; });
+      var list = Object.keys(merged).map(function(id){ return merged[id]; });
       list.sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
       PEDIDOS = list;
       // No repintamos si está en "Nuevo pedido": así no se pierde lo que está escribiendo
       // si otra persona (ej. quien toma pedidos por WhatsApp) guarda algo al mismo tiempo.
       if(currentTab === "pedidos" && pedidosView !== "nuevo") renderPanel();
+    }
+    db.collection("pedidos").orderBy("createdAt", "desc").limit(PEDIDOS_LIMITE_RECIENTES).onSnapshot(function(snap){
+      recientesMap = {};
+      snap.forEach(function(doc){ var data = doc.data(); data.id = doc.id; recientesMap[doc.id] = data; });
+      mergeAndSetPedidos();
     }, function(){
       // Si falla, dejamos PEDIDOS como esté (puede seguir null) y avisamos solo si
       // el usuario está mirando esa pestaña.
       if(currentTab === "pedidos" && PEDIDOS === null){
         showToast("No se pudo cargar los pedidos. Revisa tu conexión e intenta de nuevo.");
       }
+    });
+    db.collection("pedidos").where("pagado", "==", false).onSnapshot(function(snap){
+      impagosMap = {};
+      snap.forEach(function(doc){ var data = doc.data(); data.id = doc.id; impagosMap[doc.id] = data; });
+      mergeAndSetPedidos();
+    }, function(){});
+  }
+  // ---------- Buscar pedidos antiguos (fuera de la ventana reciente de arriba) ----------
+  // Consulta de una sola vez (.get(), no onSnapshot) por rango de fecha de creación -- para
+  // encontrar un pedido viejo y ya pagado sin tener que cargar todo el historial en vivo.
+  function doBuscarPedidosAntiguos(){
+    if(!db) return;
+    if(!pedidosBusquedaDesde || !pedidosBusquedaHasta){
+      showToast("Elige una fecha \"Desde\" y una \"Hasta\" para buscar.");
+      return;
+    }
+    pedidosBusquedaCargando = true;
+    pedidosBusquedaError = false;
+    renderPanel();
+    var desdeMs = new Date(pedidosBusquedaDesde + "T00:00:00").getTime();
+    var hastaMs = new Date(pedidosBusquedaHasta + "T23:59:59").getTime();
+    db.collection("pedidos").where("createdAt", ">=", desdeMs).where("createdAt", "<=", hastaMs).get().then(function(snap){
+      var list = [];
+      snap.forEach(function(doc){ var data = doc.data(); data.id = doc.id; list.push(data); });
+      list.sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
+      pedidosBusquedaResultados = list;
+      pedidosBusquedaCargando = false;
+      renderPanel();
+    }).catch(function(){
+      pedidosBusquedaCargando = false;
+      pedidosBusquedaError = true;
+      renderPanel();
     });
   }
 
