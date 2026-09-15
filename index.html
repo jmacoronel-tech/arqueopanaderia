@@ -211,8 +211,16 @@
      grueso que el resto de chips de la app, para que se note de un vistazo en la lista. */
   .chip.pedido-pagado-toggle{ border:none; cursor:pointer; font-family:inherit; font-size:1rem; font-weight:800; padding:.4rem 1rem; }
   .pedido-totals{ margin-top:1rem; padding-top:.8rem; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:.25rem; font-size:.92rem; }
-  .pedido-checkbox-label{ display:flex; align-items:center; gap:.5rem; font-size:.9rem; font-weight:600; cursor:pointer; }
-  .pedido-checkbox-label input{ width:auto; }
+  /* Jessica: en el formulario de Nuevo/Editar pedido, el checkbox "Pagado" debe verse mucho
+     más grande y visible que un checkbox común -- para que no se pase por alto al llenar o
+     revisar un pedido. Cambia de color (gris -> verde) apenas se marca, como confirmación
+     visual inmediata. */
+  /* ".field label" (más arriba) pesa más que una sola clase -- se usa ".field label.pedido-…"
+     acá para ganarle SIEMPRE por especificidad, no por orden en la hoja de estilos (que es
+     frágil ante cambios futuros). */
+  .field label.pedido-checkbox-label{ display:flex; align-items:center; gap:.6rem; font-size:1.15rem; font-weight:800; cursor:pointer; padding:.6rem .9rem; border-radius:10px; border:2px solid var(--border); background:var(--surface-2); transition:background .15s, border-color .15s, color .15s; color:var(--ink); }
+  .pedido-checkbox-label input{ width:1.3rem; height:1.3rem; cursor:pointer; }
+  .field label.pedido-checkbox-label.is-checked{ border-color:var(--good); background:var(--good-soft); color:var(--good); }
   .pedido-productos-cell{ max-width:320px; white-space:normal; }
   .empty-state{ color:var(--ink-soft); font-size:.9rem; padding:1.4rem 0; text-align:center; }
 
@@ -4299,7 +4307,13 @@ var TRIPLES = [
     pagoInput.setAttribute("list", "pedidoPagoList");
     pagoInput.placeholder = "Efectivo, Yape, Plin, Transferencia…";
     if(readOnly) pagoInput.disabled = true;
-    pagoInput.addEventListener("input", function(){ draft.tipoPago = pagoInput.value; });
+    pagoInput.addEventListener("input", function(){
+      draft.tipoPago = pagoInput.value;
+      // refreshComprobanteRequeridoUI se declara más abajo en esta misma función, pero al ser
+      // una "function" (no una variable) queda disponible desde ya (hoisting) -- así el aviso
+      // de "obligatorio" se actualiza al toque mientras se escribe, no recién al salir del campo.
+      if(typeof refreshComprobanteRequeridoUI === "function") refreshComprobanteRequeridoUI();
+    });
     pagoField.appendChild(pagoInput);
     grid.appendChild(pagoField);
 
@@ -4425,12 +4439,11 @@ var TRIPLES = [
     payRow.className = "field";
     payRow.style.margin = "1.1rem 0 0";
     var payLabel = document.createElement("label");
-    payLabel.className = "pedido-checkbox-label";
+    payLabel.className = "pedido-checkbox-label" + (draft.pagado ? " is-checked" : "");
     var payInput = document.createElement("input");
     payInput.type = "checkbox";
     payInput.checked = !!draft.pagado;
     if(readOnly) payInput.disabled = true;
-    payInput.addEventListener("change", function(){ draft.pagado = payInput.checked; });
     payLabel.appendChild(payInput);
     payLabel.appendChild(document.createTextNode(" Pagado"));
     payRow.appendChild(payLabel);
@@ -4440,7 +4453,7 @@ var TRIPLES = [
     comprobanteRow.className = "field";
     comprobanteRow.style.margin = ".8rem 0 0";
     var comprobanteLabel = document.createElement("label");
-    comprobanteLabel.textContent = "Foto del Yape / Transferencia (opcional)";
+    comprobanteLabel.textContent = "Foto del Yape / Transferencia";
     comprobanteRow.appendChild(comprobanteLabel);
 
     var comprobantePreviewWrap = document.createElement("div");
@@ -4475,9 +4488,36 @@ var TRIPLES = [
     comprobanteRow.appendChild(comprobantePreviewWrap);
     var comprobanteHint = document.createElement("div");
     comprobanteHint.className = "hint";
-    comprobanteHint.textContent = "Sube la captura del Yape o la transferencia: así sale en el PDF y queda confirmado el pago.";
     comprobanteRow.appendChild(comprobanteHint);
     card.appendChild(comprobanteRow);
+
+    // Jessica: "subir la foto es obligatorio no opcional" -- se exige solo cuando el pedido
+    // está marcado como Pagado con una forma de pago distinta de Efectivo (ver
+    // pedidoFaltaFotoComprobante). Este aviso se recalcula cada vez que cambia el checkbox
+    // "Pagado", la forma de pago, o la foto misma -- tanto en la etiqueta chica de acá como en
+    // el "Los cambios se guardan solos" de arriba (ver updatePedidoSaveStatus).
+    function refreshComprobanteRequeridoUI(){
+      var falta = pedidoFaltaFotoComprobante(draft);
+      if(falta){
+        comprobanteHint.textContent = "Obligatorio: sube la foto del Yape/transferencia para poder guardar este pedido como pagado.";
+        comprobanteHint.style.color = "var(--bad)";
+        comprobanteHint.style.fontWeight = "700";
+      } else {
+        comprobanteHint.textContent = "Sube la captura del Yape o la transferencia: así sale en el PDF y queda confirmado el pago.";
+        comprobanteHint.style.color = "";
+        comprobanteHint.style.fontWeight = "";
+      }
+      updatePedidoSaveStatus();
+    }
+    refreshComprobanteRequeridoUI();
+
+    payInput.addEventListener("change", function(){
+      draft.pagado = payInput.checked;
+      payLabel.classList.toggle("is-checked", payInput.checked);
+      refreshComprobanteRequeridoUI();
+      if(pedidoEditingId) schedulePedidoAutosave();
+    });
+    pagoInput.addEventListener("change", refreshComprobanteRequeridoUI);
 
     comprobanteFileInput.addEventListener("change", function(){
       var file = comprobanteFileInput.files && comprobanteFileInput.files[0];
@@ -4491,6 +4531,7 @@ var TRIPLES = [
         comprobanteImg.hidden = false;
         comprobanteRemoveBtn.hidden = false;
         showToast("Foto agregada.");
+        refreshComprobanteRequeridoUI();
         if(pedidoEditingId) schedulePedidoAutosave();
       });
     });
@@ -4499,6 +4540,7 @@ var TRIPLES = [
       comprobanteImg.hidden = true;
       comprobanteImg.src = "";
       comprobanteRemoveBtn.hidden = true;
+      refreshComprobanteRequeridoUI();
       if(pedidoEditingId) schedulePedidoAutosave();
     });
 
@@ -4851,12 +4893,25 @@ var TRIPLES = [
     totalsRow.innerHTML = html;
   }
 
+  // Jessica: "subir la foto es obligatorio no opcional" -- pero solo tiene sentido pedirla
+  // cuando SÍ hay algo que capturar: un Yape, Plin, transferencia o pago con tarjeta. Si la
+  // forma de pago es Efectivo, no existe ninguna captura que subir, así que ahí no se exige.
+  function pedidoTipoPagoEsEfectivo(tipoPago){
+    return (tipoPago || "").trim().toLowerCase() === "efectivo";
+  }
+  function pedidoFaltaFotoComprobante(p){
+    if(!p || !p.pagado) return false;
+    if(pedidoTipoPagoEsEfectivo(p.tipoPago)) return false;
+    return !p.comprobante;
+  }
+
   function savePedido(){
     var draft = pedidoDraft;
     if(!draft || readOnly || !db) return;
     var validItems = draft.items.filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
     if(!draft.cliente.nombre || !draft.cliente.nombre.trim()){ showToast("Falta el nombre del cliente."); return; }
     if(validItems.length === 0){ showToast("Agrega al menos un producto con cantidad."); return; }
+    if(pedidoFaltaFotoComprobante(draft)){ showToast("Falta subir la foto del Yape/transferencia para guardar este pedido como pagado."); return; }
     if(pedidosSaving) return;
     pedidosSaving = true;
     renderPanel();
@@ -4937,7 +4992,20 @@ var TRIPLES = [
   function updatePedidoSaveStatus(){
     var el = document.getElementById("pedidoSaveStatus");
     if(!el) return;
-    el.textContent = pedidoAutosaving ? "Guardando…" : "Los cambios se guardan solos";
+    if(pedidoAutosaving){
+      el.textContent = "Guardando…";
+      el.style.color = "";
+      return;
+    }
+    // Mientras falte la foto obligatoria, el autoguardado se pausa (ver doPedidoAutosave) --
+    // este mensaje avisa por qué, en vez de dejar que parezca que sí se está guardando solo.
+    if(pedidoDraft && pedidoFaltaFotoComprobante(pedidoDraft)){
+      el.textContent = "Falta la foto del comprobante para guardar los cambios";
+      el.style.color = "var(--bad)";
+      return;
+    }
+    el.textContent = "Los cambios se guardan solos";
+    el.style.color = "";
   }
   function schedulePedidoAutosave(){
     if(!pedidoEditingId || readOnly) return;
@@ -4953,6 +5021,11 @@ var TRIPLES = [
     if(!draft.cliente.nombre || !draft.cliente.nombre.trim()) return;
     var validItems = draft.items.filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
     if(validItems.length === 0) return;
+    // Igual que con el nombre o los productos: si está marcado "Pagado" (con una forma de pago
+    // que no es Efectivo) pero todavía no se subió la foto del comprobante, se pausa el
+    // autoguardado -- updatePedidoSaveStatus() avisa por qué en pantalla. Apenas se suba la
+    // foto (o se destilde "Pagado"), el resto de cambios pendientes se guarda solo.
+    if(pedidoFaltaFotoComprobante(draft)) return;
     var id = pedidoEditingId;
     var payload = {
       canal: draft.canal,
@@ -5111,21 +5184,17 @@ var TRIPLES = [
     // La forma de pago (Yape, Transferencia, Efectivo…) y si ya está pagado o no van juntas
     // y siempre visibles — a diferencia de los datos de arriba, esto sí le importa al equipo
     // aunque no se haya llenado la forma de pago todavía.
+    // Jessica probó un banner grande de PAGADO/PENDIENTE separado (como el de Entrega/Recojo)
+    // y no era lo que quería ahí -- pidió dejar esto donde estaba antes, del mismo tamaño chico
+    // junto a la forma de pago; lo grande y visible lo quería era el checkbox "Pagado" del
+    // formulario (ver pedido-checkbox-label), no esto.
     var tipoPago = p.tipoPago && String(p.tipoPago).trim() ? esc(p.tipoPago) : "—";
+    var pagadoColor = p.pagado ? "#2f7a4d" : "#cc0000";
+    var pagadoTexto = p.pagado ? "PAGADO" : "PENDIENTE";
     html += '<div style="display:flex; padding:1px 0; align-items:center;">' +
       '<div style="width:130px; flex:none; font-weight:700;">FORMA DE PAGO:</div>' +
-      '<div>' + tipoPago + '</div></div>';
+      '<div>' + tipoPago + ' &nbsp; <span style="color:' + pagadoColor + '; font-weight:800; font-size:10px;">' + pagadoTexto + '</span></div></div>';
     return html;
-  }
-  // Banner grande de PAGADO/PENDIENTE, igual de destacado que el de Entrega/Recojo de arriba --
-  // Jessica: "en la sección de pedidos donde dice pagado que se vea muy grande visible". Antes
-  // era una sola línea chica mezclada con la forma de pago (fácil de pasar por alto tanto para
-  // el equipo como para el cliente al revisar su pedido por WhatsApp); ahora es imposible no
-  // verlo, para bien o para mal (rojo si falta pagar, verde si ya está pagado).
-  function pedidoPagoBannerHTML(p){
-    var color = p.pagado ? "#2f7a4d" : "#cc0000";
-    var texto = p.pagado ? "✓ PEDIDO PAGADO" : "⚠ PENDIENTE DE PAGO";
-    return '<div style="background:' + color + '; color:#fff; font-weight:800; font-size:16px; text-align:center; padding:6px 4px; margin-top:6px;">' + texto + '</div>';
   }
   // Convierte un timestamp en milisegundos (Date.now()) al formato "dd/mm/aaaa hh:mm a.m./p.m."
   // en hora de Lima -- usado para "Creado el" y "Entregado el" en la orden impresa. Distinto de
@@ -5270,7 +5339,6 @@ var TRIPLES = [
     html += '</div>';
     html += '<div style="border-bottom:2px solid ' + PEDIDO_DARK + '; margin-top:8px;"></div>';
     html += '<div style="background:#fff200; color:#cc0000; font-weight:800; font-size:17px; text-align:center; padding:7px 4px; margin:10px 0 0;">' + pedidoBannerHTML(p) + '</div>';
-    html += pedidoPagoBannerHTML(p);
     html += '<div style="background:' + PEDIDO_DARK + '; color:#fff; font-weight:700; font-size:11px; letter-spacing:.04em; padding:4px 10px; margin-top:8px;">CLIENTE</div>';
     html += '<div style="background:#f6e3bd; padding:8px 10px 7px; margin-bottom:2px; font-size:12px;">' + pedidoInfoRowsHTML(p) + buildPedidoMetaHTML(p) + '</div>';
     // Notas generales del pedido (distintas de la observación de cada línea, que va debajo del
@@ -6007,7 +6075,15 @@ var TRIPLES = [
           var id = btn.getAttribute("data-id");
           var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
           if(!p || !db) return;
-          db.collection("pedidos").doc(id).update({ pagado: !p.pagado }).catch(function(){
+          var vaAPagado = !p.pagado;
+          // Este botón marca pagado de un toque, sin pasar por el formulario -- así que la foto
+          // obligatoria (ver pedidoFaltaFotoComprobante) se revisa acá también, no solo al
+          // guardar/editar el pedido.
+          if(vaAPagado && pedidoFaltaFotoComprobante({ pagado:true, tipoPago:p.tipoPago, comprobante:p.comprobante })){
+            showToast("Falta subir la foto del Yape/transferencia. Entra a \"Editar\" para subirla antes de marcarlo pagado.");
+            return;
+          }
+          db.collection("pedidos").doc(id).update({ pagado: vaAPagado }).catch(function(){
             showToast("No se pudo actualizar. Intenta de nuevo.");
           });
         });
