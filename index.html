@@ -923,14 +923,27 @@ var TRIPLES = [
   var cajerosFiltroDesde = "";
   var cajerosFiltroHasta = "";
   var cajerosFiltroCajero = "todos";
-  // Caja Cajeros maneja dinero, así que pide una clave aparte (distinta para mañana y tarde)
-  // cada vez que se entra a la pestaña -- no basta con la clave general de toda la app. No se
-  // guarda en sessionStorage a propósito: así, aunque el navegador quede abierto, apenas alguien
-  // se va a otra pestaña y vuelve a Caja Cajeros, se le vuelve a pedir la clave.
-  var CAJEROS_PASS_MANANA = "CajaAM2026";
-  var CAJEROS_PASS_TARDE = "CajaPM2026";
-  var cajerosDesbloqueado = false;
-  var cajerosLockTurno = "manana";
+  // Caja Cajeros maneja dinero. Antes había una sola clave compartida por turno (mañana/tarde)
+  // que cualquiera podía usar para entrar "como" cualquier cajera -- eso no permitía saber quién
+  // hizo cada cierre de verdad. A pedido de Jessica (16/09/2026), ahora cada cajera tiene su
+  // propia clave y, al entrar, solo ve y edita su propio historial (Jessica usa la clave de
+  // administradora y sigue viendo todo, igual que antes). Este bloqueo es solo dentro de la app
+  // (no cambia las reglas de Firestore) -- pensado para que una compañera no vea ni edite por
+  // error el historial de otra, no como defensa contra alguien con conocimientos técnicos que
+  // manipule la base directamente.
+  var CAJERO_CLAVES = {
+    "Eva Tarazona": "Eva2026",
+    "Paola Sotillo": "Paola2026",
+    "Xiomara Guevara": "Xiomara2026",
+    "Viviana Saavedra": "Viviana2026",
+    "Keynner Luján": "Keynner2026"
+  };
+  var CAJEROS_PASS_ADMIN = "CajaAdmin2026";
+  // null = todavía no entró nadie; "ADMIN" = entró Jessica (ve y edita todo); o el nombre exacto
+  // de la cajera que entró (ve y edita solo lo suyo). No se guarda en sessionStorage a
+  // propósito: así, aunque el navegador quede abierto, apenas alguien se va a otra pestaña y
+  // vuelve a Caja Cajeros, se le vuelve a pedir la clave.
+  var cajeroLogueado = null;
   var cajerosLockError = false;
   // Nombres reales del equipo de cajeros (Jessica, 14/09/2026) -- catálogo de referencia para
   // la herramienta "Corregir nombres de cajero" del Historial: sugiere a cuál de estos 5
@@ -6655,9 +6668,10 @@ var TRIPLES = [
   }
 
   // Pantalla de clave de Caja Cajeros -- se muestra en vez de todo el contenido de la pestaña
-  // mientras no se haya ingresado la clave del turno correspondiente. Al elegir un turno y
-  // escribir la clave correcta, desbloquea toda la pestaña (nuevo reporte e historial) hasta que
-  // se salga de la pestaña -- no queda guardado entre visitas.
+  // mientras no se haya ingresado una clave válida. Cada cajera tiene su propia clave (ver
+  // CAJERO_CLAVES); al escribirla, queda identificada y solo ve/edita su propio historial. La
+  // clave de administradora (Jessica) sigue viendo y editando todo. Se vuelve a pedir cada vez
+  // que se sale de la pestaña -- no queda guardado entre visitas.
   function buildCajerosLock(){
     var card = document.createElement("div");
     card.className = "card cajero-form-card";
@@ -6668,28 +6682,15 @@ var TRIPLES = [
     var hint = document.createElement("div");
     hint.className = "hint";
     hint.style.margin = "0 0 1rem";
-    hint.textContent = "Esta sección maneja el dinero de caja -- ingresa la clave de tu turno para entrar.";
+    hint.textContent = "Esta sección maneja el dinero de caja -- ingresa tu clave personal para entrar.";
     card.appendChild(hint);
-
-    var turnoRow = document.createElement("div");
-    turnoRow.className = "shift-toggle";
-    turnoRow.style.marginBottom = "1rem";
-    [["manana","Mañana"], ["tarde","Tarde"]].forEach(function(pair){
-      var b = document.createElement("button");
-      b.type = "button";
-      b.className = "shift-btn" + (cajerosLockTurno === pair[0] ? " active" : "");
-      b.textContent = pair[1];
-      b.addEventListener("click", function(){ cajerosLockTurno = pair[0]; cajerosLockError = false; renderPanel(); });
-      turnoRow.appendChild(b);
-    });
-    card.appendChild(turnoRow);
 
     var form = document.createElement("form");
     form.style.maxWidth = "320px";
     var field = document.createElement("div");
     field.className = "field";
     var label = document.createElement("label");
-    label.textContent = "Clave de " + (cajerosLockTurno === "manana" ? "la mañana" : "la tarde");
+    label.textContent = "Tu clave";
     field.appendChild(label);
     var input = document.createElement("input");
     input.type = "password";
@@ -6718,9 +6719,21 @@ var TRIPLES = [
     form.addEventListener("submit", function(ev){
       ev.preventDefault();
       var typed = input.value.replace(/^\s+|\s+$/g, "");
-      var esperado = cajerosLockTurno === "manana" ? CAJEROS_PASS_MANANA : CAJEROS_PASS_TARDE;
-      if(typed && typed === esperado){
-        cajerosDesbloqueado = true;
+      if(!typed){ cajerosLockError = true; renderPanel(); return; }
+      if(typed === CAJEROS_PASS_ADMIN){
+        cajeroLogueado = "ADMIN";
+        // El filtro de cajero del Historial se reinicia a "todos" en cada inicio de sesión --
+        // así la administradora nunca hereda por accidente el filtro que dejó puesto una
+        // cajera en la sesión anterior (que quedaba fijo en su propio nombre).
+        cajerosFiltroCajero = "todos";
+        cajerosLockError = false;
+        renderPanel();
+        return;
+      }
+      var nombreEncontrado = Object.keys(CAJERO_CLAVES).filter(function(n){ return CAJERO_CLAVES[n] === typed; })[0];
+      if(nombreEncontrado){
+        cajeroLogueado = nombreEncontrado;
+        cajerosFiltroCajero = "todos";
         cajerosLockError = false;
         renderPanel();
       } else {
@@ -6735,10 +6748,24 @@ var TRIPLES = [
 
   function buildCajerosPanel(){
     var wrap = document.createElement("div");
-    if(!cajerosDesbloqueado){
+    if(!cajeroLogueado){
       wrap.appendChild(buildCajerosLock());
       return wrap;
     }
+    var esAdminCajeros = cajeroLogueado === "ADMIN";
+    var idBar = document.createElement("div");
+    idBar.style.cssText = "display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; margin-bottom:.8rem; font-size:.85rem; color:var(--ink-muted);";
+    var idLabel = document.createElement("span");
+    idLabel.innerHTML = esAdminCajeros ? "Sesión: <strong>Administradora</strong> (ves todo)" : ("Sesión: <strong>" + esc(cajeroLogueado) + "</strong> (solo ves lo tuyo)");
+    idBar.appendChild(idLabel);
+    var logoutBtn = document.createElement("button");
+    logoutBtn.type = "button";
+    logoutBtn.className = "btn btn-sm";
+    logoutBtn.textContent = "Cerrar sesión";
+    logoutBtn.addEventListener("click", function(){ cajeroLogueado = null; cajerosLockError = false; renderPanel(); });
+    idBar.appendChild(logoutBtn);
+    wrap.appendChild(idBar);
+
     var viewToggle = document.createElement("div");
     viewToggle.className = "shift-toggle";
     viewToggle.style.marginBottom = "1rem";
@@ -6795,6 +6822,21 @@ var TRIPLES = [
     var label = document.createElement("label");
     label.textContent = "Nombre del cajero";
     field.appendChild(label);
+
+    // Si no entró la administradora, el reporte queda fijo a nombre de quien entró -- no se
+    // deja elegir otro nombre, para que cada cajera solo pueda guardar reportes propios.
+    if(cajeroLogueado !== "ADMIN"){
+      draft.cajero = cajeroLogueado;
+      var fixed = document.createElement("div");
+      fixed.style.cssText = "padding:.55rem .8rem; border:1px solid var(--border); border-radius:8px; background:var(--surface-2); font-weight:700;";
+      fixed.textContent = cajeroLogueado;
+      field.appendChild(fixed);
+      var hintFixed = document.createElement("div");
+      hintFixed.className = "hint";
+      hintFixed.textContent = "Entraste como " + cajeroLogueado + ", así que este reporte queda a tu nombre.";
+      field.appendChild(hintFixed);
+      return field;
+    }
 
     var conocidos = getCajeroNombresConocidos();
     var actual = (draft.cajero || "").trim();
@@ -6872,6 +6914,7 @@ var TRIPLES = [
   function buildCajeroForm(){
     if(!cajeroDraft) cajeroDraft = newCajeroDraft();
     var draft = cajeroDraft;
+    if(cajeroLogueado !== "ADMIN") draft.cajero = cajeroLogueado;
     var card = document.createElement("div");
     card.className = "card cajero-form-card";
 
@@ -7221,6 +7264,9 @@ var TRIPLES = [
   }
 
   function startEditCajero(r){
+    // Si no entró la administradora, no deja abrir para editar un reporte que no sea de quien
+    // entró -- de todas formas el historial ya le oculta esas filas, esto es un refuerzo extra.
+    if(cajeroLogueado !== "ADMIN" && (r.cajero || "").trim().toLowerCase() !== (cajeroLogueado || "").trim().toLowerCase()) return;
     cajeroDraft = {
       fecha: r.fecha || currentDate,
       turno: r.turno || "manana",
@@ -7245,7 +7291,11 @@ var TRIPLES = [
 
   function buildCajerosHistorial(){
     var wrap = document.createElement("div");
-    var correccionCard = buildCajeroCorreccionCard();
+    var esAdminCajeros = cajeroLogueado === "ADMIN";
+    // Si no entró la administradora, el historial queda forzado a su propio nombre -- no hay
+    // forma de ver "Todos los cajeros" ni el de otra compañera.
+    if(!esAdminCajeros) cajerosFiltroCajero = cajeroLogueado;
+    var correccionCard = esAdminCajeros ? buildCajeroCorreccionCard() : null;
     if(correccionCard) wrap.appendChild(correccionCard);
     var card = document.createElement("div");
     card.className = "card cajero-historial-card";
@@ -7271,20 +7321,22 @@ var TRIPLES = [
     filterRow.appendChild(buildField("Hasta", "date", cajerosFiltroHasta, function(v){ cajerosFiltroHasta = v; renderPanel(); }));
     card.appendChild(filterRow);
 
-    var cajeroNombres = getCajeroNombresConocidos();
-    var cajeroFilterRow = document.createElement("div");
-    cajeroFilterRow.className = "shift-toggle";
-    cajeroFilterRow.style.marginBottom = "1rem";
-    cajeroFilterRow.style.flexWrap = "wrap";
-    [["todos","Todos los cajeros"]].concat(cajeroNombres.map(function(n){ return [n, n]; })).forEach(function(pair){
-      var fb = document.createElement("button");
-      fb.type = "button";
-      fb.className = "shift-btn" + (cajerosFiltroCajero === pair[0] ? " active" : "");
-      fb.textContent = pair[1];
-      fb.addEventListener("click", function(){ cajerosFiltroCajero = pair[0]; renderPanel(); });
-      cajeroFilterRow.appendChild(fb);
-    });
-    card.appendChild(cajeroFilterRow);
+    if(esAdminCajeros){
+      var cajeroNombres = getCajeroNombresConocidos();
+      var cajeroFilterRow = document.createElement("div");
+      cajeroFilterRow.className = "shift-toggle";
+      cajeroFilterRow.style.marginBottom = "1rem";
+      cajeroFilterRow.style.flexWrap = "wrap";
+      [["todos","Todos los cajeros"]].concat(cajeroNombres.map(function(n){ return [n, n]; })).forEach(function(pair){
+        var fb = document.createElement("button");
+        fb.type = "button";
+        fb.className = "shift-btn" + (cajerosFiltroCajero === pair[0] ? " active" : "");
+        fb.textContent = pair[1];
+        fb.addEventListener("click", function(){ cajerosFiltroCajero = pair[0]; renderPanel(); });
+        cajeroFilterRow.appendChild(fb);
+      });
+      card.appendChild(cajeroFilterRow);
+    }
 
     var filtrados = (CAJACAJEROS || []).filter(function(r){
       if(cajerosFiltroDesde && r.fecha < cajerosFiltroDesde) return false;
@@ -7335,7 +7387,7 @@ var TRIPLES = [
         "<td>" + diffCellHtml(diff) + "</td>" +
         "<td>" + (readOnly ? "" : "<button type='button' class='btn btn-sm cajero-editar' data-id='" + r.id + "'>Editar</button>") + "</td>" +
         "<td><button type='button' class='btn btn-sm cajero-pdf' data-id='" + r.id + "'>PDF</button></td>" +
-        "<td>" + (readOnly ? "" : '<button type="button" class="btn-del cajero-del" data-id="' + r.id + '" title="Eliminar reporte">✕</button>') + "</td>";
+        "<td>" + (readOnly || !esAdminCajeros ? "" : '<button type="button" class="btn-del cajero-del" data-id="' + r.id + '" title="Eliminar reporte">✕</button>') + "</td>";
       tbody.appendChild(tr);
     });
     tableWrap.appendChild(table);
@@ -7558,11 +7610,11 @@ var TRIPLES = [
       btn.addEventListener("click", function(){
         if(!STATE) return;
         var destino = btn.getAttribute("data-tab");
-        // Al salir de Caja Cajeros hacia cualquier otra pestaña, se vuelve a pedir la clave la
-        // próxima vez que se entre -- así no queda abierto a la vista de todos aunque el
-        // navegador nunca se cierre.
+        // Al salir de Caja Cajeros hacia cualquier otra pestaña, se cierra la sesión y se vuelve
+        // a pedir la clave la próxima vez que se entre -- así no queda abierto a la vista de
+        // todos (ni a nombre de la cajera anterior) aunque el navegador nunca se cierre.
         if(currentTab === "cajeros" && destino !== "cajeros"){
-          cajerosDesbloqueado = false;
+          cajeroLogueado = null;
           cajerosLockError = false;
         }
         currentTab = destino; renderAll();
