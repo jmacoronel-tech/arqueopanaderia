@@ -237,6 +237,13 @@
   .pedido-preview-hint{ font-size:.72rem; color:#f6e3bd; }
   .pedido-preview-close{ background:#fff; color:#5a3a22; border:none; border-radius:999px; width:30px; height:30px; font-size:1rem; font-weight:800; cursor:pointer; flex:none; }
   .pedido-preview-body{ padding:.9rem 1rem 1.2rem; }
+  .pedido-preview-actions{ display:flex; flex-wrap:wrap; gap:.5rem; padding:0 1rem 1rem; }
+
+  /* Barra de desplazamiento horizontal duplicada ARRIBA de una tabla ancha (ver "Todos los
+     pedidos"), sincronizada con el scroll real de la tabla -- así no hay que bajar hasta el
+     final de una lista larga solo para poder desplazarse hacia los lados. */
+  .table-scroll-top{ overflow-x:auto; overflow-y:hidden; }
+  .table-scroll-top > div{ height:1px; }
 
   .lock-screen{ position:fixed; inset:0; z-index:100; background:var(--bg); align-items:center; justify-content:center; padding:1.2rem; }
   .lock-screen:not([hidden]){ display:flex; }
@@ -334,6 +341,7 @@
 <script id="state-data" type="application/json">{"meta":{"businessName":"","lastSavedAt":null,"schema":2},"days":{"2026-09-01":{"turno":{"respAM":"","respPM":"","eAM":"","sAM":"","ePM":"","sPM":"","obsAM":"","obsPM":"","notas":""},"p":{"am":[{"a":0,"i1":38,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":60,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":270,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":100,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":35,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":12,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":160,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":240,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":90,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":15,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":10,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":15,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":10,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":10,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":2,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":9,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":5,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":5,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":5,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":15,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":30,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":6,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":6,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":12,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":1,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":15,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":8,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":5,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":5,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":3,"i1":6,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":9,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":11,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":19,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":18,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":2,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":3,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"pm":[{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":25,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":39,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"agAm":{},"agPm":{}},"b":{"am":[{"a":7,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":6,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":5,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":12,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":6,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":11,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":26,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":3,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":5,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":5,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":4,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"pm":[{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"agAm":{},"agPm":{}},"e":{"am":[{"a":1.725,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":4.02,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":2.67,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.51,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":2,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.19,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0.935,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.16,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":5.315,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":12,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":10,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":18,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.18,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":11.25,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0.25,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0.055,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.51,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":2.28,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0.955,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":3.015,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.52,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.62,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"pm":[{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"agAm":{},"agPm":{}},"o":{"am":[],"pm":[],"agAm":{},"agPm":{}},"t":{"am":[{"a":79,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":24,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":24,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":6,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":12,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":6,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"pm":[{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"agAm":{},"agPm":{}}}},"customCatalog":[]}</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
@@ -861,6 +869,15 @@ var TRIPLES = [
   var db = null;
   var lastSavedBySelf = null;
   var saveTimer = null, saving = false;
+  // Reintento automático del guardado -- Jessica reportó (17/09/2026) que a veces avanzaba
+  // en un dispositivo y "no guardaba, se borraba lo avanzado". Antes, si un guardado fallaba
+  // (por ejemplo un corte de conexión de un instante), la app solo mostraba un mensajito que
+  // desaparecía solo a los pocos segundos -- si nadie lo alcanzaba a ver y se recargaba o
+  // cerraba la página después, esos cambios quedaban sin guardar de verdad, sin aviso. Ahora
+  // reintenta sola, con un aviso grande que NO desaparece hasta que de verdad se guarde (ver
+  // saveRetryCount / saveRetryTimer más abajo, en doSave/handleSaveError).
+  var saveRetryCount = 0;
+  var saveRetryTimer = null;
   // "baseline": la última versión de STATE que este dispositivo sabe con certeza que
   // coincide con lo que hay guardado en Firestore (justo después de cargar, o de guardar,
   // o de combinar cambios de otro dispositivo). Cada guardado compara STATE contra baseline
@@ -872,6 +889,13 @@ var TRIPLES = [
   // siguió escribiendo mientras un guardado ya estaba en camino, y así no perder esos
   // cambios más nuevos.
   var editGen = 0;
+  // Si llega una actualización de otro dispositivo MIENTRAS este dispositivo tiene una
+  // transacción de guardado propia en camino (saving=true), no se toca STATE/baseline de
+  // inmediato -- se guarda acá y se procesa recién cuando esa transacción termine. Antes,
+  // los dos (el onSnapshot remoto y el "then" del guardado propio) podían escribir STATE/
+  // baseline por separado, en cualquier orden, y el que terminara después podía pisar al
+  // otro con una foto más vieja -- borrando en pantalla un cambio que sí quedó bien guardado.
+  var pendingRemoteSnapshot = null;
   var currentDate = todayISO();
   // Pedidos (delivery / recojo en tienda / masivo): viven en su propia colección de Firestore,
   // separada del documento "arqueo/state", para no hacer crecer sin límite el documento del
@@ -887,6 +911,13 @@ var TRIPLES = [
   // igual a como Jessica separaba sus reportes en Universalio ("Hoy Canal Tienda" / "Hoy
   // Canal Whatsapp"). Es independiente del canal de entrega (delivery/recojo/masivo).
   var pedidosOrigenFilter = "todos";
+  // Filtro por fecha de "Todos los pedidos": Jessica pidió que por defecto solo se vea el día
+  // que se está trabajando (no la lista entera de todos los pedidos guardados), con opción de
+  // cambiar de fecha o de ver todos sin filtrar cuando haga falta. Es la fecha de ENTREGA de
+  // cada línea del pedido (igual que "Producción por día"), independiente de currentDate (la
+  // del Arqueo) -- mismo criterio que pedidosProduccionDate, por la misma razón (ver ahí).
+  var pedidosListaFecha = null;
+  var pedidosListaVerTodos = false;
   // Cuántos pedidos (los más recientes, por "createdAt") se cargan en vivo -- ver
   // attachPedidosSync() más abajo, sección "rendimiento a futuro". Un LÍMITE POR CANTIDAD
   // (no por días) es a propósito: así el tamaño de lo que se carga y se dibuja en pantalla
@@ -1329,6 +1360,11 @@ var TRIPLES = [
     banners.push({ kind:kind, text:text, actions:actions||[] });
     renderBanners();
   }
+  function hideBanner(kind){
+    var before = banners.length;
+    banners = banners.filter(function(b){ return b.kind !== kind; });
+    if(banners.length !== before) renderBanners();
+  }
   function renderBanners(){
     var host = document.getElementById("banners");
     host.innerHTML = "";
@@ -1581,36 +1617,93 @@ var TRIPLES = [
       });
     }).then(function(merged){
       saving = false;
+      var stateBeforeMerge = STATE;
       baseline = deepClone(merged);
       if(editGen === genAtStart){
         STATE = merged;
         dirty = false;
       } else {
-        // Se siguió editando acá mismo mientras esto se guardaba -- no botamos esos
-        // cambios nuevos (STATE ya los tiene). El "baseline" recién actualizado hace que
-        // el próximo guardado los identifique bien y los mande sin perder nada.
+        // Se siguió editando acá mismo mientras esto se guardaba. OJO: STATE no queda
+        // igual a "merged" automáticamente -- "merged" puede traer cambios de OTRO
+        // dispositivo que este equipo todavía no tiene aplicados en pantalla. Por eso
+        // se recombina "merged" (ya confirmado por el servidor) con lo que este equipo
+        // tenía justo antes de este guardado, para no perder ni lo de este dispositivo
+        // ni lo que otro dispositivo ya guardó mientras tanto.
+        STATE = mergeStateForSave(merged, stateBeforeMerge, localSnapshot);
         dirty = true;
         scheduleAutosave();
       }
       clearBackup();
+      // Se guardó bien: se acaba cualquier reintento pendiente y se quita el aviso grande
+      // de "no se pudo guardar" si estaba puesto.
+      saveRetryCount = 0;
+      clearTimeout(saveRetryTimer);
+      hideBanner("savefail");
       setSaveStatus();
       if(remoteChangedElsewhere) renderAll();
+      // Si mientras esta transacción estaba en camino llegó (y quedó en cola) una
+      // actualización de otro dispositivo, hay que revisar si de verdad es MÁS NUEVA que
+      // lo que este guardado acaba de confirmar -- la transacción ya leyó lo más fresco
+      // de la base al momento de escribir, así que cualquier cosa en cola de ANTES de eso
+      // ya quedó superada por "merged" y aplicarla a ciegas borraría este guardado que
+      // recién se confirmó. Solo se aplica si su lastSavedAt es posterior al de "merged"
+      // (o sea, un guardado de otro dispositivo que sí llegó DESPUÉS del nuestro).
+      if(pendingRemoteSnapshot){
+        var pendingIsNewer = pendingRemoteSnapshot.meta && merged.meta &&
+          pendingRemoteSnapshot.meta.lastSavedAt && merged.meta.lastSavedAt &&
+          pendingRemoteSnapshot.meta.lastSavedAt > merged.meta.lastSavedAt;
+        if(pendingIsNewer){ flushPendingRemoteSnapshot(); }
+        else { pendingRemoteSnapshot = null; }
+      }
     }).catch(function(err){
       saving = false;
       setSaveStatus();
       handleSaveError(err);
+      // Acá sí se aplica tal cual: este guardado no se confirmó, así que no hay "merged"
+      // propio más fresco contra el cual comparar -- lo que haya en cola sigue siendo la
+      // mejor información que se tiene de la base de datos.
+      flushPendingRemoteSnapshot();
     });
+  }
+
+  // Si mientras esta transacción estaba en camino llegó una actualización de otro
+  // dispositivo (guardada en pendingRemoteSnapshot por attachRemoteSync porque saving
+  // estaba en true), se procesa recién ahora -- con STATE/baseline ya en su estado final
+  // de este guardado, para no chocar con lo que doSave() acaba de escribir.
+  function flushPendingRemoteSnapshot(){
+    if(!pendingRemoteSnapshot) return;
+    var data = pendingRemoteSnapshot;
+    pendingRemoteSnapshot = null;
+    applyRemoteSnapshot(data);
   }
 
   function handleSaveError(err){
     var code = err && err.code;
+    clearTimeout(saveRetryTimer);
     if(code === "permission-denied"){
+      // Reintentar no sirve de nada acá -- es un problema de permisos, no de conexión --
+      // así que no se programa un reintento automático, solo se avisa.
       showBanner("bad", "No se pudo guardar: sin permiso de escritura en la base de datos. Avísale al dueño del arqueo.", []);
       setSaveStatus();
       return;
     }
-    showToast("No se pudo guardar (revisa tu conexión a internet). Vuelve a intentar en unos segundos.");
-    setSaveStatus();
+    saveRetryCount++;
+    // Espera creciente entre reintentos (3s, 6s, 9s... hasta un máximo de 20s) para no
+    // insistir sin parar si la conexión sigue caída -- pero SIN dejar de reintentar nunca
+    // mientras queden cambios sin guardar (dirty se queda en true todo este tiempo, así que
+    // los datos en memoria no se pierden -- lo único en riesgo es que alguien cierre o
+    // recargue la página antes de que se logre guardar, por eso el aviso de abajo se queda
+    // fijo en pantalla y no desaparece solo).
+    var espera = Math.min(3000 * saveRetryCount, 20000);
+    showBanner("savefail",
+      "No se pudieron guardar tus últimos cambios (revisa tu conexión a internet). Reintentando automáticamente… (intento " + saveRetryCount + ") — NO cierres ni recargues esta página todavía.",
+      [{ label:"Reintentar ahora", action:function(){
+          clearTimeout(saveRetryTimer);
+          if(dirty && !saving) doSave();
+        }}]);
+    saveRetryTimer = setTimeout(function(){
+      if(dirty && !saving) doSave();
+    }, espera);
   }
 
   // ---------- import (reporte de ventas del sistema) ----------
@@ -2795,24 +2888,48 @@ var TRIPLES = [
     var day = ensureDay(currentDate);
     var sec = day[section.key];
     var row = shift === "am" ? sec.am[idx] : sec.pm[idx];
+    var changed = true;
 
     if(t.classList.contains("field-input")){
       var field = t.getAttribute("data-field");
-      if(field === "vc" || field === "f" || field === "a"){ row[field] = numOrNull(t.value); }
+      if(field === "vc" || field === "f" || field === "a"){
+        var newVal = numOrNull(t.value);
+        changed = row[field] !== newVal;
+        row[field] = newVal;
+      }
       else if(field === "m"){
         // Lo que se ve/edita en pantalla es la Merma real (sin Otros) -- al guardar se le
         // vuelve a sumar Otros, para que row.m (Merma real + Otros) quede igual que siempre
         // y Ventas/Cuadre no cambien por esto.
         var otrosNow = tab === "otros" ? 0 : otrosSumFor(tab, idx, shift, day);
-        row.m = round2(num(t.value) + otrosNow);
+        var newM = round2(num(t.value) + otrosNow);
+        changed = row.m !== newM;
+        row.m = newM;
       }
-      else { row[field] = num(t.value); }
+      else {
+        var newOther = num(t.value);
+        changed = row[field] !== newOther;
+        row[field] = newOther;
+      }
     } else if(t.classList.contains("ag-input")){
       var map = shift === "am" ? sec.agAm : sec.agPm;
+      var beforeAg = map[idx];
       if(t.value){ map[idx] = t.value; } else { delete map[idx]; }
+      changed = beforeAg !== map[idx];
     } else {
       return;
     }
+
+    // Reconstruir la tabla (por un guardado que termina, o por un cambio que llega de otro
+    // dispositivo) mientras alguien tiene el foco puesto en una casilla puede hacer que el
+    // navegador dispare un evento "change" FANTASMA sobre esa misma casilla (por perder el
+    // foco cuando su <input> se vuelve a crear de cero), aunque la persona no haya escrito
+    // nada nuevo. Si eso se tratara como una edición real (markDirty), un guardado que
+    // termina justo en ese instante podía "olvidar" que un campo ya había quedado bien
+    // guardado y, más adelante, volver a mandarlo con su valor viejo -- borrando por error
+    // un cambio que otro dispositivo ya había guardado bien. Por eso: si el valor es
+    // EXACTAMENTE el mismo que ya estaba, no cuenta como cambio de verdad.
+    if(!changed){ updateComputedRow(tab, section, tbody, idx, shift, day); return; }
 
     markDirty();
     scheduleAutosave();
@@ -4173,6 +4290,34 @@ var TRIPLES = [
       });
       editControls.appendChild(volverBtn);
       headRow.appendChild(editControls);
+    } else {
+      // Vista previa de un pedido NUEVO, ANTES de guardarlo -- Jessica: "el número de
+      // correlativo se activa siempre y cuando el pedido se procese correctamente, porque hay
+      // clientes que hacen su cotización y ya nunca más escriben." Antes, la única forma de
+      // mostrarle algo al cliente era apretar "Guardar pedido" primero, lo cual ya asignaba un
+      // número aunque el cliente después nunca confirmara. Con este botón se arma y se manda la
+      // cotización SIN guardar nada todavía -- el número recién se usa cuando el cliente
+      // confirma y de verdad se aprieta "Guardar pedido".
+      var previewNuevoBtn = document.createElement("button");
+      previewNuevoBtn.type = "button";
+      previewNuevoBtn.className = "btn btn-sm";
+      previewNuevoBtn.textContent = "Vista previa (cotización)";
+      previewNuevoBtn.addEventListener("click", function(){
+        var validItems = (pedidoDraft.items || []).filter(function(it){ return it.producto && it.producto.trim(); });
+        if((!pedidoDraft.cliente || !pedidoDraft.cliente.nombre || !pedidoDraft.cliente.nombre.trim()) && validItems.length === 0){
+          showToast("Agrega el nombre del cliente o al menos un producto para ver la vista previa.");
+          return;
+        }
+        var previewObj = Object.assign({}, pedidoDraft, {
+          id: null,
+          numero: null,
+          createdAt: null,
+          esBorrador: true,
+          items: validItems
+        });
+        showPedidoVistaPrevia(previewObj);
+      });
+      headRow.appendChild(previewNuevoBtn);
     }
     card.appendChild(headRow);
 
@@ -4476,8 +4621,8 @@ var TRIPLES = [
     comprobantePreviewWrap.style.flexWrap = "wrap";
 
     var comprobanteImg = document.createElement("img");
-    comprobanteImg.style.maxWidth = "90px";
-    comprobanteImg.style.maxHeight = "90px";
+    comprobanteImg.style.maxWidth = "160px";
+    comprobanteImg.style.maxHeight = "160px";
     comprobanteImg.style.borderRadius = "6px";
     comprobanteImg.style.border = "1px solid var(--border)";
     comprobanteImg.hidden = !draft.comprobante;
@@ -4575,8 +4720,8 @@ var TRIPLES = [
     comprobante2PreviewWrap.style.flexWrap = "wrap";
 
     var comprobante2Img = document.createElement("img");
-    comprobante2Img.style.maxWidth = "90px";
-    comprobante2Img.style.maxHeight = "90px";
+    comprobante2Img.style.maxWidth = "160px";
+    comprobante2Img.style.maxHeight = "160px";
     comprobante2Img.style.borderRadius = "6px";
     comprobante2Img.style.border = "1px solid var(--border)";
     comprobante2Img.hidden = !draft.comprobante2;
@@ -5336,6 +5481,14 @@ var TRIPLES = [
         '❌ PEDIDO ANULADO' + (p.motivoAnulacion ? ' — Motivo: ' + esc(p.motivoAnulacion) : '') +
         (p.fechaAnulacion ? ' (' + esc(fmtFechaCorta(p.fechaAnulacion)) + ')' : '') + '</div>';
     }
+    // Cotización todavía no guardada (ver showPedidoVistaPrevia / buildPedidoForm, botón
+    // "Vista previa" en un pedido NUEVO): no tiene número de orden asignado todavía porque
+    // el correlativo recién se usa cuando el cliente confirma y se aprieta "Guardar pedido".
+    // Se avisa bien claro para que nadie la confunda con un pedido ya en firme.
+    if(p.esBorrador){
+      html += '<div style="background:#fff3cd; color:#7a5b00; font-weight:800; font-size:13px; text-align:center; padding:7px; margin-bottom:8px; border:1px solid #e0c48a;">' +
+        '📝 COTIZACIÓN — todavía no se ha guardado ni tiene número de orden</div>';
+    }
     html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">';
     html += '<div><img src="' + CARMELITAS_LOGO + '" style="height:78px; display:block; margin-bottom:6px;">' +
       '<div style="font-size:11px; color:#333;">Av. 28 de Julio 1328 - Miraflores -Lima</div>' +
@@ -5345,7 +5498,7 @@ var TRIPLES = [
     html += '<div style="text-align:right; padding-top:4px;">' +
       '<div style="font-size:24px; font-weight:800; color:' + PEDIDO_DARK + '; line-height:1.08;">ORDEN DE PEDIDO</div>' +
       '<div style="font-size:13px; font-weight:800; color:#c2660c; margin-top:2px;">(' + esc(pedidoDestinoLabel(p)) + ')</div>' +
-      '<div style="font-size:12px; color:#555; margin-top:4px;">N° de orden: <strong>' + esc(p.numero || (p.id||"").slice(-8)) + '</strong></div>' +
+      '<div style="font-size:12px; color:#555; margin-top:4px;">N° de orden: <strong>' + (p.esBorrador ? "(se asigna al guardar)" : esc(p.numero || (p.id||"").slice(-8))) + '</strong></div>' +
       '<div style="font-size:14px; font-weight:800; color:#cc0000; margin-top:4px;">' + (isMasivo ? "ENTREGA MULTIPLE" : "ENTREGA") + '</div>' +
       (isMasivo ? "" : '<div style="font-size:12px; font-weight:700; color:#cc0000;">' + esc(fmtFechaLarga(primeraFecha)) + '</div>') +
       '</div>';
@@ -5370,17 +5523,21 @@ var TRIPLES = [
       '</div></div>';
     // Foto del Yape/transferencia (si se subió una): así queda el pago 100% confirmado junto
     // con el resto del pedido, no solo el texto "PAGADO".
+    // Tamaño de la imagen del comprobante: Jessica pidió que se vea más grande para poder leer
+    // bien el monto/fecha de la captura del Yape/transferencia (antes 260px se quedaba chico).
+    // La foto ya se guarda comprimida hasta 1000px de lado más largo (ver compressImageFile),
+    // así que agrandar el tamaño de muestra acá no pierde nitidez, solo se ve más grande.
     if(p.comprobante){
       html += '<div style="margin-top:8px; text-align:center;">' +
         '<div style="font-size:10px; font-weight:700; color:#555; margin-bottom:3px;">' + (p.comprobante2 ? "COMPROBANTE DE PAGO 1" : "COMPROBANTE DE PAGO") + '</div>' +
-        '<img src="' + p.comprobante + '" style="max-width:260px; max-height:260px; border:1px solid #ccc; border-radius:4px;">' +
+        '<img src="' + p.comprobante + '" style="max-width:420px; max-height:420px; width:100%; height:auto; border:1px solid #ccc; border-radius:4px;">' +
         '</div>';
     }
     // Segundo comprobante (pago de la diferencia, cuando el primero llegó incompleto).
     if(p.comprobante2){
       html += '<div style="margin-top:8px; text-align:center;">' +
         '<div style="font-size:10px; font-weight:700; color:#555; margin-bottom:3px;">COMPROBANTE DE PAGO 2</div>' +
-        '<img src="' + p.comprobante2 + '" style="max-width:260px; max-height:260px; border:1px solid #ccc; border-radius:4px;">' +
+        '<img src="' + p.comprobante2 + '" style="max-width:420px; max-height:420px; width:100%; height:auto; border:1px solid #ccc; border-radius:4px;">' +
         '</div>';
     }
     html += '<div style="text-align:center; color:#cc0000; font-weight:700; font-size:11px; margin-top:14px;">40 años... Tradición en Evolución, a tu servicio</div>';
@@ -5402,6 +5559,44 @@ var TRIPLES = [
   function pedidoVistaPreviaEscHandler(ev){
     if(ev.key === "Escape") closePedidoVistaPrevia();
   }
+  // Número de WhatsApp del cliente del pedido, listo para abrir el chat directo con
+  // "https://wa.me/...". Jessica: "si puedes enviar al WhatsApp del cliente sería genial" --
+  // WhatsApp no deja adjuntar una imagen automáticamente desde un link (por seguridad, ningún
+  // sitio puede hacer eso), así que este botón abre el chat correcto del cliente ya listo, y la
+  // imagen (bajada o compartida con los otros botones) se adjunta ahí con un toque.
+  function pedidoWhatsappLink(p){
+    var tel = ((p.cliente && p.cliente.telefono) || "").trim();
+    if(!tel) return null;
+    var digits = tel.replace(/\D/g, "");
+    if(!digits) return null;
+    // Celulares de Perú: 9 dígitos, empiezan con 9. Si no trae el código de país (51)
+    // todavía, se lo agregamos; si ya lo trae (11 dígitos empezando en 51), se deja tal cual.
+    if(digits.length === 9 && digits.charAt(0) === "9") digits = "51" + digits;
+    return "https://wa.me/" + digits;
+  }
+  // Nombre de archivo para la imagen descargada/compartida del pedido.
+  function pedidoImagenNombre(p){
+    var base = p.esBorrador ? "Cotizacion" : ("Pedido-" + (p.numero || "sinnumero"));
+    var cliente = ((p.cliente && p.cliente.nombre) || "").trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-");
+    return (cliente ? base + "-" + cliente : base) + ".png";
+  }
+  // Convierte la tarjeta del pedido (tal como se ve en pantalla) en una imagen PNG nítida,
+  // en una resolución fija (2x o la del dispositivo, lo que sea mayor) -- así ya no depende de
+  // cuánto zoom tenga la pantalla al tomar una captura manual, que era lo que la pixelaba.
+  function capturePedidoPreviewCanvas(callback){
+    var body = document.querySelector("#pedidoPreviewOverlay .pedido-preview-body");
+    if(!body || typeof html2canvas === "undefined"){ callback(null); return; }
+    html2canvas(body, { backgroundColor:"#ffffff", scale: Math.max(2, window.devicePixelRatio || 1), useCORS:true }).then(function(canvas){
+      callback(canvas);
+    }).catch(function(){ callback(null); });
+  }
+  function pedidoPreviewActionBtn(text){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn btn-sm";
+    b.textContent = text;
+    return b;
+  }
   function showPedidoVistaPrevia(p){
     closePedidoVistaPrevia();
     var overlay = document.createElement("div");
@@ -5415,7 +5610,7 @@ var TRIPLES = [
     var head = document.createElement("div");
     head.className = "pedido-preview-head";
     var headText = document.createElement("div");
-    headText.innerHTML = '<strong>Vista previa del pedido</strong><br><span class="pedido-preview-hint">Tómale una captura de pantalla y mándala por WhatsApp al cliente</span>';
+    headText.innerHTML = '<strong>Vista previa del pedido</strong><br><span class="pedido-preview-hint">Baja o comparte la imagen — ya no hace falta captura de pantalla</span>';
     head.appendChild(headText);
     var closeBtn = document.createElement("button");
     closeBtn.type = "button";
@@ -5430,6 +5625,71 @@ var TRIPLES = [
     body.className = "pedido-preview-body";
     body.innerHTML = buildPedidoPrintCardHTML(p);
     box.appendChild(body);
+
+    // Botones de acción: descargar imagen nítida, compartir directo (celular) y abrir el
+    // WhatsApp del cliente ya en su chat, listos para adjuntar la imagen ahí.
+    var actions = document.createElement("div");
+    actions.className = "pedido-preview-actions";
+
+    var downloadBtn = pedidoPreviewActionBtn("📥 Descargar imagen");
+    downloadBtn.addEventListener("click", function(){
+      var original = downloadBtn.textContent;
+      downloadBtn.disabled = true;
+      downloadBtn.textContent = "Generando imagen…";
+      capturePedidoPreviewCanvas(function(canvas){
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = original;
+        if(!canvas){ showToast("No se pudo generar la imagen. Revisa tu conexión e intenta de nuevo."); return; }
+        canvas.toBlob(function(blob){
+          if(!blob){ showToast("No se pudo generar la imagen."); return; }
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url;
+          a.download = pedidoImagenNombre(p);
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+        }, "image/png");
+      });
+    });
+    actions.appendChild(downloadBtn);
+
+    // "Compartir" (navigator.share con archivo) solo existe en navegadores de celular -- en
+    // PC no aparece este botón, para no mostrar algo que no va a funcionar ahí.
+    if(navigator.share){
+      var shareBtn = pedidoPreviewActionBtn("📤 Compartir");
+      shareBtn.addEventListener("click", function(){
+        var original = shareBtn.textContent;
+        shareBtn.disabled = true;
+        shareBtn.textContent = "Generando imagen…";
+        capturePedidoPreviewCanvas(function(canvas){
+          shareBtn.disabled = false;
+          shareBtn.textContent = original;
+          if(!canvas){ showToast("No se pudo generar la imagen. Revisa tu conexión e intenta de nuevo."); return; }
+          canvas.toBlob(function(blob){
+            if(!blob){ showToast("No se pudo generar la imagen."); return; }
+            var file = new File([blob], pedidoImagenNombre(p), { type:"image/png" });
+            var shareData = { files:[file], title:"Pedido" };
+            if(navigator.canShare && !navigator.canShare(shareData)){
+              showToast("Este celular no deja compartir la imagen directo. Usa \"Descargar imagen\".");
+              return;
+            }
+            navigator.share(shareData).catch(function(){});
+          }, "image/png");
+        });
+      });
+      actions.appendChild(shareBtn);
+    }
+
+    var waLink = pedidoWhatsappLink(p);
+    if(waLink){
+      var waBtn = pedidoPreviewActionBtn("💬 Abrir WhatsApp del cliente");
+      waBtn.addEventListener("click", function(){ window.open(waLink, "_blank"); });
+      actions.appendChild(waBtn);
+    }
+
+    box.appendChild(actions);
 
     overlay.appendChild(box);
     document.body.appendChild(overlay);
@@ -5846,6 +6106,91 @@ var TRIPLES = [
     return wrap;
   }
 
+  // Totales por producto (Delivery/Tienda/Masivo) para un día de entrega -- usado tanto para
+  // la tabla en pantalla de "Producción por día" como para el Excel exportado, así los dos
+  // salen siempre iguales entre sí (una sola fuente de verdad).
+  function pedidosProduccionTotales(date){
+    var totals = {};
+    (PEDIDOS || []).forEach(function(p){
+      if(p.anulado) return;
+      (p.items || []).forEach(function(it){
+        if(it.fecha !== date) return;
+        if(!totals[it.producto]) totals[it.producto] = { delivery:0, tienda:0, masivo:0 };
+        totals[it.producto][p.canal] = (totals[it.producto][p.canal] || 0) + num(it.cantidad);
+      });
+    });
+    return totals;
+  }
+  // Excel de Producción del día: una hoja con los totales por producto (igual que la tabla en
+  // pantalla) y una hoja por canal (Tienda, Delivery) con el detalle cliente/cantidad/producto/
+  // hora -- todo junto en un solo archivo, listo para mandar o revisar sin tener que armarlo
+  // a mano como antes.
+  function doExportProduccion(date){
+    if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo."); return; }
+    var totals = pedidosProduccionTotales(date);
+    var names = Object.keys(totals).sort();
+    var tiendaRows = buildPedidosReporteRows(date, "tienda");
+    var deliveryRows = buildPedidosReporteRows(date, "whatsapp");
+    if(names.length === 0 && tiendaRows.length === 0 && deliveryRows.length === 0){
+      showToast("No hay pedidos con entrega para esa fecha.");
+      return;
+    }
+    try{
+      var wb = XLSX.utils.book_new();
+
+      // Hoja 1: Totales por producto.
+      var totAoa = [
+        ["PANADERÍA CARMELITAS — PRODUCCIÓN POR DÍA","","","",""],
+        [fmtDateLabel(date),"","","",""],
+        ["","","","",""],
+        ["Producto","Delivery","Tienda","Masivo","Total"]
+      ];
+      var grand = { delivery:0, tienda:0, masivo:0 };
+      names.forEach(function(name){
+        var t = totals[name];
+        var rowTotal = (t.delivery||0) + (t.tienda||0) + (t.masivo||0);
+        grand.delivery += t.delivery||0; grand.tienda += t.tienda||0; grand.masivo += t.masivo||0;
+        totAoa.push([name, t.delivery||0, t.tienda||0, t.masivo||0, rowTotal]);
+      });
+      totAoa.push(["TOTAL", grand.delivery, grand.tienda, grand.masivo, grand.delivery+grand.tienda+grand.masivo]);
+      var wsTot = XLSX.utils.aoa_to_sheet(totAoa);
+      wsTot["!cols"] = [{wch:34},{wch:12},{wch:12},{wch:12},{wch:12}];
+      wsTot["!merges"] = [{ s:{r:0,c:0}, e:{r:0,c:4} }, { s:{r:1,c:0}, e:{r:1,c:4} }];
+      XLSX.utils.book_append_sheet(wb, wsTot, "Totales");
+
+      // Hoja 2 y 3: detalle por canal (mismo contenido que "Reportes del día para el grupo de
+      // WhatsApp", ver buildPedidosReporteRows).
+      [["tienda","Tienda", tiendaRows], ["whatsapp","Delivery", deliveryRows]].forEach(function(triple){
+        var isTienda = triple[0] === "tienda";
+        var rows = triple[2];
+        var headers = isTienda
+          ? ["Cliente","Cantidad","Producto","Hora Entrega"]
+          : ["Cliente","Cantidad","Producto","Hora Entrega","Tipo Entrega"];
+        var aoa = [
+          ["PEDIDOS " + triple[1].toUpperCase(), "", "", "", ""],
+          [fmtDateLabel(date), "", "", "", ""],
+          ["", "", "", "", ""],
+          headers.slice()
+        ];
+        rows.forEach(function(r){
+          var row = [r.cliente, r.cantidad, r.producto, fmtHora12(r.hora)];
+          if(!isTienda) row.push(r.tipoEntrega);
+          aoa.push(row);
+        });
+        var ws = XLSX.utils.aoa_to_sheet(aoa);
+        ws["!cols"] = isTienda
+          ? [{wch:26},{wch:10},{wch:32},{wch:14}]
+          : [{wch:26},{wch:10},{wch:32},{wch:14},{wch:14}];
+        ws["!merges"] = [{ s:{r:0,c:0}, e:{r:0,c:headers.length-1} }, { s:{r:1,c:0}, e:{r:1,c:headers.length-1} }];
+        XLSX.utils.book_append_sheet(wb, ws, triple[1]);
+      });
+
+      XLSX.writeFile(wb, "Produccion_" + date + ".xlsx");
+    } catch(e){
+      showToast("No se pudo generar el Excel. Intenta de nuevo.");
+    }
+  }
+
   function buildProduccionView(){
     var wrap = document.createElement("div");
     var card = document.createElement("div");
@@ -5883,22 +6228,28 @@ var TRIPLES = [
 
     var targetDate = pedidosProduccionDate || todayISO();
 
+    var btnRow = document.createElement("div");
+    btnRow.style.display = "flex";
+    btnRow.style.flexWrap = "wrap";
+    btnRow.style.gap = ".5rem";
+    btnRow.style.margin = "0 0 1rem";
     var printDiaBtn = document.createElement("button");
     printDiaBtn.type = "button";
     printDiaBtn.className = "btn btn-sm";
-    printDiaBtn.style.margin = "0 0 1rem";
     printDiaBtn.textContent = "PDF de todos los pedidos de este día";
     printDiaBtn.addEventListener("click", function(){ doPrintPedidosDia(targetDate); });
-    card.appendChild(printDiaBtn);
-    var totals = {};
-    PEDIDOS.forEach(function(p){
-      if(p.anulado) return;
-      (p.items || []).forEach(function(it){
-        if(it.fecha !== targetDate) return;
-        if(!totals[it.producto]) totals[it.producto] = { delivery:0, tienda:0, masivo:0 };
-        totals[it.producto][p.canal] = (totals[it.producto][p.canal] || 0) + num(it.cantidad);
-      });
-    });
+    btnRow.appendChild(printDiaBtn);
+    // Excel con TODO junto para este día -- Jessica: "debe haber un excel... si se puede para
+    // sincronizar todo". Un solo archivo, con una hoja de totales por producto y una hoja por
+    // canal (Tienda, Delivery), en vez de tener que armar esto a mano como antes con Universalio.
+    var excelProduccionBtn = document.createElement("button");
+    excelProduccionBtn.type = "button";
+    excelProduccionBtn.className = "btn btn-sm";
+    excelProduccionBtn.textContent = "📊 Exportar Excel (Producción del día)";
+    excelProduccionBtn.addEventListener("click", function(){ doExportProduccion(targetDate); });
+    btnRow.appendChild(excelProduccionBtn);
+    card.appendChild(btnRow);
+    var totals = pedidosProduccionTotales(targetDate);
     var names = Object.keys(totals).sort();
     if(names.length === 0){
       var empty = document.createElement("div");
@@ -5971,6 +6322,44 @@ var TRIPLES = [
     h2.textContent = "Todos los pedidos";
     card.appendChild(h2);
 
+    // Filtro por fecha: por defecto solo el día que se está trabajando (no la lista entera),
+    // igual que pide Jessica -- con selector de fecha para revisar otro día, y un botón para
+    // ver todo sin filtrar cuando de verdad haga falta (por ejemplo, buscar un pedido viejo
+    // sin recordar la fecha exacta).
+    var fechaFilterRow = document.createElement("div");
+    fechaFilterRow.style.display = "flex";
+    fechaFilterRow.style.flexWrap = "wrap";
+    fechaFilterRow.style.alignItems = "flex-end";
+    fechaFilterRow.style.gap = ".8rem";
+    fechaFilterRow.style.marginBottom = ".8rem";
+    var fechaField = document.createElement("div");
+    fechaField.className = "field";
+    fechaField.style.maxWidth = "200px";
+    fechaField.style.margin = "0";
+    var fechaLbl = document.createElement("label");
+    fechaLbl.textContent = "Fecha de entrega";
+    fechaField.appendChild(fechaLbl);
+    var fechaInput = document.createElement("input");
+    fechaInput.type = "date";
+    fechaInput.disabled = pedidosListaVerTodos;
+    fechaInput.value = pedidosListaFecha || todayISO();
+    fechaInput.addEventListener("change", function(){
+      pedidosListaFecha = fechaInput.value || todayISO();
+      renderPanel();
+    });
+    fechaField.appendChild(fechaInput);
+    fechaFilterRow.appendChild(fechaField);
+    var verTodosBtn = document.createElement("button");
+    verTodosBtn.type = "button";
+    verTodosBtn.className = "btn btn-sm";
+    verTodosBtn.textContent = pedidosListaVerTodos ? "Ver solo esta fecha" : "Ver todos (sin filtrar fecha)";
+    verTodosBtn.addEventListener("click", function(){
+      pedidosListaVerTodos = !pedidosListaVerTodos;
+      renderPanel();
+    });
+    fechaFilterRow.appendChild(verTodosBtn);
+    card.appendChild(fechaFilterRow);
+
     // Filtro por origen: de dónde vino el pedido (Whatsapp o Tienda), para poder ver por
     // separado, como los reportes "Hoy Canal Tienda" / "Hoy Canal Whatsapp" que se usaban antes.
     var origenFilterRow = document.createElement("div");
@@ -5989,9 +6378,14 @@ var TRIPLES = [
     });
     card.appendChild(origenFilterRow);
 
+    var targetFecha = pedidosListaFecha || todayISO();
     var pedidosFiltrados = PEDIDOS.filter(function(p){
-      if(pedidosOrigenFilter === "todos") return true;
-      return (p.origen || "whatsapp") === pedidosOrigenFilter;
+      if(pedidosOrigenFilter !== "todos" && (p.origen || "whatsapp") !== pedidosOrigenFilter) return false;
+      if(!pedidosListaVerTodos){
+        var tieneEseDiaria = (p.items || []).some(function(it){ return it.fecha === targetFecha; });
+        if(!tieneEseDiaria) return false;
+      }
+      return true;
     });
 
     if(pedidosFiltrados.length === 0){
@@ -5999,11 +6393,21 @@ var TRIPLES = [
       empty.className = "empty-state";
       empty.textContent = PEDIDOS.length === 0
         ? "Todavía no hay pedidos registrados."
-        : "No hay pedidos de este origen.";
+        : (pedidosListaVerTodos ? "No hay pedidos de este origen." : "No hay pedidos con entrega esta fecha (prueba cambiar la fecha, o \"Ver todos\").");
       card.appendChild(empty);
       wrap.appendChild(card);
       return wrap;
     }
+
+    // Barra de desplazamiento horizontal ARRIBA de la tabla (además de la de abajo, que el
+    // navegador sigue mostrando solo): Jessica pidió esto porque con la lista larga, tenía que
+    // bajar hasta el final para poder desplazarse hacia los lados. Esta barra de arriba se
+    // sincroniza con el scroll real de la tabla en los dos sentidos.
+    var scrollTop = document.createElement("div");
+    scrollTop.className = "table-scroll-top";
+    var scrollTopInner = document.createElement("div");
+    scrollTop.appendChild(scrollTopInner);
+    card.appendChild(scrollTop);
 
     var tableWrap = document.createElement("div");
     tableWrap.className = "table-wrap";
@@ -6064,6 +6468,24 @@ var TRIPLES = [
     tableWrap.appendChild(table);
     card.appendChild(tableWrap);
     wrap.appendChild(card);
+
+    // Ancho real de la tabla, para que la barrita de arriba tenga el mismo largo que la de
+    // abajo -- y sincronizar el desplazamiento entre las dos en los dos sentidos.
+    scrollTopInner.style.width = table.scrollWidth + "px";
+    scrollTopInner.style.height = "1px";
+    var syncingScroll = false;
+    scrollTop.addEventListener("scroll", function(){
+      if(syncingScroll) return;
+      syncingScroll = true;
+      tableWrap.scrollLeft = scrollTop.scrollLeft;
+      syncingScroll = false;
+    });
+    tableWrap.addEventListener("scroll", function(){
+      if(syncingScroll) return;
+      syncingScroll = true;
+      scrollTop.scrollLeft = tableWrap.scrollLeft;
+      syncingScroll = false;
+    });
 
     tbody.querySelectorAll(".pedido-pdf").forEach(function(btn){
       btn.addEventListener("click", function(){ doPrintPedido(btn.getAttribute("data-id")); });
@@ -7622,6 +8044,33 @@ var TRIPLES = [
     });
   }
 
+  // Aplica un snapshot remoto (de otro dispositivo) ya confirmado por el servidor a STATE/
+  // baseline de este dispositivo. Se usa desde el listener de attachRemoteSync Y desde el
+  // final de doSave() (ver pendingRemoteSnapshot) -- así SIEMPRE hay un solo lugar que toca
+  // STATE/baseline por una llegada remota, nunca dos al mismo tiempo.
+  function applyRemoteSnapshot(data){
+    if(dirty || saving){
+      // Llegó un cambio de otro dispositivo mientras acá había algo sin guardar todavía (o
+      // un guardado propio en camino). Se combinan los cambios de ese otro dispositivo con
+      // lo que se está editando acá mismo, campo por campo, para que no se pierda ni lo de
+      // uno ni lo del otro.
+      STATE = mergeStateForSave(data, STATE, baseline);
+      renderAll();
+      // OJO: "baseline" tiene que quedar con SOLO lo confirmado en la base de datos
+      // (relleno para que tenga la misma forma que STATE), nunca con lo que se está
+      // editando acá mismo todavía sin guardar -- si se guardara con eso mezclado, la
+      // próxima comparación ya no reconocería esos cambios como "cambios pendientes"
+      // y se quedarían sin guardar nunca.
+      baseline = backfillAllDays(deepClone(data));
+      showToast("Se combinaron cambios de otro dispositivo.");
+      scheduleAutosave();
+      return;
+    }
+    STATE = data;
+    renderAll();
+    baseline = deepClone(STATE);
+  }
+
   function attachRemoteSync(onFirstLoad){
     var ref = db.collection("arqueo").doc("state");
     var firstLoadDone = false;
@@ -7643,26 +8092,14 @@ var TRIPLES = [
         onFirstLoad(data);
         return;
       }
-      if(dirty || saving){
-        // Llegó un cambio de otro dispositivo mientras acá había algo sin guardar todavía.
-        // Ya NO se bloquea el guardado ni hace falta actualizar a mano: se combinan los
-        // cambios de ese otro dispositivo con lo que se está editando acá mismo, campo por
-        // campo, para que no se pierda ni lo de uno ni lo del otro.
-        STATE = mergeStateForSave(data, STATE, baseline);
-        renderAll();
-        // OJO: "baseline" tiene que quedar con SOLO lo confirmado en la base de datos
-        // (relleno para que tenga la misma forma que STATE), nunca con lo que se está
-        // editando acá mismo todavía sin guardar -- si se guardara con eso mezclado, la
-        // próxima comparación ya no reconocería esos cambios como "cambios pendientes"
-        // y se quedarían sin guardar nunca.
-        baseline = backfillAllDays(deepClone(data));
-        showToast("Se combinaron cambios de otro dispositivo.");
-        scheduleAutosave();
+      if(saving){
+        // Hay una transacción de guardado propia en camino ahora mismo: NO se toca
+        // STATE/baseline acá (chocaría con lo que esa transacción está por escribir).
+        // Se guarda esta llegada y se procesa apenas esa transacción termine.
+        pendingRemoteSnapshot = data;
         return;
       }
-      STATE = data;
-      renderAll();
-      baseline = deepClone(STATE);
+      applyRemoteSnapshot(data);
     }, function(){
       readOnly = true;
       showBanner("bad", "No se pudo conectar con la base de datos. Revisa tu conexión a internet y recarga la página.", []);
@@ -7783,6 +8220,16 @@ var TRIPLES = [
     attachPedidosSync();
     attachClientesSync();
     attachCajerosSync();
+    // Avisa ANTES de cerrar o recargar la página si todavía hay cambios del arqueo sin
+    // guardar -- así nadie pierde lo que avanzó por cerrar la pestaña justo cuando un
+    // guardado está fallando o todavía está en camino (ver saveRetryCount más arriba).
+    window.addEventListener("beforeunload", function(ev){
+      if(dirty){
+        ev.preventDefault();
+        ev.returnValue = "";
+        return "";
+      }
+    });
   }
 
   // ---------- lock screen (contraseña compartida del equipo) ----------
