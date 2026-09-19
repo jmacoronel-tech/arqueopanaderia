@@ -258,31 +258,55 @@
 
   #printArea{ display:none; }
   @media print{
+    /* Sin esto, el fondo crema de la pantalla (body) se asoma en la última hoja, después de
+       donde termina el contenido -- pasa solo en la hoja final porque ahí sí queda espacio
+       vacío fuera de la caja de #printArea (las hojas de en medio quedan cubiertas por el
+       salto de página de la sección siguiente). */
+    body{ background:#fff !important; }
     .app, .toast, #banners{ display:none !important; }
     #printArea{
       display:block !important; background:#fff; color:#111; padding:0; margin:0;
       font-family:"Public Sans", ui-sans-serif, system-ui, sans-serif; font-size:11px;
       -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;
     }
-    #printArea h1{ font-family:"Fraunces", Georgia, serif; font-size:20px; margin:0 0 .1em; }
-    #printArea .print-sub{ font-size:13px; color:#333; margin:0 0 .8em; }
-    #printArea .print-summary{ font-weight:700; margin:.6em 0; }
+    /* Estilo de impresión tipo "plantilla de informe" que Jessica mandó de referencia (título
+       grande en azul, encabezado de tabla con fondo azul-gris y letras blancas, filas
+       alternadas para que sea fácil seguir cada línea, y todo con recuadro/grilla fina). */
+    #printArea h1{
+      font-family:"Public Sans", ui-sans-serif, system-ui, sans-serif; font-weight:800; font-size:22px;
+      margin:0 0 .2em; color:#2e75b6; text-transform:uppercase; letter-spacing:.02em;
+    }
+    #printArea .print-sub{ font-size:12px; color:#666; margin:0 0 1em; font-style:italic; }
+    #printArea .print-summary{ font-weight:700; margin:.6em 0; color:#1a1a1a; }
     #printArea .meta-line{ margin:.15em 0; }
-    #printArea h2{ font-size:13px; margin:1.1em 0 .3em; page-break-after:avoid; }
+    #printArea h2{
+      font-size:14px; margin:1.2em 0 .35em; page-break-after:avoid; color:#2e75b6;
+      font-family:"Public Sans", ui-sans-serif, system-ui, sans-serif; font-weight:800;
+      text-transform:uppercase; letter-spacing:.02em;
+    }
     #printArea table{ width:100%; border-collapse:collapse; margin-bottom:.6em; font-variant-numeric:tabular-nums; }
-    #printArea th, #printArea td{ border:1px solid #999; padding:2px 5px; text-align:right; }
+    #printArea th, #printArea td{ border:1px solid #d0d5dc; padding:4px 6px; text-align:right; }
     #printArea th:first-child, #printArea td:first-child{ text-align:left; }
-    #printArea thead{ background:#eee; }
+    #printArea thead th{ background:#7d93ac; color:#fff; font-weight:700; text-align:right; border-color:#7d93ac; }
+    #printArea thead th:first-child{ text-align:left; }
+    #printArea tbody tr:nth-child(even) td{ background:#eef1f6; }
     #printArea tr{ page-break-inside:avoid; }
-    #printArea tr.flagged td{ background:#fbdcd4; font-weight:700; }
-    #printArea .print-empty{ color:#555; font-style:italic; margin:0 0 .8em; }
-    #printArea .print-footer{ margin-top:1.2em; font-size:9px; color:#777; }
-    /* Tamaño de hoja por defecto: A4 vertical (Jessica: "siempre usamos hoja A4" -- se fija el
-       tamaño de página explícito, en vez de dejar que dependa de lo que cada computadora/
-       impresora tenga configurado por su cuenta). Las vistas del arqueo con muchas columnas
-       (hasta 9, con "Se agotó") cambian a horizontal justo antes de imprimir, vía
-       setPrintOrientation() -- así cada impresión sale en el tamaño que le queda bien, sin
-       afectar a las demás. */
+    #printArea tr.flagged td{ background:#fbdcd4 !important; font-weight:700; }
+    #printArea tr.metas-total-row td, #printArea tr.metas-meta-row td, #printArea tr.metas-pct-row td, #printArea tr.metas-falta-row td{
+      background:#dbe3ec !important; font-weight:700; border-top:2px solid #7d93ac;
+    }
+    #printArea tr.metas-falta-row td{ color:#b34428; }
+    #printArea tr.metas-pct-row td.good, #printArea tr.metas-falta-row td.good{ color:#3d7a57; }
+    /* Metas: Jessica pidió que salga centrado (en vez del resto de reportes, que van con
+       números a la derecha como el diseño de la plantilla) -- por eso el centrado va en una
+       clase aparte, solo para la tabla de Metas. */
+    #printArea table.metas-print-table th, #printArea table.metas-print-table td{ text-align:center; }
+    #printArea .print-empty{ color:#666; font-style:italic; margin:0 0 .8em; }
+    #printArea .print-footer{ margin-top:1.2em; font-size:9px; color:#999; }
+    /* Tamaño de hoja: SIEMPRE A4 vertical (Jessica: "SIEMPRE TODAS IMPRESION ES EN A4 VERTICAL
+       NO QUIERO HORIZONTAL") -- antes las vistas con muchas columnas cambiaban a horizontal
+       justo antes de imprimir vía setPrintOrientation(), pero esa función ahora ignora ese
+       pedido a propósito y deja todo en el @page vertical de acá abajo, sin excepciones. */
     @page{ size:A4; margin:10mm; }
   }
 </style>
@@ -2141,13 +2165,18 @@ var TRIPLES = [
   // función arma/actualiza un <style> aparte justo antes de cada impresión, según lo que
   // corresponda a esa impresión en particular.
   function setPrintOrientation(landscape){
+    // Jessica: "SIEMPRE TODAS IMPRESION ES EN A4 VERTICAL NO QUIERO HORIZONTAL" -- se
+    // ignora a propósito el parámetro "landscape" que piden los distintos llamados de
+    // impresión (antes algunas vistas anchas pedían A4 horizontal); ahora TODO sale
+    // siempre en A4 vertical. El <style id="printPageSize"> se deja vacío para que caiga
+    // en el @page{ size:A4; } por defecto (vertical) definido más abajo.
     var el = document.getElementById("printPageSize");
     if(!el){
       el = document.createElement("style");
       el.id = "printPageSize";
       (document.head || document.documentElement).appendChild(el);
     }
-    el.textContent = landscape ? "@media print{ @page{ size:A4 landscape; margin:10mm; } }" : "";
+    el.textContent = "";
   }
   // Se actualiza en CADA render (no solo al momento de imprimir) porque en algunos
   // navegadores/dispositivos apretar Control+P varias veces seguidas no siempre vuelve a
@@ -2230,22 +2259,35 @@ var TRIPLES = [
     var html = "";
     html += "<h1>" + esc(STATE.meta.businessName || "Arqueo Diario") + "</h1>";
     html += '<div class="print-sub">Resumen del ' + esc(fmtDateLabel(date)) + "</div>";
+    // Jessica: "cada categoria salga en 1 hoja excepto el de panes que tiene mas texto" -- cada
+    // categoría empieza en una hoja nueva (no comparte página con la anterior), así nunca se
+    // mezclan dos categorías en la misma hoja. Panes es la primera, así que ya arranca en la
+    // hoja 1 sin necesitar el salto -- y como tiene más productos, es la única a la que se le
+    // permite (sin forzarlo) ocupar más de una hoja para ella sola.
+    var firstSection = true;
     PRODUCT_TABS.forEach(function(tabKey){
       if(tabKey === "otros") return; // Otros se imprime aparte más abajo, como bitácora de salidas.
       var section = SECTIONS[tabKey];
       var rows = printableRowsSimple(tabKey, day);
+      html += '<div style="' + (firstSection ? "" : "page-break-before:always;") + '">';
+      firstSection = false;
       html += "<h2>" + esc(section.label) + "</h2>";
-      if(rows.length === 0){ html += '<p class="print-empty">Sin movimientos registrados.</p>'; return; }
-      html += "<table><thead><tr><th>Producto</th><th>Saldo ant.</th><th>Ingreso AM</th><th>Ingreso PM</th><th>Otros</th>" +
-        "<th>Merma</th><th>Saldo final</th></tr></thead><tbody>";
-      rows.forEach(function(r){
-        html += "<tr><td>" + esc(r.name) + "</td><td>" + (r.saldoAnt === null ? "—" : fmt(r.saldoAnt)) +
-          "</td><td>" + fmt(r.ingAm) + "</td><td>" + fmt(r.ingPm) + "</td><td>" + (r.otros ? fmt(r.otros) : "—") + "</td><td>" + fmt(r.merma) +
-          "</td><td>" + (r.saldoFinal === null ? "—" : fmt(r.saldoFinal)) + "</td></tr>";
-      });
-      html += "</tbody></table>";
+      if(rows.length === 0){
+        html += '<p class="print-empty">Sin movimientos registrados.</p>';
+      } else {
+        html += "<table><thead><tr><th>Producto</th><th>Saldo ant.</th><th>Ingreso AM</th><th>Ingreso PM</th><th>Otros</th>" +
+          "<th>Merma</th><th>Saldo final</th></tr></thead><tbody>";
+        rows.forEach(function(r){
+          html += "<tr><td>" + esc(r.name) + "</td><td>" + (r.saldoAnt === null ? "—" : fmt(r.saldoAnt)) +
+            "</td><td>" + fmt(r.ingAm) + "</td><td>" + fmt(r.ingPm) + "</td><td>" + (r.otros ? fmt(r.otros) : "—") + "</td><td>" + fmt(r.merma) +
+            "</td><td>" + (r.saldoFinal === null ? "—" : fmt(r.saldoFinal)) + "</td></tr>";
+        });
+        html += "</tbody></table>";
+      }
+      html += "</div>";
     });
     var movEntradasR = printableMovimientosRows(day);
+    html += '<div style="page-break-before:always;">';
     html += "<h2>Otros — salidas del día</h2>";
     if(movEntradasR.length === 0){
       html += '<p class="print-empty">Sin movimientos registrados.</p>';
@@ -2258,6 +2300,7 @@ var TRIPLES = [
       });
       html += "</tbody></table>";
     }
+    html += "</div>";
     html += '<div class="print-footer">Generado ' + esc(new Date().toLocaleString("es-PE",{ timeZone:"America/Lima" })) + "</div>";
     return html;
   }
@@ -2381,7 +2424,7 @@ var TRIPLES = [
       var objetivos = cat.conMeta ? (STATE.metasObjetivos[weekdayKey] && STATE.metasObjetivos[weekdayKey][cat.key]) : null;
       var metaArr = objetivos ? (objetivos[shift] || []) : [];
       html += "<h2>" + esc(cat.label) + "</h2>";
-      html += "<table><thead><tr><th>Producto</th>";
+      html += '<table class="metas-print-table"><thead><tr><th>Producto</th>';
       cat.subcols.forEach(function(sc){ html += "<th>" + esc(sc.label) + "</th>"; });
       html += "</tr></thead><tbody>";
       cat.items.forEach(function(name, idx){
@@ -2398,17 +2441,28 @@ var TRIPLES = [
       cat.subcols.forEach(function(sc){ html += "<td>" + fmt(metasSubcolTotal(sec, shift, sc.key)) + "</td>"; });
       html += "</tr>";
       if(cat.conMeta){
-        html += '<tr><td>META</td>';
+        html += '<tr class="metas-meta-row"><td>META</td>';
         cat.subcols.forEach(function(sc, si){
           var mv = metaArr[si];
           html += "<td>" + (mv ? fmt(mv) : "—") + "</td>";
         });
         html += "</tr>";
-        html += '<tr><td>PORCENTAJE</td>';
+        html += '<tr class="metas-pct-row"><td>PORCENTAJE</td>';
         cat.subcols.forEach(function(sc, si){
           var total = metasSubcolTotal(sec, shift, sc.key);
           var meta = num(metaArr[si]);
-          html += "<td>" + (meta > 0 ? Math.round((total/meta)*100) + "%" : "—") + "</td>";
+          var pct = meta > 0 ? Math.round((total/meta)*100) : null;
+          html += '<td class="' + (pct !== null && pct >= 100 ? "good" : "") + '">' + (pct !== null ? pct + "%" : "—") + "</td>";
+        });
+        html += "</tr>";
+        html += '<tr class="metas-falta-row"><td>FALTA PARA LA META</td>';
+        cat.subcols.forEach(function(sc, si){
+          var total = metasSubcolTotal(sec, shift, sc.key);
+          var meta = num(metaArr[si]);
+          var falta = meta - total;
+          html += falta <= 0
+            ? '<td class="good">¡Meta lograda!</td>'
+            : "<td>" + fmt(falta) + "</td>";
         });
         html += "</tr>";
       }
