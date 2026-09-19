@@ -942,6 +942,10 @@ var TRIPLES = [
   // del Arqueo) -- mismo criterio que pedidosProduccionDate, por la misma razón (ver ahí).
   var pedidosListaFecha = null;
   var pedidosListaVerTodos = false;
+  // Filtro de la vista "Despacho" -- una sola cola con TODOS los canales mezclados, ordenada
+  // por hora de atención. "todos" es el filtro por defecto (activos, de cualquier canal, sin
+  // separar) porque Jessica pidió justamente que no se corte la cola en vistas por canal.
+  var pedidosDespachoFilter = "todos";
   // Cuántos pedidos (los más recientes, por "createdAt") se cargan en vivo -- ver
   // attachPedidosSync() más abajo, sección "rendimiento a futuro". Un LÍMITE POR CANTIDAD
   // (no por días) es a propósito: así el tamaño de lo que se carga y se dibuja en pantalla
@@ -1324,6 +1328,9 @@ var TRIPLES = [
   function normalizeState(parsed){
     parsed = parsed || {};
     if(!parsed.meta) parsed.meta = { businessName:"", lastSavedAt:null, schema:2 };
+    // Tema de ntfy.sh para el aviso al celular del equipo de despacho (ver
+    // pedidoNotificarDespacho) -- si el documento ya existía de antes, no tiene este campo.
+    if(parsed.meta.ntfyTopic == null) parsed.meta.ntfyTopic = "";
     if(!parsed.days) parsed.days = {};
     if(!parsed.customCatalog) parsed.customCatalog = [];
     if(!parsed.precios) parsed.precios = {};
@@ -3737,6 +3744,52 @@ var TRIPLES = [
       STATE.meta.businessName = v; markDirty(); scheduleAutosave();
       document.getElementById("brandSub").textContent = (v ? v + " · " : "") + fmtDateLabel(currentDate);
     }, true));
+    // Tema de ntfy.sh para el aviso al celular del equipo de despacho cuando llega un pedido
+    // nuevo de delivery (ver pedidoNotificarDespacho). Se genera una sola vez y el personal se
+    // suscribe a ese mismo nombre desde la app gratuita ntfy.
+    var ntfyField = document.createElement("div");
+    ntfyField.className = "field full";
+    var ntfyLabel = document.createElement("label");
+    ntfyLabel.textContent = "Aviso al celular de pedidos nuevos de delivery (ntfy)";
+    ntfyField.appendChild(ntfyLabel);
+    var ntfyRow = document.createElement("div");
+    ntfyRow.style.display = "flex";
+    ntfyRow.style.gap = ".5rem";
+    ntfyRow.style.flexWrap = "wrap";
+    ntfyRow.style.alignItems = "center";
+    var ntfyInput = document.createElement("input");
+    ntfyInput.type = "text";
+    ntfyInput.value = STATE.meta.ntfyTopic || "";
+    ntfyInput.placeholder = "(todavía sin configurar)";
+    ntfyInput.style.flex = "1";
+    ntfyInput.style.minWidth = "220px";
+    if(readOnly) ntfyInput.disabled = true;
+    ntfyInput.addEventListener("input", function(){
+      STATE.meta.ntfyTopic = ntfyInput.value.trim();
+      markDirty(); scheduleAutosave();
+    });
+    ntfyRow.appendChild(ntfyInput);
+    if(!readOnly){
+      var ntfyGenBtn = document.createElement("button");
+      ntfyGenBtn.type = "button";
+      ntfyGenBtn.className = "btn btn-sm";
+      ntfyGenBtn.textContent = STATE.meta.ntfyTopic ? "Regenerar" : "Generar";
+      ntfyGenBtn.addEventListener("click", function(){
+        var rand = Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 6);
+        var nuevo = "carmelitas-despacho-" + rand;
+        STATE.meta.ntfyTopic = nuevo;
+        ntfyInput.value = nuevo;
+        markDirty(); scheduleAutosave();
+        showToast("Tema generado. Ábrelo en la app ntfy para recibir los avisos.");
+      });
+      ntfyRow.appendChild(ntfyGenBtn);
+    }
+    ntfyField.appendChild(ntfyRow);
+    var ntfyHint = document.createElement("div");
+    ntfyHint.className = "hint";
+    ntfyHint.textContent = 'Para recibir el aviso en el celular: instala la app gratuita "ntfy" (Android o iPhone), abre el botón "+" para suscribirte a un tema, y escribe EXACTAMENTE este mismo nombre. Todo el que se suscriba con el mismo nombre recibe el aviso cuando entra un pedido nuevo de delivery.';
+    ntfyField.appendChild(ntfyHint);
+    bizGrid.appendChild(ntfyField);
     bizCard.appendChild(bizGrid);
     wrap.appendChild(bizCard);
 
@@ -3978,6 +4031,104 @@ var TRIPLES = [
   // entrega de arriba — un pedido masivo, por ejemplo, puede venir tanto de Whatsapp como
   // de un cliente que lo pide directo en la tienda (ej. Tanta pidiendo pan para toda la semana).
   var ORIGEN_LABEL = { whatsapp:"WhatsApp", tienda:"Tienda" };
+
+  // ---------- Cola operativa de producción/despacho (Jessica, set-2026) ----------
+  // Empezó como "solo Delivery" pero Jessica pidió corregirlo: esta cadena de estados aplica a
+  // TODO pedido guardado en el sistema, sin importar el canal (WhatsApp, Tienda, Delivery,
+  // Masivo) -- lo que importa para producción es UNA sola cola, ordenada por la hora en que
+  // cada pedido debe estar listo, no por de dónde vino. El canal/origen se sigue guardando tal
+  // cual (nunca se pierde) y se muestra como una etiqueta en cada tarjeta, pero NO separa la
+  // cola en vistas distintas -- ver pedidosDespachoLista().
+  var PEDIDO_ESTADOS = ["NUEVO","CONFIRMADO","EN_PREPARACION","LISTO_DESPACHO","SALIO_TIENDA","EN_RUTA","ENTREGADO","CANCELADO"];
+  var PEDIDO_ESTADO_LABEL = {
+    NUEVO:"Nuevo pedido", CONFIRMADO:"Confirmado", EN_PREPARACION:"En preparación",
+    LISTO_DESPACHO:"Listo", SALIO_TIENDA:"Salió de tienda", EN_RUTA:"En ruta",
+    ENTREGADO:"Entregado", CANCELADO:"Cancelado"
+  };
+  var PEDIDO_ESTADO_EMOJI = {
+    NUEVO:"🟡", CONFIRMADO:"🟠", EN_PREPARACION:"🔵", LISTO_DESPACHO:"🟢",
+    SALIO_TIENDA:"🚚", EN_RUTA:"🚚", ENTREGADO:"✅", CANCELADO:"⚪"
+  };
+  // Próximo estado al que salta el botón grande de cada tarjeta (un solo toque, sin escribir
+  // nada) -- Jessica: "la app debe registrar automáticamente la hora exacta cuando se presione
+  // cada botón". "Salió de tienda"/"En ruta" solo tienen sentido cuando de verdad hay reparto
+  // (Delivery, o Masivo en modo Delivery) -- ver pedidoRequiereReparto(). Para Tienda, WhatsApp
+  // recogido en tienda o Masivo-Recojo, de "Listo" se salta directo a "Entregado" (al cliente o
+  // a su propio motorizado).
+  var PEDIDO_ESTADO_SIGUIENTE = {
+    NUEVO:"CONFIRMADO", CONFIRMADO:"EN_PREPARACION", EN_PREPARACION:"LISTO_DESPACHO",
+    LISTO_DESPACHO:"SALIO_TIENDA", SALIO_TIENDA:"EN_RUTA", EN_RUTA:"ENTREGADO"
+  };
+  var PEDIDO_ESTADO_ACCION_LABEL = {
+    NUEVO:"Confirmar pedido", CONFIRMADO:"Iniciar preparación", EN_PREPARACION:"Marcar listo",
+    LISTO_DESPACHO:"Salió de tienda", SALIO_TIENDA:"Marcar en ruta", EN_RUTA:"Marcar entregado"
+  };
+  // ¿Este pedido de verdad sale a reparto (alguien de la panadería lo lleva)? Si no, el cliente
+  // o su propio motorizado lo recoge en tienda y no tiene sentido "Salió de tienda"/"En ruta".
+  function pedidoRequiereReparto(p){
+    return p.canal === "delivery" || (p.canal === "masivo" && p.masivoModo === "delivery");
+  }
+  function pedidoProximoEstado(p){
+    if(p.estado === "LISTO_DESPACHO" && !pedidoRequiereReparto(p)) return "ENTREGADO";
+    return PEDIDO_ESTADO_SIGUIENTE[p.estado];
+  }
+  function pedidoAccionLabel(p){
+    if(p.estado === "LISTO_DESPACHO" && !pedidoRequiereReparto(p)) return "Marcar entregado";
+    return PEDIDO_ESTADO_ACCION_LABEL[p.estado];
+  }
+  // ---------- Prioridad: PARA AHORA vs PROGRAMADO ----------
+  // Jessica: "lo que debe determinar el orden es la hora en que el pedido debe estar listo...
+  // todo pedido que necesite ser preparado AHORA genera alerta, todo pedido para más tarde
+  // queda en cola y se activa en el momento correspondiente." Se calcula solo, en base a la
+  // fecha/hora que ya existían en el formulario ("Hora en que debe estar listo") -- nadie tiene
+  // que marcar nada a mano, y se recalcula cada vez que se revisa (ver revisarAlertasCola), así
+  // que un pedido programado pasa a "para ahora" apenas llega su hora, aunque nadie lo toque.
+  function pedidoFechaAtencion(p){
+    return (p.items && p.items[0] && p.items[0].fecha) || null;
+  }
+  function pedidoHoraAtencionMs(p){
+    var fecha = pedidoFechaAtencion(p);
+    if(fecha && p.hora){
+      try{
+        var ms = new Date(fecha + "T" + p.hora + ":00-05:00").getTime();
+        if(!isNaN(ms)) return ms;
+      }catch(e){}
+    }
+    // Sin fecha/hora programada específica: se entiende "para ahora", ordenado por cuándo entró.
+    return p.createdAt || 0;
+  }
+  function pedidoEsInmediato(p){
+    return pedidoHoraAtencionMs(p) <= Date.now();
+  }
+  function pedidoCanalBadgeTxt(p){
+    var txt = CANAL_LABEL[p.canal] || p.canal || "—";
+    if(p.canal === "masivo" && p.masivoModo){ txt += " · " + (p.masivoModo === "delivery" ? "Delivery" : "Recojo"); }
+    if(p.origen && ORIGEN_LABEL[p.origen]) txt += " · " + ORIGEN_LABEL[p.origen];
+    return txt;
+  }
+  // Jessica: "Filtro principal = FECHA DE INGRESO = HOY." La cola de Despacho debe mostrar solo
+  // los pedidos REGISTRADOS hoy (p.createdAt, hora Lima) -- sin importar para cuándo es la
+  // entrega (hoy, mañana o una fecha futura, todos quedan si se ingresaron hoy). Un pedido
+  // ingresado ayer no debe reaparecer solo porque su entrega cae hoy. Usa isoDateFromMillis
+  // (ya definida más abajo, function declaration -> hoisted) para comparar contra todayISO().
+  function pedidoIngresadoHoy(p){
+    return isoDateFromMillis(p.createdAt || 0) === todayISO();
+  }
+  // Motivo simple para "quién hizo el cambio" en cada botón de Despacho -- se pide una sola vez
+  // por sesión de navegador (no en cada toque) para que sea rápido de usar desde el celular.
+  var despachoEncargado = null;
+  function isDespachoUnlocked(){
+    try{ return sessionStorage.getItem("arqueo_pedidos_unlocked") === "1"; }catch(e){ return false; }
+  }
+  function getDespachoEncargado(){
+    if(despachoEncargado) return despachoEncargado;
+    try{ despachoEncargado = sessionStorage.getItem("arqueo_despacho_encargado") || ""; }catch(e){ despachoEncargado = ""; }
+    return despachoEncargado;
+  }
+  function setDespachoEncargado(nombre){
+    despachoEncargado = nombre || "";
+    try{ sessionStorage.setItem("arqueo_despacho_encargado", despachoEncargado); }catch(e){}
+  }
   var pedidosProduccionDate = null;
   // Fecha del nuevo reporte "Pedidos tomados" -- Jessica: "reporte de todos los pedidos que
   // tome en el día, quien lo tomo". A diferencia de pedidosProduccionDate (que filtra por fecha
@@ -4092,6 +4243,19 @@ var TRIPLES = [
     }
     var map = STATE.precios || {};
     return map.hasOwnProperty(key) ? map[key] : null;
+  }
+  // Jessica: "el precio se tiene que congelar, que no lo pueda editar nadie" -- para un
+  // producto que SÍ está en la lista oficial (PEDIDO_PRECIO_SEED, directo o por alias), el
+  // precio queda fijo y de solo lectura en el formulario de pedido (ver renderPedidoItems).
+  // Un producto que todavía no está en la lista oficial (algo nuevo, o "Otros") sigue siendo
+  // editable a mano, igual que antes.
+  function esPrecioOficialProducto(producto){
+    var key = normalizePrecioKey(producto);
+    if(!key) return false;
+    var seedMap = getPedidoPrecioSeedMap();
+    if(seedMap.hasOwnProperty(key)) return true;
+    var aliasMap = getPedidoPrecioAliasMap();
+    return !!(aliasMap.hasOwnProperty(key) && seedMap.hasOwnProperty(aliasMap[key]));
   }
   function setPrecioFor(producto, precio){
     var key = normalizePrecioKey(producto);
@@ -4225,7 +4389,7 @@ var TRIPLES = [
     var viewToggle = document.createElement("div");
     viewToggle.className = "shift-toggle";
     viewToggle.style.marginBottom = "1rem";
-    [["nuevo","Nuevo pedido"], ["produccion","Producción por día"], ["lista","Todos los pedidos"], ["tomados","Pedidos tomados"], ["cobrar","Cuentas por Cobrar"]].forEach(function(pair){
+    [["nuevo","Nuevo pedido"], ["despacho","Despacho"], ["produccion","Producción por día"], ["lista","Todos los pedidos"], ["tomados","Pedidos tomados"], ["cobrar","Cuentas por Cobrar"]].forEach(function(pair){
       var b = document.createElement("button");
       b.type = "button";
       b.className = "shift-btn" + (pedidosView === pair[0] ? " active" : "");
@@ -4243,7 +4407,8 @@ var TRIPLES = [
       return wrap;
     }
 
-    if(pedidosView === "produccion"){ wrap.appendChild(buildProduccionView()); }
+    if(pedidosView === "despacho"){ wrap.appendChild(buildDespachoPanel()); }
+    else if(pedidosView === "produccion"){ wrap.appendChild(buildProduccionView()); }
     else if(pedidosView === "lista"){ wrap.appendChild(buildPedidosLista()); }
     else if(pedidosView === "tomados"){ wrap.appendChild(buildPedidosTomadosView()); }
     else if(pedidosView === "cobrar"){ wrap.appendChild(buildCuentasPorCobrarView()); }
@@ -4976,12 +5141,13 @@ var TRIPLES = [
       var fechaCell = isMasivo
         ? '<td><input type="date" class="pedido-item-fecha" data-idx="'+idx+'" value="'+esc(item.fecha)+'"></td>'
         : "";
+      var precioCongelado = esPrecioOficialProducto(item.producto);
       tr.innerHTML =
         fechaCell +
         '<td><input type="text" list="pedidoProductList" class="pedido-item-producto" data-idx="'+idx+'" value="'+esc(item.producto)+'" placeholder="Buscar producto…"></td>' +
         '<td><input type="text" class="pedido-item-obs" data-idx="'+idx+'" value="'+esc(item.obs||"")+'" placeholder="Ej: poca grasa, cortado en 10…"></td>' +
         '<td><input type="number" step="any" min="0" class="pedido-item-cantidad num-input mini" data-idx="'+idx+'" value="'+item.cantidad+'"></td>' +
-        '<td><input type="number" step="any" min="0" class="pedido-item-precio num-input mini" data-idx="'+idx+'" value="'+item.precio+'"></td>' +
+        '<td><input type="number" step="any" min="0" class="pedido-item-precio num-input mini" data-idx="'+idx+'" value="'+item.precio+'"' + (precioCongelado ? ' readonly title="Precio de la lista oficial: no se puede editar"' : '') + '> <span class="pedido-item-precio-lock" data-idx="'+idx+'" title="Precio fijo de la lista oficial" aria-label="Precio fijo" style="display:'+(precioCongelado ? "" : "none")+';">🔒</span></td>' +
         '<td class="pedido-item-total" data-idx="'+idx+'">S/ ' + fmt(item.cantidad*item.precio) + '</td>' +
         '<td>' +
           (isMasivo ? '<button type="button" class="btn btn-sm pedido-item-repetir" data-idx="'+idx+'" title="Repetir esta línea (mismo producto/cantidad/precio) en más fechas">📅 Repetir</button> ' : '') +
@@ -5007,15 +5173,33 @@ var TRIPLES = [
       function syncProductoYPrecio(){
         var idx = +input.getAttribute("data-idx");
         draft.items[idx].producto = input.value;
+        var esOficial = esPrecioOficialProducto(input.value);
         var savedPrecio = getPrecioFor(input.value);
-        if(savedPrecio !== null && !(num(draft.items[idx].precio) > 0)){
+        var precioInput = tbody.querySelector('.pedido-item-precio[data-idx="'+idx+'"]');
+        var lockSpan = tbody.querySelector('.pedido-item-precio-lock[data-idx="'+idx+'"]');
+        if(esOficial && savedPrecio !== null){
+          // Precio de la lista oficial: manda siempre, sin importar lo que hubiera antes --
+          // "que se congele, que no lo pueda editar nadie".
           draft.items[idx].precio = savedPrecio;
-          var precioInput = tbody.querySelector('.pedido-item-precio[data-idx="'+idx+'"]');
-          if(precioInput) precioInput.value = savedPrecio;
-          var cell = tbody.querySelector('.pedido-item-total[data-idx="'+idx+'"]');
-          if(cell) cell.textContent = "S/ " + fmt(draft.items[idx].cantidad * draft.items[idx].precio);
-          updatePedidoTotals(totalsRow);
+          if(precioInput){
+            precioInput.value = savedPrecio;
+            precioInput.readOnly = true;
+            precioInput.title = "Precio de la lista oficial: no se puede editar";
+          }
+        } else {
+          if(precioInput){
+            precioInput.readOnly = false;
+            precioInput.title = "";
+          }
+          if(savedPrecio !== null && !(num(draft.items[idx].precio) > 0)){
+            draft.items[idx].precio = savedPrecio;
+            if(precioInput) precioInput.value = savedPrecio;
+          }
         }
+        if(lockSpan) lockSpan.style.display = esOficial ? "" : "none";
+        var cell = tbody.querySelector('.pedido-item-total[data-idx="'+idx+'"]');
+        if(cell) cell.textContent = "S/ " + fmt(draft.items[idx].cantidad * draft.items[idx].precio);
+        updatePedidoTotals(totalsRow);
       }
       // Se escucha "input", "change" y "blur" a la vez porque en algunos celulares, elegir
       // una sugerencia de la lista no siempre dispara el evento "input" de forma confiable.
@@ -5032,6 +5216,12 @@ var TRIPLES = [
       tbody.querySelectorAll(cls).forEach(function(input){
         input.addEventListener("input", function(){
           var idx = +input.getAttribute("data-idx");
+          // Por si acaso (el campo ya queda "readonly" en pantalla, esto es solo un refuerzo):
+          // el precio de la lista oficial nunca se pisa a mano.
+          if(field === "precio" && esPrecioOficialProducto(draft.items[idx].producto)){
+            input.value = draft.items[idx].precio;
+            return;
+          }
           draft.items[idx][field] = num(input.value);
           var cell = tbody.querySelector('.pedido-item-total[data-idx="'+idx+'"]');
           if(cell) cell.textContent = "S/ " + fmt(draft.items[idx].cantidad * draft.items[idx].precio);
@@ -5150,7 +5340,21 @@ var TRIPLES = [
         entregadoEn: null,
         entregadoPor: ""
       };
-      return db.collection("pedidos").add(payload).then(function(){
+      // Cadena de estados de la cola operativa -- TODO canal la usa ahora (Jessica: "todo
+      // pedido que necesite ser preparado ahora genera alerta"). Arranca en NUEVO apenas se
+      // guarda el pedido; el aviso (sonido/banner/celular) no se dispara aquí -- lo dispara
+      // revisarAlertasCola() de forma centralizada, así funciona igual para un pedido que
+      // entra "para ahora" que para uno "programado" cuya hora recién llega más tarde.
+      payload.estado = "NUEVO";
+      payload.estadoHistorial = [{ estado:"NUEVO", en: payload.createdAt, por: draft.atendidoPor || "" }];
+      payload.horaListoEn = null;
+      payload.horaSalidaEn = null;
+      payload.repartidor = "";
+      payload.repartidorAsignadoEn = null;
+      payload.tiempoPreparacionMin = null;
+      payload.tiempoDeliveryMin = null;
+      payload.tiempoTotalMin = null;
+      return db.collection("pedidos").add(payload).then(function(docRef){
         pedidosSaving = false;
         upsertCliente(payload.cliente);
         pedidoDraft = newPedidoDraft(payload.canal);
@@ -5161,6 +5365,121 @@ var TRIPLES = [
       pedidosSaving = false;
       showToast("No se pudo guardar el pedido. Revisa tu conexión e intenta de nuevo.");
       renderPanel();
+    });
+  }
+
+  // ---------- Notificación de despacho (ntfy.sh, sin backend ni plan pago de Firebase) ----------
+  // Jessica pidió aviso inmediato al personal apenas un pedido -- de CUALQUIER canal -- entra a
+  // "para ahora", tanto en pantalla (sonido + banner, ver revisarAlertasCola) como en el
+  // celular (push real). Para el celular usamos ntfy.sh: gratis, sin backend propio, no exige
+  // subir el plan de Firebase de Spark a Blaze (eso sí tendría costo). El personal se suscribe
+  // una sola vez al "tema" desde la app gratuita ntfy (Android/iPhone) -- el tema se configura
+  // en Turno > Panadería y se ve/regenera ahí mismo.
+  function ntfyTopic(){
+    return (STATE && STATE.meta && STATE.meta.ntfyTopic) ? String(STATE.meta.ntfyTopic).trim() : "";
+  }
+  function pedidoNotificarDespacho(p){
+    var topic = ntfyTopic();
+    if(!topic) return; // todavía no se configuró el tema -- no truena, simplemente no avisa al celular
+    var nombre = (p.cliente && p.cliente.nombre) || "Cliente";
+    var direccion = (p.cliente && p.cliente.direccion) || "";
+    var totalItems = (p.items || []).length;
+    var canalTxt = pedidoCanalBadgeTxt(p);
+    var cuerpo = canalTxt + " — " + nombre + (direccion ? " — " + direccion : "") + "\n" + totalItems + " producto" + (totalItems === 1 ? "" : "s") + (p.hora ? " · " + p.hora : "");
+    var clickUrl = "";
+    try{ clickUrl = location.href.split("#")[0] + "#pedido=" + encodeURIComponent(p.id); }catch(e){}
+    try{
+      fetch("https://ntfy.sh/" + encodeURIComponent(topic), {
+        method: "POST",
+        body: cuerpo,
+        headers: {
+          "Title": "Para preparar AHORA #" + (p.numero || ""),
+          "Priority": "urgent",
+          "Tags": "bell",
+          "Click": clickUrl
+        }
+      }).catch(function(){});
+    }catch(e){}
+  }
+
+  // ---------- Encargado de despacho (quién opera la pantalla, para el historial) ----------
+  // Se pregunta una sola vez por sesión de navegador (no en cada toque) para que el botón
+  // grande de avanzar estado siga siendo de un solo toque, sin escribir nada.
+  function ensureDespachoEncargado(){
+    var actual = getDespachoEncargado();
+    if(actual) return actual;
+    var nombre = prompt("¿Quién está operando el despacho ahora? (se pregunta una sola vez por sesión, para saber quién hizo cada cambio)");
+    if(nombre === null) return null;
+    nombre = nombre.trim();
+    setDespachoEncargado(nombre);
+    return nombre;
+  }
+
+  // ---------- Avance de estados de un pedido (cualquier canal) ----------
+  // Un solo botón grande por tarjeta en el panel de Despacho llama a esto con el siguiente
+  // estado (ver pedidoProximoEstado) -- la hora se registra sola con Date.now(), nunca se
+  // escribe a mano. También se usa para la corrección manual (selector de estado en el
+  // detalle), por si el planchero desordenó las comandas y hay que corregir el orden real.
+  function pedidoAvanzarEstado(id, nuevoEstado, opts){
+    opts = opts || {};
+    var p = PEDIDOS && PEDIDOS.filter(function(x){ return x.id === id; })[0];
+    if(!p || !db) return;
+    if(!PEDIDO_ESTADO_LABEL[nuevoEstado]) return;
+    var quien = ensureDespachoEncargado();
+    if(quien === null) return; // canceló el prompt del encargado -- no se hace el cambio
+    var ahora = Date.now();
+    var payload = {
+      estado: nuevoEstado,
+      estadoHistorial: (p.estadoHistorial || []).concat([{ estado: nuevoEstado, en: ahora, por: quien }])
+    };
+    if(nuevoEstado === "LISTO_DESPACHO"){
+      payload.horaListoEn = ahora;
+      payload.tiempoPreparacionMin = Math.max(0, Math.round((ahora - (p.createdAt || ahora)) / 60000));
+    } else if(nuevoEstado === "SALIO_TIENDA"){
+      payload.horaSalidaEn = ahora;
+    } else if(nuevoEstado === "ENTREGADO"){
+      var salida = p.horaSalidaEn || p.createdAt || ahora;
+      payload.entregadoEn = ahora;
+      payload.entregadoPor = opts.entregadoPor || p.repartidor || quien || "";
+      payload.tiempoDeliveryMin = Math.max(0, Math.round((ahora - salida) / 60000));
+      payload.tiempoTotalMin = Math.max(0, Math.round((ahora - (p.createdAt || ahora)) / 60000));
+    }
+    db.collection("pedidos").doc(id).update(payload).then(function(){
+      showToast("Pedido actualizado: " + PEDIDO_ESTADO_LABEL[nuevoEstado] + ".");
+    }).catch(function(){
+      showToast("No se pudo actualizar el pedido. Intenta de nuevo.");
+    });
+  }
+
+  // Asignar/editar el repartidor sin cambiar de estado (se usa desde el detalle del pedido) --
+  // separado del avance de estados para no frenar el botón de un solo toque.
+  function pedidoAsignarRepartidor(id, nombre){
+    if(!db) return;
+    db.collection("pedidos").doc(id).update({
+      repartidor: (nombre || "").trim(),
+      repartidorAsignadoEn: Date.now()
+    }).then(function(){
+      showToast("Repartidor asignado.");
+    }).catch(function(){
+      showToast("No se pudo guardar el repartidor. Intenta de nuevo.");
+    });
+  }
+
+  function pedidoCancelarPedido(id){
+    var p = PEDIDOS && PEDIDOS.filter(function(x){ return x.id === id; })[0];
+    if(!p || !db) return;
+    var nombre = (p.cliente && p.cliente.nombre) || "este cliente";
+    if(!confirm('¿Cancelar el pedido de "' + nombre + '"? Se puede corregir después si fue un error, pero no se puede deshacer con un clic.')) return;
+    var quien = ensureDespachoEncargado();
+    if(quien === null) return;
+    var ahora = Date.now();
+    db.collection("pedidos").doc(id).update({
+      estado: "CANCELADO",
+      estadoHistorial: (p.estadoHistorial || []).concat([{ estado:"CANCELADO", en: ahora, por: quien }])
+    }).then(function(){
+      showToast("Pedido cancelado.");
+    }).catch(function(){
+      showToast("No se pudo cancelar. Intenta de nuevo.");
     });
   }
 
@@ -6667,6 +6986,320 @@ var TRIPLES = [
     wrap.appendChild(buildPedidosBusquedaAntiguaCard());
 
     return wrap;
+  }
+
+  // ---------- Panel de Despacho: UNA sola cola operativa, todos los canales ----------
+  // Corrección de Jessica (set-2026): "no quiero separar la cola de trabajo por canal... todos
+  // los pedidos deben aparecer en una sola cola operativa, sin importar si vienen de WhatsApp,
+  // Tienda, Delivery, Recojo o Masivo. Lo que debe determinar el orden es la hora en que el
+  // pedido debe estar listo." Por eso las pastillas de abajo YA NO separan por canal ni por
+  // estado -- solo acotan por prioridad (para ahora / programados) o por si ya se cerraron.
+  // Cada tarjeta sigue mostrando de dónde vino (pedidoCanalBadgeTxt) para no perder esa info.
+  var DESPACHO_FILTROS = [
+    ["todos", "📋 Todos"],
+    ["ahora", "🔴 Para ahora"],
+    ["programados", "🟡 Programados"],
+    ["entregados", "✅ Entregados"],
+    ["cancelados", "⚪ Cancelados"]
+  ];
+  function pedidosDespachoLista(filtro){
+    // Filtro principal: solo pedidos INGRESADOS HOY entran a la cola de Despacho (ver
+    // pedidoIngresadoHoy). Adentro de eso, se ordena por la hora en que deben estar listos.
+    var todos = (PEDIDOS || []).filter(function(p){ return !!p.estado && pedidoIngresadoHoy(p); });
+    var activos = todos.filter(function(p){ return p.estado !== "ENTREGADO" && p.estado !== "CANCELADO"; });
+    if(filtro === "entregados"){
+      return todos.filter(function(p){ return p.estado === "ENTREGADO"; })
+        .sort(function(a, b){ return (b.entregadoEn||b.createdAt||0) - (a.entregadoEn||a.createdAt||0); });
+    }
+    if(filtro === "cancelados"){
+      return todos.filter(function(p){ return p.estado === "CANCELADO"; })
+        .sort(function(a, b){ return (b.createdAt||0) - (a.createdAt||0); });
+    }
+    var lista = activos;
+    if(filtro === "ahora") lista = activos.filter(pedidoEsInmediato);
+    else if(filtro === "programados") lista = activos.filter(function(p){ return !pedidoEsInmediato(p); });
+    // Una sola cola, ordenada por la hora en que cada pedido debe estar listo (los que ya están
+    // "para ahora" caen naturalmente arriba, porque su hora ya pasó) -- así se ve mezclado por
+    // canal pero en el orden real en que hay que atenderlos.
+    lista.sort(function(a, b){ return pedidoHoraAtencionMs(a) - pedidoHoraAtencionMs(b); });
+    return lista;
+  }
+  function pedidoTranscurridoTxt(ms){
+    if(!ms) return "";
+    var mins = Math.max(0, Math.round((Date.now() - ms) / 60000));
+    if(mins < 60) return "hace " + mins + " min";
+    var h = Math.floor(mins / 60), m = mins % 60;
+    return "hace " + h + "h " + m + "min";
+  }
+  // Texto de la hora objetivo de una tarjeta: "Para ahora" (sin hora programada, o ya pasó su
+  // hora) vs "Programado para las HH:MM" (todavía no llega su momento).
+  function pedidoHoraTxt(p){
+    var fecha = pedidoFechaAtencion(p);
+    if(pedidoEsInmediato(p)){
+      return p.hora ? ("Debía estar listo a las " + p.hora) : "Para ahora";
+    }
+    var fechaTxt = (fecha && fecha !== todayISO()) ? (fecha + " ") : "";
+    return "Programado para las " + fechaTxt + p.hora;
+  }
+
+  function buildDespachoPanel(){
+    var wrap = document.createElement("div");
+
+    var filterRow = document.createElement("div");
+    filterRow.className = "shift-toggle";
+    filterRow.style.marginBottom = "1rem";
+    filterRow.style.flexWrap = "wrap";
+    DESPACHO_FILTROS.forEach(function(pair){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "shift-btn" + (pedidosDespachoFilter === pair[0] ? " active" : "");
+      b.textContent = pair[1];
+      b.addEventListener("click", function(){ pedidosDespachoFilter = pair[0]; renderPanel(); });
+      filterRow.appendChild(b);
+    });
+    wrap.appendChild(filterRow);
+
+    var lista = pedidosDespachoLista(pedidosDespachoFilter);
+    if(lista.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "No hay pedidos en este grupo.";
+      wrap.appendChild(empty);
+      return wrap;
+    }
+    lista.forEach(function(p){ wrap.appendChild(buildDespachoCard(p)); });
+    return wrap;
+  }
+
+  function buildDespachoCard(p){
+    var card = document.createElement("div");
+    card.className = "card";
+    var esTerminal = (p.estado === "ENTREGADO" || p.estado === "CANCELADO");
+    var inmediato = pedidoEsInmediato(p);
+    card.style.borderLeft = "6px solid " + (esTerminal ? "var(--border)" : (inmediato ? "#c0392b" : "#c99a2e"));
+
+    var head = document.createElement("div");
+    head.style.display = "flex";
+    head.style.justifyContent = "space-between";
+    head.style.alignItems = "center";
+    head.style.flexWrap = "wrap";
+    head.style.gap = ".4rem";
+    var prioridadTxt = esTerminal ? "" : (inmediato ? " · 🔴 " : " · 🟡 ") + esc(pedidoHoraTxt(p));
+    head.innerHTML =
+      "<div style='font-size:1.05rem;font-weight:800;'>" + (PEDIDO_ESTADO_EMOJI[p.estado] || "") + " " + esc(PEDIDO_ESTADO_LABEL[p.estado] || p.estado) + "</div>" +
+      "<div class='hint'>#" + esc(p.numero || "—") + " · " + esc(pedidoTranscurridoTxt(p.createdAt)) + prioridadTxt + "</div>";
+    card.appendChild(head);
+
+    var canalLine = document.createElement("div");
+    canalLine.className = "chip";
+    canalLine.style.marginTop = ".3rem";
+    canalLine.style.display = "inline-block";
+    canalLine.textContent = pedidoCanalBadgeTxt(p);
+    card.appendChild(canalLine);
+
+    var body = document.createElement("div");
+    body.style.margin = ".5rem 0";
+    var nombre = (p.cliente && p.cliente.nombre) || "—";
+    var direccion = (p.cliente && p.cliente.direccion) || "";
+    var telefono = (p.cliente && p.cliente.telefono) || "";
+    var productos = (p.items || []).map(function(it){ return it.cantidad + "x " + it.producto; }).join(", ");
+    var total = (p.items || []).reduce(function(s, it){ return s + num(it.cantidad) * num(it.precio); }, 0) + num(p.deliveryMonto);
+    body.innerHTML =
+      "<div><strong>" + esc(nombre) + "</strong>" + (telefono ? " · " + esc(telefono) : "") + "</div>" +
+      (direccion ? "<div class='hint'>" + esc(direccion) + "</div>" : "") +
+      "<div style='margin-top:.3rem;'>" + esc(productos) + "</div>" +
+      "<div style='margin-top:.2rem;'>Total: <strong>S/ " + fmt(total) + "</strong></div>" +
+      (p.repartidor ? "<div class='hint'>Repartidor/motorizado: " + esc(p.repartidor) + "</div>" : "");
+    card.appendChild(body);
+
+    var actions = document.createElement("div");
+    actions.style.display = "flex";
+    actions.style.gap = ".6rem";
+    actions.style.flexWrap = "wrap";
+    actions.style.alignItems = "center";
+
+    if(!esTerminal && !readOnly){
+      var siguiente = pedidoProximoEstado(p);
+      if(siguiente){
+        var mainBtn = document.createElement("button");
+        mainBtn.type = "button";
+        mainBtn.className = "btn btn-primary";
+        mainBtn.textContent = pedidoAccionLabel(p) || "Avanzar";
+        mainBtn.addEventListener("click", function(){ pedidoAvanzarEstado(p.id, siguiente); });
+        actions.appendChild(mainBtn);
+      }
+      var cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.className = "btn btn-sm";
+      cancelBtn.textContent = "Cancelar";
+      cancelBtn.addEventListener("click", function(){ pedidoCancelarPedido(p.id); });
+      actions.appendChild(cancelBtn);
+    }
+    var detalleBtn = document.createElement("button");
+    detalleBtn.type = "button";
+    detalleBtn.className = "btn btn-sm";
+    detalleBtn.textContent = "Ver detalle";
+    detalleBtn.addEventListener("click", function(){ showPedidoDespachoDetalle(p); });
+    actions.appendChild(detalleBtn);
+
+    card.appendChild(actions);
+    return card;
+  }
+
+  // ---------- Detalle de un pedido (desde el panel de Despacho, cualquier canal) ----------
+  function closePedidoDespachoDetalle(){
+    var ov = document.getElementById("despachoDetalleOverlay");
+    if(ov) ov.remove();
+    document.removeEventListener("keydown", despachoDetalleEscHandler);
+  }
+  function despachoDetalleEscHandler(ev){
+    if(ev.key === "Escape") closePedidoDespachoDetalle();
+  }
+  function showPedidoDespachoDetalle(p){
+    closePedidoDespachoDetalle();
+    var overlay = document.createElement("div");
+    overlay.className = "pedido-preview-overlay";
+    overlay.id = "despachoDetalleOverlay";
+    overlay.addEventListener("click", function(ev){ if(ev.target === overlay) closePedidoDespachoDetalle(); });
+
+    var box = document.createElement("div");
+    box.className = "pedido-preview-box";
+
+    var head = document.createElement("div");
+    head.className = "pedido-preview-head";
+    var headText = document.createElement("div");
+    headText.innerHTML = "<strong>Pedido #" + esc(p.numero || "—") + "</strong>";
+    head.appendChild(headText);
+    var closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "pedido-preview-close";
+    closeBtn.textContent = "✕";
+    closeBtn.title = "Cerrar";
+    closeBtn.addEventListener("click", closePedidoDespachoDetalle);
+    head.appendChild(closeBtn);
+    box.appendChild(head);
+
+    var body = document.createElement("div");
+    body.className = "pedido-preview-body";
+
+    var nombre = (p.cliente && p.cliente.nombre) || "—";
+    var docId = (p.cliente && (p.cliente.dni || p.cliente.ruc)) || "";
+    var direccion = (p.cliente && p.cliente.direccion) || "—";
+    var referencia = (p.cliente && p.cliente.referencia) || "";
+    var telefono = (p.cliente && p.cliente.telefono) || "—";
+    var correo = (p.cliente && p.cliente.correo) || "";
+    var productosHtml = (p.items || []).map(function(it){
+      return "<div>" + esc(it.cantidad) + "x " + esc(it.producto) + " — S/ " + fmt(num(it.precio)) + " c/u" + (it.obs ? " (" + esc(it.obs) + ")" : "") + "</div>";
+    }).join("");
+    var subtotal = (p.items || []).reduce(function(s, it){ return s + num(it.cantidad) * num(it.precio); }, 0);
+    var total = subtotal + num(p.deliveryMonto);
+
+    var esTerminalDetalle = (p.estado === "ENTREGADO" || p.estado === "CANCELADO");
+    var prioridadDetalleTxt = esTerminalDetalle ? "" : ((pedidoEsInmediato(p) ? " · 🔴 " : " · 🟡 ") + esc(pedidoHoraTxt(p)));
+    var html = "";
+    html += "<div style='margin-bottom:.4rem;'>" + (PEDIDO_ESTADO_EMOJI[p.estado] || "") + " <strong>" + esc(PEDIDO_ESTADO_LABEL[p.estado] || p.estado) + "</strong>" + prioridadDetalleTxt + "</div>";
+    html += "<div style='margin-bottom:.8rem;'>" + esc(pedidoCanalBadgeTxt(p)) + "</div>";
+    html += "<div><strong>Cliente:</strong> " + esc(nombre) + (docId ? " · " + esc(docId) : "") + "</div>";
+    html += "<div><strong>Teléfono:</strong> " + esc(telefono) + "</div>";
+    html += "<div><strong>Dirección:</strong> " + esc(direccion) + (referencia ? " (" + esc(referencia) + ")" : "") + "</div>";
+    if(correo) html += "<div><strong>Correo:</strong> " + esc(correo) + "</div>";
+    html += "<div style='margin-top:.6rem;'><strong>Productos:</strong></div>" + productosHtml;
+    html += "<div style='margin-top:.4rem;'>Subtotal: S/ " + fmt(subtotal) + " · Delivery: S/ " + fmt(num(p.deliveryMonto)) + " · <strong>Total: S/ " + fmt(total) + "</strong></div>";
+    html += "<div style='margin-top:.4rem;'><strong>Pago:</strong> " + esc(p.tipoPago || "—") + " · " + (p.pagado ? "Pagado" : "Pendiente") + "</div>";
+    if(p.notas) html += "<div style='margin-top:.4rem;'><strong>Observaciones:</strong> " + esc(p.notas) + "</div>";
+    if(p.atendidoPor) html += "<div><strong>Tomado por:</strong> " + esc(p.atendidoPor) + "</div>";
+
+    html += "<hr style='margin:.8rem 0;border:none;border-top:1px solid #e2ddd2;'>";
+    html += "<div><strong>Hora de ingreso:</strong> " + esc(fmtFechaHoraMillis(p.createdAt)) + "</div>";
+    if(p.horaListoEn) html += "<div><strong>Listo para despacho:</strong> " + esc(fmtFechaHoraMillis(p.horaListoEn)) + "</div>";
+    if(p.horaSalidaEn) html += "<div><strong>Salió de tienda:</strong> " + esc(fmtFechaHoraMillis(p.horaSalidaEn)) + "</div>";
+    if(p.entregadoEn) html += "<div><strong>Entregado:</strong> " + esc(fmtFechaHoraMillis(p.entregadoEn)) + (p.entregadoPor ? " — " + esc(p.entregadoPor) : "") + "</div>";
+    if(p.tiempoPreparacionMin != null) html += "<div><strong>Tiempo de preparación:</strong> " + p.tiempoPreparacionMin + " min</div>";
+    if(p.tiempoDeliveryMin != null) html += "<div><strong>Tiempo de delivery:</strong> " + p.tiempoDeliveryMin + " min</div>";
+    if(p.tiempoTotalMin != null) html += "<div><strong>Tiempo total:</strong> " + p.tiempoTotalMin + " min</div>";
+
+    if((p.estadoHistorial || []).length){
+      html += "<div style='margin-top:.6rem;'><strong>Historial:</strong></div>";
+      p.estadoHistorial.forEach(function(h){
+        html += "<div class='hint'>" + esc(fmtFechaHoraMillis(h.en)) + " — " + esc(PEDIDO_ESTADO_LABEL[h.estado] || h.estado) + (h.por ? " (" + esc(h.por) + ")" : "") + "</div>";
+      });
+    }
+    body.innerHTML = html;
+
+    // Repartidor: campo editable aparte, no frena el botón de avance de un solo toque.
+    var repartidorWrap = document.createElement("div");
+    repartidorWrap.style.marginTop = ".8rem";
+    repartidorWrap.innerHTML = "<strong>Repartidor:</strong>";
+    var repartidorRow = document.createElement("div");
+    repartidorRow.style.display = "flex";
+    repartidorRow.style.gap = ".5rem";
+    repartidorRow.style.marginTop = ".3rem";
+    var repartidorInput = document.createElement("input");
+    repartidorInput.type = "text";
+    repartidorInput.value = p.repartidor || "";
+    repartidorInput.placeholder = "Nombre del repartidor";
+    repartidorInput.style.flex = "1";
+    repartidorInput.style.padding = ".4rem .6rem";
+    repartidorInput.style.border = "1px solid var(--border)";
+    repartidorInput.style.borderRadius = "8px";
+    repartidorRow.appendChild(repartidorInput);
+    if(!readOnly){
+      var repartidorBtn = document.createElement("button");
+      repartidorBtn.type = "button";
+      repartidorBtn.className = "btn btn-sm";
+      repartidorBtn.textContent = "Guardar";
+      repartidorBtn.addEventListener("click", function(){
+        pedidoAsignarRepartidor(p.id, repartidorInput.value);
+        p.repartidor = repartidorInput.value.trim();
+      });
+      repartidorRow.appendChild(repartidorBtn);
+    }
+    repartidorWrap.appendChild(repartidorRow);
+    body.appendChild(repartidorWrap);
+
+    // Corrección manual de estado -- por si el planchero desordenó las comandas y hay que
+    // corregir el orden real de los pasos, sin depender del botón de "siguiente".
+    if(!readOnly){
+      var estadoWrap = document.createElement("div");
+      estadoWrap.style.marginTop = ".8rem";
+      estadoWrap.innerHTML = "<strong>Corregir estado manualmente:</strong>";
+      var estadoRow = document.createElement("div");
+      estadoRow.style.display = "flex";
+      estadoRow.style.gap = ".5rem";
+      estadoRow.style.marginTop = ".3rem";
+      estadoRow.style.flexWrap = "wrap";
+      var estadoSelect = document.createElement("select");
+      estadoSelect.style.padding = ".4rem .6rem";
+      estadoSelect.style.border = "1px solid var(--border)";
+      estadoSelect.style.borderRadius = "8px";
+      PEDIDO_ESTADOS.forEach(function(e){
+        var opt = document.createElement("option");
+        opt.value = e;
+        opt.textContent = (PEDIDO_ESTADO_EMOJI[e] || "") + " " + PEDIDO_ESTADO_LABEL[e];
+        if(e === p.estado) opt.selected = true;
+        estadoSelect.appendChild(opt);
+      });
+      estadoRow.appendChild(estadoSelect);
+      var estadoBtn = document.createElement("button");
+      estadoBtn.type = "button";
+      estadoBtn.className = "btn btn-sm";
+      estadoBtn.textContent = "Aplicar";
+      estadoBtn.addEventListener("click", function(){
+        var nuevo = estadoSelect.value;
+        if(nuevo === p.estado) return;
+        if(!confirm('¿Corregir manualmente el estado a "' + (PEDIDO_ESTADO_LABEL[nuevo] || nuevo) + '"?')) return;
+        pedidoAvanzarEstado(p.id, nuevo);
+        closePedidoDespachoDetalle();
+      });
+      estadoRow.appendChild(estadoBtn);
+      estadoWrap.appendChild(estadoRow);
+      body.appendChild(estadoWrap);
+    }
+
+    box.appendChild(body);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    document.addEventListener("keydown", despachoDetalleEscHandler);
   }
 
   // Pedidos que ya quedaron fuera de los PEDIDOS_LIMITE_RECIENTES más nuevos (y ya no están
@@ -8176,6 +8809,77 @@ var TRIPLES = [
   // Un pedido antiguo y ya pagado que quede fuera de ambos se puede seguir encontrando con el
   // buscador de "Pedidos antiguos" en la pestaña Pedidos (una consulta aparte, no un listener
   // en vivo -- no vuelve a cargar todo el historial cada vez).
+  // ---------- Aviso en pantalla de pedido "para ahora" (sonido + banner) ----------
+  // Jessica pidió aviso "desde el inicio" tanto en pantalla como al celular (ver
+  // pedidoNotificarDespacho para el push por ntfy.sh), y luego corrigió el alcance: YA NO es
+  // solo Delivery -- es "todo pedido que necesite ser preparado ahora", de cualquier canal, y
+  // un pedido PROGRAMADO debe avisar solo, solo, cuando llegue su hora (aunque nadie toque
+  // nada). Por eso revisarAlertasCola() de más abajo no depende de que llegue un documento
+  // nuevo de Firestore -- se revisa también con un timer, porque el paso del tiempo por sí
+  // solo puede volver "para ahora" a un pedido que ya estaba guardado desde antes.
+  function reproducirBeepDespacho(){
+    try{
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if(!Ctx) return;
+      var ctx = new Ctx();
+      var o = ctx.createOscillator();
+      var g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.value = 880;
+      o.connect(g);
+      g.connect(ctx.destination);
+      var now = ctx.currentTime;
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(0.3, now + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+      g.gain.exponentialRampToValueAtTime(0.3, now + 0.5);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.85);
+      o.start(now);
+      o.stop(now + 0.9);
+      o.onended = function(){ try{ ctx.close(); }catch(e){} };
+    }catch(e){}
+  }
+  function alertarPedidoParaAhora(p){
+    reproducirBeepDespacho();
+    var nombre = (p.cliente && p.cliente.nombre) || "Cliente";
+    var canalTxt = pedidoCanalBadgeTxt(p);
+    showBanner("despacho-nuevo", "🔔 Para ahora — " + canalTxt + " #" + (p.numero || "") + " — " + nombre, [
+      { label:"Ver en Despacho", action:function(){
+          hideBanner("despacho-nuevo");
+          currentTab = "pedidos";
+          pedidosView = "despacho";
+          pedidosDespachoFilter = "ahora";
+          renderAll();
+        }}
+    ]);
+    pedidoNotificarDespacho(p);
+  }
+
+  // ---------- Cola operativa: quién ya se avisó, para no repetir ni inundar ----------
+  // "colaInicializada" evita el chaparrón de alertas al recién abrir la app (todo lo que ya
+  // estaba "para ahora" antes de abrir se da por avisado en silencio, sin sonido ni banner).
+  // Después de eso, cualquier pedido que PASE a "para ahora" -- recién creado, o uno
+  // programado cuya hora recién llega -- sí dispara el aviso, una sola vez por pedido.
+  var pedidosAlertados = {};
+  var colaInicializada = false;
+  function revisarAlertasCola(){
+    if(!PEDIDOS) return;
+    // Mismo filtro que la cola visible (pedidosDespachoLista): solo alerta por pedidos
+    // ingresados hoy. Uno ingresado ayer no debe sonar ni aparecer aunque su hora "llegue".
+    var activos = PEDIDOS.filter(function(p){ return p.estado && p.estado !== "ENTREGADO" && p.estado !== "CANCELADO" && pedidoIngresadoHoy(p); });
+    if(!colaInicializada){
+      colaInicializada = true;
+      activos.forEach(function(p){ if(pedidoEsInmediato(p)) pedidosAlertados[p.id] = true; });
+      return;
+    }
+    activos.forEach(function(p){
+      if(pedidoEsInmediato(p) && !pedidosAlertados[p.id]){
+        pedidosAlertados[p.id] = true;
+        alertarPedidoParaAhora(p);
+      }
+    });
+  }
+
   function attachPedidosSync(){
     var recientesMap = {};
     var impagosMap = {};
@@ -8189,7 +8893,20 @@ var TRIPLES = [
       // No repintamos si está en "Nuevo pedido": así no se pierde lo que está escribiendo
       // si otra persona (ej. quien toma pedidos por WhatsApp) guarda algo al mismo tiempo.
       if(currentTab === "pedidos" && pedidosView !== "nuevo") renderPanel();
+      revisarAlertasCola();
+      if(pedidoHashAbrir){
+        var pedidoDesdeHash = list.filter(function(x){ return x.id === pedidoHashAbrir; })[0];
+        if(pedidoDesdeHash){
+          pedidoHashAbrir = null;
+          showPedidoDespachoDetalle(pedidoDesdeHash);
+          try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){}
+        }
+      }
     }
+    // Revisión periódica: el simple paso del tiempo puede volver "para ahora" a un pedido
+    // PROGRAMADO sin que llegue ningún documento nuevo de Firestore -- por eso esto no puede
+    // depender solo de onSnapshot.
+    setInterval(revisarAlertasCola, 30000);
     db.collection("pedidos").orderBy("createdAt", "desc").limit(PEDIDOS_LIMITE_RECIENTES).onSnapshot(function(snap){
       recientesMap = {};
       snap.forEach(function(doc){ var data = doc.data(); data.id = doc.id; recientesMap[doc.id] = data; });
@@ -8261,7 +8978,22 @@ var TRIPLES = [
     db = firebase.firestore();
   }
 
+  // Al tocar la notificación de un pedido nuevo (push de ntfy.sh, ver pedidoNotificarDespacho)
+  // el celular abre la app en "#pedido=<id>" -- esto la manda directo a Despacho y abre el
+  // detalle de ESE pedido apenas termine de cargar (ver el gancho en attachPedidosSync).
+  var pedidoHashAbrir = null;
+  function checkPedidoHashInicial(){
+    var h = "";
+    try{ h = location.hash || ""; }catch(e){}
+    var m = h.match(/^#pedido=(.+)$/);
+    if(!m) return;
+    pedidoHashAbrir = decodeURIComponent(m[1]);
+    currentTab = "pedidos";
+    pedidosView = "despacho";
+  }
+
   function init(){
+    checkPedidoHashInicial();
     initFirebase();
     wireStatic();
     document.getElementById("panel").innerHTML = '<div class="empty-state">Cargando datos…</div>';
