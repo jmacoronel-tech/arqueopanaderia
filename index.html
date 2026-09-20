@@ -408,6 +408,119 @@
   .desp-btn-outline{ flex:1; background:transparent; border:1.3px solid #272b32; color:#f5f6f8; }
 
   .desp-empty{ color:#9aa0ab; font-size:.9rem; padding:1.4rem 0; text-align:center; }
+
+  /* ================== Asistente de pedido (paso a paso) -- solo "Nuevo pedido" ================== */
+  .pw-wrap{ max-width:640px; margin:0 auto 1rem; }
+  .pw-head-row{ display:flex; justify-content:space-between; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:.7rem; }
+  .pw-cancel-link{ border:none; background:transparent; color:var(--ink-muted); font-size:.78rem; font-weight:600; cursor:pointer; padding:.3rem; font-family:inherit; }
+  .pw-cancel-link:hover{ color:var(--bad); }
+  .pw-breadcrumb{ display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:.7rem; }
+  .pw-bc-pill{ display:inline-flex; align-items:center; gap:.3rem; background:var(--accent-soft); color:var(--accent); border-radius:999px; padding:.28rem .7rem; font-size:.72rem; font-weight:700; cursor:pointer; border:none; font-family:inherit; }
+  .pw-bc-pill .pw-ck{ font-size:.7rem; }
+  .pw-progress{ margin-bottom:1rem; }
+  .pw-progress-dots{ display:flex; gap:.28rem; margin-bottom:.4rem; }
+  .pw-dot{ height:6px; flex:1; border-radius:999px; background:var(--border); }
+  .pw-dot.done{ background:var(--good); }
+  .pw-dot.now{ background:var(--accent); }
+  .pw-progress-txt{ font-size:.76rem; color:var(--ink-muted); font-weight:600; }
+  .pw-body{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:1.2rem; margin-bottom:.9rem; }
+  .pw-q{ font-family:"Fraunces",serif; font-size:1.28rem; font-weight:700; margin:0 0 .25rem; }
+  .pw-sub{ font-size:.82rem; color:var(--ink-muted); margin-bottom:1rem; }
+  .pw-tile-group{ display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
+  @media (max-width:480px){ .pw-tile-group{ grid-template-columns:1fr; } }
+  .pw-tile{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:.35rem; border:2px solid var(--border); border-radius:var(--radius); background:var(--bg); padding:1.3rem .8rem; cursor:pointer; font-family:inherit; transition:border-color .12s,background .12s; }
+  .pw-tile:hover{ border-color:var(--accent); }
+  .pw-tile.active{ border-color:var(--accent); background:var(--accent-soft); }
+  .pw-tile-icon{ font-size:1.9rem; }
+  .pw-tile-label{ font-weight:800; font-size:.98rem; color:var(--ink); }
+  .pw-tile-sub{ font-size:.72rem; color:var(--ink-muted); }
+  .pw-search-box input{ width:100%; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.7rem .8rem; font-size:1rem; color:var(--ink); }
+  .pw-search-results{ margin-top:.7rem; display:flex; flex-direction:column; gap:.5rem; max-height:320px; overflow:auto; }
+  .pw-result-card{ display:flex; justify-content:space-between; align-items:center; gap:.6rem; border:1px solid var(--border); border-radius:var(--radius-sm); padding:.65rem .8rem; cursor:pointer; background:var(--bg); }
+  .pw-result-card:hover{ border-color:var(--accent); }
+  .pw-result-nombre{ font-weight:700; font-size:.92rem; }
+  .pw-result-meta{ font-size:.72rem; color:var(--ink-muted); }
+  .pw-result-go{ color:var(--accent); font-weight:700; font-size:.78rem; white-space:nowrap; }
+  .pw-empty-hint{ font-size:.82rem; color:var(--ink-muted); padding:.8rem 0; }
+  .pw-divider-or{ text-align:center; color:var(--ink-muted); font-size:.74rem; margin:.9rem 0; position:relative; }
+  .pw-divider-or::before,.pw-divider-or::after{ content:""; position:absolute; top:50%; width:42%; border-top:1px solid var(--border); }
+  .pw-divider-or::before{ left:0; } .pw-divider-or::after{ right:0; }
+  .pw-client-chosen{ display:flex; justify-content:space-between; align-items:center; gap:.6rem; border:1px solid var(--border); border-radius:var(--radius-sm); padding:.8rem .9rem; background:var(--bg); flex-wrap:wrap; }
+  .pw-client-nombre{ font-weight:800; font-size:1rem; }
+  .pw-client-meta{ font-size:.76rem; color:var(--ink-muted); }
+  .pw-link-btn{ border:none; background:transparent; color:var(--accent); font-weight:700; font-size:.82rem; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .pw-dup-warning{ margin-top:.8rem; background:var(--warn-soft); color:var(--warn); border-radius:var(--radius-sm); padding:.7rem .8rem; font-size:.84rem; font-weight:600; }
+  .pw-addr-list{ display:flex; flex-direction:column; gap:.5rem; margin-bottom:.7rem; }
+  .pw-addr-opt{ display:flex; align-items:center; gap:.7rem; border:2px solid var(--border); border-radius:var(--radius-sm); padding:.7rem .85rem; cursor:pointer; background:var(--bg); }
+  .pw-addr-opt.active{ border-color:var(--accent); background:var(--accent-soft); }
+  .pw-addr-radio{ width:16px; height:16px; border-radius:50%; border:2px solid var(--ink-muted); flex-shrink:0; }
+  .pw-addr-opt.active .pw-addr-radio{ border-color:var(--accent); background:var(--accent); }
+  .pw-addr-txt{ font-weight:700; font-size:.88rem; }
+  .pw-addr-ref{ font-size:.74rem; color:var(--ink-muted); }
+  .pw-step-card-inset{ background:var(--bg); border-radius:var(--radius-sm); padding:.9rem; margin-top:.7rem; border:1px solid var(--border); }
+  .pw-prod-results{ margin-top:.7rem; display:flex; flex-direction:column; gap:.4rem; max-height:300px; overflow:auto; }
+  .pw-prod-row{ display:flex; justify-content:space-between; align-items:center; gap:.6rem; border:1px solid var(--border); border-radius:var(--radius-sm); padding:.6rem .8rem; cursor:pointer; background:var(--bg); }
+  .pw-prod-row:hover{ border-color:var(--accent); }
+  .pw-prod-nombre{ font-weight:700; font-size:.88rem; }
+  .pw-prod-precio{ font-size:.76rem; color:var(--ink-muted); white-space:nowrap; }
+  .pw-items-list{ margin-top:1rem; display:flex; flex-direction:column; gap:.7rem; }
+  .pw-item-row{ border:1px solid var(--border); border-radius:var(--radius-sm); padding:.75rem .85rem; background:var(--bg); }
+  .pw-item-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:.6rem; }
+  .pw-item-nombre{ font-weight:800; font-size:.92rem; }
+  .pw-item-precio-unit{ font-size:.74rem; color:var(--ink-muted); }
+  .pw-item-del{ border:none; background:transparent; color:var(--bad); font-size:1rem; cursor:pointer; line-height:1; padding:.2rem; }
+  .pw-item-bottom{ display:flex; justify-content:space-between; align-items:center; margin-top:.55rem; gap:.6rem; }
+  .pw-qty-stepper{ display:flex; align-items:center; gap:.4rem; }
+  .pw-qty-btn{ width:30px; height:30px; border-radius:50%; border:1px solid var(--border); background:var(--surface); font-size:1.05rem; font-weight:800; cursor:pointer; color:var(--ink); }
+  .pw-qty-input{ width:52px; text-align:center; border:1px solid var(--border); border-radius:var(--radius-sm); padding:.35rem; font-size:.92rem; background:var(--surface); color:var(--ink); }
+  .pw-item-subtotal{ font-weight:800; font-size:.9rem; white-space:nowrap; }
+  .pw-total-line{ display:flex; justify-content:space-between; font-weight:800; font-size:.95rem; margin-top:.9rem; padding-top:.7rem; border-top:1px solid var(--border); }
+  .pw-hora-chosen{ display:flex; justify-content:space-between; align-items:center; gap:.6rem; border:1px solid var(--border); border-radius:var(--radius-sm); padding:.7rem .85rem; background:var(--bg); flex-wrap:wrap; }
+  .pw-lbl{ font-size:.7rem; color:var(--ink-muted); text-transform:uppercase; letter-spacing:.03em; }
+  .pw-val{ font-weight:800; font-size:1rem; }
+  .pw-time-trigger{ width:100%; border:2px dashed var(--border); border-radius:var(--radius-sm); background:var(--bg); padding:.85rem; font-size:.95rem; font-weight:700; color:var(--ink); cursor:pointer; font-family:inherit; }
+  .pw-time-panel{ margin-top:.7rem; border:1px solid var(--border); border-radius:var(--radius-sm); padding:.9rem; background:var(--bg); }
+  .pw-time-panel h4{ margin:0 0 .5rem; font-size:.8rem; color:var(--ink-soft); }
+  .pw-quick-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:.4rem; }
+  @media (min-width:480px){ .pw-quick-grid{ grid-template-columns:repeat(4,1fr); } }
+  .pw-qg-btn{ border:1px solid var(--border); background:var(--surface); border-radius:var(--radius-sm); padding:.5rem .3rem; font-size:.78rem; font-weight:700; cursor:pointer; color:var(--ink); font-family:inherit; }
+  .pw-qg-btn:hover{ border-color:var(--accent); }
+  .pw-panel-link-btn,.pw-panel-back-btn{ display:block; width:100%; text-align:center; border:none; background:transparent; color:var(--accent); font-weight:700; font-size:.82rem; cursor:pointer; margin-top:.7rem; font-family:inherit; }
+  .pw-exact-row{ display:flex; flex-wrap:wrap; gap:.35rem; }
+  .pw-exact-chip{ border:1px solid var(--border); background:var(--surface); border-radius:999px; padding:.4rem .75rem; font-size:.82rem; font-weight:700; cursor:pointer; color:var(--ink); font-family:inherit; }
+  .pw-exact-chip.active{ border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
+  .pw-quickadd-row{ display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.7rem; }
+  .pw-quickadd-btn{ border:1px solid var(--border); background:var(--surface); border-radius:var(--radius-sm); padding:.4rem .7rem; font-size:.76rem; font-weight:700; cursor:pointer; color:var(--ink); font-family:inherit; }
+  .pw-time-panel-actions{ display:flex; gap:.5rem; margin-top:.9rem; }
+  .pw-time-panel-actions .btn{ flex:1; }
+  .pw-cal-nav{ display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem; }
+  .pw-cal-nav h4{ margin:0; }
+  .pw-nav-btn{ border:1px solid var(--border); background:var(--surface); border-radius:var(--radius-sm); width:30px; height:30px; font-size:1.1rem; cursor:pointer; color:var(--ink); }
+  .pw-cal-weekdays{ display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:.68rem; color:var(--ink-muted); font-weight:700; margin-bottom:.3rem; }
+  .pw-cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:.2rem; }
+  .pw-cal-cell{ aspect-ratio:1; border:none; background:transparent; border-radius:50%; font-size:.82rem; cursor:pointer; color:var(--ink); font-family:inherit; }
+  .pw-cal-cell:hover:not(:disabled){ background:var(--accent-soft); }
+  .pw-cal-cell.today{ font-weight:800; color:var(--accent); }
+  .pw-cal-cell.selected{ background:var(--accent); color:var(--accent-ink); font-weight:800; }
+  .pw-cal-cell.past{ opacity:.3; cursor:default; }
+  .pw-cal-cell.empty{ cursor:default; }
+  .pw-callout{ margin-top:.9rem; background:var(--accent-soft); color:var(--accent); border-radius:var(--radius-sm); padding:.7rem .85rem; font-size:.84rem; font-weight:600; }
+  .pw-callout .pw-muted{ color:var(--ink-muted); font-weight:500; }
+  .pw-pago-chips{ display:flex; flex-wrap:wrap; gap:.5rem; }
+  .pw-pago-chip{ display:flex; align-items:center; gap:.4rem; border:2px solid var(--border); background:var(--bg); border-radius:999px; padding:.55rem 1rem; font-size:.86rem; font-weight:700; cursor:pointer; color:var(--ink); font-family:inherit; }
+  .pw-pago-chip .pw-tile-icon{ font-size:1.05rem; }
+  .pw-pago-chip.active{ border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
+  .pw-resumen-block{ padding:.75rem 0; border-bottom:1px solid var(--border); }
+  .pw-resumen-block:last-of-type{ border-bottom:none; }
+  .pw-resumen-lbl{ font-size:.72rem; color:var(--ink-muted); font-weight:700; text-transform:uppercase; letter-spacing:.03em; margin-bottom:.25rem; }
+  .pw-resumen-val{ font-size:.92rem; font-weight:600; }
+  .pw-resumen-sub{ display:block; font-size:.76rem; color:var(--ink-muted); font-weight:500; margin-top:.15rem; }
+  .pw-resumen-item-row{ display:flex; justify-content:space-between; font-size:.86rem; padding:.2rem 0; }
+  .pw-footer{ position:sticky; bottom:0; display:flex; justify-content:space-between; align-items:center; gap:.8rem; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:.8rem 1rem; flex-wrap:wrap; }
+  .pw-footer-total{ font-size:.82rem; color:var(--ink-muted); font-weight:700; display:flex; flex-direction:column; }
+  .pw-footer-total b{ font-size:1.1rem; color:var(--ink); font-weight:800; }
+  .pw-footer-actions{ display:flex; gap:.6rem; margin-left:auto; }
+  .pw-footer-actions .btn{ padding:.7rem 1.3rem; font-size:.9rem; }
 </style>
 
 <div id="lockScreen" class="lock-screen" hidden>
@@ -4260,13 +4373,19 @@ var TRIPLES = [
     if(p.origen && ORIGEN_LABEL[p.origen]) txt += " · " + ORIGEN_LABEL[p.origen];
     return txt;
   }
-  // Jessica: "Filtro principal = FECHA DE INGRESO = HOY." La cola de Despacho debe mostrar solo
-  // los pedidos REGISTRADOS hoy (p.createdAt, hora Lima) -- sin importar para cuándo es la
-  // entrega (hoy, mañana o una fecha futura, todos quedan si se ingresaron hoy). Un pedido
-  // ingresado ayer no debe reaparecer solo porque su entrega cae hoy. Usa isoDateFromMillis
-  // (ya definida más abajo, function declaration -> hoisted) para comparar contra todayISO().
-  function pedidoIngresadoHoy(p){
-    return isoDateFromMillis(p.createdAt || 0) === todayISO();
+  // Corrección (set-2026): el filtro principal de Despacho YA NO es "cuándo se registró el
+  // pedido" (createdAt) sino el DÍA OPERATIVO real de cada pedido -- Delivery/Recojo por su
+  // fecha de entrega/recojo, Masivo por si tiene al menos una línea programada para hoy (cada
+  // línea de un Masivo puede tener su propia fecha). createdAt se sigue guardando exactamente
+  // igual y se sigue usando para historial/trazabilidad (p.ej. "Pedidos tomados") -- solo se
+  // deja de usar como filtro de la cola de Despacho/alertas.
+  function pedidoLineasDeHoy(p){
+    if(p.canal === "masivo") return (p.items || []).filter(function(it){ return it.fecha === todayISO(); });
+    return p.items || [];
+  }
+  function pedidoEsDelDiaOperativo(p){
+    if(p.canal === "masivo") return pedidoLineasDeHoy(p).length > 0;
+    return pedidoFechaAtencion(p) === todayISO();
   }
   // Motivo simple para "quién hizo el cambio" en cada botón de Despacho -- se pide una sola vez
   // por sesión de navegador (no en cada toque) para que sea rápido de usar desde el celular.
@@ -4446,7 +4565,11 @@ var TRIPLES = [
     return names;
   }
 
-  function upsertCliente(cliente){
+  // direccionesNuevas (opcional): direcciones que se marcaron "guardar para futuros pedidos"
+  // en el asistente de Nuevo Pedido MIENTRAS el cliente todavía no existía en Firestore (recién
+  // se estaba creando en este mismo pedido) -- ver pedidoWizGuardarDireccionParaCliente(). Es
+  // aditivo: nunca pisa direcciones que el cliente ya tuviera guardadas de antes.
+  function upsertCliente(cliente, direccionesNuevas){
     if(!db || !cliente || !cliente.nombre || !cliente.nombre.trim()) return;
     var match = findClienteByNombre(cliente.nombre);
     var payload = {
@@ -4460,6 +4583,16 @@ var TRIPLES = [
       diasCredito: num(cliente.diasCredito),
       updatedAt: Date.now()
     };
+    if(direccionesNuevas && direccionesNuevas.length){
+      var previas = (match && match.data && match.data.direcciones) || [];
+      var combinadas = previas.slice();
+      direccionesNuevas.forEach(function(d){
+        if(!d || !d.texto || !d.texto.trim()) return;
+        var yaExiste = combinadas.some(function(x){ return (x.texto || "").trim() === d.texto.trim(); });
+        if(!yaExiste) combinadas.push({ id:"d" + Date.now() + Math.floor(Math.random() * 1000), texto:d.texto.trim(), referencia:(d.referencia || "").trim() });
+      });
+      payload.direcciones = combinadas;
+    }
     if(match){
       db.collection("clientes").doc(match.id).update(payload).catch(function(){});
     } else {
@@ -4566,6 +4699,12 @@ var TRIPLES = [
     else if(pedidosView === "lista"){ wrap.appendChild(buildPedidosLista()); }
     else if(pedidosView === "tomados"){ wrap.appendChild(buildPedidosTomadosView()); }
     else if(pedidosView === "cobrar"){ wrap.appendChild(buildCuentasPorCobrarView()); }
+    // "Nuevo pedido" (crear uno de cero) usa el asistente paso a paso (Jessica, set-2026:
+    // "quedamos en este" formato) -- "Editar pedido" (pedidoEditingId puesto) sigue exactamente
+    // igual que siempre, con el formulario rápido de una sola pantalla (buildPedidoForm). El modo
+    // de solo-lectura también sigue usando buildPedidoForm tal cual, para no tener que repetir
+    // el bloqueo de cada campo del asistente por separado.
+    else if(pedidosView === "nuevo" && !pedidoEditingId && !readOnly){ wrap.appendChild(buildPedidoAsistente()); }
     else { wrap.appendChild(buildPedidoForm()); }
 
     return wrap;
@@ -5212,6 +5351,1139 @@ var TRIPLES = [
     return card;
   }
 
+  // =========================================================================================
+  // ASISTENTE DE PEDIDO (paso a paso) -- SOLO para "Nuevo pedido" (Jessica, set-2026:
+  // "quedamos en este" formato). "Editar pedido" NO usa esto -- sigue siendo el formulario
+  // rápido de una sola pantalla de siempre (buildPedidoForm), sin cambios.
+  //
+  // Reglas de esta sección:
+  //  - NUNCA se reimplementa savePedido(), la detección de duplicados, el cálculo de hora de
+  //    listo, el precio congelado de la lista oficial, el comprobante, la numeración ni nada
+  //    de lo que ya existe -- este asistente solo arma pedidoDraft (el MISMO objeto que ya usa
+  //    el resto de Pedidos) paso a paso, y al final llama a savePedido() tal cual.
+  //  - Los clientes pueden tener VARIAS direcciones guardadas (cliente.direcciones, campo
+  //    nuevo y aditivo) -- pero pedidoDraft.cliente.direccion/referencia siguen siendo los
+  //    mismos campos de siempre, así que Despacho, PDF, vista previa, etc seguen funcionando
+  //    sin tocarlos.
+  // =========================================================================================
+  var PEDIDO_WIZ_KEYS = ["origen","tipo","entrega","cliente","direccion","productos","fechahora","pago","resumen"];
+  var PEDIDO_WIZ_LABELS = ["Origen","Tipo","Entrega","Cliente","Dirección","Productos","Fecha y hora","Pago","Resumen"];
+  var pedidoWizStep = 1;
+  var pedidoWizTipo = null; // "normal" | "masivo" -- solo mientras se decide el canal (pasos 2-3)
+  var pedidoWizClienteId = null; // id de Firestore del cliente elegido/encontrado, o null si es nuevo
+  var pedidoWizClienteBuscar = "";
+  var pedidoWizClienteNuevoModo = false;
+  var pedidoWizProductoBuscar = "";
+  var pedidoWizDireccionNuevaAbierta = false;
+  var pedidoWizDireccionNuevaTexto = "";
+  var pedidoWizDireccionNuevaRef = "";
+  var pedidoWizDireccionGuardar = null; // true | false | null
+  var pedidoWizDatePanelOpen = false;
+  var pedidoWizCalYear = null;
+  var pedidoWizCalMonth = null;
+  var pedidoWizTimePanelOpen = false;
+  var pedidoWizTimePanelAdvanced = false;
+  var pedidoWizTp = { h12:6, m:0, ampm:"PM" };
+  var pedidoWizPagoOtroModo = false;
+
+  function pedidoWizReset(){
+    pedidoWizStep = 1;
+    pedidoWizTipo = null;
+    pedidoWizClienteId = null;
+    pedidoWizClienteBuscar = "";
+    pedidoWizClienteNuevoModo = false;
+    pedidoWizProductoBuscar = "";
+    pedidoWizDireccionNuevaAbierta = false;
+    pedidoWizDireccionNuevaTexto = "";
+    pedidoWizDireccionNuevaRef = "";
+    pedidoWizDireccionGuardar = null;
+    pedidoWizDatePanelOpen = false;
+    pedidoWizTimePanelOpen = false;
+    pedidoWizTimePanelAdvanced = false;
+    pedidoWizPagoOtroModo = false;
+  }
+
+  function pedidoWizTipoActual(){
+    if(pedidoWizTipo) return pedidoWizTipo;
+    return pedidoDraft && pedidoDraft.canal === "masivo" ? "masivo" : "normal";
+  }
+  function pedidoWizEntregaActual(){
+    var draft = pedidoDraft;
+    if(!draft) return null;
+    if(draft.canal === "masivo") return draft.masivoModo === "delivery" ? "delivery" : (draft.masivoModo === "recojo" ? "recojo" : null);
+    if(draft.canal === "delivery") return "delivery";
+    if(draft.canal === "tienda") return "recojo";
+    return null;
+  }
+
+  function pedidoWizGoStep(n){
+    pedidoWizStep = Math.max(1, Math.min(PEDIDO_WIZ_KEYS.length, n));
+    renderPanel();
+    try{
+      var panel = document.getElementById("pedidoWizPanel");
+      if(panel) panel.scrollIntoView({ block:"start", behavior:"smooth" });
+    }catch(e){}
+  }
+  function pedidoWizNext(){ if(pedidoWizStep < PEDIDO_WIZ_KEYS.length) pedidoWizGoStep(pedidoWizStep + 1); }
+  function pedidoWizPrev(){ if(pedidoWizStep > 1) pedidoWizGoStep(pedidoWizStep - 1); }
+
+  function pedidoWizPuedeAvanzar(){
+    var draft = pedidoDraft;
+    switch(PEDIDO_WIZ_KEYS[pedidoWizStep - 1]){
+      case "origen": return !!draft.origen;
+      case "tipo": return !!pedidoWizTipo || !!draft.canal;
+      case "entrega": return !!pedidoWizEntregaActual();
+      case "cliente": return !!(draft.cliente && draft.cliente.nombre && draft.cliente.nombre.trim());
+      case "direccion":
+        if(!pedidoRequiereReparto(draft)) return true;
+        return !!(draft.cliente && draft.cliente.direccion && draft.cliente.direccion.trim());
+      case "productos": return draft.items.some(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
+      case "fechahora": return !!draft.hora;
+      case "pago": return !!draft.tipoPago;
+      default: return true;
+    }
+  }
+
+  // ---------- Direcciones guardadas por cliente (nuevo, aditivo: no toca direccion/referencia) ----------
+  function pedidoWizDireccionesDe(clienteId){
+    var c = clienteId && CLIENTES ? CLIENTES[clienteId] : null;
+    var guardadas = (c && c.direcciones) || [];
+    var lista = guardadas.slice();
+    // Corrección (set-2026): la dirección antigua (el campo único de siempre, cliente.direccion
+    // / referencia) debe seguir apareciendo SIEMPRE para elegirla, aunque el cliente ya tenga
+    // direcciones nuevas guardadas en el array "direcciones" -- antes solo se mostraba cuando
+    // "direcciones" estaba completamente vacío, así que desaparecía de la lista apenas se
+    // agregaba la primera dirección nueva (bug reportado: "la migración de direcciones
+    // antiguas"). Nunca se sobrescribe ni se borra acá -- solo se evita duplicarla si ya quedó
+    // copiada dentro de "direcciones" con el mismo texto.
+    if(c && c.direccion && c.direccion.trim() && c.direccion.trim() !== "Recojo en tienda"){
+      var yaEstaEnGuardadas = lista.some(function(d){ return (d.texto||"").trim() === c.direccion.trim(); });
+      if(!yaEstaEnGuardadas) lista.unshift({ id:"legacy", texto:c.direccion, referencia:c.referencia || "" });
+    }
+    return lista;
+  }
+  function pedidoWizGuardarDireccionParaCliente(clienteId, direccion){
+    if(!direccion || !direccion.texto || !direccion.texto.trim()) return;
+    if(clienteId && db){
+      var actuales = pedidoWizDireccionesDe(clienteId).filter(function(d){ return d.id !== "legacy"; });
+      var yaExiste = actuales.some(function(d){ return (d.texto||"").trim() === direccion.texto.trim(); });
+      if(!yaExiste){
+        actuales.push({ id:"d" + Date.now(), texto:direccion.texto.trim(), referencia:(direccion.referencia||"").trim() });
+        db.collection("clientes").doc(clienteId).update({ direcciones: actuales }).catch(function(){});
+      }
+    } else {
+      // Cliente todavía no existe en Firestore (recién se está creando en este mismo pedido) --
+      // se guarda junto al pedidoDraft y upsertCliente() lo escribe cuando el pedido se guarda.
+      pedidoDraft.cliente._direccionesNuevas = pedidoDraft.cliente._direccionesNuevas || [];
+      pedidoDraft.cliente._direccionesNuevas.push({ texto:direccion.texto.trim(), referencia:(direccion.referencia||"").trim() });
+    }
+  }
+
+  function iniciarPedidoAsistente(){
+    pedidoDraft = newPedidoDraft("delivery");
+    pedidoDraft.canal = null; // recién se define en los pasos 2-3
+    pedidoWizReset();
+  }
+
+  function buildPedidoAsistente(){
+    if(!pedidoDraft || pedidoDraft.canal === undefined){ iniciarPedidoAsistente(); }
+    if(!pedidoDraft.canal){ /* sigue en pasos 1-3, todavía sin canal definido */ }
+    var draft = pedidoDraft;
+
+    var wrap = document.createElement("div");
+    wrap.className = "card pw-wrap";
+    wrap.id = "pedidoWizPanel";
+
+    var headRow = document.createElement("div");
+    headRow.className = "pw-head-row";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0";
+    h2.textContent = "Nuevo pedido";
+    headRow.appendChild(h2);
+    var cancelBtn = document.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.className = "pw-cancel-link";
+    cancelBtn.textContent = "✕ Empezar de nuevo";
+    cancelBtn.addEventListener("click", function(){
+      if(!confirm("¿Descartar este pedido a medias y empezar de nuevo?")) return;
+      iniciarPedidoAsistente();
+      renderPanel();
+    });
+    headRow.appendChild(cancelBtn);
+    wrap.appendChild(headRow);
+
+    var breadcrumb = document.createElement("div");
+    breadcrumb.className = "pw-breadcrumb";
+    wrap.appendChild(breadcrumb);
+
+    var progress = document.createElement("div");
+    progress.className = "pw-progress";
+    wrap.appendChild(progress);
+
+    var body = document.createElement("div");
+    body.className = "pw-body";
+    body.id = "pedidoWizBody";
+    wrap.appendChild(body);
+
+    var footer = document.createElement("div");
+    footer.className = "pw-footer";
+    wrap.appendChild(footer);
+
+    pedidoWizRenderBreadcrumb(breadcrumb);
+    pedidoWizRenderProgress(progress);
+    pedidoWizRenderStep(body);
+    pedidoWizRenderFooter(footer);
+
+    return wrap;
+  }
+
+  function pedidoWizRenderProgress(el){
+    var total = PEDIDO_WIZ_KEYS.length;
+    var dots = "";
+    for(var i = 1; i <= total; i++){
+      var cls = i < pedidoWizStep ? "done" : (i === pedidoWizStep ? "now" : "");
+      dots += '<span class="pw-dot ' + cls + '"></span>';
+    }
+    el.innerHTML = '<div class="pw-progress-dots">' + dots + '</div>' +
+      '<div class="pw-progress-txt">Paso ' + pedidoWizStep + ' de ' + total + ' · ' + PEDIDO_WIZ_LABELS[pedidoWizStep - 1] + '</div>';
+  }
+
+  function pedidoWizRenderBreadcrumb(el){
+    var draft = pedidoDraft;
+    var pills = [];
+    if(draft.origen) pills.push([ORIGEN_LABEL[draft.origen], 1]);
+    if(pedidoWizStep > 2 || draft.canal) pills.push([pedidoWizTipoActual() === "masivo" ? "Pedido masivo" : "Normal", 2]);
+    var entrega = pedidoWizEntregaActual();
+    if(entrega) pills.push([entrega === "delivery" ? "Delivery" : "Recojo en tienda", 3]);
+    if(draft.cliente && draft.cliente.nombre) pills.push([draft.cliente.nombre, 4]);
+    if(pedidoRequiereReparto(draft) && draft.cliente && draft.cliente.direccion) pills.push([draft.cliente.direccion.split(",")[0], 5]);
+    var validItems = draft.items.filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
+    if(validItems.length) pills.push([validItems.length + " producto" + (validItems.length === 1 ? "" : "s"), 6]);
+    if(draft.hora) pills.push([fmtHora12(draft.hora), 7]);
+    if(draft.tipoPago) pills.push([draft.tipoPago, 8]);
+    el.innerHTML = pills.map(function(p){
+      return '<span class="pw-bc-pill" data-step="' + p[1] + '"><span class="pw-ck">✓</span>' + esc(p[0]) + '</span>';
+    }).join("");
+    el.querySelectorAll(".pw-bc-pill").forEach(function(pill){
+      pill.addEventListener("click", function(){ pedidoWizGoStep(+pill.getAttribute("data-step")); });
+    });
+  }
+
+  function pedidoWizRenderFooter(el){
+    var draft = pedidoDraft;
+    var validItems = draft.items.filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
+    var totalHtml = validItems.length ? ("Total<b>S/ " + fmt(pedidoSubtotal({items:validItems}) + pedidoDeliveryTotal(draft)) + "</b>") : "&nbsp;";
+    var actionsHtml = "";
+    if(pedidoWizStep > 1) actionsHtml += '<button type="button" class="btn pw-atras-btn">← Atrás</button>';
+    if(pedidoWizStep < PEDIDO_WIZ_KEYS.length){
+      actionsHtml += '<button type="button" class="btn btn-primary pw-continuar-btn"' + (pedidoWizPuedeAvanzar() ? "" : " disabled") + '>Continuar →</button>';
+    } else {
+      actionsHtml += '<button type="button" class="btn btn-primary pw-confirmar-btn"' + (pedidosSaving ? " disabled" : "") + '>' + (pedidosSaving ? "Guardando…" : "✓ Confirmar y guardar pedido") + '</button>';
+    }
+    el.innerHTML = '<div class="pw-footer-total">' + totalHtml + '</div><div class="pw-footer-actions">' + actionsHtml + '</div>';
+    var atras = el.querySelector(".pw-atras-btn");
+    if(atras) atras.addEventListener("click", pedidoWizPrev);
+    var continuar = el.querySelector(".pw-continuar-btn");
+    if(continuar) continuar.addEventListener("click", pedidoWizNext);
+    var confirmar = el.querySelector(".pw-confirmar-btn");
+    if(confirmar) confirmar.addEventListener("click", function(){ savePedido(); });
+  }
+
+  // Reconstruye SOLO el cuerpo del paso actual (sin tocar breadcrumb/progreso/footer del todo) --
+  // usado para búsquedas en vivo (cliente/producto) donde SÍ hace falta no perder el foco del
+  // input mientras se escribe. Para cualquier cambio estructural (cambiar de paso, elegir una
+  // tile, agregar/quitar una línea) se sigue usando renderPanel(), igual que el resto de Pedidos.
+  function pedidoWizRenderStepOnly(){
+    var body = document.getElementById("pedidoWizBody");
+    if(!body) return renderPanel();
+    var active = document.activeElement;
+    var activeCls = active && active.className;
+    var selStart = active && typeof active.selectionStart === "number" ? active.selectionStart : null;
+    pedidoWizRenderStep(body);
+    var footer = document.querySelector("#pedidoWizPanel .pw-footer");
+    if(footer) pedidoWizRenderFooter(footer);
+    var breadcrumb = document.querySelector("#pedidoWizPanel .pw-breadcrumb");
+    if(breadcrumb) pedidoWizRenderBreadcrumb(breadcrumb);
+    if(activeCls){
+      var again = body.querySelector("." + String(activeCls).trim().split(/\s+/).join("."));
+      if(again){ again.focus(); if(selStart != null){ try{ again.setSelectionRange(selStart, selStart); }catch(e){} } }
+    }
+  }
+
+  function pedidoWizRenderStep(body){
+    var fn = PEDIDO_WIZ_STEP_RENDERERS[PEDIDO_WIZ_KEYS[pedidoWizStep - 1]];
+    body.innerHTML = fn ? fn() : "";
+    var wireFn = PEDIDO_WIZ_STEP_WIRE[PEDIDO_WIZ_KEYS[pedidoWizStep - 1]];
+    if(wireFn) wireFn(body);
+  }
+
+  function pwTile(active, extraCls){
+    return "pw-tile" + (active ? " active" : "") + (extraCls ? " " + extraCls : "");
+  }
+
+  var PEDIDO_WIZ_STEP_RENDERERS = {
+    origen: function(){
+      var draft = pedidoDraft;
+      return '<div class="pw-q">¿De dónde vino el pedido?</div>' +
+        '<div class="pw-sub">Elige una opción para continuar</div>' +
+        '<div class="pw-tile-group">' +
+          '<button type="button" class="' + pwTile(draft.origen === "whatsapp") + '" data-origen="whatsapp"><span class="pw-tile-icon">💬</span><span class="pw-tile-label">WhatsApp</span><span class="pw-tile-sub">Pedido recibido por chat</span></button>' +
+          '<button type="button" class="' + pwTile(draft.origen === "tienda") + '" data-origen="tienda"><span class="pw-tile-icon">🏪</span><span class="pw-tile-label">Tienda</span><span class="pw-tile-sub">Cliente presente en el local</span></button>' +
+        '</div>';
+    },
+    tipo: function(){
+      var tipo = pedidoWizTipoActual();
+      return '<div class="pw-q">¿Qué tipo de pedido es?</div>' +
+        '<div class="pw-sub">Un pedido masivo permite RUC, crédito y varias fechas de entrega</div>' +
+        '<div class="pw-tile-group">' +
+          '<button type="button" class="' + pwTile(pedidoDraft.canal && tipo === "normal") + '" data-tipo="normal"><span class="pw-tile-icon">🧺</span><span class="pw-tile-label">Pedido normal</span><span class="pw-tile-sub">Un cliente, un pedido</span></button>' +
+          '<button type="button" class="' + pwTile(tipo === "masivo" && pedidoDraft.canal === "masivo") + '" data-tipo="masivo"><span class="pw-tile-icon">🏢</span><span class="pw-tile-label">Pedido masivo</span><span class="pw-tile-sub">RUC, crédito, varias fechas</span></button>' +
+        '</div>';
+    },
+    entrega: function(){
+      var entrega = pedidoWizEntregaActual();
+      return '<div class="pw-q">¿Cómo se entrega?</div>' +
+        '<div class="pw-sub">Los campos siguientes cambian según tu elección</div>' +
+        '<div class="pw-tile-group">' +
+          '<button type="button" class="' + pwTile(entrega === "delivery") + '" data-entrega="delivery"><span class="pw-tile-icon">🚚</span><span class="pw-tile-label">Delivery</span><span class="pw-tile-sub">Se lleva al cliente</span></button>' +
+          '<button type="button" class="' + pwTile(entrega === "recojo") + '" data-entrega="recojo"><span class="pw-tile-icon">🏪</span><span class="pw-tile-label">Recojo en tienda</span><span class="pw-tile-sub">El cliente pasa a recoger</span></button>' +
+        '</div>';
+    },
+    cliente: function(){ return pedidoWizClienteNuevoModo ? pedidoWizRenderClienteNuevo() : pedidoWizRenderClienteBuscar(); },
+    direccion: function(){ return pedidoWizRenderDireccion(); },
+    productos: function(){ return pedidoWizRenderProductos(); },
+    fechahora: function(){ return pedidoWizRenderFechaHora(); },
+    pago: function(){ return pedidoWizRenderPago(); },
+    resumen: function(){ return pedidoWizRenderResumen(); }
+  };
+
+  function pedidoWizElegirTipoEntrega(){
+    // Recalcula draft.canal/masivoModo cada vez que tipo o entrega cambian -- se llama desde los
+    // pasos 2 y 3. Antes de tener AMBOS datos, canal queda null (no se puede avanzar más allá).
+    var tipo = pedidoWizTipo;
+    var entrega = pedidoWizEntregaActual();
+    if(!tipo) return;
+    var draft = pedidoDraft;
+    if(tipo === "masivo"){
+      draft.canal = "masivo";
+      if(entrega) draft.masivoModo = entrega;
+    } else if(entrega){
+      draft.canal = entrega === "delivery" ? "delivery" : "tienda";
+      if(draft.canal === "tienda" && !draft.cliente.direccion) draft.cliente.direccion = "Recojo en tienda";
+    }
+  }
+
+  // ---------- Paso: Cliente ----------
+  function pedidoWizBuscarClientes(q){
+    q = normalizeClienteName(q);
+    var map = CLIENTES || {};
+    var qTel = q.replace(/\s/g, "");
+    var out = [];
+    Object.keys(map).forEach(function(id){
+      var c = map[id];
+      var nombre = (c.nombre || "").toLowerCase();
+      var tel = (c.telefono || "").replace(/\s/g, "");
+      if(nombre.indexOf(q) > -1 || (qTel && tel.indexOf(qTel) > -1) || (c.ruc || "").indexOf(q) > -1 || (c.dni || "").indexOf(q) > -1){
+        out.push({ id:id, data:c });
+      }
+    });
+    out.sort(function(a, b){ return (a.data.nombre || "").localeCompare(b.data.nombre || ""); });
+    return out.slice(0, 25);
+  }
+  function pedidoWizRenderClienteBuscar(){
+    var draft = pedidoDraft;
+    if(draft.cliente && draft.cliente.nombre && draft.cliente.nombre.trim() && !pedidoWizClienteNuevoModo){
+      var c = draft.cliente;
+      var html = '<div class="pw-q">Cliente</div>' +
+        '<div class="pw-sub">Datos completados automáticamente desde la base de clientes</div>' +
+        '<div class="pw-client-chosen"><div><div class="pw-client-nombre">' + esc(c.nombre) + '</div>' +
+        '<div class="pw-client-meta">' + esc(c.telefono || "") + (c.ruc ? " · RUC " + esc(c.ruc) : "") + (c.dni ? " · DNI " + esc(c.dni) : "") + '</div></div>' +
+        '<button type="button" class="pw-link-btn pw-cambiar-cliente">Cambiar</button></div>';
+      html += '<div class="field-grid" style="margin-top:.9rem;">' +
+        pwFieldHtml("DNI", "pwClDni", c.dni, "dni") +
+        pwFieldHtml("RUC", "pwClRuc", c.ruc, "ruc") +
+        pwFieldHtml("Teléfono", "pwClTel", c.telefono, "telefono") +
+        pwFieldHtml("Correo", "pwClCorreo", c.correo, "correo") +
+        '</div>' +
+        pwCreditoHtml();
+      return html;
+    }
+    var q = pedidoWizClienteBuscar;
+    var results = q.trim() ? pedidoWizBuscarClientes(q) : [];
+    var html = '<div class="pw-q">¿Quién es el cliente?</div>' +
+      '<div class="pw-sub">Busca por nombre, razón social, RUC, DNI o teléfono</div>' +
+      '<div class="pw-search-box"><input type="text" class="pw-cliente-buscar-input" placeholder="Ej: mam…" value="' + esc(q) + '"></div>';
+    if(q.trim()){
+      if(results.length){
+        html += '<div class="pw-search-results">' + results.map(function(r){
+          var dirCount = pedidoWizDireccionesDe(r.id).length;
+          return '<div class="pw-result-card" data-id="' + esc(r.id) + '"><div><div class="pw-result-nombre">' + esc(r.data.nombre) + '</div>' +
+            '<div class="pw-result-meta">' + esc(r.data.telefono || "") + (r.data.ruc ? " · RUC " + esc(r.data.ruc) : "") + ' · ' + dirCount + ' dirección(es) guardada(s)</div></div>' +
+            '<span class="pw-result-go">Usar →</span></div>';
+        }).join("") + '</div>';
+      } else {
+        html += '<div class="pw-empty-hint">Sin coincidencias para "' + esc(q) + '". Puedes crear un cliente nuevo abajo.</div>';
+      }
+    }
+    html += '<div class="pw-divider-or">o</div>' +
+      '<button type="button" class="btn btn-sm pw-crear-cliente-btn" style="width:100%;">+ Registrar cliente nuevo</button>';
+    return html;
+  }
+  function pwFieldHtml(label, cls, value, campo){
+    return '<div class="field"><label>' + label + '</label><input type="text" class="' + cls + '" data-campo="' + campo + '" value="' + esc(value || "") + '"></div>';
+  }
+  function pwCreditoHtml(){
+    var draft = pedidoDraft;
+    var cur = num(draft.cliente.diasCredito);
+    return '<div class="field" style="margin-top:.9rem;"><label>Crédito</label><div class="shift-toggle">' +
+      [[0,"Contado"],[7,"7 días"],[15,"15 días"]].map(function(p){
+        return '<button type="button" class="shift-btn' + (cur === p[0] ? " active" : "") + ' pw-credito-btn" data-dias="' + p[0] + '">' + p[1] + '</button>';
+      }).join("") + '</div></div>';
+  }
+  function pedidoWizRenderClienteNuevo(){
+    var draft = pedidoDraft;
+    var c = draft.cliente;
+    var dup = null;
+    if(c.telefono && c.telefono.replace(/\s/g, "").length >= 6){
+      var tel = c.telefono.replace(/\s/g, "");
+      Object.keys(CLIENTES || {}).forEach(function(id){
+        if(dup) return;
+        var x = CLIENTES[id];
+        if(x.telefono && x.telefono.replace(/\s/g, "") === tel) dup = { id:id, data:x };
+      });
+    }
+    if(!dup && c.ruc && c.ruc.length >= 8){
+      Object.keys(CLIENTES || {}).forEach(function(id){ if(!dup && CLIENTES[id].ruc === c.ruc) dup = { id:id, data:CLIENTES[id] }; });
+    }
+    if(!dup && c.dni && c.dni.length >= 8){
+      Object.keys(CLIENTES || {}).forEach(function(id){ if(!dup && CLIENTES[id].dni === c.dni) dup = { id:id, data:CLIENTES[id] }; });
+    }
+    var html = '<div class="pw-q">Cliente nuevo</div>' +
+      '<div class="pw-sub">Se guardará para no volver a digitarlo la próxima vez</div>' +
+      pwFieldHtml("Nombre / Razón social", "pwCnNombre", c.nombre, "nombre") +
+      '<div class="field-grid" style="margin-top:.7rem;">' +
+      pwFieldHtml("Teléfono", "pwCnTel", c.telefono, "telefono") +
+      pwFieldHtml("DNI", "pwCnDni", c.dni, "dni") +
+      pwFieldHtml("RUC", "pwCnRuc", c.ruc, "ruc") +
+      pwFieldHtml("Correo", "pwCnCorreo", c.correo, "correo") +
+      '</div>' + pwCreditoHtml();
+    if(dup){
+      html += '<div class="pw-dup-warning">⚠️ Ya existe un cliente con estos datos: <b>' + esc(dup.data.nombre) + '</b> (' + esc(dup.data.telefono || "") + ').' +
+        '<div style="margin-top:.5rem;"><button type="button" class="btn btn-primary pw-usar-existente-btn" data-id="' + esc(dup.id) + '">Usar este cliente existente</button></div></div>';
+    }
+    html += '<div class="pw-divider-or">o</div><button type="button" class="btn btn-sm pw-buscar-existente-btn" style="width:100%;">← Buscar un cliente existente</button>';
+    return html;
+  }
+  var PEDIDO_WIZ_STEP_WIRE = {
+    origen: function(body){
+      body.querySelectorAll("[data-origen]").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          pedidoDraft.origen = btn.getAttribute("data-origen");
+          pedidoWizNext();
+        });
+      });
+    },
+    tipo: function(body){
+      body.querySelectorAll("[data-tipo]").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          pedidoWizTipo = btn.getAttribute("data-tipo");
+          pedidoWizElegirTipoEntrega();
+          pedidoWizNext();
+        });
+      });
+    },
+    entrega: function(body){
+      body.querySelectorAll("[data-entrega]").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          if(!pedidoWizTipo) pedidoWizTipo = pedidoWizTipoActual();
+          var draft = pedidoDraft;
+          var entrega = btn.getAttribute("data-entrega");
+          if(pedidoWizTipo === "masivo"){ draft.canal = "masivo"; draft.masivoModo = entrega; }
+          else {
+            draft.canal = entrega === "delivery" ? "delivery" : "tienda";
+            if(draft.canal === "tienda" && !draft.cliente.direccion) draft.cliente.direccion = "Recojo en tienda";
+          }
+          pedidoWizNext();
+        });
+      });
+    },
+    cliente: function(body){
+      var draft = pedidoDraft;
+      if(draft.cliente && draft.cliente.nombre && draft.cliente.nombre.trim() && !pedidoWizClienteNuevoModo){
+        body.querySelectorAll("[data-campo]").forEach(function(input){
+          input.addEventListener("input", function(){
+            draft.cliente[input.getAttribute("data-campo")] = input.value;
+          });
+        });
+        var cambiarBtn = body.querySelector(".pw-cambiar-cliente");
+        if(cambiarBtn) cambiarBtn.addEventListener("click", function(){
+          draft.cliente = { nombre:"", dni:"", ruc:"", direccion:"", referencia:"", telefono:"", correo:"", diasCredito:0 };
+          pedidoWizClienteId = null;
+          pedidoWizClienteBuscar = "";
+          renderPanel();
+        });
+        body.querySelectorAll(".pw-credito-btn").forEach(function(btn){
+          btn.addEventListener("click", function(){ draft.cliente.diasCredito = +btn.getAttribute("data-dias"); renderPanel(); });
+        });
+        return;
+      }
+      var buscarInput = body.querySelector(".pw-cliente-buscar-input");
+      if(buscarInput){
+        buscarInput.addEventListener("input", function(){
+          pedidoWizClienteBuscar = buscarInput.value;
+          pedidoWizRenderStepOnly();
+        });
+      }
+      body.querySelectorAll(".pw-result-card").forEach(function(card){
+        card.addEventListener("click", function(){
+          var id = card.getAttribute("data-id");
+          var c = CLIENTES[id];
+          draft.cliente = {
+            nombre: c.nombre || "", dni: c.dni || "", ruc: c.ruc || "",
+            direccion: c.direccion || "", referencia: c.referencia || "",
+            telefono: c.telefono || "", correo: c.correo || "", diasCredito: num(c.diasCredito)
+          };
+          pedidoWizClienteId = id;
+          pedidoWizClienteBuscar = "";
+          renderPanel();
+        });
+      });
+      var crearBtn = body.querySelector(".pw-crear-cliente-btn");
+      if(crearBtn) crearBtn.addEventListener("click", function(){
+        draft.cliente = { nombre: pedidoWizClienteBuscar || "", dni:"", ruc:"", direccion:"", referencia:"", telefono:"", correo:"", diasCredito:0 };
+        pedidoWizClienteId = null;
+        pedidoWizClienteNuevoModo = true;
+        renderPanel();
+      });
+      // Nombre, teléfono, DNI y RUC recalculan el aviso de "cliente ya existe" al toque (ver
+      // pedidoWizRenderClienteNuevo) -- por eso, a diferencia de un campo suelto, sí necesitan
+      // volver a pintar el paso en cada tecla (pedidoWizRenderStepOnly conserva el foco). Correo
+      // no participa del aviso de duplicado, así que solo actualiza el draft sin repintar.
+      body.querySelectorAll("[data-campo]").forEach(function(input){
+        var campo = input.getAttribute("data-campo");
+        var recalculaDup = campo === "nombre" || campo === "telefono" || campo === "dni" || campo === "ruc";
+        input.addEventListener("input", function(){
+          draft.cliente[campo] = input.value;
+          if(recalculaDup) pedidoWizRenderStepOnly();
+        });
+      });
+      body.querySelectorAll(".pw-credito-btn").forEach(function(btn){
+        btn.addEventListener("click", function(){ draft.cliente.diasCredito = +btn.getAttribute("data-dias"); renderPanel(); });
+      });
+      var usarExistenteBtn = body.querySelector(".pw-usar-existente-btn");
+      if(usarExistenteBtn) usarExistenteBtn.addEventListener("click", function(){
+        var id = usarExistenteBtn.getAttribute("data-id");
+        var c = CLIENTES[id];
+        draft.cliente = {
+          nombre: c.nombre || "", dni: c.dni || "", ruc: c.ruc || "",
+          direccion: c.direccion || "", referencia: c.referencia || "",
+          telefono: c.telefono || "", correo: c.correo || "", diasCredito: num(c.diasCredito)
+        };
+        pedidoWizClienteId = id;
+        pedidoWizClienteNuevoModo = false;
+        renderPanel();
+      });
+      var buscarExistenteBtn = body.querySelector(".pw-buscar-existente-btn");
+      if(buscarExistenteBtn) buscarExistenteBtn.addEventListener("click", function(){
+        draft.cliente = { nombre:"", dni:"", ruc:"", direccion:"", referencia:"", telefono:"", correo:"", diasCredito:0 };
+        pedidoWizClienteId = null;
+        pedidoWizClienteNuevoModo = false;
+        renderPanel();
+      });
+    },
+    direccion: function(body){ pedidoWizWireDireccion(body); },
+    productos: function(body){ pedidoWizWireProductos(body); },
+    fechahora: function(body){ pedidoWizWireFechaHora(body); },
+    pago: function(body){ pedidoWizWirePago(body); },
+    resumen: function(body){ pedidoWizWireResumen(body); }
+  };
+
+  // ---------- Paso: Dirección ----------
+  function pedidoWizRenderDireccion(){
+    var draft = pedidoDraft;
+    if(!pedidoRequiereReparto(draft)){
+      return '<div class="pw-q">Dirección</div>' +
+        '<div class="pw-sub">Este pedido es para recojo en tienda -- no hace falta dirección.</div>' +
+        '<div class="pw-callout">🏪 El cliente (o su propio motorizado) pasa a recoger por la panadería.</div>';
+    }
+    var direcciones = pedidoWizDireccionesDe(pedidoWizClienteId);
+    var html = '<div class="pw-q">¿Dónde se entrega este pedido?</div>' +
+      '<div class="pw-sub">Direcciones guardadas de ' + esc((draft.cliente && draft.cliente.nombre) || "este cliente") + '</div>';
+    if(direcciones.length){
+      html += '<div class="pw-addr-list">' + direcciones.map(function(d){
+        var active = draft.cliente.direccion === d.texto && !pedidoWizDireccionNuevaAbierta;
+        return '<div class="pw-addr-opt' + (active ? " active" : "") + '" data-texto="' + esc(d.texto) + '" data-ref="' + esc(d.referencia || "") + '">' +
+          '<span class="pw-addr-radio"></span><div><div class="pw-addr-txt">' + esc(d.texto) + '</div>' +
+          (d.referencia ? '<div class="pw-addr-ref">' + esc(d.referencia) + '</div>' : '') + '</div></div>';
+      }).join("") + '</div>';
+    } else if(!pedidoWizDireccionNuevaAbierta){
+      html += '<div class="pw-empty-hint">Este cliente todavía no tiene direcciones guardadas.</div>';
+    }
+    if(!pedidoWizDireccionNuevaAbierta){
+      html += '<button type="button" class="btn btn-sm pw-nueva-direccion-btn" style="width:100%; margin-top:.6rem;">+ Nueva dirección</button>';
+    } else {
+      html += '<div class="pw-step-card-inset">' +
+        '<div class="field"><label>Dirección</label><input type="text" class="pw-dir-texto-input" value="' + esc(pedidoWizDireccionNuevaTexto) + '" placeholder="Av./Jr./Calle, número, distrito…"></div>' +
+        '<div class="field" style="margin-top:.6rem;"><label>Referencia</label><input type="text" class="pw-dir-ref-input" value="' + esc(pedidoWizDireccionNuevaRef) + '" placeholder="Edificio, piso, entre calles…"></div>' +
+        '<div class="field" style="margin-top:.7rem;"><label>¿Guardar esta dirección para futuros pedidos?</label><div class="shift-toggle">' +
+          '<button type="button" class="shift-btn' + (pedidoWizDireccionGuardar === true ? " active" : "") + ' pw-dir-guardar-si">Sí, guardar</button>' +
+          '<button type="button" class="shift-btn' + (pedidoWizDireccionGuardar === false ? " active" : "") + ' pw-dir-guardar-no">No, solo este pedido</button>' +
+        '</div></div>' +
+        '<div style="display:flex; gap:.5rem; margin-top:.8rem;">' +
+          '<button type="button" class="btn btn-sm pw-dir-cancelar-btn">Cancelar</button>' +
+          '<button type="button" class="btn btn-primary btn-sm pw-dir-usar-btn">Usar esta dirección</button>' +
+        '</div></div>';
+    }
+    html += '<div class="field" style="margin-top:1rem;">';
+    if(draft.canal === "delivery"){
+      html += '<label>Monto delivery (S/)</label><input type="number" step="0.5" class="pw-delivery-monto-input" value="' + num(draft.deliveryMonto) + '">';
+    } else {
+      html += '<label>Monto delivery por entrega (S/)</label><input type="number" step="0.5" class="pw-delivery-rate-input" value="' + num(draft.masivoDeliveryRate) + '">';
+    }
+    html += '</div>';
+    return html;
+  }
+  function pedidoWizWireDireccion(body){
+    var draft = pedidoDraft;
+    body.querySelectorAll(".pw-addr-opt").forEach(function(opt){
+      opt.addEventListener("click", function(){
+        draft.cliente.direccion = opt.getAttribute("data-texto");
+        draft.cliente.referencia = opt.getAttribute("data-ref");
+        pedidoWizDireccionNuevaAbierta = false;
+        renderPanel();
+      });
+    });
+    var nuevaBtn = body.querySelector(".pw-nueva-direccion-btn");
+    if(nuevaBtn) nuevaBtn.addEventListener("click", function(){
+      pedidoWizDireccionNuevaAbierta = true;
+      pedidoWizDireccionNuevaTexto = ""; pedidoWizDireccionNuevaRef = ""; pedidoWizDireccionGuardar = null;
+      renderPanel();
+    });
+    var textoInput = body.querySelector(".pw-dir-texto-input");
+    if(textoInput) textoInput.addEventListener("input", function(){ pedidoWizDireccionNuevaTexto = textoInput.value; });
+    var refInput = body.querySelector(".pw-dir-ref-input");
+    if(refInput) refInput.addEventListener("input", function(){ pedidoWizDireccionNuevaRef = refInput.value; });
+    var siBtn = body.querySelector(".pw-dir-guardar-si");
+    if(siBtn) siBtn.addEventListener("click", function(){ pedidoWizDireccionGuardar = true; renderPanel(); });
+    var noBtn = body.querySelector(".pw-dir-guardar-no");
+    if(noBtn) noBtn.addEventListener("click", function(){ pedidoWizDireccionGuardar = false; renderPanel(); });
+    var cancelarBtn = body.querySelector(".pw-dir-cancelar-btn");
+    if(cancelarBtn) cancelarBtn.addEventListener("click", function(){ pedidoWizDireccionNuevaAbierta = false; renderPanel(); });
+    var usarBtn = body.querySelector(".pw-dir-usar-btn");
+    if(usarBtn) usarBtn.addEventListener("click", function(){
+      if(!pedidoWizDireccionNuevaTexto.trim()){ showToast("Escribe la dirección antes de continuar."); return; }
+      draft.cliente.direccion = pedidoWizDireccionNuevaTexto.trim();
+      draft.cliente.referencia = pedidoWizDireccionNuevaRef.trim();
+      if(pedidoWizDireccionGuardar){
+        pedidoWizGuardarDireccionParaCliente(pedidoWizClienteId, { texto: draft.cliente.direccion, referencia: draft.cliente.referencia });
+      }
+      pedidoWizDireccionNuevaAbierta = false;
+      renderPanel();
+    });
+    var montoInput = body.querySelector(".pw-delivery-monto-input");
+    if(montoInput) montoInput.addEventListener("input", function(){ draft.deliveryMonto = num(montoInput.value); });
+    var rateInput = body.querySelector(".pw-delivery-rate-input");
+    if(rateInput) rateInput.addEventListener("input", function(){ draft.masivoDeliveryRate = num(rateInput.value); });
+  }
+
+  // ---------- Paso: Productos ----------
+  function pedidoWizRenderProductos(){
+    var draft = pedidoDraft;
+    var q = pedidoWizProductoBuscar;
+    var catalogo = buildCatalogNameList();
+    var results = q.trim() ? catalogo.filter(function(n){ return n.toLowerCase().indexOf(q.trim().toLowerCase()) > -1; }).slice(0, 20) : [];
+    // Regla del negocio: los productos SOLO se eligen del catálogo oficial -- no existe forma
+    // de escribir un producto libre en este paso. Nombre y precio vienen fijos del catálogo y
+    // quedan bloqueados siempre; lo único que la persona edita a mano es la cantidad.
+    var html = '<div class="pw-q">Productos</div>' +
+      '<div class="pw-sub">Busca en el catálogo y toca para agregar -- nombre y precio vienen fijos de la lista oficial</div>' +
+      '<div class="pw-search-box"><input type="text" class="pw-producto-buscar-input" placeholder="Ej: Francés, Croissant…" value="' + esc(q) + '"></div>';
+    if(q.trim()){
+      html += '<div class="pw-prod-results">';
+      if(results.length){
+        results.forEach(function(n){
+          var precio = getPrecioFor(n);
+          // Formato pedido: "Producto — Precio — Unidad" (ej. "Francés — S/ 0.80 c/u") -- en el
+          // sistema la cantidad de un pedido siempre cuenta unidades (piezas/paquetes), nunca
+          // peso ni volumen suelto, así que la unidad es siempre "c/u" para todo el catálogo.
+          html += '<div class="pw-prod-row" data-nombre="' + esc(n) + '"><span class="pw-prod-nombre">' + esc(n) + '</span><span class="pw-prod-precio">— ' + (precio != null ? "S/ " + fmt(precio) + " c/u" : "sin precio") + '</span></div>';
+        });
+      } else {
+        html += '<div class="pw-empty-hint">Sin coincidencias en el catálogo para "' + esc(q.trim()) + '". Los productos solo se pueden elegir de la lista oficial -- revisa la búsqueda o el catálogo.</div>';
+      }
+      html += '</div>';
+    }
+    html += '<div class="pw-items-list">';
+    if(!draft.items.length || !draft.items.some(function(it){ return it.producto; })){
+      html += '<div class="pw-empty-hint">Aún no agregas productos. Búscalos arriba.</div>';
+    } else {
+      draft.items.forEach(function(it, idx){
+        if(!it.producto && draft.items.length > 1) return; // línea vacía sobrante (rara vez)
+        html += '<div class="pw-item-row" data-idx="' + idx + '"><div class="pw-item-top"><div>' +
+          '<div class="pw-item-nombre">' + esc(it.producto || "(sin producto)") + '</div>' +
+          '<div class="pw-item-precio-unit">🔒 S/ ' + fmt(it.precio) + ' c/u (precio del catálogo)</div></div>' +
+          '<button type="button" class="pw-item-del" data-idx="' + idx + '">✕</button></div>' +
+          '<div class="pw-item-bottom"><div class="pw-qty-stepper">' +
+          '<button type="button" class="pw-qty-btn" data-idx="' + idx + '" data-delta="-1">−</button>' +
+          '<input type="number" class="pw-qty-input" data-idx="' + idx + '" min="0" step="any" value="' + it.cantidad + '">' +
+          '<button type="button" class="pw-qty-btn" data-idx="' + idx + '" data-delta="1">+</button></div>' +
+          '<div class="pw-item-subtotal" id="pwItemSubtotal' + idx + '">S/ ' + fmt(num(it.cantidad) * num(it.precio)) + '</div></div>' +
+          '<div class="field" style="margin-top:.4rem;"><label>Observación (opcional)</label><input type="text" class="pw-item-obs-input" data-idx="' + idx + '" value="' + esc(it.obs || "") + '" placeholder="Ej: poca grasa, cortado en 10…"></div>';
+        if(draft.canal === "masivo"){
+          html += '<div class="field" style="margin-top:.4rem;"><label>Fecha de entrega</label><input type="date" class="pw-item-fecha-input" data-idx="' + idx + '" value="' + esc(it.fecha) + '">' +
+            '<button type="button" class="btn btn-sm pw-item-repetir-btn" data-idx="' + idx + '" style="margin-top:.4rem;">📅 Repetir esta línea en más fechas</button></div>';
+        }
+        html += '</div>';
+      });
+    }
+    html += '</div>';
+    var validItems = draft.items.filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
+    if(validItems.length){
+      html += '<div class="pw-total-line"><span>Subtotal productos</span><span id="pwSubtotalProductos">S/ ' + fmt(pedidoSubtotal({ items:validItems })) + '</span></div>';
+    }
+    return html;
+  }
+  function pedidoWizAgregarProducto(nombre){
+    var draft = pedidoDraft;
+    // Guarda de seguridad: pase lo que pase con la UI, nunca se agrega un producto que no esté
+    // en el catálogo oficial (buildCatalogNameList) -- no hay "producto libre" en el asistente.
+    if(buildCatalogNameList().indexOf(nombre) === -1) return;
+    var existente = draft.items.filter(function(it){ return it.producto === nombre; })[0];
+    if(existente){ existente.cantidad = num(existente.cantidad) + 1; }
+    else {
+      var precio = getPrecioFor(nombre) || 0;
+      var vacio = draft.items.filter(function(it){ return !it.producto; })[0];
+      var nuevo = { producto: nombre, cantidad:1, precio: precio, fecha: draft.fechaDefault, obs:"" };
+      if(vacio){ Object.assign(vacio, nuevo); } else { draft.items.push(nuevo); }
+    }
+    if(draft.canal === "masivo") sortPedidoItemsPorFecha();
+  }
+  function pedidoWizWireProductos(body){
+    var draft = pedidoDraft;
+    var buscarInput = body.querySelector(".pw-producto-buscar-input");
+    if(buscarInput) buscarInput.addEventListener("input", function(){
+      pedidoWizProductoBuscar = buscarInput.value;
+      pedidoWizRenderStepOnly();
+    });
+    body.querySelectorAll(".pw-prod-row[data-nombre]").forEach(function(row){
+      row.addEventListener("click", function(){
+        pedidoWizAgregarProducto(row.getAttribute("data-nombre"));
+        pedidoWizProductoBuscar = "";
+        renderPanel();
+      });
+    });
+    body.querySelectorAll(".pw-item-del").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        draft.items.splice(+btn.getAttribute("data-idx"), 1);
+        if(!draft.items.length) draft.items.push({ producto:"", cantidad:1, precio:0, fecha: draft.fechaDefault, obs:"" });
+        renderPanel();
+      });
+    });
+    body.querySelectorAll(".pw-qty-btn").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var idx = +btn.getAttribute("data-idx");
+        var it = draft.items[idx];
+        it.cantidad = Math.max(0, num(it.cantidad) + (+btn.getAttribute("data-delta")));
+        renderPanel();
+      });
+    });
+    body.querySelectorAll(".pw-qty-input").forEach(function(input){
+      input.addEventListener("input", function(){
+        var idx = +input.getAttribute("data-idx");
+        var n = parseFloat(input.value);
+        draft.items[idx].cantidad = isFinite(n) ? n : 0;
+        var sub = document.getElementById("pwItemSubtotal" + idx);
+        if(sub) sub.textContent = "S/ " + fmt(num(draft.items[idx].cantidad) * num(draft.items[idx].precio));
+        var subtotalEl = document.getElementById("pwSubtotalProductos");
+        var validItems = draft.items.filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
+        if(subtotalEl) subtotalEl.textContent = "S/ " + fmt(pedidoSubtotal({ items: validItems }));
+        var footer = document.querySelector("#pedidoWizPanel .pw-footer");
+        if(footer) pedidoWizRenderFooter(footer);
+      });
+      input.addEventListener("blur", function(){ renderPanel(); });
+    });
+    body.querySelectorAll(".pw-item-obs-input").forEach(function(input){
+      input.addEventListener("input", function(){ draft.items[+input.getAttribute("data-idx")].obs = input.value; });
+    });
+    body.querySelectorAll(".pw-item-fecha-input").forEach(function(input){
+      input.addEventListener("change", function(){
+        draft.items[+input.getAttribute("data-idx")].fecha = input.value || draft.fechaDefault;
+        sortPedidoItemsPorFecha();
+        renderPanel();
+      });
+    });
+    body.querySelectorAll(".pw-item-repetir-btn").forEach(function(btn){
+      btn.addEventListener("click", function(){ pedidoWizRepetirLinea(+btn.getAttribute("data-idx")); });
+    });
+  }
+  function pedidoWizRepetirLinea(idx){
+    var draft = pedidoDraft;
+    var item = draft.items[idx];
+    if(!item) return;
+    if(!item.producto || !item.producto.trim()){ showToast("Completa el producto de esta línea antes de repetirla."); return; }
+    var desde = item.fecha || draft.fechaDefault;
+    var hastaStr = prompt('Vas a repetir "' + item.producto + '" (mismo producto, cantidad y precio) desde el ' + fmtFechaCorta(desde) + ' hasta qué fecha.\n\nEscribe la fecha final (AAAA-MM-DD):', desde);
+    if(hastaStr === null) return;
+    hastaStr = hastaStr.trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(hastaStr) || isNaN(new Date(hastaStr + "T12:00:00").getTime())){ showToast("Fecha no válida. Usa el formato AAAA-MM-DD."); return; }
+    if(hastaStr <= desde){ showToast("La fecha final debe ser posterior a la de esta línea."); return; }
+    var saltarStr = prompt('¿Hay algún día de la semana que se deba saltar (no entregar)?\n\nEscribe las letras separadas por coma -- D=Domingo, L=Lunes, M=Martes, X=Miércoles, J=Jueves, V=Viernes, S=Sábado.\nDéjalo en blanco para repetir TODOS los días.', "");
+    if(saltarStr === null) return;
+    var letras = saltarStr.toUpperCase().split(",").map(function(s){ return s.trim(); }).filter(function(s){ return s; });
+    var fechasNuevas = generarFechasRepetidas(desde, hastaStr, letras);
+    if(fechasNuevas.length === 0){ showToast("No se generó ninguna fecha nueva -- revisa el rango o los días a saltar."); return; }
+    var nuevasLineas = fechasNuevas.map(function(f){
+      return { producto: item.producto, cantidad: item.cantidad, precio: item.precio, fecha: f, obs: item.obs || "" };
+    });
+    draft.items.splice.apply(draft.items, [idx + 1, 0].concat(nuevasLineas));
+    sortPedidoItemsPorFecha();
+    showToast(nuevasLineas.length + " línea" + (nuevasLineas.length === 1 ? "" : "s") + " nueva" + (nuevasLineas.length === 1 ? "" : "s") + " agregada" + (nuevasLineas.length === 1 ? "" : "s") + ".");
+    renderPanel();
+  }
+
+  // ---------- Paso: Fecha y hora ----------
+  function pedidoWizRenderFechaHora(){
+    var draft = pedidoDraft;
+    var esReparto = pedidoRequiereReparto(draft);
+    var html = "";
+    if(draft.canal !== "masivo"){
+      html += '<div class="pw-q">Fecha ' + (esReparto ? "y hora de entrega" : "y hora de recojo") + '</div>' +
+        '<div class="pw-sub">' + (esReparto ? "La app calcula sola cuándo debe estar listo" : "La hora de recojo es la hora en que debe estar listo") + '</div>' +
+        '<div class="field"><label>Fecha</label>';
+      if(pedidoWizDatePanelOpen){ html += pedidoWizRenderCalendario(); }
+      else {
+        html += '<div class="pw-hora-chosen"><div><div class="pw-lbl">Seleccionada</div><div class="pw-val">' + esc(fmtFechaLarga(draft.fechaDefault)) + '</div></div>' +
+          '<button type="button" class="btn btn-sm pw-abrir-cal-btn">📅 Cambiar fecha</button></div>';
+      }
+      html += '</div>';
+    } else {
+      html += '<div class="pw-q">Hora en que debe estar listo</div>' +
+        '<div class="pw-sub">Cada línea de producto ya tiene su propia fecha de entrega (paso anterior)</div>';
+    }
+    html += '<div class="field"><label>' + (esReparto ? "Hora en que debe llegar al cliente" : "Hora en que debe estar listo") + '</label>';
+    if(esReparto){
+      html += '<div class="hint" style="margin:-.15rem 0 .4rem;">Se resta el traslado (' + pedidoTrasladoMinutos() + ' min) para calcular cuándo debe estar listo.</div>';
+    }
+    if(draft.hora && !pedidoWizTimePanelOpen){
+      html += '<div class="pw-hora-chosen"><div><div class="pw-lbl">Seleccionada</div><div class="pw-val">' + esc(fmtHora12(draft.hora)) + '</div></div>' +
+        '<button type="button" class="btn btn-sm pw-abrir-hora-btn">Cambiar hora</button></div>';
+    } else if(!pedidoWizTimePanelOpen){
+      html += '<button type="button" class="pw-time-trigger pw-abrir-hora-btn">🕐 Seleccionar hora</button>';
+    }
+    if(pedidoWizTimePanelOpen){ html += pedidoWizRenderTimePanel(); }
+    html += '</div>';
+    if(draft.hora){
+      var listo = pedidoWizHoraListoTxt();
+      if(esReparto){
+        html += '<div class="pw-callout">🕐 Debe estar listo a las <b>' + esc(listo) + '</b> <span class="pw-muted">para salir y llegar a las ' + esc(fmtHora12(draft.hora)) + '</span></div>';
+      } else {
+        html += '<div class="pw-callout">🕐 Listo para recojo: <b>' + esc(listo) + '</b></div>';
+      }
+    }
+    return html;
+  }
+  function pedidoWizHoraListoTxt(){
+    var draft = pedidoDraft;
+    if(!draft.hora) return "";
+    var parts = draft.hora.split(":");
+    var totalMin = (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+    if(pedidoRequiereReparto(draft)){
+      totalMin -= pedidoTrasladoMinutos();
+      totalMin = ((totalMin % 1440) + 1440) % 1440;
+    }
+    var h = Math.floor(totalMin / 60), m = totalMin % 60;
+    var hhmm = (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
+    return fmtHora12(hhmm);
+  }
+  function pedidoWizRenderCalendario(){
+    var draft = pedidoDraft;
+    if(pedidoWizCalYear == null){
+      var d = new Date(draft.fechaDefault + "T12:00:00");
+      pedidoWizCalYear = d.getFullYear(); pedidoWizCalMonth = d.getMonth();
+    }
+    var first = new Date(pedidoWizCalYear, pedidoWizCalMonth, 1);
+    var startWeekday = first.getDay();
+    var totalDays = new Date(pedidoWizCalYear, pedidoWizCalMonth + 1, 0).getDate();
+    var hoy = todayISO();
+    var cells = [];
+    for(var i = 0; i < startWeekday; i++) cells.push("");
+    for(var day = 1; day <= totalDays; day++){
+      var mm = (pedidoWizCalMonth + 1 < 10 ? "0" : "") + (pedidoWizCalMonth + 1);
+      var dd = (day < 10 ? "0" : "") + day;
+      cells.push(pedidoWizCalYear + "-" + mm + "-" + dd);
+    }
+    var html = '<div class="pw-time-panel"><div class="pw-cal-nav">' +
+      '<button type="button" class="pw-nav-btn pw-cal-prev">‹</button>' +
+      '<h4>' + capitalize(MESES_LARGO[pedidoWizCalMonth].toLowerCase()) + ' ' + pedidoWizCalYear + '</h4>' +
+      '<button type="button" class="pw-nav-btn pw-cal-next">›</button></div>' +
+      '<div class="pw-cal-weekdays">' + ["D","L","M","M","J","V","S"].map(function(w){ return "<span>" + w + "</span>"; }).join("") + '</div>' +
+      '<div class="pw-cal-grid">' + cells.map(function(iso){
+        if(!iso) return '<span class="pw-cal-cell empty"></span>';
+        var day2 = parseInt(iso.split("-")[2], 10);
+        var cls = "pw-cal-cell";
+        var past = iso < hoy;
+        if(iso === hoy) cls += " today";
+        if(iso === draft.fechaDefault) cls += " selected";
+        if(past) cls += " past";
+        return '<button type="button" class="' + cls + '" data-iso="' + iso + '" ' + (past ? "disabled" : "") + '>' + day2 + '</button>';
+      }).join("") + '</div>' +
+      '<div class="pw-time-panel-actions"><button type="button" class="btn pw-cal-cancelar">Cancelar</button></div></div>';
+    return html;
+  }
+  function pedidoWizRenderTimePanel(){
+    if(pedidoWizTimePanelAdvanced) return pedidoWizRenderTimePanelAvanzado();
+    var slots = [];
+    for(var tm = 6 * 60; tm <= 21 * 60 + 30; tm += 30) slots.push(tm);
+    return '<div class="pw-time-panel"><h4>Horarios disponibles</h4><div class="pw-quick-grid">' +
+      slots.map(function(tm){
+        var h = Math.floor(tm / 60), m = tm % 60;
+        var hhmm = (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
+        return '<button type="button" class="pw-qg-btn" data-hhmm="' + hhmm + '">' + fmtHora12(hhmm).replace(" a. m.", "a.m.").replace(" p. m.", "p.m.") + '</button>';
+      }).join("") + '</div>' +
+      '<button type="button" class="pw-panel-link-btn pw-hora-avanzado">Más horarios (hora exacta) →</button>' +
+      '<div class="pw-time-panel-actions"><button type="button" class="btn pw-hora-cancelar">Cancelar</button></div></div>';
+  }
+  function pedidoWizRenderTimePanelAvanzado(){
+    var tp = pedidoWizTp;
+    var minDecena = Math.floor(tp.m / 10) * 10;
+    var minUnidad = tp.m % 10;
+    // Cualquier minuto (0-59), todo a base de toques -- sin escribir ni usar el selector nativo
+    // del navegador. Se elige en dos toques: primero la decena (0/10/20/30/40/50), después la
+    // unidad a sumarle (0-9) -- por ejemplo decena "40" + unidad "1" = minuto 41. Así se cubren
+    // los 60 minutos con solo 16 botones en vez de 60, sin agregar controles de más.
+    return '<div class="pw-time-panel"><button type="button" class="pw-panel-back-btn pw-hora-simple">← Horarios rápidos</button>' +
+      '<h4>Hora</h4><div class="pw-exact-row">' +
+      [1,2,3,4,5,6,7,8,9,10,11,12].map(function(h){ return '<button type="button" class="pw-exact-chip' + (tp.h12 === h ? " active" : "") + ' pw-tp-h" data-h="' + h + '">' + h + '</button>'; }).join("") + '</div>' +
+      '<h4 style="margin-top:.7rem;">Minutos <span class="pw-muted">(' + (tp.m < 10 ? "0" + tp.m : tp.m) + ')</span></h4>' +
+      '<div class="pw-exact-row">' +
+      [0,10,20,30,40,50].map(function(d){ return '<button type="button" class="pw-exact-chip' + (minDecena === d ? " active" : "") + ' pw-tp-m-dec" data-md="' + d + '">' + d + '</button>'; }).join("") + '</div>' +
+      '<div class="pw-exact-row" style="margin-top:.3rem;">' +
+      [0,1,2,3,4,5,6,7,8,9].map(function(u){ return '<button type="button" class="pw-exact-chip' + (minUnidad === u ? " active" : "") + ' pw-tp-m-uni" data-mu="' + u + '">+' + u + '</button>'; }).join("") + '</div>' +
+      '<h4 style="margin-top:.7rem;">Periodo</h4><div class="pw-exact-row">' +
+      ["AM","PM"].map(function(ap){ return '<button type="button" class="pw-exact-chip' + (tp.ampm === ap ? " active" : "") + ' pw-tp-ampm" data-ampm="' + ap + '">' + ap + '</button>'; }).join("") + '</div>' +
+      '<div class="pw-quickadd-row">' +
+      '<button type="button" class="pw-quickadd-btn pw-tp-rapido" data-add="0">Ahora</button>' +
+      '<button type="button" class="pw-quickadd-btn pw-tp-rapido" data-add="30">+30 min</button>' +
+      '<button type="button" class="pw-quickadd-btn pw-tp-rapido" data-add="60">+1 h</button>' +
+      '<button type="button" class="pw-quickadd-btn pw-tp-rapido" data-add="120">+2 h</button></div>' +
+      '<div class="pw-time-panel-actions"><button type="button" class="btn pw-hora-cancelar">Cancelar</button>' +
+      '<button type="button" class="btn btn-primary pw-tp-confirmar">Confirmar hora</button></div></div>';
+  }
+  function pedidoWizWireFechaHora(body){
+    var draft = pedidoDraft;
+    var abrirCalBtn = body.querySelector(".pw-abrir-cal-btn");
+    if(abrirCalBtn) abrirCalBtn.addEventListener("click", function(){
+      pedidoWizDatePanelOpen = true;
+      var d = new Date(draft.fechaDefault + "T12:00:00");
+      pedidoWizCalYear = d.getFullYear(); pedidoWizCalMonth = d.getMonth();
+      renderPanel();
+    });
+    body.querySelectorAll(".pw-cal-prev,.pw-cal-next").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var delta = btn.classList.contains("pw-cal-prev") ? -1 : 1;
+        pedidoWizCalMonth += delta;
+        if(pedidoWizCalMonth < 0){ pedidoWizCalMonth = 11; pedidoWizCalYear--; }
+        if(pedidoWizCalMonth > 11){ pedidoWizCalMonth = 0; pedidoWizCalYear++; }
+        renderPanel();
+      });
+    });
+    body.querySelectorAll(".pw-cal-grid [data-iso]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        draft.fechaDefault = btn.getAttribute("data-iso");
+        if(draft.canal !== "masivo") draft.items.forEach(function(it){ it.fecha = draft.fechaDefault; });
+        pedidoWizDatePanelOpen = false;
+        renderPanel();
+      });
+    });
+    var calCancelar = body.querySelector(".pw-cal-cancelar");
+    if(calCancelar) calCancelar.addEventListener("click", function(){ pedidoWizDatePanelOpen = false; renderPanel(); });
+    var abrirHoraBtn = body.querySelector(".pw-abrir-hora-btn");
+    if(abrirHoraBtn) abrirHoraBtn.addEventListener("click", function(){
+      pedidoWizTimePanelOpen = true; pedidoWizTimePanelAdvanced = false;
+      if(draft.hora){
+        var parts = draft.hora.split(":");
+        var h24 = parseInt(parts[0], 10) || 0, m = parseInt(parts[1], 10) || 0;
+        var h12 = h24 % 12; if(h12 === 0) h12 = 12;
+        pedidoWizTp = { h12:h12, m:m, ampm: h24 >= 12 ? "PM" : "AM" };
+      } else { pedidoWizTp = { h12:6, m:0, ampm:"PM" }; }
+      renderPanel();
+    });
+    body.querySelectorAll(".pw-qg-btn").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        draft.hora = btn.getAttribute("data-hhmm");
+        pedidoWizTimePanelOpen = false; pedidoWizTimePanelAdvanced = false;
+        renderPanel();
+      });
+    });
+    var avanzadoBtn = body.querySelector(".pw-hora-avanzado");
+    if(avanzadoBtn) avanzadoBtn.addEventListener("click", function(){ pedidoWizTimePanelAdvanced = true; renderPanel(); });
+    var simpleBtn = body.querySelector(".pw-hora-simple");
+    if(simpleBtn) simpleBtn.addEventListener("click", function(){ pedidoWizTimePanelAdvanced = false; renderPanel(); });
+    body.querySelectorAll(".pw-tp-h").forEach(function(btn){ btn.addEventListener("click", function(){ pedidoWizTp.h12 = +btn.getAttribute("data-h"); renderPanel(); }); });
+    // Minuto exacto (0-59) en dos toques: decena + unidad -- ver comentario en
+    // pedidoWizRenderTimePanelAvanzado. Cada botón solo cambia su propia mitad del minuto.
+    body.querySelectorAll(".pw-tp-m-dec").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var unidad = pedidoWizTp.m % 10;
+        pedidoWizTp.m = (+btn.getAttribute("data-md")) + unidad;
+        renderPanel();
+      });
+    });
+    body.querySelectorAll(".pw-tp-m-uni").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var decena = Math.floor(pedidoWizTp.m / 10) * 10;
+        pedidoWizTp.m = decena + (+btn.getAttribute("data-mu"));
+        renderPanel();
+      });
+    });
+    body.querySelectorAll(".pw-tp-ampm").forEach(function(btn){ btn.addEventListener("click", function(){ pedidoWizTp.ampm = btn.getAttribute("data-ampm"); renderPanel(); }); });
+    body.querySelectorAll(".pw-tp-rapido").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var now = new Date();
+        var mins = now.getHours() * 60 + now.getMinutes() + (+btn.getAttribute("data-add"));
+        mins = Math.round(mins / 5) * 5;
+        mins = ((mins % 1440) + 1440) % 1440;
+        var h = Math.floor(mins / 60), m = mins % 60;
+        draft.hora = (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
+        pedidoWizTimePanelOpen = false; pedidoWizTimePanelAdvanced = false;
+        renderPanel();
+      });
+    });
+    var tpConfirmar = body.querySelector(".pw-tp-confirmar");
+    if(tpConfirmar) tpConfirmar.addEventListener("click", function(){
+      var tp = pedidoWizTp;
+      var h24 = tp.h12 % 12; if(tp.ampm === "PM") h24 += 12;
+      draft.hora = (h24 < 10 ? "0" : "") + h24 + ":" + (tp.m < 10 ? "0" : "") + tp.m;
+      pedidoWizTimePanelOpen = false; pedidoWizTimePanelAdvanced = false;
+      renderPanel();
+    });
+    body.querySelectorAll(".pw-hora-cancelar").forEach(function(btn){
+      btn.addEventListener("click", function(){ pedidoWizTimePanelOpen = false; pedidoWizTimePanelAdvanced = false; renderPanel(); });
+    });
+  }
+
+  // ---------- Paso: Pago ----------
+  var PEDIDO_WIZ_PAGO_OPCIONES = [["Efectivo","💵"],["Yape","📱"],["Plin","📲"],["Transferencia","🏦"],["Tarjeta","💳"]];
+  function pedidoWizRenderPago(){
+    var draft = pedidoDraft;
+    var esConocido = PEDIDO_WIZ_PAGO_OPCIONES.some(function(o){ return o[0] === draft.tipoPago; });
+    var html = '<div class="pw-q">Forma de pago</div><div class="pw-sub">Selecciona una opción</div>' +
+      '<div class="pw-pago-chips">' + PEDIDO_WIZ_PAGO_OPCIONES.map(function(o){
+        return '<button type="button" class="pw-pago-chip' + (draft.tipoPago === o[0] ? " active" : "") + ' pw-pago-opcion" data-pago="' + o[0] + '"><span class="pw-tile-icon">' + o[1] + '</span>' + o[0] + '</button>';
+      }).join("") + '<button type="button" class="pw-pago-chip' + (pedidoWizPagoOtroModo || (draft.tipoPago && !esConocido) ? " active" : "") + ' pw-pago-otro"><span class="pw-tile-icon">✏️</span>Otro</button></div>';
+    if(pedidoWizPagoOtroModo || (draft.tipoPago && !esConocido)){
+      html += '<div class="field" style="margin-top:.6rem;"><label>¿Cuál?</label><input type="text" class="pw-pago-otro-input" value="' + esc(esConocido ? "" : draft.tipoPago) + '" placeholder="Ej: Izipay, depósito…"></div>';
+    }
+    html += '<div class="field" style="margin-top:.9rem;"><label class="pedido-checkbox-label' + (draft.pagado ? " is-checked" : "") + '"><input type="checkbox" class="pw-pagado-check"' + (draft.pagado ? " checked" : "") + '> Pagado</label></div>';
+    html += pedidoWizComprobanteHtml("comprobante", "Foto del Yape / Transferencia", draft.comprobante);
+    html += pedidoWizComprobanteHtml("comprobante2", "Foto de un segundo pago (opcional)", draft.comprobante2);
+    if(pedidoFaltaFotoComprobante(draft)){
+      html += '<div class="hint" style="color:var(--bad); font-weight:700; margin-top:.4rem;">Obligatorio: sube la foto del Yape/transferencia para poder guardar este pedido como pagado.</div>';
+    }
+    return html;
+  }
+  function pedidoWizComprobanteHtml(campo, label, valor){
+    return '<div class="field" style="margin-top:1rem;"><label>' + label + '</label>' +
+      '<div style="display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;">' +
+      (valor ? '<img src="' + valor + '" style="max-width:130px; max-height:130px; border-radius:6px; border:1px solid var(--border);">' : "") +
+      '<input type="file" accept="image/*" class="pw-comprobante-input" data-campo="' + campo + '">' +
+      (valor ? '<button type="button" class="btn btn-sm pw-comprobante-quitar" data-campo="' + campo + '">Quitar foto</button>' : "") +
+      '</div></div>';
+  }
+  function pedidoWizWirePago(body){
+    var draft = pedidoDraft;
+    body.querySelectorAll(".pw-pago-opcion").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        draft.tipoPago = btn.getAttribute("data-pago");
+        pedidoWizPagoOtroModo = false;
+        renderPanel();
+      });
+    });
+    var otroBtn = body.querySelector(".pw-pago-otro");
+    if(otroBtn) otroBtn.addEventListener("click", function(){
+      pedidoWizPagoOtroModo = true;
+      renderPanel();
+    });
+    var otroInput = body.querySelector(".pw-pago-otro-input");
+    if(otroInput) otroInput.addEventListener("input", function(){ draft.tipoPago = otroInput.value; });
+    var pagadoCheck = body.querySelector(".pw-pagado-check");
+    if(pagadoCheck) pagadoCheck.addEventListener("change", function(){ draft.pagado = pagadoCheck.checked; renderPanel(); });
+    body.querySelectorAll(".pw-comprobante-input").forEach(function(input){
+      input.addEventListener("change", function(){
+        var file = input.files && input.files[0];
+        if(!file) return;
+        var campo = input.getAttribute("data-campo");
+        showToast("Cargando foto…");
+        compressImageFile(file, function(dataUrl){
+          input.value = "";
+          if(!dataUrl){ showToast("No se pudo cargar la foto. Intenta con otra imagen."); return; }
+          draft[campo] = dataUrl;
+          showToast("Foto agregada.");
+          renderPanel();
+        });
+      });
+    });
+    body.querySelectorAll(".pw-comprobante-quitar").forEach(function(btn){
+      btn.addEventListener("click", function(){ draft[btn.getAttribute("data-campo")] = null; renderPanel(); });
+    });
+  }
+
+  // ---------- Paso: Resumen ----------
+  function pedidoWizRenderResumen(){
+    var draft = pedidoDraft;
+    var c = draft.cliente || {};
+    var validItems = draft.items.filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
+    var html = '<div class="pw-q">Revisar y confirmar</div><div class="pw-sub">Todo lo que se guardará en el pedido</div>';
+    html += pwResumenBlock("Cliente", esc(c.nombre) + (c.telefono ? '<span class="pw-resumen-sub">' + esc(c.telefono) + '</span>' : "") +
+      (c.ruc ? '<span class="pw-resumen-sub">RUC ' + esc(c.ruc) + '</span>' : "") + (c.dni ? '<span class="pw-resumen-sub">DNI ' + esc(c.dni) + '</span>' : ""));
+    var canalTxt = (CANAL_LABEL[draft.canal] || "—") + (draft.canal === "masivo" && draft.masivoModo ? " · " + (draft.masivoModo === "delivery" ? "Delivery" : "Recojo") : "");
+    html += pwResumenBlock("Entrega", canalTxt + '<span class="pw-resumen-sub">' + (ORIGEN_LABEL[draft.origen] || "") + '</span>');
+    if(pedidoRequiereReparto(draft)){
+      html += pwResumenBlock("Dirección", esc(c.direccion || "—") + (c.referencia ? '<span class="pw-resumen-sub">' + esc(c.referencia) + '</span>' : "") +
+        (pedidoDeliveryTotal(draft) ? '<span class="pw-resumen-sub">Costo delivery: S/ ' + fmt(pedidoDeliveryTotal(draft)) + '</span>' : ""));
+    }
+    if(draft.canal !== "masivo"){
+      html += pwResumenBlock("Fecha", esc(fmtFechaLarga(draft.fechaDefault)));
+    }
+    if(draft.hora){
+      html += pwResumenBlock("Hora", (pedidoRequiereReparto(draft) ? "Llega al cliente: " : "Recojo: ") + esc(fmtHora12(draft.hora)) +
+        '<span class="pw-resumen-sub">Debe estar listo: ' + esc(pedidoWizHoraListoTxt()) + '</span>');
+    }
+    var itemsHtml = validItems.map(function(it){
+      return '<div class="pw-resumen-item-row"><span>' + fmt(it.cantidad) + "x " + esc(it.producto) +
+        (draft.canal === "masivo" ? ' <span class="pw-muted">(' + esc(fmtFechaCorta(it.fecha)) + ')</span>' : "") + '</span><span>S/ ' + fmt(num(it.cantidad) * num(it.precio)) + '</span></div>';
+    }).join("");
+    html += pwResumenBlock("Productos", itemsHtml || "—");
+    html += pwResumenBlock("Pago", (draft.tipoPago || "—") + '<span class="pw-resumen-sub">' + (draft.pagado ? "Pagado" : "Pendiente de pago") + '</span>');
+    html += '<div class="field" style="margin-top:1rem;"><label>Atendido por</label><input type="text" class="pw-atendido-input" value="' + esc(draft.atendidoPor || "") + '" placeholder="¿Quién tomó este pedido?"></div>';
+    html += '<div class="field" style="margin-top:.7rem;"><label>Notas (opcional)</label><textarea class="pw-notas-input" placeholder="Cualquier detalle adicional…">' + esc(draft.notas || "") + '</textarea></div>';
+    html += '<div class="pw-total-line" style="font-size:1.05rem; margin-top:1rem;"><span>Total</span><span>S/ ' + fmt(pedidoSubtotal({ items: validItems }) + pedidoDeliveryTotal(draft)) + '</span></div>';
+    html += '<button type="button" class="btn btn-sm pw-vista-previa-btn" style="margin-top:.8rem;">Vista previa (cotización)</button>';
+    return html;
+  }
+  function pwResumenBlock(lbl, valHtml){
+    return '<div class="pw-resumen-block"><div class="pw-resumen-lbl">' + lbl + '</div><div class="pw-resumen-val">' + valHtml + '</div></div>';
+  }
+  function pedidoWizWireResumen(body){
+    var draft = pedidoDraft;
+    var atendidoInput = body.querySelector(".pw-atendido-input");
+    if(atendidoInput) atendidoInput.addEventListener("input", function(){ draft.atendidoPor = atendidoInput.value; });
+    var notasInput = body.querySelector(".pw-notas-input");
+    if(notasInput) notasInput.addEventListener("input", function(){ draft.notas = notasInput.value; });
+    var vistaPreviaBtn = body.querySelector(".pw-vista-previa-btn");
+    if(vistaPreviaBtn) vistaPreviaBtn.addEventListener("click", function(){
+      var validItems = (draft.items || []).filter(function(it){ return it.producto && it.producto.trim(); });
+      if((!draft.cliente || !draft.cliente.nombre || !draft.cliente.nombre.trim()) && validItems.length === 0){
+        showToast("Agrega el nombre del cliente o al menos un producto para ver la vista previa.");
+        return;
+      }
+      var previewObj = Object.assign({}, draft, {
+        id: null, numero: null, createdAt: null, esBorrador: true, items: validItems
+      });
+      showPedidoVistaPrevia(previewObj);
+    });
+  }
+
   // "Repetir esta línea en más fechas" (Pedido Masivo): en vez de agregar y editar la fecha
   // de cada fila a mano para 15 o 30 días de entrega, se llena UNA línea completa y se repite
   // sola hasta la fecha que se indique, saltando los días de la semana que no correspondan.
@@ -5664,6 +6936,12 @@ var TRIPLES = [
       var duplicado = buscarPedidoDuplicado(draft, validItems);
       if(duplicado){ showPedidoDuplicadoAlerta(duplicado); return; }
     }
+    // "_direccionesNuevas" es un dato de trabajo interno del asistente de Nuevo Pedido (ver
+    // pedidoWizGuardarDireccionParaCliente) -- solo sirve para que upsertCliente() sepa qué
+    // direcciones guardarle al cliente. Se saca ANTES de armar el payload para que nunca
+    // quede grabado dentro del pedido en Firestore (que es un documento aparte y permanente).
+    var direccionesNuevasParaCliente = draft.cliente && draft.cliente._direccionesNuevas;
+    if(draft.cliente && draft.cliente._direccionesNuevas) delete draft.cliente._direccionesNuevas;
     pedidosSaving = true;
     renderPanel();
     nextPedidoNumero(draft.canal).then(function(numero){
@@ -5705,8 +6983,9 @@ var TRIPLES = [
       payload.tiempoTotalMin = null;
       return db.collection("pedidos").add(payload).then(function(docRef){
         pedidosSaving = false;
-        upsertCliente(payload.cliente);
+        upsertCliente(payload.cliente, direccionesNuevasParaCliente);
         pedidoDraft = newPedidoDraft(payload.canal);
+        pedidoWizReset(); // el asistente de "Nuevo pedido" arranca de cero para el próximo pedido
         showToast("Pedido guardado.");
         renderPanel();
       });
@@ -7429,10 +8708,32 @@ var TRIPLES = [
     ["entregados", "✅ Entregados"],
     ["cancelados", "⚪ Cancelados"]
   ];
+  // Hora en que debe estar listo, EN EL CONTEXTO DE HOY -- para Delivery/Recojo es exactamente
+  // pedidoHoraAtencionMs (su única fecha ya es hoy, porque pasó el filtro de día operativo). Para
+  // Masivo, pedidoHoraAtencionMs usa la fecha de la PRIMERA línea del pedido completo, que puede
+  // no ser hoy aunque el pedido sí tenga una línea de hoy -- por eso acá se recalcula forzando la
+  // fecha a HOY (misma hora p.hora, mismas reglas de traslado). No toca pedidoHoraAtencionMs ni
+  // la lógica ya usada en vista previa/impresión/detalle -- es una variante solo para Despacho.
+  function despachoHoraAtencionMs(p){
+    if(p.canal !== "masivo") return pedidoHoraAtencionMs(p);
+    if(p.hora){
+      try{
+        var ms = new Date(todayISO() + "T" + p.hora + ":00-05:00").getTime();
+        if(!isNaN(ms)){
+          if(pedidoRequiereReparto(p)) ms -= pedidoTrasladoMinutos() * 60000;
+          return ms;
+        }
+      }catch(e){}
+    }
+    return p.createdAt || 0;
+  }
+  function despachoEsInmediato(p){
+    return despachoHoraAtencionMs(p) <= Date.now();
+  }
   function pedidosDespachoLista(filtro){
-    // Filtro principal: solo pedidos INGRESADOS HOY entran a la cola de Despacho (ver
-    // pedidoIngresadoHoy). Adentro de eso, se ordena por la hora en que deben estar listos.
-    var todos = (PEDIDOS || []).filter(function(p){ return !!p.estado && pedidoIngresadoHoy(p); });
+    // Filtro principal: solo pedidos del DÍA OPERATIVO de hoy entran a la cola de Despacho (ver
+    // pedidoEsDelDiaOperativo). Adentro de eso, se ordena por la hora en que deben estar listos.
+    var todos = (PEDIDOS || []).filter(function(p){ return !!p.estado && pedidoEsDelDiaOperativo(p); });
     var activos = todos.filter(function(p){ return p.estado !== "ENTREGADO" && p.estado !== "CANCELADO"; });
     if(filtro === "entregados"){
       return todos.filter(function(p){ return p.estado === "ENTREGADO"; })
@@ -7443,12 +8744,13 @@ var TRIPLES = [
         .sort(function(a, b){ return (b.createdAt||0) - (a.createdAt||0); });
     }
     var lista = activos;
-    if(filtro === "ahora") lista = activos.filter(pedidoEsInmediato);
-    else if(filtro === "programados") lista = activos.filter(function(p){ return !pedidoEsInmediato(p); });
+    if(filtro === "ahora") lista = activos.filter(despachoEsInmediato);
+    else if(filtro === "programados") lista = activos.filter(function(p){ return !despachoEsInmediato(p); });
     // Una sola cola, ordenada por la hora en que cada pedido debe estar listo (los que ya están
     // "para ahora" caen naturalmente arriba, porque su hora ya pasó) -- así se ve mezclado por
-    // canal pero en el orden real en que hay que atenderlos.
-    lista.sort(function(a, b){ return pedidoHoraAtencionMs(a) - pedidoHoraAtencionMs(b); });
+    // canal pero en el orden real en que hay que atenderlos. Los vencidos (atrasado) quedan
+    // arriba porque su hora ya pasó y el orden es ascendente por esa misma hora.
+    lista.sort(function(a, b){ return despachoHoraAtencionMs(a) - despachoHoraAtencionMs(b); });
     return lista;
   }
   function pedidoTranscurridoTxt(ms){
@@ -7545,9 +8847,9 @@ var TRIPLES = [
     if(p.estado === "LISTO_DESPACHO" || p.estado === "SALIO_TIENDA" || p.estado === "EN_RUTA"){
       return { cls:"listo", label: PEDIDO_ESTADO_LABEL[p.estado] || "Listo" };
     }
-    var inmediato = pedidoEsInmediato(p);
+    var inmediato = despachoEsInmediato(p);
     var atrasado = inmediato && !!p.hora;
-    var minAtraso = atrasado ? Math.max(0, Math.round((Date.now() - pedidoHoraAtencionMs(p)) / 60000)) : 0;
+    var minAtraso = atrasado ? Math.max(0, Math.round((Date.now() - despachoHoraAtencionMs(p)) / 60000)) : 0;
     // En preparación: si ya se empezó a preparar, ese es el dato que manda (se ve azul aunque su
     // hora todavía no llegue) -- salvo que ya se haya pasado la hora sin estar listo, ahí sí pesa
     // más el atraso. El resto (Nuevo/Confirmado, que todavía no se tocan) sí se organiza por
@@ -7578,7 +8880,7 @@ var TRIPLES = [
     if(!esTerminal){
       var listoChip = document.createElement("span");
       listoChip.className = "desp-listo-chip " + (DESP_CHIP_COLOR[tagInfo.cls] || "c-ambar");
-      var horaListoTxt = p.hora ? fmtHoraCortaMillis(pedidoHoraAtencionMs(p)) : "Ahora";
+      var horaListoTxt = p.hora ? fmtHoraCortaMillis(despachoHoraAtencionMs(p)) : "Ahora";
       listoChip.innerHTML = "🕐 LISTO " + esc(horaListoTxt);
       rowTop.appendChild(listoChip);
     }
@@ -7595,10 +8897,21 @@ var TRIPLES = [
     meta.textContent = iconoEntrega + " " + pedidoCanalBadgeTxt(p);
     card.appendChild(meta);
 
+    // Para Masivo, la tarjeta de Despacho solo debe mostrar las líneas de HOY (un pedido
+    // Masivo puede tener 15-30 líneas repartidas en varias fechas) -- pedidoLineasDeHoy() ya
+    // filtra por eso; para los demás canales devuelve p.items tal cual (una sola fecha).
+    var itemsHoy = pedidoLineasDeHoy(p);
     var prodRow = document.createElement("div");
     prodRow.className = "desp-prod-row";
-    var productosHtml = (p.items || []).map(function(it){ return esc(it.cantidad) + " × <b>" + esc(it.producto) + "</b>"; }).join(", ");
-    var total = (p.items || []).reduce(function(s, it){ return s + num(it.cantidad) * num(it.precio); }, 0) + num(p.deliveryMonto);
+    var productosHtml = itemsHoy.map(function(it){ return esc(it.cantidad) + " × <b>" + esc(it.producto) + "</b>"; }).join(", ");
+    // p.deliveryMonto de un Masivo es el flete de TODO el pedido (una vez por cada fecha
+    // distinta que tenga, ver masivoDeliveryCount) -- acá solo cuenta el de hoy: una vez, con
+    // la misma tarifa (p.masivoDeliveryRate), si hoy tiene alguna línea. No toca p.deliveryMonto
+    // ni pedidoDeliveryTotal (eso sigue igual en el detalle, PDF, etc.).
+    var deliveryHoy = p.canal === "masivo"
+      ? (p.masivoModo === "delivery" && itemsHoy.length ? num(p.masivoDeliveryRate) : 0)
+      : num(p.deliveryMonto);
+    var total = itemsHoy.reduce(function(s, it){ return s + num(it.cantidad) * num(it.precio); }, 0) + deliveryHoy;
     prodRow.innerHTML = "<span>" + productosHtml + "</span><span class='desp-total'>S/ " + fmt(total) + "</span>";
     card.appendChild(prodRow);
 
@@ -9374,16 +10687,17 @@ var TRIPLES = [
   var colaInicializada = false;
   function revisarAlertasCola(){
     if(!PEDIDOS) return;
-    // Mismo filtro que la cola visible (pedidosDespachoLista): solo alerta por pedidos
-    // ingresados hoy. Uno ingresado ayer no debe sonar ni aparecer aunque su hora "llegue".
-    var activos = PEDIDOS.filter(function(p){ return p.estado && p.estado !== "ENTREGADO" && p.estado !== "CANCELADO" && pedidoIngresadoHoy(p); });
+    // Mismo filtro que la cola visible (pedidosDespachoLista): solo alerta por pedidos del día
+    // operativo de hoy (ver pedidoEsDelDiaOperativo). Uno que no tiene ninguna línea para hoy
+    // no debe sonar ni aparecer aunque su hora "llegue" en otra fecha.
+    var activos = PEDIDOS.filter(function(p){ return p.estado && p.estado !== "ENTREGADO" && p.estado !== "CANCELADO" && pedidoEsDelDiaOperativo(p); });
     if(!colaInicializada){
       colaInicializada = true;
-      activos.forEach(function(p){ if(pedidoEsInmediato(p)) pedidosAlertados[p.id] = true; });
+      activos.forEach(function(p){ if(despachoEsInmediato(p)) pedidosAlertados[p.id] = true; });
       return;
     }
     activos.forEach(function(p){
-      if(pedidoEsInmediato(p) && !pedidosAlertados[p.id]){
+      if(despachoEsInmediato(p) && !pedidosAlertados[p.id]){
         pedidosAlertados[p.id] = true;
         alertarPedidoParaAhora(p);
       }
