@@ -855,6 +855,14 @@ var TRIPLES = [
     {n:"UND T. GLASEADO PIÑA", p:4.5},
     {n:"UND T. PAVO", p:4.5},
     {n:"UND T. POLLO CON JAMÓN Y QUESO", p:4.5},
+    // Empaques (set-2026): bolsas y cajas para armar el pedido, con su propio precio -- se
+    // agregan igual que cualquier otro producto del catálogo, así se pueden buscar y sumar
+    // como una línea más del pedido (ej. "CAJA GRANDE" para un pedido grande de Masivo).
+    {n:"BOLSA PLASTICA", p:0.6},
+    {n:"CAJA 1", p:0.2},
+    {n:"CAJA 4", p:0.4},
+    {n:"CAJA ADICIONAL", p:5.5},
+    {n:"CAJA GRANDE", p:13.5},
   ];
 
 
@@ -7436,7 +7444,12 @@ var TRIPLES = [
     items.forEach(function(it, idx){
       var lineTotal = num(it.cantidad) * num(it.precio);
       subtotal += lineTotal;
-      var cellStyle = "border:1px solid #ccc; padding:" + d.cell + "; vertical-align:top;";
+      // color:#111 explícito acá (antes se dejaba heredar del div contenedor) -- en la imagen
+      // JPEG generada con html2canvas, Cantidad/Producto/Precio salían con una letra clarísima,
+      // casi ilegible, mientras Total sí se veía bien -- html2canvas no está heredando bien el
+      // color del contenedor para estas celdas. Fijar el color en cada celda lo arregla sin
+      // tocar nada del layout, tamaño de letra ni el resto de la tarjeta impresa/compartida.
+      var cellStyle = "border:1px solid #ccc; padding:" + d.cell + "; vertical-align:top; color:#111;";
       var obsHtml = it.obs && it.obs.trim()
         ? '<div style="font-size:' + d.obs + 'px; font-style:italic; color:#555;">' + esc(it.obs.trim()) + "</div>"
         : "";
@@ -7697,6 +7710,35 @@ var TRIPLES = [
       });
     });
     actions.appendChild(shareBtn);
+
+    // "Copiar imagen" (set-2026): la vista previa es HTML, no una imagen -- por eso clic derecho
+    // no ofrecía "Copiar imagen" (nada de eso existe hasta tocar un botón). Este botón genera su
+    // PROPIO PNG (Clipboard API solo copia PNG de forma confiable) a partir del mismo canvas de
+    // siempre, sin tocar el JPEG que usan "Compartir"/"Descargar" ni la calidad configurada ahí.
+    var copyBtn = pedidoPreviewActionBtn("📋 Copiar imagen");
+    copyBtn.addEventListener("click", function(){
+      if(!navigator.clipboard || !window.ClipboardItem){
+        showToast('Tu navegador no permite copiar la imagen directamente. Usa "Descargar imagen" y adjúntala en WhatsApp.');
+        return;
+      }
+      var original = copyBtn.textContent;
+      copyBtn.disabled = true;
+      copyBtn.textContent = "Generando imagen…";
+      capturePedidoPreviewCanvas(function(canvas){
+        copyBtn.disabled = false;
+        copyBtn.textContent = original;
+        if(!canvas){ showToast("No se pudo generar la imagen. Revisa tu conexión e intenta de nuevo."); return; }
+        canvas.toBlob(function(blob){
+          if(!blob){ showToast("No se pudo generar la imagen."); return; }
+          navigator.clipboard.write([ new ClipboardItem({ "image/png": blob }) ]).then(function(){
+            showToast("Imagen copiada -- pégala con Ctrl+V (o mantén presionado y elige Pegar) en el chat de WhatsApp.");
+          }).catch(function(){
+            showToast('No se pudo copiar la imagen. Usa "Descargar imagen" y adjúntala en WhatsApp.');
+          });
+        }, "image/png");
+      });
+    });
+    actions.appendChild(copyBtn);
 
     var downloadBtn = pedidoPreviewActionBtn("⬇️ Descargar imagen");
     downloadBtn.addEventListener("click", function(){
