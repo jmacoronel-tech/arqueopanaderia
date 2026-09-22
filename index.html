@@ -402,10 +402,14 @@
 
   .desp-creado{ font-size:.66rem; color:#5b6070; font-weight:600; }
 
-  .desp-actions{ display:flex; gap:.35rem; margin-top:.2rem; }
+  .desp-actions{ display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.2rem; }
   .desp-btn{ border:none; border-radius:9px; font-weight:800; font-size:.72rem; padding:.55rem .3rem; cursor:pointer; white-space:nowrap; font-family:inherit; }
   .desp-btn-primary{ flex:1.6; background:#f5f6f8; color:#0d0f12; }
-  .desp-btn-outline{ flex:1; background:transparent; border:1.3px solid #272b32; color:#f5f6f8; }
+  .desp-btn-outline{ flex:1; min-width:88px; background:transparent; border:1.3px solid #272b32; color:#f5f6f8; }
+  /* "✅ Producción" (set-2026, ver despachoEnviarProduccion): ya se envió a la impresora de
+     producción -- se ve apagado a propósito para no competir con las acciones pendientes, pero
+     sigue tocable por si hace falta reenviar (pide confirmación antes). */
+  .desp-btn-enviado{ opacity:.55; }
 
   .desp-empty{ color:#9aa0ab; font-size:.9rem; padding:1.4rem 0; text-align:center; }
 
@@ -417,6 +421,8 @@
   .desp-fecha-pill{ font-size:.66rem; font-weight:900; letter-spacing:.04em; background:rgba(184,146,255,.15); border:1px solid rgba(184,146,255,.4); color:#b892ff; border-radius:999px; padding:.18rem .5rem; }
   .desp-volver-hoy{ font-size:.72rem; font-weight:800; color:#5b9dff; background:none; border:none; cursor:pointer; padding:0; margin-top:.3rem; text-decoration:underline; text-underline-offset:2px; font-family:inherit; }
   .desp-cal-popover{ margin-top:.6rem; background:#15171b; border:1px solid #272b32; border-radius:12px; padding:.7rem .75rem .8rem; max-width:280px; }
+  .desp-config-popover{ max-width:340px; }
+  .desp-config-popover input{ background:#1a1d22; border:1px solid #272b32; color:#f5f6f8; border-radius:8px; padding:.5rem .6rem; font-size:.85rem; }
   .desp-cal-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:.4rem; }
   .desp-cal-navbtn{ background:#1a1d22; border:1px solid #272b32; color:#f5f6f8; border-radius:7px; width:26px; height:26px; cursor:pointer; font-size:.9rem; padding:0; font-family:inherit; }
   .desp-cal-mes{ font-size:.78rem; font-weight:800; color:#f5f6f8; text-align:center; flex:1; }
@@ -887,6 +893,38 @@ var TRIPLES = [
     {n:"CAJA GRANDE", p:13.5},
   ];
 
+  // ---------- Impresión de producción (set-2026) ----------
+  // Objetivo (pedido de Jessica): al confirmar un pedido, un solo botón "🖨️ Producción" manda
+  // automáticamente el detalle a la impresora de Cocina y/o a la de Jugos, sin que el personal
+  // tenga que elegir impresora ni nada técnico. Estas impresoras YA funcionan a diario con el
+  // sistema de caja/facturación -- esta app NO las reemplaza ni las reconfigura: les manda un
+  // trabajo de impresión aparte, directo por su propio socket de red (protocolo RAW, puerto
+  // 9100 -- lo mismo que ya usa cualquier sistema de punto de venta para mandar comandas a una
+  // impresora de cocina), sin tocar colas de Windows, drivers ni la configuración de caja.
+  // El navegador no puede abrir ese socket directo (ninguna página web puede) -- por eso hace
+  // falta el pequeño puente local en impresion-bridge/ (ver despachoImpresionBridgeUrl más abajo
+  // y el LEEME de esa carpeta). Si ese puente no está corriendo, "🖨️ Producción" simplemente
+  // avisa que no se pudo conectar -- nunca rompe ni bloquea el resto de Despacho.
+  var PRODUCCION_PUNTOS = {
+    cocina: { label: "Cocina", ip: "192.168.18.20", port: 9100 },
+    jugos:  { label: "Jugos",  ip: "192.168.18.6",  port: 9100 }
+  };
+  // Producto (nombre EXACTO del catálogo de arriba) -> punto de producción. A propósito muy
+  // conservador: por ahora solo quedan mapeados los productos que Jessica nombró explícitamente
+  // (Francés/Integral -> Cocina) y los que ya se llaman "JUGO ..." en el catálogo -> Jugos. NO
+  // se inventan categorías nuevas ni se adivina para el resto del catálogo (Batidos, Frozen,
+  // Sandwiches, Embutidos, etc.) -- esos productos quedan intencionalmente SIN punto asignado;
+  // si un pedido los incluye, "🖨️ Producción" los deja fuera del ticket y avisa cuáles quedaron
+  // sin imprimir, para configurarlos después (ver productoPuntoProduccion).
+  var PRODUCCION_MAPA = {};
+  ["FRANCÉS", "INTEGRAL"].forEach(function(nombre){ PRODUCCION_MAPA[nombre] = "cocina"; });
+  PEDIDO_PRECIO_SEED.forEach(function(item){
+    if(item.n && item.n.indexOf("JUGO") === 0) PRODUCCION_MAPA[item.n] = "jugos";
+  });
+  function productoPuntoProduccion(nombreProducto){
+    var key = String(nombreProducto || "").trim().toUpperCase();
+    return PRODUCCION_MAPA[key] || null;
+  }
 
   var SECTIONS = {
     panes:{ key:"p", catalog:PANES, label:"Panes" },
@@ -1198,6 +1236,7 @@ var TRIPLES = [
   var despachoFechaSeleccionada = null;
   var despachoCalAbierto = false;
   var despachoCalYear = null, despachoCalMonth = null;
+  var despachoConfigAbierto = false;
   function despachoFechaActual(){ return despachoFechaSeleccionada || todayISO(); }
   function despachoEsVistaHoy(){ return despachoFechaActual() === todayISO(); }
   // Cuántos pedidos (los más recientes, por "createdAt") se cargan en vivo -- ver
@@ -1590,6 +1629,10 @@ var TRIPLES = [
     // LISTOS en panadería (Jessica: "si dice 18:00 debe estar listo 17:30 para llegar a la
     // hora"). Si el documento ya existía de antes, no tiene este campo -- 30 min por defecto.
     if(parsed.meta.deliveryTrasladoMin == null) parsed.meta.deliveryTrasladoMin = 30;
+    // URL del pequeño puente local de impresión de producción (set-2026, ver PRODUCCION_PUNTOS
+    // más abajo) -- normalmente vacío, usa "http://localhost:8787" por defecto. Solo hace falta
+    // tocarlo si el puente corre en otra computadora de la red y no en la que tiene la app abierta.
+    if(parsed.meta.impresionBridgeUrl == null) parsed.meta.impresionBridgeUrl = "";
     if(!parsed.days) parsed.days = {};
     if(!parsed.customCatalog) parsed.customCatalog = [];
     if(!parsed.precios) parsed.precios = {};
@@ -4049,6 +4092,9 @@ var TRIPLES = [
     ntfyHint.textContent = 'Para recibir el aviso en el celular: instala la app gratuita "ntfy" (Android o iPhone), abre el botón "+" para suscribirte a un tema, y escribe EXACTAMENTE este mismo nombre. Todo el que se suscriba con el mismo nombre recibe el aviso cuando entra un pedido nuevo de delivery.';
     ntfyField.appendChild(ntfyHint);
     bizGrid.appendChild(ntfyField);
+    // La configuración del puente de impresión de producción (Cocina/Jugos) vive en Pedidos →
+    // Despacho (botón ⚙️ junto al calendario), no acá -- todo lo de esa función queda contenido
+    // en esa pestaña. Ver buildDespachoPanel / despachoConfigAbierto.
     // Minutos de traslado que se restan a la "hora de entrega al cliente" de un pedido de
     // Delivery (o Masivo-Delivery) para calcular la hora real en que debe estar LISTO en
     // panadería (Jessica: "si dice 18:00 debe estar listo 17:30 para llegar a la hora").
@@ -8955,6 +9001,38 @@ var TRIPLES = [
       renderPanel();
     });
   }
+  // Popover "⚙️" de Despacho: dirección del puente de impresión de producción
+  // (STATE.meta.impresionBridgeUrl). Vive acá -- y no en Turno -- porque es lo único que usa
+  // el botón "🖨️ Producción" de esta misma pestaña; así toda la función de impresión de
+  // producción queda contenida dentro de Pedidos/Despacho, sin tocar otras pestañas.
+  function buildDespachoConfigPopover(){
+    var box = document.createElement("div");
+    box.className = "desp-cal-popover desp-config-popover";
+    var title = document.createElement("div");
+    title.style.fontWeight = "700";
+    title.style.marginBottom = ".35rem";
+    title.textContent = "Conexión del puente de impresión (avanzado)";
+    box.appendChild(title);
+    var input = document.createElement("input");
+    input.type = "text";
+    input.value = STATE.meta.impresionBridgeUrl || "";
+    input.placeholder = "Ej: http://192.168.18.50:8787 (vacío = localhost)";
+    input.style.width = "100%";
+    input.style.boxSizing = "border-box";
+    if(readOnly) input.disabled = true;
+    input.addEventListener("input", function(){
+      STATE.meta.impresionBridgeUrl = input.value.trim();
+      markDirty(); scheduleAutosave();
+    });
+    box.appendChild(input);
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.style.marginTop = ".4rem";
+    hint.textContent = 'El navegador no puede mandar impresiones directo a las impresoras de Cocina/Jugos, así que un programa aparte (carpeta impresion-bridge/, fuera de esta app) hace ese puente. Este campo se guarda en la nube y lo comparten TODOS los dispositivos (tablets y PCs), no es un ajuste "por aparato". Si SOLO una computadora usa "🖨️ Producción" y el puente corre ahí mismo, se deja vacío (usa http://localhost:8787). En cuanto una TABLET tome pedidos y el puente esté en OTRA computadora, hay que escribir acá la dirección de red de ESA computadora -- nunca "localhost". Esa dirección la muestra el propio puente al prenderse. Ver impresion-bridge/LEEME.md.';
+    box.appendChild(hint);
+    return box;
+  }
+
   function buildDespachoPanel(){
     var wrap = document.createElement("div");
     wrap.className = "desp-panel";
@@ -8965,15 +9043,24 @@ var TRIPLES = [
     var h2 = document.createElement("h2");
     h2.innerHTML = "<span class='desp-live-dot'></span>Despacho " +
       (esVistaHoy ? "<span class='desp-hoy-pill'>HOY</span>" : "<span class='desp-fecha-pill'>" + esc(fmtFechaCorta(despachoFechaActual())) + "</span>") +
-      "<button type='button' class='desp-cal-btn" + (despachoCalAbierto ? " active" : "") + "' title='Consultar otra fecha'>📅</button>";
+      "<button type='button' class='desp-cal-btn" + (despachoCalAbierto ? " active" : "") + "' title='Consultar otra fecha'>📅</button>" +
+      "<button type='button' class='desp-cal-btn' id='despConfigBtn' title='Conexión del puente de impresión de producción'>⚙️</button>";
     head.appendChild(h2);
     var calBtn = h2.querySelector(".desp-cal-btn");
     calBtn.addEventListener("click", function(){
       despachoCalAbierto = !despachoCalAbierto;
+      despachoConfigAbierto = false;
       if(despachoCalAbierto){
         var d = new Date(despachoFechaActual() + "T12:00:00");
         despachoCalYear = d.getFullYear(); despachoCalMonth = d.getMonth();
       }
+      renderPanel();
+    });
+    var configBtn = h2.querySelector("#despConfigBtn");
+    if(despachoConfigAbierto) configBtn.classList.add("active");
+    configBtn.addEventListener("click", function(){
+      despachoConfigAbierto = !despachoConfigAbierto;
+      despachoCalAbierto = false;
       renderPanel();
     });
     var sub = document.createElement("div");
@@ -8994,6 +9081,9 @@ var TRIPLES = [
       calBox.innerHTML = buildDespachoCalendarioHTML();
       head.appendChild(calBox);
       wireDespachoCalendario(calBox);
+    }
+    if(despachoConfigAbierto){
+      head.appendChild(buildDespachoConfigPopover());
     }
     wrap.appendChild(head);
 
@@ -9063,6 +9153,166 @@ var TRIPLES = [
     return { cls:"nuevo", label: PEDIDO_ESTADO_LABEL[p.estado] || "Nuevo pedido" };
   }
   var DESP_CHIP_COLOR = { nuevo:"c-ambar", enprep:"c-azul", listo:"c-verde", programado:"c-morado", atrasado:"c-rojo" };
+
+  // ---------- Envío de tickets de producción (Cocina / Jugos) ----------
+  // URL del puente local (ver STATE.meta.impresionBridgeUrl, configurable en Despacho → botón
+  // ⚙️, ver buildDespachoConfigPopover) -- vacío usa el valor por defecto, que asume que el
+  // puente corre en la misma computadora que tiene esta app abierta en el navegador.
+  function despachoImpresionBridgeUrl(){
+    var custom = (STATE && STATE.meta && STATE.meta.impresionBridgeUrl) ? String(STATE.meta.impresionBridgeUrl).trim() : "";
+    return custom || "http://localhost:8787";
+  }
+  // Le quita tildes/eñes al texto del ticket -- las impresoras térmicas varían de página de
+  // códigos (CP437, CP850, etc.) según el modelo, y no tenemos forma de saber cuál desde acá.
+  // Un texto sin tildes sale legible en cualquiera de ellas; con tildes se arriesga a salir con
+  // símbolos raros. Esto NO toca lo que se ve en pantalla, solo los bytes que se imprimen.
+  function produccionTextoPlano(s){
+    return String(s == null ? "" : s)
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^\x20-\x7E\n]/g, "?");
+  }
+  // Agrupa las líneas de un pedido (ya filtradas por fecha, igual que la tarjeta -- ver
+  // pedidoLineasDeFecha) según su punto de producción. Lo que no tiene punto asignado
+  // (productoPuntoProduccion devuelve null) se junta aparte para poder avisar, nunca se inventa.
+  function produccionAgruparItems(items){
+    var grupos = {};
+    var sinAsignar = [];
+    (items || []).forEach(function(it){
+      if(!it.producto || !(num(it.cantidad) > 0)) return;
+      var punto = productoPuntoProduccion(it.producto);
+      if(!punto){ sinAsignar.push(it); return; }
+      if(!grupos[punto]) grupos[punto] = [];
+      grupos[punto].push(it);
+    });
+    return { grupos: grupos, sinAsignar: sinAsignar };
+  }
+  // Arma el texto del ticket en comandos ESC/POS básicos (init, negrita/doble alto, corte de
+  // papel) -- formato de recibo angosto (térmica de cocina), no la tarjeta A4 de
+  // buildPedidoPrintCardHTML (esa es para el cliente, esta es para el punto de producción).
+  function produccionTicketTexto(puntoKey, p, fechaISO, items, horaListoTxt){
+    var ESC = "\x1b", GS = "\x1d";
+    var NORMAL = ESC + "!" + String.fromCharCode(0x00);
+    var GRANDE = ESC + "!" + String.fromCharCode(0x30);
+    var NEGRITA = ESC + "!" + String.fromCharCode(0x08);
+    var raya = "--------------------------------\n";
+    var out = ESC + "@"; // init: no toca nada de la impresora, solo reinicia el trabajo actual
+    out += GRANDE + produccionTextoPlano((PRODUCCION_PUNTOS[puntoKey] || {}).label || puntoKey).toUpperCase() + "\n";
+    out += NORMAL + raya;
+    out += "Pedido #" + produccionTextoPlano(p.numero || "-") + "\n";
+    out += "Cliente: " + produccionTextoPlano((p.cliente && p.cliente.nombre) || "-") + "\n";
+    out += produccionTextoPlano(pedidoDestinoLabel(p)) + "\n";
+    if(p.canal === "masivo") out += "Fecha: " + produccionTextoPlano(fmtFechaCorta(fechaISO)) + "\n";
+    if(horaListoTxt) out += NEGRITA + "LISTO: " + produccionTextoPlano(horaListoTxt) + NORMAL + "\n";
+    out += raya;
+    items.forEach(function(it){
+      out += NEGRITA + produccionTextoPlano(num(it.cantidad) + " x " + it.producto) + NORMAL + "\n";
+      if(it.obs) out += "  Obs: " + produccionTextoPlano(it.obs) + "\n";
+    });
+    if(p.notas && String(p.notas).trim()){
+      out += raya;
+      out += "NOTAS: " + produccionTextoPlano(p.notas) + "\n";
+    }
+    out += raya;
+    out += "\n\n\n";
+    out += GS + "V" + String.fromCharCode(0x42) + String.fromCharCode(0x00); // corte parcial de papel
+    return out;
+  }
+  function produccionTextoABase64(texto){
+    var bytes = [];
+    for(var i = 0; i < texto.length; i++) bytes.push(texto.charCodeAt(i) & 0xFF);
+    var bin = "";
+    for(var j = 0; j < bytes.length; j++) bin += String.fromCharCode(bytes[j]);
+    return btoa(bin);
+  }
+  // Envía a producción SOLO los puntos que todavía no se habían mandado para este pedido+fecha
+  // (ver p.produccionEnviada), salvo que forzar=true (reenvío manual explícito, con
+  // confirmación -- ver el botón en la tarjeta). Un punto solo se marca como enviado si el
+  // puente confirmó que el envío al socket de esa impresora salió bien -- si falla, ese punto
+  // queda pendiente para poder reintentar sin repetir los que sí llegaron.
+  function despachoEnviarProduccion(p, fechaISO, opts){
+    opts = opts || {};
+    var items = pedidoLineasDeFecha(p, fechaISO);
+    var agr = produccionAgruparItems(items);
+    var disponibles = Object.keys(agr.grupos);
+    if(!disponibles.length){
+      showToast(agr.sinAsignar.length
+        ? "Ninguno de los productos de este pedido tiene un punto de producción configurado todavía."
+        : "No hay productos para enviar a producción.");
+      return;
+    }
+    var yaEnviados = (p.produccionEnviada && p.produccionEnviada[fechaISO]) || {};
+    var pendientes = opts.forzar ? disponibles : disponibles.filter(function(k){ return !yaEnviados[k]; });
+    if(!pendientes.length){
+      showToast("Este pedido ya se envió a producción.");
+      return;
+    }
+    var horaListoTxt = fmtHoraCortaMillis(despachoHoraAtencionMs(p)) || p.hora || "";
+    var trabajos = pendientes.map(function(puntoKey){
+      var conf = PRODUCCION_PUNTOS[puntoKey];
+      var texto = produccionTicketTexto(puntoKey, p, fechaISO, agr.grupos[puntoKey], horaListoTxt);
+      return { punto: puntoKey, ip: conf.ip, port: conf.port, datosBase64: produccionTextoABase64(texto) };
+    });
+    if(opts.onStart) opts.onStart();
+    fetch(despachoImpresionBridgeUrl() + "/imprimir", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ trabajos: trabajos })
+    }).then(function(res){
+      // Ojo: un 403/429/400/500 del puente también trae JSON válido en el cuerpo (con
+      // resultados=undefined), así que HAY que fijarse en res.ok -- si no, esto seguía de largo
+      // y el mensaje de abajo terminaba mostrando "Enviado a producción: ." (lista vacía) como
+      // si hubiera funcionado, cuando en realidad NINGÚN trabajo llegó a intentarse siquiera.
+      return res.json().then(function(data){ return { httpOk: res.ok, status: res.status, data: data }; });
+    }).then(function(resp){
+      if(!resp.httpOk){
+        var motivo = (resp.data && resp.data.error) || ("http_" + resp.status);
+        var MOTIVO_TXT = {
+          solo_red_local: "el puente rechazó la conexión (no viene de la red local de la tienda).",
+          ya_hay_un_envio_en_curso: "el puente ya está mandando otro envío -- espera unos segundos e intenta de nuevo.",
+          json_invalido: "hubo un problema interno al armar el envío.",
+          sin_trabajos: "no había nada que mandar.",
+          error_interno: "el puente tuvo un error interno."
+        };
+        showToast("No se pudo enviar a producción: " + (MOTIVO_TXT[motivo] || motivo) + " Nada se marcó como enviado -- puedes volver a intentar.", 5500);
+        return;
+      }
+      var data = resp.data;
+      var resultados = (data && data.resultados) || [];
+      var exitosos = resultados.filter(function(r){ return r && r.ok; }).map(function(r){ return r.punto; });
+      var fallidos = resultados.filter(function(r){ return !r || !r.ok; });
+      if(exitosos.length && db){
+        var payload = {};
+        exitosos.forEach(function(puntoKey){
+          payload["produccionEnviada." + fechaISO + "." + puntoKey] = Date.now();
+        });
+        db.collection("pedidos").doc(p.id).update(payload).catch(function(){});
+        if(!p.produccionEnviada) p.produccionEnviada = {};
+        if(!p.produccionEnviada[fechaISO]) p.produccionEnviada[fechaISO] = {};
+        exitosos.forEach(function(puntoKey){ p.produccionEnviada[fechaISO][puntoKey] = Date.now(); });
+      }
+      // Un solo toast (el segundo reemplazaría al primero) -- se arma el mensaje completo antes
+      // de mostrarlo, para que ni el resultado del envío ni el aviso de productos sin punto se
+      // pierdan si aplican los dos a la vez.
+      var msg;
+      if(fallidos.length){
+        var nombresFallo = fallidos.map(function(r){ return (PRODUCCION_PUNTOS[r && r.punto] || {}).label || (r && r.punto) || "?"; }).join(", ");
+        msg = "No se pudo enviar a: " + nombresFallo + ". Puedes volver a intentar -- lo ya enviado no se repite.";
+      } else {
+        var nombresOk = exitosos.map(function(k){ return (PRODUCCION_PUNTOS[k] || {}).label || k; }).join(" y ");
+        msg = "Enviado a producción: " + nombresOk + ".";
+      }
+      if(agr.sinAsignar.length){
+        var nombresSinAsignar = agr.sinAsignar.map(function(it){ return it.producto; }).join(", ");
+        msg += " Sin punto de producción configurado (no se imprimieron): " + nombresSinAsignar;
+      }
+      showToast(msg, 5500);
+    }).catch(function(){
+      showToast("No se pudo conectar con el puente de impresión local. Verifica que esté encendido.");
+    }).finally(function(){
+      if(opts.onDone) opts.onDone();
+      renderPanel();
+    });
+  }
 
   function buildDespachoCard(p){
     var esTerminal = (p.estado === "ENTREGADO" || p.estado === "CANCELADO");
@@ -9139,6 +9389,33 @@ var TRIPLES = [
         actions.appendChild(mainBtn);
       }
     }
+    // "🖨️ Producción" (set-2026): manda el pedido directo a la impresora de Cocina y/o Jugos
+    // (ver despachoEnviarProduccion). A propósito NO se limita a despachoEsVistaHoy() -- Jessica
+    // quiere poder ir a un Masivo de mañana con el calendario y mandarlo a producción con
+    // anticipación; esto no cambia estado, fecha ni ningún otro dato del pedido, solo dispara la
+    // impresión y guarda cuándo se envió (para no repetirla por accidente).
+    var fechaProd = despachoFechaActual();
+    var agrProd = produccionAgruparItems(itemsHoy);
+    var puntosProd = Object.keys(agrProd.grupos);
+    if(!esTerminal && !readOnly && puntosProd.length){
+      var yaEnviadosProd = (p.produccionEnviada && p.produccionEnviada[fechaProd]) || {};
+      var todosEnviados = puntosProd.every(function(k){ return !!yaEnviadosProd[k]; });
+      var prodBtn = document.createElement("button");
+      prodBtn.type = "button";
+      prodBtn.className = "desp-btn desp-btn-outline" + (todosEnviados ? " desp-btn-enviado" : "");
+      prodBtn.textContent = todosEnviados ? "✅ Producción" : "🖨️ Producción";
+      prodBtn.title = todosEnviados ? "Ya se envió -- toca para reenviar" : "Enviar a la(s) impresora(s) de producción";
+      prodBtn.addEventListener("click", function(){
+        if(todosEnviados && !confirm('Este pedido ya se envió a producción. ¿Reenviar de todas formas?')) return;
+        despachoEnviarProduccion(p, fechaProd, {
+          forzar: todosEnviados,
+          onStart: function(){ prodBtn.disabled = true; prodBtn.textContent = "Enviando…"; },
+          onDone: function(){ prodBtn.disabled = false; }
+        });
+      });
+      actions.appendChild(prodBtn);
+    }
+
     var detalleBtn = document.createElement("button");
     detalleBtn.type = "button";
     detalleBtn.className = "desp-btn desp-btn-outline";
