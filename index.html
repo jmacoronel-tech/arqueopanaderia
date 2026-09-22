@@ -409,6 +409,28 @@
 
   .desp-empty{ color:#9aa0ab; font-size:.9rem; padding:1.4rem 0; text-align:center; }
 
+  /* Calendario de Despacho (set-2026): 📅 al lado de HOY para consultar otra fecha sin crear
+     pestaña ni sección nueva -- ver buildDespachoCalendarioHTML/despachoFechaSeleccionada. */
+  .desp-cal-btn{ background:#1a1d22; border:1px solid #272b32; color:#f5f6f8; border-radius:999px; width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; font-size:.82rem; cursor:pointer; padding:0; line-height:1; }
+  .desp-cal-btn:hover{ border-color:#4d545f; }
+  .desp-cal-btn.active{ background:#20242a; border-color:#f5f6f8; }
+  .desp-fecha-pill{ font-size:.66rem; font-weight:900; letter-spacing:.04em; background:rgba(184,146,255,.15); border:1px solid rgba(184,146,255,.4); color:#b892ff; border-radius:999px; padding:.18rem .5rem; }
+  .desp-volver-hoy{ font-size:.72rem; font-weight:800; color:#5b9dff; background:none; border:none; cursor:pointer; padding:0; margin-top:.3rem; text-decoration:underline; text-underline-offset:2px; font-family:inherit; }
+  .desp-cal-popover{ margin-top:.6rem; background:#15171b; border:1px solid #272b32; border-radius:12px; padding:.7rem .75rem .8rem; max-width:280px; }
+  .desp-cal-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:.4rem; }
+  .desp-cal-navbtn{ background:#1a1d22; border:1px solid #272b32; color:#f5f6f8; border-radius:7px; width:26px; height:26px; cursor:pointer; font-size:.9rem; padding:0; font-family:inherit; }
+  .desp-cal-mes{ font-size:.78rem; font-weight:800; color:#f5f6f8; text-align:center; flex:1; }
+  .desp-cal-weekdays{ display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:.62rem; color:#5b6070; font-weight:700; margin-bottom:.15rem; }
+  .desp-cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+  .desp-cal-cell{ background:transparent; border:none; color:#c7cbd1; font-size:.74rem; font-weight:600; padding:.32rem 0; border-radius:7px; cursor:pointer; font-family:inherit; }
+  .desp-cal-cell.empty{ cursor:default; }
+  .desp-cal-cell:not(.empty):hover{ background:#20242a; }
+  .desp-cal-cell.today{ color:#38d996; font-weight:900; }
+  .desp-cal-cell.selected{ background:#f5f6f8; color:#0d0f12; font-weight:900; }
+  .desp-cal-actions{ display:flex; justify-content:space-between; margin-top:.5rem; gap:.4rem; }
+  .desp-cal-hoy-btn, .desp-cal-cerrar-btn{ flex:1; background:#1a1d22; border:1px solid #272b32; color:#f5f6f8; border-radius:8px; font-size:.72rem; font-weight:800; padding:.4rem 0; cursor:pointer; font-family:inherit; }
+  .desp-cal-hoy-btn:hover, .desp-cal-cerrar-btn:hover{ border-color:#4d545f; }
+
   /* ================== Asistente de pedido (paso a paso) -- solo "Nuevo pedido" ================== */
   .pw-wrap{ max-width:640px; margin:0 auto 1rem; }
   .pw-head-row{ display:flex; justify-content:space-between; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:.7rem; }
@@ -1170,6 +1192,14 @@ var TRIPLES = [
   // por hora de atención. "todos" es el filtro por defecto (activos, de cualquier canal, sin
   // separar) porque Jessica pidió justamente que no se corte la cola en vistas por canal.
   var pedidosDespachoFilter = "todos";
+  // Fecha que Despacho está consultando con el calendario (set-2026) -- null = HOY (la cola real
+  // de trabajo). Cualquier otro valor ISO es solo consulta/planificación de un día futuro (o
+  // pasado): NO se pueden tocar estados/repartidor/cancelar desde ahí, ver despachoEsVistaHoy().
+  var despachoFechaSeleccionada = null;
+  var despachoCalAbierto = false;
+  var despachoCalYear = null, despachoCalMonth = null;
+  function despachoFechaActual(){ return despachoFechaSeleccionada || todayISO(); }
+  function despachoEsVistaHoy(){ return despachoFechaActual() === todayISO(); }
   // Cuántos pedidos (los más recientes, por "createdAt") se cargan en vivo -- ver
   // attachPedidosSync() más abajo, sección "rendimiento a futuro". Un LÍMITE POR CANTIDAD
   // (no por días) es a propósito: así el tamaño de lo que se carga y se dibuja en pantalla
@@ -4387,14 +4417,21 @@ var TRIPLES = [
   // línea de un Masivo puede tener su propia fecha). createdAt se sigue guardando exactamente
   // igual y se sigue usando para historial/trazabilidad (p.ej. "Pedidos tomados") -- solo se
   // deja de usar como filtro de la cola de Despacho/alertas.
-  function pedidoLineasDeHoy(p){
-    if(p.canal === "masivo") return (p.items || []).filter(function(it){ return it.fecha === todayISO(); });
+  // Versión general (recibe la fecha) para que Despacho pueda reusar la MISMA lógica al
+  // consultar cualquier fecha con el calendario, no solo hoy -- ver despachoFechaActual().
+  function pedidoLineasDeFecha(p, fechaISO){
+    if(p.canal === "masivo") return (p.items || []).filter(function(it){ return it.fecha === fechaISO; });
     return p.items || [];
   }
-  function pedidoEsDelDiaOperativo(p){
-    if(p.canal === "masivo") return pedidoLineasDeHoy(p).length > 0;
-    return pedidoFechaAtencion(p) === todayISO();
+  function pedidoEsDeFechaOperativa(p, fechaISO){
+    if(p.canal === "masivo") return pedidoLineasDeFecha(p, fechaISO).length > 0;
+    return pedidoFechaAtencion(p) === fechaISO;
   }
+  // Variantes fijas a HOY (sin importar qué fecha esté consultando Despacho con el calendario) --
+  // las usa revisarAlertasCola, que siempre debe avisar sobre la cola real de trabajo de hoy,
+  // nunca sobre lo que el personal esté mirando en la vista de consulta/planificación.
+  function pedidoLineasDeHoy(p){ return pedidoLineasDeFecha(p, todayISO()); }
+  function pedidoEsDelDiaOperativo(p){ return pedidoEsDeFechaOperativa(p, todayISO()); }
   // Motivo simple para "quién hizo el cambio" en cada botón de Despacho -- se pide una sola vez
   // por sesión de navegador (no en cada toque) para que sea rápido de usar desde el celular.
   var despachoEncargado = null;
@@ -8750,13 +8787,36 @@ var TRIPLES = [
     ["entregados", "✅ Entregados"],
     ["cancelados", "⚪ Cancelados"]
   ];
-  // Hora en que debe estar listo, EN EL CONTEXTO DE HOY -- para Delivery/Recojo es exactamente
-  // pedidoHoraAtencionMs (su única fecha ya es hoy, porque pasó el filtro de día operativo). Para
-  // Masivo, pedidoHoraAtencionMs usa la fecha de la PRIMERA línea del pedido completo, que puede
-  // no ser hoy aunque el pedido sí tenga una línea de hoy -- por eso acá se recalcula forzando la
-  // fecha a HOY (misma hora p.hora, mismas reglas de traslado). No toca pedidoHoraAtencionMs ni
-  // la lógica ya usada en vista previa/impresión/detalle -- es una variante solo para Despacho.
+  // Hora en que debe estar listo, EN EL CONTEXTO DE LA FECHA QUE DESPACHO ESTÁ MOSTRANDO (hoy por
+  // defecto, o la fecha elegida con el calendario -- ver despachoFechaActual()). Para Delivery/
+  // Recojo es exactamente pedidoHoraAtencionMs (su única fecha ya es esa, porque pasó el filtro
+  // de día operativo). Para Masivo, pedidoHoraAtencionMs usa la fecha de la PRIMERA línea del
+  // pedido completo, que puede no ser la que se está consultando aunque el pedido sí tenga una
+  // línea ese día -- por eso acá se recalcula forzando la fecha correcta (misma hora p.hora,
+  // mismas reglas de traslado). No toca pedidoHoraAtencionMs ni la lógica ya usada en vista
+  // previa/impresión/detalle -- es una variante solo para Despacho.
   function despachoHoraAtencionMs(p){
+    if(p.canal !== "masivo") return pedidoHoraAtencionMs(p);
+    if(p.hora){
+      try{
+        var ms = new Date(despachoFechaActual() + "T" + p.hora + ":00-05:00").getTime();
+        if(!isNaN(ms)){
+          if(pedidoRequiereReparto(p)) ms -= pedidoTrasladoMinutos() * 60000;
+          return ms;
+        }
+      }catch(e){}
+    }
+    return p.createdAt || 0;
+  }
+  function despachoEsInmediato(p){
+    return despachoHoraAtencionMs(p) <= Date.now();
+  }
+  // Variantes fijas a HOY (set-2026), sin importar qué fecha esté consultando el personal con el
+  // calendario -- las usa revisarAlertasCola(), que SIEMPRE debe avisar sobre la cola real de
+  // trabajo de hoy. despachoHoraAtencionMs/despachoEsInmediato dependen de despachoFechaActual()
+  // (la vista que se está mirando), así que no sirven acá: si alguien deja Despacho abierto en
+  // una fecha futura, esas dos evaluarían "inmediato" contra esa fecha en vez de contra hoy.
+  function despachoHoraAtencionHoyMs(p){
     if(p.canal !== "masivo") return pedidoHoraAtencionMs(p);
     if(p.hora){
       try{
@@ -8769,13 +8829,15 @@ var TRIPLES = [
     }
     return p.createdAt || 0;
   }
-  function despachoEsInmediato(p){
-    return despachoHoraAtencionMs(p) <= Date.now();
+  function despachoEsInmediatoHoy(p){
+    return despachoHoraAtencionHoyMs(p) <= Date.now();
   }
   function pedidosDespachoLista(filtro){
-    // Filtro principal: solo pedidos del DÍA OPERATIVO de hoy entran a la cola de Despacho (ver
-    // pedidoEsDelDiaOperativo). Adentro de eso, se ordena por la hora en que deben estar listos.
-    var todos = (PEDIDOS || []).filter(function(p){ return !!p.estado && pedidoEsDelDiaOperativo(p); });
+    // Filtro principal: solo pedidos del DÍA OPERATIVO que Despacho está mostrando entran a la
+    // cola (hoy por defecto, o la fecha elegida con 📅 -- ver despachoFechaActual() /
+    // pedidoEsDeFechaOperativa). Adentro de eso, se ordena por la hora en que deben estar listos.
+    var fechaVista = despachoFechaActual();
+    var todos = (PEDIDOS || []).filter(function(p){ return !!p.estado && pedidoEsDeFechaOperativa(p, fechaVista); });
     var activos = todos.filter(function(p){ return p.estado !== "ENTREGADO" && p.estado !== "CANCELADO"; });
     if(filtro === "entregados"){
       return todos.filter(function(p){ return p.estado === "ENTREGADO"; })
@@ -8824,19 +8886,115 @@ var TRIPLES = [
       : ("Programado para las " + fechaTxt + p.hora);
   }
 
+  // Calendario compacto de Despacho (set-2026): "consultar otra fecha" al lado de HOY, sin crear
+  // una pestaña ni sección nueva -- ver despachoFechaSeleccionada/despachoCalAbierto. No filtra
+  // por hoy/pasado: se puede mirar cualquier mes, la fecha elegida solo cambia QUÉ pedidos entran
+  // a pedidosDespachoLista() (misma lógica de siempre, ver despachoFechaActual()).
+  function buildDespachoCalendarioHTML(){
+    if(despachoCalYear == null){
+      var d = new Date(despachoFechaActual() + "T12:00:00");
+      despachoCalYear = d.getFullYear(); despachoCalMonth = d.getMonth();
+    }
+    var first = new Date(despachoCalYear, despachoCalMonth, 1);
+    var startWeekday = first.getDay();
+    var totalDays = new Date(despachoCalYear, despachoCalMonth + 1, 0).getDate();
+    var hoy = todayISO();
+    var fechaActual = despachoFechaActual();
+    var cells = [];
+    for(var i = 0; i < startWeekday; i++) cells.push("");
+    for(var day = 1; day <= totalDays; day++){
+      var mm = (despachoCalMonth + 1 < 10 ? "0" : "") + (despachoCalMonth + 1);
+      var dd = (day < 10 ? "0" : "") + day;
+      cells.push(despachoCalYear + "-" + mm + "-" + dd);
+    }
+    return '<div class="desp-cal-nav">' +
+      '<button type="button" class="desp-cal-navbtn desp-cal-prev">‹</button>' +
+      '<span class="desp-cal-mes">' + capitalize(MESES_LARGO[despachoCalMonth].toLowerCase()) + ' ' + despachoCalYear + '</span>' +
+      '<button type="button" class="desp-cal-navbtn desp-cal-next">›</button></div>' +
+      '<div class="desp-cal-weekdays">' + ["D","L","M","M","J","V","S"].map(function(w){ return "<span>" + w + "</span>"; }).join("") + '</div>' +
+      '<div class="desp-cal-grid">' + cells.map(function(iso){
+        if(!iso) return '<span class="desp-cal-cell empty"></span>';
+        var day2 = parseInt(iso.split("-")[2], 10);
+        var cls = "desp-cal-cell";
+        if(iso === hoy) cls += " today";
+        if(iso === fechaActual) cls += " selected";
+        return '<button type="button" class="' + cls + '" data-iso="' + iso + '">' + day2 + '</button>';
+      }).join("") + '</div>' +
+      '<div class="desp-cal-actions">' +
+        '<button type="button" class="desp-cal-hoy-btn">Ir a hoy</button>' +
+        '<button type="button" class="desp-cal-cerrar-btn">Cerrar</button>' +
+      '</div>';
+  }
+  function wireDespachoCalendario(container){
+    var prev = container.querySelector(".desp-cal-prev");
+    if(prev) prev.addEventListener("click", function(){
+      despachoCalMonth--; if(despachoCalMonth < 0){ despachoCalMonth = 11; despachoCalYear--; }
+      renderPanel();
+    });
+    var next = container.querySelector(".desp-cal-next");
+    if(next) next.addEventListener("click", function(){
+      despachoCalMonth++; if(despachoCalMonth > 11){ despachoCalMonth = 0; despachoCalYear++; }
+      renderPanel();
+    });
+    container.querySelectorAll(".desp-cal-cell[data-iso]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        despachoFechaSeleccionada = btn.getAttribute("data-iso");
+        despachoCalAbierto = false;
+        renderPanel();
+      });
+    });
+    var irHoyBtn = container.querySelector(".desp-cal-hoy-btn");
+    if(irHoyBtn) irHoyBtn.addEventListener("click", function(){
+      despachoFechaSeleccionada = null;
+      despachoCalAbierto = false;
+      renderPanel();
+    });
+    var cerrarBtn = container.querySelector(".desp-cal-cerrar-btn");
+    if(cerrarBtn) cerrarBtn.addEventListener("click", function(){
+      despachoCalAbierto = false;
+      renderPanel();
+    });
+  }
   function buildDespachoPanel(){
     var wrap = document.createElement("div");
     wrap.className = "desp-panel";
 
+    var esVistaHoy = despachoEsVistaHoy();
     var head = document.createElement("div");
     head.className = "desp-head";
     var h2 = document.createElement("h2");
-    h2.innerHTML = "<span class='desp-live-dot'></span>Despacho <span class='desp-hoy-pill'>HOY</span>";
+    h2.innerHTML = "<span class='desp-live-dot'></span>Despacho " +
+      (esVistaHoy ? "<span class='desp-hoy-pill'>HOY</span>" : "<span class='desp-fecha-pill'>" + esc(fmtFechaCorta(despachoFechaActual())) + "</span>") +
+      "<button type='button' class='desp-cal-btn" + (despachoCalAbierto ? " active" : "") + "' title='Consultar otra fecha'>📅</button>";
     head.appendChild(h2);
+    var calBtn = h2.querySelector(".desp-cal-btn");
+    calBtn.addEventListener("click", function(){
+      despachoCalAbierto = !despachoCalAbierto;
+      if(despachoCalAbierto){
+        var d = new Date(despachoFechaActual() + "T12:00:00");
+        despachoCalYear = d.getFullYear(); despachoCalMonth = d.getMonth();
+      }
+      renderPanel();
+    });
     var sub = document.createElement("div");
     sub.className = "desp-sub";
-    sub.textContent = fmtFechaLarga(todayISO()) + " · cola única de todos los canales";
+    sub.textContent = fmtFechaLarga(despachoFechaActual()) + (esVistaHoy ? " · cola única de todos los canales" : " · solo consulta -- no se pueden cambiar estados desde acá");
     head.appendChild(sub);
+    if(!esVistaHoy){
+      var volverBtn = document.createElement("button");
+      volverBtn.type = "button";
+      volverBtn.className = "desp-volver-hoy";
+      volverBtn.textContent = "← Volver a HOY";
+      volverBtn.addEventListener("click", function(){ despachoFechaSeleccionada = null; despachoCalAbierto = false; renderPanel(); });
+      head.appendChild(volverBtn);
+    }
+    if(despachoCalAbierto){
+      var calBox = document.createElement("div");
+      calBox.className = "desp-cal-popover";
+      calBox.innerHTML = buildDespachoCalendarioHTML();
+      head.appendChild(calBox);
+      wireDespachoCalendario(calBox);
+    }
     wrap.appendChild(head);
 
     // Filtros: se mantienen exactamente los mismos 5 grupos de siempre (Todos / Para ahora /
@@ -8939,10 +9097,11 @@ var TRIPLES = [
     meta.textContent = iconoEntrega + " " + pedidoCanalBadgeTxt(p);
     card.appendChild(meta);
 
-    // Para Masivo, la tarjeta de Despacho solo debe mostrar las líneas de HOY (un pedido
-    // Masivo puede tener 15-30 líneas repartidas en varias fechas) -- pedidoLineasDeHoy() ya
-    // filtra por eso; para los demás canales devuelve p.items tal cual (una sola fecha).
-    var itemsHoy = pedidoLineasDeHoy(p);
+    // Para Masivo, la tarjeta de Despacho solo debe mostrar las líneas de la fecha que se está
+    // mostrando -- hoy por defecto, o la fecha elegida con 📅 (un pedido Masivo puede tener
+    // 15-30 líneas repartidas en varias fechas). Para los demás canales devuelve p.items tal
+    // cual (una sola fecha, que ya coincide con la que se está viendo).
+    var itemsHoy = pedidoLineasDeFecha(p, despachoFechaActual());
     var prodRow = document.createElement("div");
     prodRow.className = "desp-prod-row";
     var productosHtml = itemsHoy.map(function(it){ return esc(it.cantidad) + " × <b>" + esc(it.producto) + "</b>"; }).join(", ");
@@ -8966,7 +9125,10 @@ var TRIPLES = [
 
     var actions = document.createElement("div");
     actions.className = "desp-actions";
-    if(!esTerminal && !readOnly){
+    // Consultar una fecha distinta a HOY con el calendario es solo planificación -- no se debe
+    // poder avanzar el estado de un pedido desde ahí (ver despachoEsVistaHoy()). En HOY el botón
+    // principal se comporta exactamente igual que siempre.
+    if(!esTerminal && !readOnly && despachoEsVistaHoy()){
       var siguiente = pedidoProximoEstado(p);
       if(siguiente){
         var mainBtn = document.createElement("button");
@@ -8997,7 +9159,17 @@ var TRIPLES = [
   function despachoDetalleEscHandler(ev){
     if(ev.key === "Escape") closePedidoDespachoDetalle();
   }
-  function showPedidoDespachoDetalle(p){
+  // Encabezado del bloque "solo este día" que se muestra al abrir el detalle de un Masivo desde
+  // Despacho (set-2026, requisito 4): "ENTREGA DE HOY -- Lunes 21" o, para otra fecha consultada
+  // con el calendario, "ENTREGA DEL Lunes 21".
+  function despachoEntregaLabel(fechaISO){
+    var d = new Date(fechaISO + "T12:00:00");
+    var dia = DIAS_LARGO[d.getDay()];
+    var prefijo = fechaISO === todayISO() ? "ENTREGA DE HOY" : "ENTREGA DEL";
+    return prefijo + " — " + dia + " " + d.getDate();
+  }
+  function showPedidoDespachoDetalle(p, opts){
+    opts = opts || {};
     closePedidoDespachoDetalle();
     var overlay = document.createElement("div");
     overlay.className = "pedido-preview-overlay";
@@ -9030,23 +9202,58 @@ var TRIPLES = [
     var referencia = (p.cliente && p.cliente.referencia) || "";
     var telefono = (p.cliente && p.cliente.telefono) || "—";
     var correo = (p.cliente && p.cliente.correo) || "";
-    var productosHtml = (p.items || []).map(function(it){
+
+    // Masivo (set-2026, requisito 4): al abrir "Ver detalle" desde Despacho, mostrar primero
+    // SOLO la info del día que se está consultando (hoy por defecto, u otra fecha con el
+    // calendario) -- igual que ya hace la tarjeta (ver itemsHoy en buildDespachoCard). El botón
+    // "📋 Ver pedido completo" (opts.verCompleto) revela todas las fechas y líneas originales,
+    // sin borrar ni tocar nada de p.items/p.deliveryMonto.
+    var esMasivo = p.canal === "masivo";
+    var fechaVista = despachoFechaActual();
+    var esVistaHoyDetalle = despachoEsVistaHoy();
+    var mostrarSoloDia = esMasivo && !opts.verCompleto;
+    var itemsDetalle = mostrarSoloDia ? pedidoLineasDeFecha(p, fechaVista) : (p.items || []);
+    var productosHtml = itemsDetalle.map(function(it){
       return "<div>" + esc(it.cantidad) + "x " + esc(it.producto) + " — S/ " + fmt(num(it.precio)) + " c/u" + (it.obs ? " (" + esc(it.obs) + ")" : "") + "</div>";
-    }).join("");
-    var subtotal = (p.items || []).reduce(function(s, it){ return s + num(it.cantidad) * num(it.precio); }, 0);
-    var total = subtotal + num(p.deliveryMonto);
+    }).join("") || "<div class='hint'>Sin productos para este día.</div>";
+    var subtotal = itemsDetalle.reduce(function(s, it){ return s + num(it.cantidad) * num(it.precio); }, 0);
+    // Igual que en la tarjeta: si se está mostrando solo el día, el delivery es el de ESE día
+    // (una vez, si el día tiene alguna línea); si se ve el pedido completo (o no es Masivo), es
+    // el flete total del pedido tal cual ya se mostraba antes de este cambio.
+    var deliveryDetalle = mostrarSoloDia
+      ? (p.masivoModo === "delivery" && itemsDetalle.length ? num(p.masivoDeliveryRate) : 0)
+      : num(p.deliveryMonto);
+    var total = subtotal + deliveryDetalle;
 
     var esTerminalDetalle = (p.estado === "ENTREGADO" || p.estado === "CANCELADO");
     var prioridadDetalleTxt = esTerminalDetalle ? "" : ((pedidoEsInmediato(p) ? " · 🔴 " : " · 🟡 ") + esc(pedidoHoraTxt(p)));
     var html = "";
     html += "<div style='margin-bottom:.4rem;'>" + (PEDIDO_ESTADO_EMOJI[p.estado] || "") + " <strong>" + esc(PEDIDO_ESTADO_LABEL[p.estado] || p.estado) + "</strong>" + prioridadDetalleTxt + "</div>";
     html += "<div style='margin-bottom:.8rem;'>" + esc(pedidoCanalBadgeTxt(p)) + "</div>";
+    if(!esVistaHoyDetalle){
+      html += "<div style='margin-bottom:.8rem;padding:.4rem .6rem;background:#f0ece0;border-radius:8px;font-size:.85rem;'>🔒 Modo consulta (" + esc(fmtFechaLarga(fechaVista)) + ") — solo para planificar. No se pueden cambiar estados ni datos desde acá.</div>";
+    }
+    if(mostrarSoloDia){
+      html += "<div style='margin-bottom:.8rem;padding:.5rem .7rem;background:#f0ece0;border-radius:8px;'>" +
+        "<strong>" + esc(despachoEntregaLabel(fechaVista)) + "</strong>" +
+        "<div class='hint' style='margin-top:.2rem;'>Hora de estar listo: " + esc(fmtHoraCortaMillis(despachoHoraAtencionMs(p)) || p.hora || "—") + "</div>" +
+        "</div>";
+    }
     html += "<div><strong>Cliente:</strong> " + esc(nombre) + (docId ? " · " + esc(docId) : "") + "</div>";
     html += "<div><strong>Teléfono:</strong> " + esc(telefono) + "</div>";
     html += "<div><strong>Dirección:</strong> " + esc(direccion) + (referencia ? " (" + esc(referencia) + ")" : "") + "</div>";
     if(correo) html += "<div><strong>Correo:</strong> " + esc(correo) + "</div>";
-    html += "<div style='margin-top:.6rem;'><strong>Productos:</strong></div>" + productosHtml;
-    html += "<div style='margin-top:.4rem;'>Subtotal: S/ " + fmt(subtotal) + " · Delivery: S/ " + fmt(num(p.deliveryMonto)) + " · <strong>Total: S/ " + fmt(total) + "</strong></div>";
+    html += "<div style='margin-top:.6rem;'><strong>" + (mostrarSoloDia ? "Productos de este día:" : "Productos:") + "</strong></div>" + productosHtml;
+    html += "<div style='margin-top:.4rem;'>Subtotal: S/ " + fmt(subtotal) + " · Delivery: S/ " + fmt(deliveryDetalle) + " · <strong>Total: S/ " + fmt(total) + "</strong>" + (mostrarSoloDia ? " <span class='hint'>(este día)</span>" : "") + "</div>";
+    if(esMasivo){
+      html += "<div style='margin-top:.5rem;'>";
+      if(mostrarSoloDia){
+        html += "<button type='button' class='btn btn-sm despacho-detalle-ver-completo'>📋 Ver pedido completo</button>";
+      } else {
+        html += "<button type='button' class='btn btn-sm despacho-detalle-ver-dia'>◀ Ver solo esta entrega</button>";
+      }
+      html += "</div>";
+    }
     html += "<div style='margin-top:.4rem;'><strong>Pago:</strong> " + esc(p.tipoPago || "—") + " · " + (p.pagado ? "Pagado" : "Pendiente") + "</div>";
     if(p.notas) html += "<div style='margin-top:.4rem;'><strong>Observaciones:</strong> " + esc(p.notas) + "</div>";
     if(p.atendidoPor) html += "<div><strong>Tomado por:</strong> " + esc(p.atendidoPor) + "</div>";
@@ -9068,24 +9275,35 @@ var TRIPLES = [
     }
     body.innerHTML = html;
 
-    // Repartidor: campo editable aparte, no frena el botón de avance de un solo toque.
+    // Alternar entre "solo este día" y "pedido completo" (requisito 4) -- reconstruye todo el
+    // detalle con showPedidoDespachoDetalle, igual que hace cualquier otro cambio de estado acá.
+    var verCompletoBtn = body.querySelector(".despacho-detalle-ver-completo");
+    if(verCompletoBtn) verCompletoBtn.addEventListener("click", function(){ showPedidoDespachoDetalle(p, { verCompleto: true }); });
+    var verDiaBtn = body.querySelector(".despacho-detalle-ver-dia");
+    if(verDiaBtn) verDiaBtn.addEventListener("click", function(){ showPedidoDespachoDetalle(p); });
+
+    // Repartidor: campo editable aparte, no frena el botón de avance de un solo toque. Consultar
+    // una fecha distinta a HOY con el calendario es solo planificación (requisito 2: "No
+    // modificar estados, fechas ni información de los pedidos") -- ahí se muestra como texto de
+    // solo lectura en vez del campo editable, igual que ya se hace para el botón principal de la
+    // tarjeta (ver despachoEsVistaHoy() en buildDespachoCard).
     var repartidorWrap = document.createElement("div");
     repartidorWrap.style.marginTop = ".8rem";
     repartidorWrap.innerHTML = "<strong>Repartidor:</strong>";
-    var repartidorRow = document.createElement("div");
-    repartidorRow.style.display = "flex";
-    repartidorRow.style.gap = ".5rem";
-    repartidorRow.style.marginTop = ".3rem";
-    var repartidorInput = document.createElement("input");
-    repartidorInput.type = "text";
-    repartidorInput.value = p.repartidor || "";
-    repartidorInput.placeholder = "Nombre del repartidor";
-    repartidorInput.style.flex = "1";
-    repartidorInput.style.padding = ".4rem .6rem";
-    repartidorInput.style.border = "1px solid var(--border)";
-    repartidorInput.style.borderRadius = "8px";
-    repartidorRow.appendChild(repartidorInput);
-    if(!readOnly){
+    if(!readOnly && esVistaHoyDetalle){
+      var repartidorRow = document.createElement("div");
+      repartidorRow.style.display = "flex";
+      repartidorRow.style.gap = ".5rem";
+      repartidorRow.style.marginTop = ".3rem";
+      var repartidorInput = document.createElement("input");
+      repartidorInput.type = "text";
+      repartidorInput.value = p.repartidor || "";
+      repartidorInput.placeholder = "Nombre del repartidor";
+      repartidorInput.style.flex = "1";
+      repartidorInput.style.padding = ".4rem .6rem";
+      repartidorInput.style.border = "1px solid var(--border)";
+      repartidorInput.style.borderRadius = "8px";
+      repartidorRow.appendChild(repartidorInput);
       var repartidorBtn = document.createElement("button");
       repartidorBtn.type = "button";
       repartidorBtn.className = "btn btn-sm";
@@ -9095,13 +9313,20 @@ var TRIPLES = [
         p.repartidor = repartidorInput.value.trim();
       });
       repartidorRow.appendChild(repartidorBtn);
+      repartidorWrap.appendChild(repartidorRow);
+    } else {
+      var repartidorTxt = document.createElement("div");
+      repartidorTxt.style.marginTop = ".3rem";
+      repartidorTxt.textContent = p.repartidor || "—";
+      repartidorWrap.appendChild(repartidorTxt);
     }
-    repartidorWrap.appendChild(repartidorRow);
     body.appendChild(repartidorWrap);
 
     // Corrección manual de estado -- por si el planchero desordenó las comandas y hay que
-    // corregir el orden real de los pasos, sin depender del botón de "siguiente".
-    if(!readOnly){
+    // corregir el orden real de los pasos, sin depender del botón de "siguiente". Solo disponible
+    // viendo HOY (ver comentario de repartidor arriba): en modo consulta de otra fecha no se
+    // pueden tocar estados.
+    if(!readOnly && esVistaHoyDetalle){
       var estadoWrap = document.createElement("div");
       estadoWrap.style.marginTop = ".8rem";
       estadoWrap.innerHTML = "<strong>Corregir estado manualmente:</strong>";
@@ -9142,7 +9367,8 @@ var TRIPLES = [
     // porque no es parte del flujo normal -- se deja únicamente acá, dentro de "Ver detalle",
     // para que siga disponible ante una excepción pero no compita con la acción de todos los
     // días. pedidoCancelarPedido() ya pide confirmación antes de cancelar (sin cambios ahí).
-    if(!esTerminalDetalle && !readOnly){
+    // Igual que repartidor/estado arriba: solo disponible viendo HOY, no en modo consulta.
+    if(!esTerminalDetalle && !readOnly && esVistaHoyDetalle){
       var cancelarWrap = document.createElement("div");
       cancelarWrap.style.marginTop = "1rem";
       cancelarWrap.style.paddingTop = ".8rem";
@@ -10735,11 +10961,11 @@ var TRIPLES = [
     var activos = PEDIDOS.filter(function(p){ return p.estado && p.estado !== "ENTREGADO" && p.estado !== "CANCELADO" && pedidoEsDelDiaOperativo(p); });
     if(!colaInicializada){
       colaInicializada = true;
-      activos.forEach(function(p){ if(despachoEsInmediato(p)) pedidosAlertados[p.id] = true; });
+      activos.forEach(function(p){ if(despachoEsInmediatoHoy(p)) pedidosAlertados[p.id] = true; });
       return;
     }
     activos.forEach(function(p){
-      if(despachoEsInmediato(p) && !pedidosAlertados[p.id]){
+      if(despachoEsInmediatoHoy(p) && !pedidosAlertados[p.id]){
         pedidosAlertados[p.id] = true;
         alertarPedidoParaAhora(p);
       }
