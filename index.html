@@ -1891,8 +1891,19 @@ var TRIPLES = [
   function mergeStateForSave(freshRemote, local, base){
     var merged = deepClone(freshRemote);
     if(!merged.meta) merged.meta = { businessName:"", lastSavedAt:null, schema:2 };
-    var baseBiz = base && base.meta ? base.meta.businessName : undefined;
-    if(local.meta && local.meta.businessName !== baseBiz){ merged.meta.businessName = local.meta.businessName; }
+    var baseMeta = (base && base.meta) || {};
+    if(local.meta && local.meta.businessName !== baseMeta.businessName){ merged.meta.businessName = local.meta.businessName; }
+    // BUGFIX (set-2026): estos 3 campos se quedaban afuera del merge -- doSave() vuelve a leer
+    // "freshRemote" (el valor que YA estaba en la nube, sin el cambio que se está guardando
+    // recién ahora) y como nadie los reaplicaba desde "local", el propio guardado pisaba el
+    // cambio que el usuario acababa de escribir con el valor viejo de la nube -- pasaba SIEMPRE,
+    // aunque solo hubiera un aparato usando la app, no hacía falta que otro dispositivo chocara.
+    // Detectado al confirmar que la dirección del puente de impresión (impresionBridgeUrl) se
+    // borraba sola apenas se guardaba -- el mismo hueco afectaba también a ntfyTopic (aviso de
+    // pedidos nuevos) y deliveryTrasladoMin (minutos de traslado de Delivery).
+    if(local.meta && local.meta.ntfyTopic !== baseMeta.ntfyTopic){ merged.meta.ntfyTopic = local.meta.ntfyTopic; }
+    if(local.meta && local.meta.impresionBridgeUrl !== baseMeta.impresionBridgeUrl){ merged.meta.impresionBridgeUrl = local.meta.impresionBridgeUrl; }
+    if(local.meta && local.meta.deliveryTrasladoMin !== baseMeta.deliveryTrasladoMin){ merged.meta.deliveryTrasladoMin = local.meta.deliveryTrasladoMin; }
     mergeFlatMap(merged, "precios", local.precios || {}, (base && base.precios) || {});
     mergeMetasObjetivos(merged, local, base || {});
     var baseCatalog = (base && base.customCatalog) || [];
@@ -7874,6 +7885,91 @@ var TRIPLES = [
     area.innerHTML = buildPedidoPrintCardHTML(p);
     doWindowPrint("Orden " + (p.numero || ""));
   }
+  // ---------- Impresión de UN SOLO DÍA de un pedido Masivo (informe de supervisión) ----------
+  // Jessica (set-2026): un pedido Masivo puede tener entregas repartidas en varios días: hasta
+  // ahora "Generar PDF" siempre imprimía TODAS las fechas juntas, y eso se queda EXACTAMENTE
+  // igual (ver doPrintPedido/doPrintPedidoObj arriba, sin ningún cambio). Esto es una SEGUNDA
+  // opción nueva, solo para pedidos Masivo: "Imprimir día", que arma el mismo documento
+  // profesional de siempre pero con SOLO las líneas de la fecha que se está viendo en
+  // Despacho/Calendario (ver despachoFechaActual()) -- un informe físico para supervisión en
+  // tienda, no la impresión de Producción de Cocina/Jugos (eso es otra cosa completamente
+  // aparte, ver produccionTicketTexto/despachoEnviarProduccion, sin tocar).
+  // Reutiliza pedidoTableHTML pasándole un objeto con canal distinto de "masivo" -- así sale la
+  // tabla de 5 columnas N°/CANT/PRODUCTO/PRECIO/TOTAL (sin la columna FECHA ENTREGA, que no
+  // hace falta si ya es un solo día), con el mismo relleno de filas mínimo (8) y la misma
+  // densidad que la orden completa, sin duplicar esa lógica.
+  // Delivery (a pedido explícito de Jessica): se muestra el monto de delivery COMPLETO del
+  // pedido -- el mismo que sale en la orden completa, sin dividir ni prorratear entre días -- y
+  // se suma al subtotal de los productos de esa fecha para el TOTAL.
+  function buildPedidoMasivoDiaHTML(p, fechaISO){
+    var itemsDia = (p.items || []).filter(function(it){ return it.fecha === fechaISO; });
+    var tabla = pedidoTableHTML({ canal: "delivery", items: itemsDia });
+    var delivery = num(p.deliveryMonto);
+    var total = tabla.subtotal + delivery;
+    var horaListoTxt = p.hora ? fmtHoraCortaMillis(pedidoHoraAtencionMs(p)) : "";
+    var modoTxt = p.masivoModo === "recojo" ? "RECOJO EN TIENDA" : "DELIVERY";
+    var html = '<div class="pedido-print-card" style="font-family:Arial,Helvetica,sans-serif; color:#111; max-width:700px; margin:0 auto; -webkit-print-color-adjust:exact; print-color-adjust:exact;">';
+    if(p.anulado){
+      html += '<div style="background:#cc0000; color:#fff; font-weight:800; font-size:15px; text-align:center; padding:8px; margin-bottom:8px;">' +
+        '❌ PEDIDO ANULADO' + (p.motivoAnulacion ? ' — Motivo: ' + esc(p.motivoAnulacion) : '') +
+        (p.fechaAnulacion ? ' (' + esc(fmtFechaCorta(p.fechaAnulacion)) + ')' : '') + '</div>';
+    }
+    html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">';
+    html += '<div><img src="' + CARMELITAS_LOGO + '" style="height:78px; display:block; margin-bottom:6px;">' +
+      '<div style="font-size:11px; color:#333;">Av. 28 de Julio 1328 - Miraflores -Lima</div>' +
+      '<div style="font-size:11px; color:#333;">Tlf. 259 8036</div>' +
+      '<div style="font-size:11px; color:#333;">Delivery: 997 518 681 / 959 176 479</div>' +
+      '<div style="font-size:11px; color:#333; text-decoration:underline;">carmelitaspan@gmail.com</div></div>';
+    html += '<div style="text-align:right; padding-top:4px;">' +
+      '<div style="font-size:24px; font-weight:800; color:' + PEDIDO_DARK + '; line-height:1.08;">ORDEN DE PEDIDO</div>' +
+      '<div style="font-size:13px; font-weight:800; color:#c2660c; margin-top:2px;">(IMPRESIÓN DEL DÍA)</div>' +
+      '<div style="font-size:12px; color:#555; margin-top:4px;">N° de orden: <strong>' + esc(p.numero || (p.id||"").slice(-8)) + '</strong></div>' +
+      '<div style="font-size:14px; font-weight:800; color:#cc0000; margin-top:4px;">ENTREGA</div>' +
+      '<div style="font-size:12px; font-weight:700; color:#cc0000;">' + esc(fmtFechaLarga(fechaISO)) + '</div>' +
+      '</div>';
+    html += '</div>';
+    html += '<div style="border-bottom:2px solid ' + PEDIDO_DARK + '; margin-top:8px;"></div>';
+    html += '<div style="background:#fff200; color:#cc0000; font-weight:800; text-align:center; padding:7px 4px; margin:10px 0 0;">' +
+      '<div style="font-size:17px;">PEDIDO MASIVO — ' + modoTxt + '</div>' +
+      (horaListoTxt ? '<div style="font-size:14px; margin-top:2px;">HORA DE ESTAR LISTO: ' + esc(horaListoTxt) + '</div>' : '') +
+      '</div>';
+    html += '<div style="background:' + PEDIDO_DARK + '; color:#fff; font-weight:700; font-size:11px; letter-spacing:.04em; padding:4px 10px; margin-top:8px;">CLIENTE</div>';
+    html += '<div style="background:#f6e3bd; padding:8px 10px 7px; margin-bottom:2px; font-size:12px;">' + pedidoInfoRowsHTML(p) + '</div>';
+    html += tabla.html;
+    html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:4px;">' +
+      '<div style="font-size:11px;">Importante: Poner su nombre en Whatsapp</div>' +
+      '<div style="font-size:12px; text-align:right;">' +
+      '<div>SubTotal Productos: <strong>S/' + fmtMoney(tabla.subtotal) + '</strong></div>' +
+      '<div>Delivery: <strong>S/' + fmtMoney(delivery) + '</strong></div>' +
+      '<div style="font-size:14px; border-top:1px solid ' + PEDIDO_DARK + '; margin-top:3px; padding-top:3px;">TOTAL: <strong>S/' + fmtMoney(total) + '</strong></div>' +
+      '</div></div>';
+    if(p.notas && String(p.notas).trim()){
+      html += '<div style="background:#fff8e1; border:1px solid #e0c48a; padding:5px 10px; margin-top:10px; font-size:11px;"><strong>NOTAS:</strong> ' + esc(String(p.notas).trim()) + '</div>';
+    }
+    html += '<div style="text-align:center; color:#cc0000; font-weight:700; font-size:11px; margin-top:14px;">40 años... Tradición en Evolución, a tu servicio</div>';
+    html += '<div style="text-align:center; color:#111; font-size:11px; margin-top:2px;">¡Gracias por tu compra!</div>';
+    html += '</div>';
+    return html;
+  }
+  function doPrintPedidoMasivoDia(id, fechaISO){
+    var p = (PEDIDOS || []).filter(function(x){ return x.id === id; })[0];
+    if(!p) return;
+    doPrintPedidoMasivoDiaObj(p, fechaISO);
+  }
+  // Igual que doPrintPedidoMasivoDia(id, fechaISO), pero recibe el pedido ya en mano -- mismo
+  // motivo que doPrintPedidoObj (pedidos de la búsqueda de antiguos, que pueden no estar en
+  // PEDIDOS en memoria).
+  function doPrintPedidoMasivoDiaObj(p, fechaISO){
+    var itemsDia = (p.items || []).filter(function(it){ return it.fecha === fechaISO; });
+    if(!itemsDia.length){
+      showToast("Este pedido Masivo no tiene entregas para el " + fmtFechaCorta(fechaISO) + " (la fecha que se está viendo en Despacho/Calendario).");
+      return;
+    }
+    setPrintOrientation(false);
+    var area = document.getElementById("printArea");
+    area.innerHTML = buildPedidoMasivoDiaHTML(p, fechaISO);
+    doWindowPrint("Orden " + (p.numero || "") + " - " + fmtFechaCorta(fechaISO));
+  }
   function doPrintPedidosDia(date){
     var list = (PEDIDOS || []).filter(function(p){
       if(p.anulado) return false;
@@ -8640,7 +8736,10 @@ var TRIPLES = [
         "<td><button type='button' class='" + pagadoClass + "' data-id='" + p.id + "'>" + (p.pagado ? "Pagado" : "Pendiente") + "</button></td>" +
         "<td>" + entregadoBtnHtml + "</td>" +
         "<td>" + (readOnly ? "" : "<button type='button' class='btn btn-sm pedido-editar' data-id='" + p.id + "'>Editar</button>") + "</td>" +
-        "<td><button type='button' class='btn btn-sm pedido-pdf' data-id='" + p.id + "'>Generar PDF</button></td>" +
+        "<td>" + (esMasivo
+          ? "<button type='button' class='btn btn-sm pedido-masivo-dia' data-id='" + p.id + "' title='Solo las líneas de la fecha que se está viendo en Despacho/Calendario'>🖨️ Imprimir día</button> " +
+            "<button type='button' class='btn btn-sm pedido-pdf' data-id='" + p.id + "'>📄 Imprimir pedido completo</button>"
+          : "<button type='button' class='btn btn-sm pedido-pdf' data-id='" + p.id + "'>Generar PDF</button>") + "</td>" +
         "<td><button type='button' class='btn btn-sm pedido-preview' data-id='" + p.id + "'>Vista previa</button></td>" +
         "<td>" + anularBtnHtml + "</td>" +
         "<td>" + (readOnly ? "" : '<button type="button" class="btn-del pedido-del" data-id="' + p.id + '" title="Eliminar pedido">✕</button>') + "</td>";
@@ -8686,6 +8785,9 @@ var TRIPLES = [
 
     tbody.querySelectorAll(".pedido-pdf").forEach(function(btn){
       btn.addEventListener("click", function(){ doPrintPedido(btn.getAttribute("data-id")); });
+    });
+    tbody.querySelectorAll(".pedido-masivo-dia").forEach(function(btn){
+      btn.addEventListener("click", function(){ doPrintPedidoMasivoDia(btn.getAttribute("data-id"), despachoFechaActual()); });
     });
     tbody.querySelectorAll(".pedido-preview").forEach(function(btn){
       btn.addEventListener("click", function(){
@@ -9169,6 +9271,10 @@ var TRIPLES = [
   function produccionTextoPlano(s){
     return String(s == null ? "" : s)
       .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      // Espacios "raros" (espacio fino/angosto que a veces mete el navegador entre la hora y
+      // "a. m."/"p. m.", según el Chrome de cada equipo) -- se pasan a espacio normal ANTES del
+      // filtro de abajo, para que nunca salga un "?" ahí en el papel.
+      .replace(/[    ]/g, " ")
       .replace(/[^\x20-\x7E\n]/g, "?");
   }
   // Agrupa las líneas de un pedido (ya filtradas por fecha, igual que la tarjeta -- ver
@@ -9220,10 +9326,14 @@ var TRIPLES = [
     var raya = "--------------------------------\n";
     var out = ESC + "@"; // init: no toca nada de la impresora, solo reinicia el trabajo actual
     out += GRANDE + produccionTextoPlano((PRODUCCION_PUNTOS[puntoKey] || {}).label || puntoKey).toUpperCase() + "\n";
-    out += NORMAL + raya;
+    // Encabezado chico (pedido de Jessica, set-2026): la hora en que se está IMPRIMIENDO este
+    // ticket ahora mismo -- a propósito chico y separado de "LISTO" de más abajo (que es la hora
+    // en que el pedido debe estar preparado), para que no se confundan una con la otra.
+    out += NORMAL + "Enviado: " + produccionTextoPlano(fmtHoraCortaMillis(Date.now())) + "\n";
+    out += raya;
+    out += NEGRITA + "NUEVA ORDEN DE " + produccionTextoPlano((CANAL_LABEL[p.canal] || CANAL_LABEL.tienda).toUpperCase()) + NORMAL + "\n";
     out += "Pedido #" + produccionTextoPlano(p.numero || "-") + "\n";
     out += "Cliente: " + produccionTextoPlano((p.cliente && p.cliente.nombre) || "-") + "\n";
-    out += produccionTextoPlano(pedidoDestinoLabel(p)) + "\n";
     if(p.canal === "masivo") out += "Fecha: " + produccionTextoPlano(fmtFechaCorta(fechaISO)) + "\n";
     if(horaListoTxt) out += NEGRITA + "LISTO: " + produccionTextoPlano(horaListoTxt) + NORMAL + "\n";
     out += raya;
@@ -9777,6 +9887,7 @@ var TRIPLES = [
           var productosLabel = (p.items||[]).map(function(it){ return it.cantidad + "x " + it.producto; }).join(", ");
           var subtotal = (p.items||[]).reduce(function(s,it){ return s + num(it.cantidad)*num(it.precio); }, 0) + num(p.deliveryMonto);
           var canalLabel = CANAL_LABEL[p.canal] || p.canal;
+          var esMasivoBusq = p.canal === "masivo";
           var clienteCell = esc((p.cliente && p.cliente.nombre) || "—");
           if(p.anulado){ clienteCell += ' <span class="chip bad" title="' + esc(p.motivoAnulacion || "Sin motivo registrado") + '">ANULADO</span>'; }
           tr.innerHTML =
@@ -9787,7 +9898,10 @@ var TRIPLES = [
             "<td class='pedido-productos-cell'>" + esc(productosLabel) + "</td>" +
             "<td>S/ " + fmt(subtotal) + "</td>" +
             "<td>" + (p.pagado ? "Pagado" : "Pendiente") + "</td>" +
-            "<td><button type='button' class='btn btn-sm pedido-busqueda-pdf' data-id='" + esc(p.id) + "'>Generar PDF</button></td>" +
+            "<td>" + (esMasivoBusq
+              ? "<button type='button' class='btn btn-sm pedido-busqueda-masivo-dia' data-id='" + esc(p.id) + "' title='Solo las líneas de la fecha que se está viendo en Despacho/Calendario'>🖨️ Imprimir día</button> " +
+                "<button type='button' class='btn btn-sm pedido-busqueda-pdf' data-id='" + esc(p.id) + "'>📄 Imprimir pedido completo</button>"
+              : "<button type='button' class='btn btn-sm pedido-busqueda-pdf' data-id='" + esc(p.id) + "'>Generar PDF</button>") + "</td>" +
             "<td><button type='button' class='btn btn-sm pedido-busqueda-preview' data-id='" + esc(p.id) + "'>Vista previa</button></td>";
           tbody.appendChild(tr);
         });
@@ -9798,6 +9912,13 @@ var TRIPLES = [
             var id = btn.getAttribute("data-id");
             var p = pedidosBusquedaResultados.filter(function(x){ return x.id === id; })[0];
             if(p) doPrintPedidoObj(p);
+          });
+        });
+        tbody.querySelectorAll(".pedido-busqueda-masivo-dia").forEach(function(btn){
+          btn.addEventListener("click", function(){
+            var id = btn.getAttribute("data-id");
+            var p = pedidosBusquedaResultados.filter(function(x){ return x.id === id; })[0];
+            if(p) doPrintPedidoMasivoDiaObj(p, despachoFechaActual());
           });
         });
         tbody.querySelectorAll(".pedido-busqueda-preview").forEach(function(btn){
