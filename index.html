@@ -9174,6 +9174,8 @@ var TRIPLES = [
   // Agrupa las líneas de un pedido (ya filtradas por fecha, igual que la tarjeta -- ver
   // pedidoLineasDeFecha) según su punto de producción. Lo que no tiene punto asignado
   // (productoPuntoProduccion devuelve null) se junta aparte para poder avisar, nunca se inventa.
+  // Se usa hoy solo para Masivo (ver produccionAgruparItemsParaPedido) -- para pedidos
+  // normales se dejó de usar el filtro por producto, ver el porqué más abajo.
   function produccionAgruparItems(items){
     var grupos = {};
     var sinAsignar = [];
@@ -9185,6 +9187,27 @@ var TRIPLES = [
       grupos[punto].push(it);
     });
     return { grupos: grupos, sinAsignar: sinAsignar };
+  }
+  // REFERENCIA PRINCIPAL (decisión de Jessica, no cambiar sin que ella lo pida de nuevo):
+  // en vez de repartir cada producto a su punto según PRODUCCION_MAPA (que dejaba afuera un
+  // montón de variantes reales del catálogo -- "Francés Especial", "Francés Intermedio", etc.,
+  // solo coincidía con el nombre exacto "FRANCÉS"/"INTEGRAL"), un pedido NORMAL (no Masivo)
+  // manda el CONTENIDO COMPLETO del pedido -- todos los productos, tal cual -- a AMBAS
+  // tiqueteras (Cocina y Jugos). El personal de cada punto ve el ticket entero y prepara lo
+  // que le toca; no hace falta mantener un mapeo producto por producto. Masivo se deja AFUERA
+  // de esto "por ahora" (palabras de Jessica) y sigue usando produccionAgruparItems (el
+  // filtro preciso por producto) sin ningún cambio.
+  function produccionAgruparItemsCompleto(items){
+    var validos = (items || []).filter(function(it){ return it.producto && num(it.cantidad) > 0; });
+    if(!validos.length) return { grupos: {}, sinAsignar: [] };
+    var grupos = {};
+    Object.keys(PRODUCCION_PUNTOS).forEach(function(puntoKey){ grupos[puntoKey] = validos; });
+    return { grupos: grupos, sinAsignar: [] };
+  }
+  // Punto de entrada único: decide, según el pedido, si se reparte por producto (Masivo) o se
+  // manda completo a ambas tiqueteras (normal). Ver produccionAgruparItemsCompleto arriba.
+  function produccionAgruparItemsParaPedido(p, items){
+    return (p && p.canal === "masivo") ? produccionAgruparItems(items) : produccionAgruparItemsCompleto(items);
   }
   // Arma el texto del ticket en comandos ESC/POS básicos (init, negrita/doble alto, corte de
   // papel) -- formato de recibo angosto (térmica de cocina), no la tarjeta A4 de
@@ -9232,7 +9255,7 @@ var TRIPLES = [
   function despachoEnviarProduccion(p, fechaISO, opts){
     opts = opts || {};
     var items = pedidoLineasDeFecha(p, fechaISO);
-    var agr = produccionAgruparItems(items);
+    var agr = produccionAgruparItemsParaPedido(p, items);
     var disponibles = Object.keys(agr.grupos);
     if(!disponibles.length){
       showToast(agr.sinAsignar.length
@@ -9395,7 +9418,7 @@ var TRIPLES = [
     // anticipación; esto no cambia estado, fecha ni ningún otro dato del pedido, solo dispara la
     // impresión y guarda cuándo se envió (para no repetirla por accidente).
     var fechaProd = despachoFechaActual();
-    var agrProd = produccionAgruparItems(itemsHoy);
+    var agrProd = produccionAgruparItemsParaPedido(p, itemsHoy);
     var puntosProd = Object.keys(agrProd.grupos);
     if(!esTerminal && !readOnly && puntosProd.length){
       var yaEnviadosProd = (p.produccionEnviada && p.produccionEnviada[fechaProd]) || {};
