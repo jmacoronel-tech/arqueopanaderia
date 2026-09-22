@@ -4887,7 +4887,8 @@ var TRIPLES = [
           createdAt: original.createdAt,
           entregadoEn: original.entregadoEn,
           entregadoPor: original.entregadoPor,
-          items: (pedidoDraft.items || []).filter(function(it){ return it.producto && it.producto.trim(); })
+          items: (pedidoDraft.items || []).filter(function(it){ return it.producto && it.producto.trim(); }),
+          deliveryMonto: pedidoDeliveryTotal(pedidoDraft)
         });
         showPedidoVistaPrevia(previewObj);
       });
@@ -4927,7 +4928,8 @@ var TRIPLES = [
           numero: null,
           createdAt: null,
           esBorrador: true,
-          items: validItems
+          items: validItems,
+          deliveryMonto: pedidoDeliveryTotal(pedidoDraft)
         });
         showPedidoVistaPrevia(previewObj);
       });
@@ -6580,7 +6582,8 @@ var TRIPLES = [
         return;
       }
       var previewObj = Object.assign({}, draft, {
-        id: null, numero: null, createdAt: null, esBorrador: true, items: validItems
+        id: null, numero: null, createdAt: null, esBorrador: true, items: validItems,
+        deliveryMonto: pedidoDeliveryTotal(draft)
       });
       showPedidoVistaPrevia(previewObj);
     });
