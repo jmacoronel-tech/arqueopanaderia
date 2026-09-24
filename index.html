@@ -1222,6 +1222,11 @@ var TRIPLES = [
   // del Arqueo) -- mismo criterio que pedidosProduccionDate, por la misma razón (ver ahí).
   var pedidosListaFecha = null;
   var pedidosListaVerTodos = false;
+  // Buscador único de "Todos los pedidos" (cliente, N° de orden, teléfono o RUC/DNI): mientras
+  // haya texto acá, la búsqueda manda y se ignora el filtro de fecha/origen de arriba -- el
+  // objetivo es ENCONTRAR un pedido puntual sin tener que saber en qué fecha quedó, no acotar
+  // la lista del día. Con el buscador vacío, todo sigue exactamente como antes.
+  var pedidosListaBusqueda = "";
   // Qué pedidos Masivos tienen su detalle completo desplegado en "Todos los pedidos" (id -> true).
   // Por defecto todos cerrados (solo el resumen ejecutivo); se guarda acá para que no se cierre
   // solo cada vez que la lista se vuelve a pintar por otro cambio (ver buildPedidosLista).
@@ -1633,6 +1638,11 @@ var TRIPLES = [
     // más abajo) -- normalmente vacío, usa "http://localhost:8787" por defecto. Solo hace falta
     // tocarlo si el puente corre en otra computadora de la red y no en la que tiene la app abierta.
     if(parsed.meta.impresionBridgeUrl == null) parsed.meta.impresionBridgeUrl = "";
+    // Lista de nombres de "Atendido por" ya usados en algún pedido (set-2026, pedido de
+    // Jessica) -- se guarda en la nube (como impresionBridgeUrl) para que el autocompletado
+    // funcione igual en cualquier tablet/PC, no solo en la que registró ese nombre por primera
+    // vez. Ver pedidoRegistrarResponsable()/pedidoResponsablesList() más abajo.
+    if(!Array.isArray(parsed.meta.responsables)) parsed.meta.responsables = [];
     if(!parsed.days) parsed.days = {};
     if(!parsed.customCatalog) parsed.customCatalog = [];
     if(!parsed.precios) parsed.precios = {};
@@ -4199,7 +4209,7 @@ var TRIPLES = [
     return wrap;
   }
 
-  function buildField(labelText, type, value, onChange, full){
+  function buildField(labelText, type, value, onChange, full, datalistId){
     var field = document.createElement("div");
     field.className = "field" + (full ? " full" : "");
     var label = document.createElement("label");
@@ -4208,6 +4218,7 @@ var TRIPLES = [
     var input;
     if(type === "textarea"){ input = document.createElement("textarea"); input.value = value || ""; }
     else { input = document.createElement("input"); input.type = type; input.value = value || ""; }
+    if(datalistId) input.setAttribute("list", datalistId);
     if(readOnly) input.disabled = true;
     input.addEventListener("input", function(){ onChange(input.value); });
     field.appendChild(input);
@@ -4518,7 +4529,7 @@ var TRIPLES = [
       origen: "whatsapp",
       cliente: { nombre:"", dni:"", ruc:"", direccion: canal === "tienda" ? "Recojo en tienda" : "", referencia:"", telefono:"", correo:"", diasCredito:0 },
       tipoPago: "",
-      atendidoPor: "",
+      atendidoPor: pedidoGetAtendidoDefault(),
       pagado: false,
       comprobante: null,
       comprobante2: null,
@@ -4586,14 +4597,88 @@ var TRIPLES = [
     });
     PEDIDO_PRECIO_SEED.forEach(function(item){
       var key = normalizePrecioKey(item.n);
-      if(!seen[key]){ seen[key] = true; names.push(item.n); }
+      // La lista de precios (PEDIDO_PRECIO_SEED) viene TODA EN MAYÚSCULAS del Excel que sube
+      // Jessica -- se muestra en Título Case en el buscador de producto para que se vea igual
+      // de prolijo que el resto del catálogo (que ya viene así de Arqueo). El precio se sigue
+      // buscando por normalizePrecioKey (minúscula), así que esto no cambia ningún match.
+      if(!seen[key]){ seen[key] = true; names.push(productoDisplay(item.n)); }
     });
     names.sort();
     return names;
   }
 
+  // Título Case genérico (set-2026, pedido de Jessica: "normalización de textos" -- nombre de
+  // cliente, dirección y notas escritas a mano, y presentación del catálogo de productos, deben
+  // quedar visualmente uniformes sin importar cómo se hayan tecleado). Capitaliza la primera
+  // letra de cada palabra (separadas por espacio, guión, "/", paréntesis o salto de línea) y
+  // pone el resto en minúscula -- a propósito simple, sin lista de excepciones editoriales
+  // (de/la/el en minúscula, etc.), porque lo pedido es "uniforme y profesional", no un estilo
+  // editorial. Solo junta espacios/tabs de más DENTRO de una línea -- nunca toca saltos de
+  // línea, para no arruinar una nota escrita en varios renglones.
+  function tituloCase(s){
+    s = String(s == null ? "" : s).replace(/[ \t]+/g, " ").trim();
+    if(!s) return s;
+    return s.toLowerCase().replace(/(^|[\s\-\/(])([a-zà-öø-ÿ])/g, function(m, sep, ch){
+      return sep + ch.toUpperCase();
+    });
+  }
+  // Nombre de producto tal como se le muestra a una persona (Vista previa/impresión, "Todos los
+  // pedidos", tarjetas de Despacho) -- SOLO para presentación. El texto que de verdad se guarda
+  // y se usa para buscar precio (getPrecioFor/normalizePrecioKey) o punto de producción
+  // (productoPuntoProduccion) sigue siendo el original tal cual está en cada pedido -- ambos ya
+  // comparan todo en minúscula/mayúscula normalizada, así que cambiar solo cómo se VE nunca
+  // puede desarmar un pedido ya guardado ni uno futuro. No se reescribe nada en Firestore.
+  function productoDisplay(nombre){
+    return tituloCase(nombre);
+  }
+
   function normalizeClienteName(s){
     return (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+  }
+  // Copia del cliente del draft con nombre/dirección en Título Case, SOLO para lo que se
+  // termina guardando (ver savePedido/doPedidoAutosave) -- a propósito no toca draft.cliente
+  // directamente, para que el campo que la persona está escribiendo en ese momento no cambie
+  // de texto ni salte el cursor mientras todavía está editando.
+  function pedidoClienteNormalizado(cliente){
+    if(!cliente) return cliente;
+    var out = Object.assign({}, cliente);
+    if(out.nombre) out.nombre = tituloCase(out.nombre);
+    if(out.direccion) out.direccion = tituloCase(out.direccion);
+    return out;
+  }
+
+  // ---------- "Atendido por": lista reutilizable + predeterminado por dispositivo (set-2026) ----------
+  // Jessica: los nombres de quién atendió un pedido deben quedar guardados para reutilizarlos
+  // (autocompletar al escribir), y el último usado debe quedar como predeterminado del
+  // siguiente pedido EN ESE MISMO aparato/sesión (no en la nube -- por eso sessionStorage,
+  // igual que getDespachoEncargado() más arriba, que ya usa el mismo mecanismo para otra cosa).
+  function pedidoResponsablesList(){
+    return ((STATE && STATE.meta && STATE.meta.responsables) || []).slice().sort();
+  }
+  // Agrega (si hace falta) un nombre nuevo a la lista compartida y lo deja como predeterminado
+  // de este aparato -- se llama SOLO al guardar un pedido de verdad (savePedido/doPedidoAutosave),
+  // nunca mientras la persona todavía está escribiendo. Evita duplicados por diferencias de
+  // tipeo (mayúsculas, tildes, espacios) comparando por la misma clave normalizada que ya usa
+  // pedidoBusquedaNormTexto -- si ya existe una variante, se reutiliza tal cual está guardada
+  // (no se agrega una segunda versión con otra letra en mayúscula).
+  function pedidoRegistrarResponsable(nombre){
+    nombre = tituloCase(nombre || "");
+    if(!nombre) return;
+    pedidoSetAtendidoDefault(nombre);
+    if(!STATE || !STATE.meta) return;
+    if(!Array.isArray(STATE.meta.responsables)) STATE.meta.responsables = [];
+    var key = pedidoBusquedaNormTexto(nombre);
+    var yaExiste = STATE.meta.responsables.some(function(r){ return pedidoBusquedaNormTexto(r) === key; });
+    if(!yaExiste){
+      STATE.meta.responsables.push(nombre);
+      markDirty(); scheduleAutosave();
+    }
+  }
+  function pedidoGetAtendidoDefault(){
+    try{ return sessionStorage.getItem("arqueo_atendido_default") || ""; }catch(e){ return ""; }
+  }
+  function pedidoSetAtendidoDefault(nombre){
+    try{ sessionStorage.setItem("arqueo_atendido_default", nombre || ""); }catch(e){}
   }
 
   // Lista de precios (STATE.precios): el precio oficial de la lista subida (PEDIDO_PRECIO_SEED)
@@ -5094,7 +5179,7 @@ var TRIPLES = [
     // "Atendido por": quién tomó/creó el pedido -- texto libre a propósito, porque la app no
     // tiene usuarios con clave individual (todos entran con la misma clave). Sale impreso en
     // la orden junto con "Creado el" y "Entregado el" (ver buildPedidoMetaHTML).
-    grid.appendChild(buildField("Atendido por", "text", draft.atendidoPor, function(v){ draft.atendidoPor = v; }));
+    grid.appendChild(buildField("Atendido por", "text", draft.atendidoPor, function(v){ draft.atendidoPor = v; }, false, "pedidoAtendidoList"));
 
     // Crédito del cliente (7 o 15 días): queda guardado en el cliente, no en cada pedido suelto
     // -- así un cliente habitual a crédito no hay que marcarlo cada vez, se rellena solo al
@@ -5443,6 +5528,15 @@ var TRIPLES = [
     });
     card.appendChild(pagoDatalist);
 
+    var atendidoDatalist = document.createElement("datalist");
+    atendidoDatalist.id = "pedidoAtendidoList";
+    pedidoResponsablesList().forEach(function(nombre){
+      var opt = document.createElement("option");
+      opt.value = nombre;
+      atendidoDatalist.appendChild(opt);
+    });
+    card.appendChild(atendidoDatalist);
+
     sortPedidoItemsPorFecha();
     renderPedidoItems(tbody, totalsRow);
     updatePedidoTotals(totalsRow);
@@ -5632,6 +5726,19 @@ var TRIPLES = [
     var footer = document.createElement("div");
     footer.className = "pw-footer";
     wrap.appendChild(footer);
+
+    // Datalist de "Atendido por" (autocompletado, set-2026) -- el asistente es una tarjeta
+    // aparte del formulario de "Editar pedido" (que ya trae la suya), así que necesita su
+    // propia copia con el MISMO id para que el campo del paso "resumen" (.pw-atendido-input,
+    // list="pedidoAtendidoList") encuentre sugerencias también acá.
+    var atendidoDatalist = document.createElement("datalist");
+    atendidoDatalist.id = "pedidoAtendidoList";
+    pedidoResponsablesList().forEach(function(nombre){
+      var opt = document.createElement("option");
+      opt.value = nombre;
+      atendidoDatalist.appendChild(opt);
+    });
+    wrap.appendChild(atendidoDatalist);
 
     pedidoWizRenderBreadcrumb(breadcrumb);
     pedidoWizRenderProgress(progress);
@@ -6554,12 +6661,12 @@ var TRIPLES = [
         '<span class="pw-resumen-sub">Debe estar listo: ' + esc(pedidoWizHoraListoTxt()) + '</span>');
     }
     var itemsHtml = validItems.map(function(it){
-      return '<div class="pw-resumen-item-row"><span>' + fmt(it.cantidad) + "x " + esc(it.producto) +
+      return '<div class="pw-resumen-item-row"><span>' + fmt(it.cantidad) + "x " + esc(productoDisplay(it.producto)) +
         (draft.canal === "masivo" ? ' <span class="pw-muted">(' + esc(fmtFechaCorta(it.fecha)) + ')</span>' : "") + '</span><span>S/ ' + fmt(num(it.cantidad) * num(it.precio)) + '</span></div>';
     }).join("");
     html += pwResumenBlock("Productos", itemsHtml || "—");
     html += pwResumenBlock("Pago", (draft.tipoPago || "—") + '<span class="pw-resumen-sub">' + (draft.pagado ? "Pagado" : "Pendiente de pago") + '</span>');
-    html += '<div class="field" style="margin-top:1rem;"><label>Atendido por</label><input type="text" class="pw-atendido-input" value="' + esc(draft.atendidoPor || "") + '" placeholder="¿Quién tomó este pedido?"></div>';
+    html += '<div class="field" style="margin-top:1rem;"><label>Atendido por</label><input type="text" class="pw-atendido-input" list="pedidoAtendidoList" value="' + esc(draft.atendidoPor || "") + '" placeholder="¿Quién tomó este pedido?"></div>';
     html += '<div class="field" style="margin-top:.7rem;"><label>Notas (opcional)</label><textarea class="pw-notas-input" placeholder="Cualquier detalle adicional…">' + esc(draft.notas || "") + '</textarea></div>';
     html += '<div class="pw-total-line" style="font-size:1.05rem; margin-top:1rem;"><span>Total</span><span>S/ ' + fmt(pedidoSubtotal({ items: validItems }) + pedidoDeliveryTotal(draft)) + '</span></div>';
     html += '<button type="button" class="btn btn-sm pw-vista-previa-btn" style="margin-top:.8rem;">Vista previa (cotización)</button>';
@@ -6863,6 +6970,36 @@ var TRIPLES = [
   function pedidoProductoNorm(nombre){
     return (nombre || "").trim().toLowerCase().replace(/\s+/g, " ");
   }
+  // ---------- Buscador único de "Todos los pedidos" ----------
+  // Quita tildes/diacríticos para que "Sanchez" encuentre "Sánchez" y viceversa, sin importar
+  // cómo lo haya escrito quien tomó el pedido.
+  function pedidoBusquedaNormTexto(s){
+    var str = (s || "").toString().toLowerCase();
+    try{ str = str.normalize("NFD").replace(/[̀-ͯ]/g, ""); }catch(e){}
+    return str;
+  }
+  // Coincidencia parcial y tolerante: nombre del cliente (sin tildes), N° de orden, y
+  // teléfono/RUC/DNI comparados solo por dígitos (así "999-888-777" encuentra "999888777" y al
+  // revés, sin importar guiones ni espacios de por medio).
+  function pedidoMatchesBusqueda(p, query){
+    var qTexto = pedidoBusquedaNormTexto(query).trim();
+    if(!qTexto) return true;
+    var qDigitos = String(query || "").replace(/\D/g, "");
+    var c = p.cliente || {};
+    var nombre = pedidoBusquedaNormTexto(c.nombre);
+    var numero = pedidoBusquedaNormTexto(p.numero);
+    if(nombre.indexOf(qTexto) !== -1) return true;
+    if(numero.indexOf(qTexto) !== -1) return true;
+    if(qDigitos){
+      var telefono = String(c.telefono || "").replace(/\D/g, "");
+      var ruc = String(c.ruc || "").replace(/\D/g, "");
+      var dni = String(c.dni || "").replace(/\D/g, "");
+      if(telefono.indexOf(qDigitos) !== -1) return true;
+      if(ruc.indexOf(qDigitos) !== -1) return true;
+      if(dni.indexOf(qDigitos) !== -1) return true;
+    }
+    return false;
+  }
   function pedidoFechasDeItems(items, fechaDefault){
     var seen = {}; var out = [];
     (items || []).forEach(function(it){
@@ -6989,7 +7126,7 @@ var TRIPLES = [
       var resumenExistente = pedidoResumenMasivoInfo(existente.items);
       productosLabelExistente = resumenExistente.nombresLabel + " · " + resumenExistente.entregas + " entrega" + (resumenExistente.entregas === 1 ? "" : "s");
     } else {
-      productosLabelExistente = (existente.items || []).map(function(it){ return it.cantidad + "x " + it.producto; }).join(", ");
+      productosLabelExistente = (existente.items || []).map(function(it){ return it.cantidad + "x " + productoDisplay(it.producto); }).join(", ");
     }
     var card = document.createElement("div");
     card.className = "pedido-dupe-card";
@@ -7053,9 +7190,9 @@ var TRIPLES = [
       var payload = {
         canal: draft.canal,
         origen: draft.origen || "whatsapp",
-        cliente: draft.cliente,
+        cliente: pedidoClienteNormalizado(draft.cliente),
         tipoPago: draft.tipoPago || "",
-        atendidoPor: draft.atendidoPor || "",
+        atendidoPor: tituloCase(draft.atendidoPor || ""),
         pagado: !!draft.pagado,
         comprobante: draft.comprobante || null,
         comprobante2: draft.comprobante2 || null,
@@ -7063,7 +7200,7 @@ var TRIPLES = [
         masivoModo: draft.canal === "masivo" ? draft.masivoModo : "",
         masivoDeliveryRate: draft.canal === "masivo" ? num(draft.masivoDeliveryRate) : 0,
         hora: draft.hora || "",
-        notas: draft.notas || "",
+        notas: tituloCase(draft.notas || ""),
         numero: numero,
         items: validItems.map(function(it){
           return { producto: it.producto.trim(), cantidad: num(it.cantidad), precio: num(it.precio), fecha: it.fecha || draft.fechaDefault, obs: (it.obs || "").trim() };
@@ -7078,7 +7215,7 @@ var TRIPLES = [
       // revisarAlertasCola() de forma centralizada, así funciona igual para un pedido que
       // entra "para ahora" que para uno "programado" cuya hora recién llega más tarde.
       payload.estado = "NUEVO";
-      payload.estadoHistorial = [{ estado:"NUEVO", en: payload.createdAt, por: draft.atendidoPor || "" }];
+      payload.estadoHistorial = [{ estado:"NUEVO", en: payload.createdAt, por: payload.atendidoPor }];
       payload.horaListoEn = null;
       payload.horaSalidaEn = null;
       payload.repartidor = "";
@@ -7089,6 +7226,7 @@ var TRIPLES = [
       return db.collection("pedidos").add(payload).then(function(docRef){
         pedidosSaving = false;
         upsertCliente(payload.cliente, direccionesNuevasParaCliente);
+        pedidoRegistrarResponsable(payload.atendidoPor);
         pedidoDraft = newPedidoDraft(payload.canal);
         pedidoWizReset(); // el asistente de "Nuevo pedido" arranca de cero para el próximo pedido
         showToast("Pedido guardado.");
@@ -7201,7 +7339,7 @@ var TRIPLES = [
   function pedidoCancelarPedido(id){
     var p = PEDIDOS && PEDIDOS.filter(function(x){ return x.id === id; })[0];
     if(!p || !db) return;
-    var nombre = (p.cliente && p.cliente.nombre) || "este cliente";
+    var nombre = tituloCase((p.cliente && p.cliente.nombre) || "") || "este cliente";
     if(!confirm('¿Cancelar el pedido de "' + nombre + '"? Se puede corregir después si fue un error, pero no se puede deshacer con un clic.')) return;
     var quien = ensureDespachoEncargado();
     if(quien === null) return;
@@ -7294,9 +7432,9 @@ var TRIPLES = [
     var payload = {
       canal: draft.canal,
       origen: draft.origen || "whatsapp",
-      cliente: draft.cliente,
+      cliente: pedidoClienteNormalizado(draft.cliente),
       tipoPago: draft.tipoPago || "",
-      atendidoPor: draft.atendidoPor || "",
+      atendidoPor: tituloCase(draft.atendidoPor || ""),
       pagado: !!draft.pagado,
       comprobante: draft.comprobante || null,
       comprobante2: draft.comprobante2 || null,
@@ -7304,7 +7442,7 @@ var TRIPLES = [
       masivoModo: draft.canal === "masivo" ? draft.masivoModo : "",
       masivoDeliveryRate: draft.canal === "masivo" ? num(draft.masivoDeliveryRate) : 0,
       hora: draft.hora || "",
-      notas: draft.notas || "",
+      notas: tituloCase(draft.notas || ""),
       items: validItems.map(function(it){
         return { producto: it.producto.trim(), cantidad: num(it.cantidad), precio: num(it.precio), fecha: it.fecha || draft.fechaDefault, obs: (it.obs || "").trim() };
       })
@@ -7315,6 +7453,7 @@ var TRIPLES = [
       pedidoAutosaving = false;
       updatePedidoSaveStatus();
       upsertCliente(payload.cliente);
+      pedidoRegistrarResponsable(payload.atendidoPor);
     }).catch(function(){
       pedidoAutosaving = false;
       updatePedidoSaveStatus();
@@ -7421,17 +7560,17 @@ var TRIPLES = [
       return "Pedido Masivo";
     }
     if(p.canal === "tienda"){
-      return "Recojo en Tienda" + (p.hora ? " " + esc(p.hora) : "");
+      return "Recojo en Tienda" + (p.hora ? " " + esc(fmtHora12(p.hora)) : "");
     }
-    return p.hora ? ("Enviar antes de las " + esc(p.hora)) : "Pedido Delivery";
+    return p.hora ? ("Enviar antes de las " + esc(fmtHora12(p.hora))) : "Pedido Delivery";
   }
   function pedidoInfoRowsHTML(p){
     var c = p.cliente || {};
     var rows = [
-      ["NOMBRES:", c.nombre],
+      ["NOMBRES:", tituloCase(c.nombre)],
       ["DNI:", c.dni],
       ["RUC:", c.ruc],
-      ["DIRECCION:", c.direccion],
+      ["DIRECCION:", tituloCase(c.direccion)],
       ["REFERENCIA:", c.referencia],
       ["TELÉFONO:", c.telefono],
       ["CORREO:", c.correo]
@@ -7466,8 +7605,12 @@ var TRIPLES = [
   // sí importa la hora exacta, no solo el día.
   function fmtFechaHoraMillis(ms){
     if(!ms) return "";
-    var s = new Date(ms).toLocaleString("es-PE", { timeZone:"America/Lima", day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit", hour12:true });
-    return s.replace(",", "");
+    // Fecha y hora armadas por separado (en vez de un solo toLocaleString con hour12:true) para
+    // que el "a. m./p. m." salga siempre igual en cualquier equipo -- ver fmtHora12/limaHoraHHMM.
+    var fecha = "";
+    try{ fecha = new Date(ms).toLocaleDateString("es-PE", { timeZone:"America/Lima", day:"2-digit", month:"2-digit", year:"numeric" }); }catch(e){}
+    var hora = fmtHora12(limaHoraHHMM(ms));
+    return (fecha + " " + hora).trim();
   }
   // Datos de trazabilidad del pedido (quién lo atendió, cuándo se creó, cuándo se entregó de
   // verdad) -- lo que Jessica pidió para superar en información a la hoja del sistema viejo
@@ -7554,7 +7697,7 @@ var TRIPLES = [
         '<td style="' + cellStyle + 'text-align:center; color:#888;">' + (idx + 1) + "</td>" +
         (isMasivo ? '<td style="' + cellStyle + 'text-align:left;">' + esc(fmtFechaCorta(it.fecha)) + "</td>" : "") +
         '<td style="' + cellStyle + 'text-align:center; font-weight:700;">' + fmt(it.cantidad) + "</td>" +
-        '<td style="' + cellStyle + 'text-align:left;">' + esc(it.producto) + obsHtml + "</td>" +
+        '<td style="' + cellStyle + 'text-align:left;">' + esc(productoDisplay(it.producto)) + obsHtml + "</td>" +
         '<td style="' + cellStyle + 'text-align:right;">S/' + fmtMoney(it.precio) + "</td>" +
         '<td style="' + cellStyle + 'text-align:right; font-weight:700;">S/' + fmtMoney(lineTotal) + "</td>" +
         "</tr>";
@@ -7614,31 +7757,36 @@ var TRIPLES = [
       (isMasivo ? "" : '<div style="font-size:12px; font-weight:700; color:#cc0000;">' + esc(fmtFechaLarga(primeraFecha)) + '</div>') +
       '</div>';
     html += '</div>';
-    html += '<div style="border-bottom:2px solid ' + PEDIDO_DARK + '; margin-top:8px;"></div>';
+    html += '<div style="border-bottom:2px solid ' + PEDIDO_DARK + '; margin-top:6px;"></div>';
     // Jessica (set-2026): en un pedido MASIVO, el formulario ya pide "Hora en que debe estar
     // listo" (o "...llegar al cliente" si es reparto, restando el traslado igual que en
     // Delivery normal -- ver pedidoHoraAtencionMs), pero esa hora no salía ni en la Vista
     // previa ni en la orden compartida/impresa. Se agrega una sola vez en la cabecera (no se
     // repite por línea, ya que es una hora general del pedido, no por producto).
     var horaListoMasivoTxt = (isMasivo && p.hora) ? fmtHoraCortaMillis(pedidoHoraAtencionMs(p)) : "";
-    html += '<div style="background:#fff200; color:#cc0000; font-weight:800; text-align:center; padding:7px 4px; margin:10px 0 0;">' +
+    html += '<div style="background:#fff200; color:#cc0000; font-weight:800; text-align:center; padding:6px 4px; margin:8px 0 0;">' +
       '<div style="font-size:17px;">' + pedidoBannerHTML(p) + '</div>' +
       (horaListoMasivoTxt ? '<div style="font-size:14px; margin-top:2px;">HORA DE ESTAR LISTO: ' + esc(horaListoMasivoTxt) + '</div>' : '') +
       '</div>';
-    html += '<div style="background:' + PEDIDO_DARK + '; color:#fff; font-weight:700; font-size:11px; letter-spacing:.04em; padding:4px 10px; margin-top:8px;">CLIENTE</div>';
-    html += '<div style="background:#f6e3bd; padding:8px 10px 7px; margin-bottom:2px; font-size:12px;">' + pedidoInfoRowsHTML(p) + buildPedidoMetaHTML(p) + '</div>';
+    html += '<div style="background:' + PEDIDO_DARK + '; color:#fff; font-weight:700; font-size:11px; letter-spacing:.04em; padding:3px 10px; margin-top:6px;">CLIENTE</div>';
+    html += '<div style="background:#f6e3bd; padding:6px 10px 5px; margin-bottom:2px; font-size:12px;">' + pedidoInfoRowsHTML(p) + buildPedidoMetaHTML(p) + '</div>';
     // Notas generales del pedido (distintas de la observación de cada línea, que va debajo del
     // producto): antes se guardaban pero nunca salían impresas -- Jessica lo reportó porque el
     // personal no veía la indicación al preparar/entregar el pedido.
     if(p.notas && String(p.notas).trim()){
-      html += '<div style="background:#fff8e1; border:1px solid #e0c48a; padding:5px 10px; margin-top:4px; font-size:11px;"><strong>NOTAS:</strong> ' + esc(String(p.notas).trim()) + '</div>';
+      html += '<div style="background:#fff8e1; border:1px solid #e0c48a; padding:4px 10px; margin-top:3px; font-size:11px;"><strong>NOTAS:</strong> ' + esc(String(p.notas).trim()) + '</div>';
     }
     html += tabla.html;
+    // Jessica (set-2026): "por ser recojo no tiene costo de delivery" -- en un pedido de
+    // Recojo (o Masivo-Recojo) no se muestra la línea "Delivery: S/0.00" en la vista previa /
+    // diseño final, porque confunde (parece que se olvidó cobrar el delivery en vez de que
+    // simplemente no aplica). Se muestra esa línea únicamente cuando el pedido sí requiere
+    // reparto (pedidoRequiereReparto) -- en Recojo va directo el TOTAL.
     html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:4px;">' +
       '<div style="font-size:11px;">Importante: Poner su nombre en Whatsapp</div>' +
       '<div style="font-size:12px; text-align:right;">' +
       '<div>SubTotal Productos: <strong>S/' + fmtMoney(tabla.subtotal) + '</strong></div>' +
-      '<div>Delivery: <strong>S/' + fmtMoney(delivery) + '</strong></div>' +
+      (pedidoRequiereReparto(p) ? '<div>Delivery: <strong>S/' + fmtMoney(delivery) + '</strong></div>' : '') +
       '<div style="font-size:14px; border-top:1px solid ' + PEDIDO_DARK + '; margin-top:3px; padding-top:3px;">TOTAL: <strong>S/' + fmtMoney(total) + '</strong></div>' +
       '</div></div>';
     // Foto del Yape/transferencia (si se subió una): así queda el pago 100% confirmado junto
@@ -7647,20 +7795,31 @@ var TRIPLES = [
     // bien el monto/fecha de la captura del Yape/transferencia (antes 260px se quedaba chico).
     // La foto ya se guarda comprimida hasta 1000px de lado más largo (ver compressImageFile),
     // así que agrandar el tamaño de muestra acá no pierde nitidez, solo se ve más grande.
-    if(p.comprobante){
-      html += '<div style="margin-top:8px; text-align:center;">' +
-        '<div style="font-size:10px; font-weight:700; color:#555; margin-bottom:3px;">' + (p.comprobante2 ? "COMPROBANTE DE PAGO 1" : "COMPROBANTE DE PAGO") + '</div>' +
-        '<img src="' + p.comprobante + '" style="max-width:420px; max-height:420px; width:100%; height:auto; border:1px solid #ccc; border-radius:4px;">' +
-        '</div>';
-    }
-    // Segundo comprobante (pago de la diferencia, cuando el primero llegó incompleto).
-    if(p.comprobante2){
-      html += '<div style="margin-top:8px; text-align:center;">' +
+    // Cuando hay DOS comprobantes (pago + diferencia), antes iban uno debajo del otro, cada uno
+    // hasta 420px de alto -- eso solo, sumado al resto de la tarjeta, ya se pasaba de 1 hoja A4
+    // en pedidos con más de un comprobante. Ahora, si hay dos, van uno AL LADO del otro (no uno
+    // debajo del otro): mismo espacio horizontal disponible, pero la mitad del alto total. Con
+    // uno solo, se mantiene el tamaño grande de siempre (420px) que Jessica pidió.
+    var COMPROBANTE_MAX_UNO = 420;
+    var COMPROBANTE_MAX_DOBLE = 330;
+    if(p.comprobante && p.comprobante2){
+      html += '<div style="margin-top:6px; display:flex; gap:10px; justify-content:center;">' +
+        '<div style="text-align:center; flex:1; max-width:' + COMPROBANTE_MAX_DOBLE + 'px;">' +
+        '<div style="font-size:10px; font-weight:700; color:#555; margin-bottom:3px;">COMPROBANTE DE PAGO 1</div>' +
+        '<img src="' + p.comprobante + '" style="max-width:100%; max-height:' + COMPROBANTE_MAX_DOBLE + 'px; width:100%; height:auto; border:1px solid #ccc; border-radius:4px;">' +
+        '</div>' +
+        '<div style="text-align:center; flex:1; max-width:' + COMPROBANTE_MAX_DOBLE + 'px;">' +
         '<div style="font-size:10px; font-weight:700; color:#555; margin-bottom:3px;">COMPROBANTE DE PAGO 2</div>' +
-        '<img src="' + p.comprobante2 + '" style="max-width:420px; max-height:420px; width:100%; height:auto; border:1px solid #ccc; border-radius:4px;">' +
+        '<img src="' + p.comprobante2 + '" style="max-width:100%; max-height:' + COMPROBANTE_MAX_DOBLE + 'px; width:100%; height:auto; border:1px solid #ccc; border-radius:4px;">' +
+        '</div>' +
+        '</div>';
+    } else if(p.comprobante || p.comprobante2){
+      html += '<div style="margin-top:6px; text-align:center;">' +
+        '<div style="font-size:10px; font-weight:700; color:#555; margin-bottom:3px;">COMPROBANTE DE PAGO</div>' +
+        '<img src="' + (p.comprobante || p.comprobante2) + '" style="max-width:' + COMPROBANTE_MAX_UNO + 'px; max-height:' + COMPROBANTE_MAX_UNO + 'px; width:100%; height:auto; border:1px solid #ccc; border-radius:4px;">' +
         '</div>';
     }
-    html += '<div style="text-align:center; color:#cc0000; font-weight:700; font-size:11px; margin-top:14px;">40 años... Tradición en Evolución, a tu servicio</div>';
+    html += '<div style="text-align:center; color:#cc0000; font-weight:700; font-size:11px; margin-top:10px;">40 años... Tradición en Evolución, a tu servicio</div>';
     html += '<div style="text-align:center; color:#111; font-size:11px; margin-top:2px;">¡Gracias por tu compra!</div>';
     html += '</div>';
     return html;
@@ -7939,11 +8098,13 @@ var TRIPLES = [
     html += '<div style="background:' + PEDIDO_DARK + '; color:#fff; font-weight:700; font-size:11px; letter-spacing:.04em; padding:4px 10px; margin-top:8px;">CLIENTE</div>';
     html += '<div style="background:#f6e3bd; padding:8px 10px 7px; margin-bottom:2px; font-size:12px;">' + pedidoInfoRowsHTML(p) + '</div>';
     html += tabla.html;
+    // Misma regla que en buildPedidoPrintCardHTML: si el Masivo es de Recojo, no se muestra la
+    // línea "Delivery: S/0.00" -- confunde, y por ser recojo no tiene costo de delivery.
     html += '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:4px;">' +
       '<div style="font-size:11px;">Importante: Poner su nombre en Whatsapp</div>' +
       '<div style="font-size:12px; text-align:right;">' +
       '<div>SubTotal Productos: <strong>S/' + fmtMoney(tabla.subtotal) + '</strong></div>' +
-      '<div>Delivery: <strong>S/' + fmtMoney(delivery) + '</strong></div>' +
+      (pedidoRequiereReparto(p) ? '<div>Delivery: <strong>S/' + fmtMoney(delivery) + '</strong></div>' : '') +
       '<div style="font-size:14px; border-top:1px solid ' + PEDIDO_DARK + '; margin-top:3px; padding-top:3px;">TOTAL: <strong>S/' + fmtMoney(total) + '</strong></div>' +
       '</div></div>';
     if(p.notas && String(p.notas).trim()){
@@ -8005,6 +8166,21 @@ var TRIPLES = [
     var suf = h >= 12 ? "p. m." : "a. m.";
     var h12 = h % 12; if(h12 === 0) h12 = 12;
     return h12 + ":" + m + " " + suf;
+  }
+  // Hora en Lima (hh:mm, 24h) a partir de un timestamp en milisegundos, para pasarla por
+  // fmtHora12 y así armar siempre el mismo "7:00 a. m." -- sin esto, cada función que
+  // necesitaba mostrar una hora a partir de un timestamp armaba el "a. m./p. m." con
+  // toLocaleTimeString/toLocaleString directamente, y ESE texto depende del Chrome/sistema
+  // operativo de cada equipo: a veces sale con un espacio angosto en vez de uno normal (el
+  // mismo problema ya visto en el ticket de Producción), a veces con hora en 2 dígitos
+  // ("07:00") en vez de 1 ("7:00") como en el resto de la vista previa/impresión. Pasando
+  // TODO por fmtHora12, el formato queda idéntico en cualquier equipo.
+  function limaHoraHHMM(ms){
+    if(!ms) return "";
+    try{
+      var s = new Date(ms).toLocaleString("en-GB", { timeZone:"America/Lima", hour:"2-digit", minute:"2-digit", hour12:false });
+      return s.replace(/^24:/, "00:");
+    }catch(e){ return ""; }
   }
   function fmtFechaReporte(iso){
     if(!iso) return "";
@@ -8093,8 +8269,9 @@ var TRIPLES = [
   }
   function fmtHoraCortaMillis(ms){
     if(!ms) return "";
-    try{ return new Date(ms).toLocaleTimeString("es-PE", { timeZone:"America/Lima", hour:"2-digit", minute:"2-digit", hour12:true }); }
-    catch(e){ return ""; }
+    // Ver fmtHora12/limaHoraHHMM -- antes armaba el "a. m./p. m." con toLocaleTimeString
+    // directo, que sale distinto según el Chrome/equipo. Ahora siempre el mismo formato.
+    return fmtHora12(limaHoraHHMM(ms));
   }
   function buildPedidosTomadosRows(date){
     var rows = [];
@@ -8102,7 +8279,7 @@ var TRIPLES = [
       if(p.anulado) return;
       if(!p.createdAt) return;
       if(isoDateFromMillis(p.createdAt) !== date) return;
-      var productosLabel = (p.items || []).map(function(it){ return fmt(it.cantidad) + "x " + it.producto; }).join(", ");
+      var productosLabel = (p.items || []).map(function(it){ return fmt(it.cantidad) + "x " + productoDisplay(it.producto); }).join(", ");
       var total = (p.items || []).reduce(function(s, it){ return s + num(it.cantidad) * num(it.precio); }, 0) + num(p.deliveryMonto);
       var canalLabel = CANAL_LABEL[p.canal] || p.canal;
       if(p.canal === "masivo" && p.masivoModo){ canalLabel += " (" + (p.masivoModo === "delivery" ? "Delivery" : "Recojo") + ")"; }
@@ -8112,7 +8289,7 @@ var TRIPLES = [
         numero: p.numero || "—",
         hora: fmtHoraCortaMillis(p.createdAt),
         horaSort: p.createdAt,
-        cliente: (p.cliente && p.cliente.nombre) || "—",
+        cliente: tituloCase((p.cliente && p.cliente.nombre) || "") || "—",
         canal: canalLabel,
         productos: productosLabel || "—",
         total: round2(total),
@@ -8578,6 +8755,44 @@ var TRIPLES = [
     h2.textContent = "Todos los pedidos";
     card.appendChild(h2);
 
+    // Buscador único: cliente, N° de orden, teléfono o RUC/DNI, con coincidencia parcial
+    // (no hace falta escribir el nombre completo ni el número entero). Mientras haya texto
+    // acá, manda la búsqueda y se ignoran los filtros de fecha/origen de abajo -- es para
+    // ENCONTRAR un pedido puntual sin tener que saber en qué fecha o canal quedó.
+    var busquedaField = document.createElement("div");
+    busquedaField.className = "field";
+    busquedaField.style.maxWidth = "360px";
+    busquedaField.style.margin = "0 0 .8rem";
+    var busquedaLbl = document.createElement("label");
+    busquedaLbl.textContent = "Buscar (cliente, N° de orden, teléfono o RUC/DNI)";
+    busquedaField.appendChild(busquedaLbl);
+    var busquedaInput = document.createElement("input");
+    busquedaInput.type = "search";
+    busquedaInput.id = "pedidosListaBusquedaInput";
+    busquedaInput.placeholder = "Ej: Gomez, T-0057, 999888777…";
+    busquedaInput.value = pedidosListaBusqueda;
+    // renderPanel() reconstruye TODO el panel (igual que el resto de Pedidos), lo que borra y
+    // vuelve a crear este input en cada tecla -- sin esto, el navegador le quita el foco
+    // apenas se escribe la primera letra y hay que hacer clic de nuevo para seguir escribiendo.
+    // Mismo truco (guardar dónde estaba el cursor y devolvérselo después) que ya usa el
+    // buscador de cliente/producto del asistente de pedidos (ver pedidoWizRenderStepOnly).
+    busquedaInput.addEventListener("input", function(){
+      pedidosListaBusqueda = busquedaInput.value;
+      var selStart = busquedaInput.selectionStart;
+      renderPanel();
+      var again = document.getElementById("pedidosListaBusquedaInput");
+      if(again){ again.focus(); try{ again.setSelectionRange(selStart, selStart); }catch(e){} }
+    });
+    busquedaField.appendChild(busquedaInput);
+    card.appendChild(busquedaField);
+    if(pedidosListaBusqueda.trim()){
+      var busquedaHint = document.createElement("div");
+      busquedaHint.className = "hint";
+      busquedaHint.style.margin = "-.5rem 0 .8rem";
+      busquedaHint.textContent = "Buscando en TODOS los pedidos guardados (se ignora la fecha y el origen de abajo mientras haya texto acá).";
+      card.appendChild(busquedaHint);
+    }
+
     // Filtro por fecha: por defecto solo el día que se está trabajando (no la lista entera),
     // igual que pide Jessica -- con selector de fecha para revisar otro día, y un botón para
     // ver todo sin filtrar cuando de verdad haga falta (por ejemplo, buscar un pedido viejo
@@ -8635,7 +8850,9 @@ var TRIPLES = [
     card.appendChild(origenFilterRow);
 
     var targetFecha = pedidosListaFecha || todayISO();
+    var busquedaActiva = !!pedidosListaBusqueda.trim();
     var pedidosFiltrados = PEDIDOS.filter(function(p){
+      if(busquedaActiva) return pedidoMatchesBusqueda(p, pedidosListaBusqueda);
       if(pedidosOrigenFilter !== "todos" && (p.origen || "whatsapp") !== pedidosOrigenFilter) return false;
       if(!pedidosListaVerTodos){
         var tieneEseDiaria = (p.items || []).some(function(it){ return it.fecha === targetFecha; });
@@ -8647,9 +8864,11 @@ var TRIPLES = [
     if(pedidosFiltrados.length === 0){
       var empty = document.createElement("div");
       empty.className = "empty-state";
-      empty.textContent = PEDIDOS.length === 0
-        ? "Todavía no hay pedidos registrados."
-        : (pedidosListaVerTodos ? "No hay pedidos de este origen." : "No hay pedidos con entrega esta fecha (prueba cambiar la fecha, o \"Ver todos\").");
+      empty.textContent = busquedaActiva
+        ? "No se encontró ningún pedido con ese nombre, N° de orden, teléfono o RUC/DNI."
+        : (PEDIDOS.length === 0
+          ? "Todavía no hay pedidos registrados."
+          : (pedidosListaVerTodos ? "No hay pedidos de este origen." : "No hay pedidos con entrega esta fecha (prueba cambiar la fecha, o \"Ver todos\")."));
       card.appendChild(empty);
       wrap.appendChild(card);
       return wrap;
@@ -8685,7 +8904,7 @@ var TRIPLES = [
       var fechaLabel = fechas.length <= 1 ? (fechas[0] || "—") : (fechas[0] + " → " + fechas[fechas.length-1]);
       var itemsValidos = (p.items||[]).filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
       var esMasivo = p.canal === "masivo";
-      var productosLabel = itemsValidos.map(function(it){ return it.cantidad + "x " + it.producto; }).join(", ");
+      var productosLabel = itemsValidos.map(function(it){ return it.cantidad + "x " + productoDisplay(it.producto); }).join(", ");
       var subtotal = (p.items||[]).reduce(function(s,it){ return s + num(it.cantidad)*num(it.precio); }, 0) + num(p.deliveryMonto);
       // Pedido Masivo: en vez de las líneas completas (pueden ser docenas), un resumen
       // ejecutivo -- "Francés + Francés Especial · 14 entregas · 2 productos" -- con "Ver
@@ -8713,7 +8932,7 @@ var TRIPLES = [
         canalLabel += " (" + (p.masivoModo === "delivery" ? "Delivery" : "Recojo") + ")";
       }
       var origenLabel = ORIGEN_LABEL[p.origen] || ORIGEN_LABEL.whatsapp;
-      var clienteCell = esc((p.cliente && p.cliente.nombre) || "—");
+      var clienteCell = esc(tituloCase((p.cliente && p.cliente.nombre) || "") || "—");
       if(p.anulado){
         clienteCell += ' <span class="chip bad" title="' + esc(p.motivoAnulacion || "Sin motivo registrado") + '">ANULADO</span>';
       }
@@ -8730,7 +8949,7 @@ var TRIPLES = [
       tr.innerHTML =
         "<td>" + esc(p.numero || "—") + "</td>" +
         "<td>" + esc(fechaLabel) + "</td>" +
-        "<td>" + esc(p.hora || "—") + "</td>" +
+        "<td>" + esc(fmtHora12(p.hora) || "—") + "</td>" +
         "<td>" + clienteCell + "</td>" +
         "<td>" + esc(origenLabel) + "</td>" +
         "<td>" + esc(canalLabel) + "</td>" +
@@ -8754,7 +8973,7 @@ var TRIPLES = [
         detTr.hidden = !pedidosMasivoDetalleAbierto[p.id];
         var detBody = itemsValidos.map(function(it){
           var sub = num(it.cantidad) * num(it.precio);
-          return "<tr><td>" + esc(it.fecha || "—") + "</td><td>" + esc(it.producto) + "</td><td>" + fmt(it.cantidad) + "</td><td>S/ " + fmt(it.precio) + "</td><td>S/ " + fmt(sub) + "</td></tr>";
+          return "<tr><td>" + esc(it.fecha || "—") + "</td><td>" + esc(productoDisplay(it.producto)) + "</td><td>" + fmt(it.cantidad) + "</td><td>S/ " + fmt(it.precio) + "</td><td>S/ " + fmt(sub) + "</td></tr>";
         }).join("");
         var totalDetalle = itemsValidos.reduce(function(s, it){ return s + num(it.cantidad) * num(it.precio); }, 0);
         detTr.innerHTML = "<td colspan='" + PEDIDOS_TABLE_COLS + "'><div class='pedido-masivo-detalle-wrap'>" +
@@ -8837,7 +9056,7 @@ var TRIPLES = [
           var id = btn.getAttribute("data-id");
           var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
           if(!p || !db) return;
-          var nombre = (p.cliente && p.cliente.nombre) || "este cliente";
+          var nombre = tituloCase((p.cliente && p.cliente.nombre) || "") || "este cliente";
           var quien = prompt('Vas a marcar como entregado el pedido de "' + nombre + '".\n\n¿Quién lo entregó? (opcional, puedes dejarlo en blanco):');
           if(quien === null) return;
           db.collection("pedidos").doc(id).update({ entregadoEn: Date.now(), entregadoPor: quien.trim() }).then(function(){
@@ -8866,7 +9085,7 @@ var TRIPLES = [
           // Antes bastaba un solo "Aceptar" en el confirm() del navegador -- muy fácil de tocar
           // sin querer, sobre todo en celular, y sin vuelta atrás. Ahora hay que escribir
           // "ELIMINAR" a propósito, con una advertencia aparte si el pedido ya está pagado.
-          var nombre = (p.cliente && p.cliente.nombre) || "este cliente";
+          var nombre = tituloCase((p.cliente && p.cliente.nombre) || "") || "este cliente";
           var msg = 'Vas a eliminar el pedido de "' + nombre + '". Esto no se puede deshacer.';
           if(p.pagado) msg += '\n\n⚠ OJO: este pedido ya está marcado como PAGADO.';
           msg += '\n\nEscribe ELIMINAR (en mayúsculas) para confirmar:';
@@ -8889,7 +9108,7 @@ var TRIPLES = [
           var id = btn.getAttribute("data-id");
           var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
           if(!p || !db) return;
-          var nombre = (p.cliente && p.cliente.nombre) || "este cliente";
+          var nombre = tituloCase((p.cliente && p.cliente.nombre) || "") || "este cliente";
           var motivo = prompt('Vas a anular el pedido de "' + nombre + '".\n\nEscribe el motivo de la anulación:');
           if(motivo === null) return;
           if(!motivo.trim()){ showToast("No se anuló: falta el motivo."); return; }
@@ -9023,18 +9242,18 @@ var TRIPLES = [
     // cliente -- la de "listo" real es la que ya trae restado el traslado (pedidoHoraAtencionMs).
     // Se muestran ambas para que el equipo sepa a qué hora debe estar listo Y a qué hora sale.
     var esReparto = pedidoRequiereReparto(p) && fecha && p.hora;
-    var horaListoTxt = esReparto ? fmtHoraCortaMillis(pedidoHoraAtencionMs(p)) : p.hora;
-    var horaEntregaTxt = esReparto ? fmtHoraCortaMillis(pedidoHoraEntregaMs(p)) : p.hora;
+    var horaListoTxt = esReparto ? fmtHoraCortaMillis(pedidoHoraAtencionMs(p)) : fmtHora12(p.hora);
+    var horaEntregaTxt = esReparto ? fmtHoraCortaMillis(pedidoHoraEntregaMs(p)) : fmtHora12(p.hora);
     if(pedidoEsInmediato(p)){
       if(!p.hora) return "Para ahora";
       return esReparto
         ? ("Debía estar listo a las " + horaListoTxt + " para salir y llegar a las " + horaEntregaTxt)
-        : ("Debía estar listo a las " + p.hora);
+        : ("Debía estar listo a las " + fmtHora12(p.hora));
     }
     var fechaTxt = (fecha && fecha !== todayISO()) ? (fecha + " ") : "";
     return esReparto
       ? ("Debe estar listo a las " + fechaTxt + horaListoTxt + " para salir y llegar a las " + horaEntregaTxt)
-      : ("Programado para las " + fechaTxt + p.hora);
+      : ("Programado para las " + fechaTxt + fmtHora12(p.hora));
   }
 
   // Calendario compacto de Despacho (set-2026): "consultar otra fecha" al lado de HOY, sin crear
@@ -9130,10 +9349,45 @@ var TRIPLES = [
       markDirty(); scheduleAutosave();
     });
     box.appendChild(input);
+    // "Probar conexión" (set-2026, ver Task #10 de Jessica): un chequeo AISLADO -- solo
+    // pregunta "¿el puente está prendido y contesta?" (GET /salud) SIN mandar ningún ticket a
+    // ninguna impresora -- para poder diagnosticar sin gastar papel ni tocar pedidos reales. Muy
+    // distinto de "🖨️ Producción" (que si contesta el puente, sí manda un ticket de verdad).
+    var testRow = document.createElement("div");
+    testRow.style.marginTop = ".5rem";
+    testRow.style.display = "flex";
+    testRow.style.alignItems = "center";
+    testRow.style.gap = ".5rem";
+    var testBtn = document.createElement("button");
+    testBtn.type = "button";
+    testBtn.className = "btn btn-sm";
+    testBtn.textContent = "🔌 Probar conexión";
+    testRow.appendChild(testBtn);
+    var testResult = document.createElement("span");
+    testResult.style.fontSize = ".85rem";
+    testRow.appendChild(testResult);
+    box.appendChild(testRow);
+    testBtn.addEventListener("click", function(){
+      testBtn.disabled = true;
+      testResult.style.color = "";
+      testResult.textContent = "Probando…";
+      var url = despachoImpresionBridgeUrl();
+      var t0 = Date.now();
+      fetch(url + "/salud", { method: "GET" }).then(function(res){
+        if(!res.ok) throw new Error("http_" + res.status);
+        return res.json();
+      }).then(function(){
+        testResult.style.color = "#2e7d32";
+        testResult.textContent = "✓ El puente respondió bien (" + url + ", " + (Date.now() - t0) + " ms). Si aun así el ticket no sale, revisa que la impresora esté prendida, con papel y en la misma red.";
+      }).catch(function(){
+        testResult.style.color = "#b3261e";
+        testResult.textContent = "✗ No respondió (" + url + "). Revisa: 1) que la ventana del puente (iniciar-puente.bat) esté abierta en esa computadora; 2) que la dirección de arriba sea la correcta; 3) si Chrome mostró un aviso pidiendo permiso para \"acceder a dispositivos en tu red local\" -- hay que aceptarlo, si no, el navegador bloquea la conexión aunque el puente esté prendido (clic en el candado/ícono junto a la dirección del sitio → Configuración del sitio → permitir \"Red local\").";
+      }).finally(function(){ testBtn.disabled = false; });
+    });
     var hint = document.createElement("div");
     hint.className = "hint";
     hint.style.marginTop = ".4rem";
-    hint.textContent = 'El navegador no puede mandar impresiones directo a las impresoras de Cocina/Jugos, así que un programa aparte (carpeta impresion-bridge/, fuera de esta app) hace ese puente. Este campo se guarda en la nube y lo comparten TODOS los dispositivos (tablets y PCs), no es un ajuste "por aparato". Si SOLO una computadora usa "🖨️ Producción" y el puente corre ahí mismo, se deja vacío (usa http://localhost:8787). En cuanto una TABLET tome pedidos y el puente esté en OTRA computadora, hay que escribir acá la dirección de red de ESA computadora -- nunca "localhost". Esa dirección la muestra el propio puente al prenderse. Ver impresion-bridge/LEEME.md.';
+    hint.textContent = 'El navegador no puede mandar impresiones directo a las impresoras de Cocina/Jugos, así que un programa aparte (carpeta impresion-bridge/, fuera de esta app) hace ese puente. Este campo se guarda en la nube y lo comparten TODOS los dispositivos (tablets y PCs), no es un ajuste "por aparato". Si SOLO una computadora usa "🖨️ Producción" y el puente corre ahí mismo, se deja vacío (usa http://localhost:8787). En cuanto una TABLET tome pedidos y el puente esté en OTRA computadora, hay que escribir acá la dirección de red de ESA computadora -- nunca "localhost". Esa dirección la muestra el propio puente al prenderse. Chrome (desde version 142, 2025-2026) puede pedir permiso la primera vez que un sitio intenta hablarle a un aparato de tu red local (localhost o 192.168.x.x) -- ese permiso hay que aceptarlo para que "🖨️ Producción" funcione. Usa el botón "Probar conexión" de arriba para chequear todo esto sin imprimir nada. Ver impresion-bridge/LEEME.md.';
     box.appendChild(hint);
     return box;
   }
@@ -9382,7 +9636,7 @@ var TRIPLES = [
       showToast("Este pedido ya se envió a producción.");
       return;
     }
-    var horaListoTxt = fmtHoraCortaMillis(despachoHoraAtencionMs(p)) || p.hora || "";
+    var horaListoTxt = fmtHoraCortaMillis(despachoHoraAtencionMs(p)) || fmtHora12(p.hora) || "";
     var trabajos = pendientes.map(function(puntoKey){
       var conf = PRODUCCION_PUNTOS[puntoKey];
       var texto = produccionTicketTexto(puntoKey, p, fechaISO, agr.grupos[puntoKey], horaListoTxt);
@@ -9443,7 +9697,7 @@ var TRIPLES = [
       }
       showToast(msg, 5500);
     }).catch(function(){
-      showToast("No se pudo conectar con el puente de impresión local. Verifica que esté encendido.");
+      showToast("No se pudo conectar con el puente de impresión local. Verifica que esté encendido, o si Chrome pidió permiso para \"red local\" y hay que aceptarlo (botón ⚙️ → Probar conexión, para más detalle).", 6000);
     }).finally(function(){
       if(opts.onDone) opts.onDone();
       renderPanel();
@@ -9474,7 +9728,7 @@ var TRIPLES = [
 
     var cliente = document.createElement("div");
     cliente.className = "desp-cliente";
-    cliente.textContent = (p.cliente && p.cliente.nombre) || "—";
+    cliente.textContent = tituloCase((p.cliente && p.cliente.nombre) || "") || "—";
     card.appendChild(cliente);
 
     var meta = document.createElement("div");
@@ -9490,7 +9744,7 @@ var TRIPLES = [
     var itemsHoy = pedidoLineasDeFecha(p, despachoFechaActual());
     var prodRow = document.createElement("div");
     prodRow.className = "desp-prod-row";
-    var productosHtml = itemsHoy.map(function(it){ return esc(it.cantidad) + " × <b>" + esc(it.producto) + "</b>"; }).join(", ");
+    var productosHtml = itemsHoy.map(function(it){ return esc(it.cantidad) + " × <b>" + esc(productoDisplay(it.producto)) + "</b>"; }).join(", ");
     // p.deliveryMonto de un Masivo es el flete de TODO el pedido (una vez por cada fecha
     // distinta que tenga, ver masivoDeliveryCount) -- acá solo cuenta el de hoy: una vez, con
     // la misma tarifa (p.masivoDeliveryRate), si hoy tiene alguna línea. No toca p.deliveryMonto
@@ -9609,9 +9863,9 @@ var TRIPLES = [
     var body = document.createElement("div");
     body.className = "pedido-preview-body";
 
-    var nombre = (p.cliente && p.cliente.nombre) || "—";
+    var nombre = tituloCase((p.cliente && p.cliente.nombre) || "") || "—";
     var docId = (p.cliente && (p.cliente.dni || p.cliente.ruc)) || "";
-    var direccion = (p.cliente && p.cliente.direccion) || "—";
+    var direccion = tituloCase((p.cliente && p.cliente.direccion) || "") || "—";
     var referencia = (p.cliente && p.cliente.referencia) || "";
     var telefono = (p.cliente && p.cliente.telefono) || "—";
     var correo = (p.cliente && p.cliente.correo) || "";
@@ -9627,7 +9881,7 @@ var TRIPLES = [
     var mostrarSoloDia = esMasivo && !opts.verCompleto;
     var itemsDetalle = mostrarSoloDia ? pedidoLineasDeFecha(p, fechaVista) : (p.items || []);
     var productosHtml = itemsDetalle.map(function(it){
-      return "<div>" + esc(it.cantidad) + "x " + esc(it.producto) + " — S/ " + fmt(num(it.precio)) + " c/u" + (it.obs ? " (" + esc(it.obs) + ")" : "") + "</div>";
+      return "<div>" + esc(it.cantidad) + "x " + esc(productoDisplay(it.producto)) + " — S/ " + fmt(num(it.precio)) + " c/u" + (it.obs ? " (" + esc(it.obs) + ")" : "") + "</div>";
     }).join("") || "<div class='hint'>Sin productos para este día.</div>";
     var subtotal = itemsDetalle.reduce(function(s, it){ return s + num(it.cantidad) * num(it.precio); }, 0);
     // Igual que en la tarjeta: si se está mostrando solo el día, el delivery es el de ESE día
@@ -9649,7 +9903,7 @@ var TRIPLES = [
     if(mostrarSoloDia){
       html += "<div style='margin-bottom:.8rem;padding:.5rem .7rem;background:#f0ece0;border-radius:8px;'>" +
         "<strong>" + esc(despachoEntregaLabel(fechaVista)) + "</strong>" +
-        "<div class='hint' style='margin-top:.2rem;'>Hora de estar listo: " + esc(fmtHoraCortaMillis(despachoHoraAtencionMs(p)) || p.hora || "—") + "</div>" +
+        "<div class='hint' style='margin-top:.2rem;'>Hora de estar listo: " + esc(fmtHoraCortaMillis(despachoHoraAtencionMs(p)) || fmtHora12(p.hora) || "—") + "</div>" +
         "</div>";
     }
     html += "<div><strong>Cliente:</strong> " + esc(nombre) + (docId ? " · " + esc(docId) : "") + "</div>";
@@ -9887,11 +10141,11 @@ var TRIPLES = [
           (p.items||[]).forEach(function(it){ if(it.fecha && !seen[it.fecha]){ seen[it.fecha] = true; fechas.push(it.fecha); } });
           fechas.sort();
           var fechaLabel = fechas.length <= 1 ? (fechas[0] || "—") : (fechas[0] + " → " + fechas[fechas.length-1]);
-          var productosLabel = (p.items||[]).map(function(it){ return it.cantidad + "x " + it.producto; }).join(", ");
+          var productosLabel = (p.items||[]).map(function(it){ return it.cantidad + "x " + productoDisplay(it.producto); }).join(", ");
           var subtotal = (p.items||[]).reduce(function(s,it){ return s + num(it.cantidad)*num(it.precio); }, 0) + num(p.deliveryMonto);
           var canalLabel = CANAL_LABEL[p.canal] || p.canal;
           var esMasivoBusq = p.canal === "masivo";
-          var clienteCell = esc((p.cliente && p.cliente.nombre) || "—");
+          var clienteCell = esc(tituloCase((p.cliente && p.cliente.nombre) || "") || "—");
           if(p.anulado){ clienteCell += ' <span class="chip bad" title="' + esc(p.motivoAnulacion || "Sin motivo registrado") + '">ANULADO</span>'; }
           tr.innerHTML =
             "<td>" + esc(p.numero || "—") + "</td>" +
@@ -10007,7 +10261,7 @@ var TRIPLES = [
       else if(r.dias <= 2){ estadoHtml = '<span class="chip" style="background:#fff3cd; color:#8a6300;">Vence en ' + r.dias + (r.dias === 1 ? " día" : " días") + '</span>'; }
       else { estadoHtml = '<span class="chip good">Vence en ' + r.dias + " días</span>"; }
       tr.innerHTML =
-        "<td>" + esc((p.cliente && p.cliente.nombre) || "—") + "</td>" +
+        "<td>" + esc(tituloCase((p.cliente && p.cliente.nombre) || "") || "—") + "</td>" +
         "<td>" + esc((p.cliente && p.cliente.telefono) || "—") + "</td>" +
         "<td>" + esc(fmtFechaCorta(pedidoFechaBase(p))) + "</td>" +
         "<td style='text-align:center;'>" + num(p.cliente && p.cliente.diasCredito) + "</td>" +
