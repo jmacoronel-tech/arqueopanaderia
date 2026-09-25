@@ -336,6 +336,20 @@
        números a la derecha como el diseño de la plantilla) -- por eso el centrado va en una
        clase aparte, solo para la tabla de Metas. */
     #printArea table.metas-print-table th, #printArea table.metas-print-table td{ text-align:center; }
+    /* set-2026, Jessica: "ajusta la impresión en 2 hojas" -- antes cada categoría de Metas
+       (Frutas, Sánguches, etc.) se podía cortar a la mitad justo en el salto de página, con el
+       encabezado de la tabla repetido feo en la hoja siguiente. Ahora cada categoría completa
+       (título + tabla + fila de TOTAL/META) es un bloque que no se separa entre hojas -- si no
+       entra completa en lo que queda de la hoja actual, salta entera a la siguiente.
+       Con eso solo no alcanzaban las 2 hojas (el contenido de las 6 categorías completas no
+       entra en 2 hojas A4 con el tamaño de letra normal del resto de reportes) -- así que
+       además se achica un poco SOLO la tabla de Metas (letra y relleno de celda), sin tocar el
+       tamaño del resto de reportes impresos (Arqueo, Turno, etc.), que siguen igual que siempre. */
+    #printArea .metas-cat-block{ page-break-inside:avoid; }
+    #printArea .metas-cat-block h2{ margin:.6em 0 .2em; }
+    #printArea .metas-cat-block:first-child h2{ margin-top:.3em; }
+    #printArea table.metas-print-table{ font-size:9.5px; margin-bottom:.3em; }
+    #printArea table.metas-print-table th, #printArea table.metas-print-table td{ padding:2px 5px; }
     #printArea .print-empty{ color:#666; font-style:italic; margin:0 0 .8em; }
     #printArea .print-footer{ margin-top:1.2em; font-size:9px; color:#999; }
     /* Tamaño de hoja: SIEMPRE A4 vertical (Jessica: "SIEMPRE TODAS IMPRESION ES EN A4 VERTICAL
@@ -663,7 +677,7 @@ var TRIPLES = [
     {n:"MIEL DE NARANJA", p:6.5},
     {n:"PORCIÓN DE AJÍ CARMELITAS", p:6.5},
     {n:"PORCIÓN DE CAMOTE", p:5},
-    {n:"PORCIÓN DE CEBOLLA", p:4.8},
+    {n:"PORCIÓN DE CEBOLLA", p:5.8},
     {n:"PORCIÓN DE MAYONESA", p:6.5},
     {n:"PORCIÓN HONEY MUSTARD", p:6.5},
     {n:"BATIDO DE FRESA", p:16.9},
@@ -849,7 +863,7 @@ var TRIPLES = [
     {n:"MEGA SANDWICH CHICHARRÓN", p:29.9},
     {n:"MEGA SANDWICH GLASEADO", p:29.9},
     {n:"MEGA SANDWICH HUACHANO", p:29.9},
-    {n:"MEGA SANDWICH PAVO", p:29.9},
+    {n:"MEGA SANDWICH PAVO", p:30.9},
     {n:"MIXTO 100", p:24.9},
     {n:"MIXTO CLÁSICO", p:16.9},
     {n:"MIXTO ESPECIAL", p:19.9},
@@ -858,7 +872,7 @@ var TRIPLES = [
     {n:"SANDWICH CHICHARRÓN", p:24.9},
     {n:"SANDWICH GLASEADO", p:24.9},
     {n:"SANDWICH HUACHANO", p:24.9},
-    {n:"SANDWICH PAVO", p:24.9},
+    {n:"SANDWICH PAVO", p:25.9},
     {n:"TAMAL DE CHANCHO", p:6.3},
     {n:"TAMAL DE POLLO", p:6.3},
     {n:"TAMAL FAMILIAR", p:19.9},
@@ -1010,10 +1024,22 @@ var TRIPLES = [
   //    producto de su reporte de ventas. Los códigos salen del Excel "FORMATO DE VENTAS" que
   //    Jessica ya usa (hoja PLANTILLA), verificados también contra sus hojas de Lunes/Martes
   //    ya llenadas -- son estables, los mismos en las tres hojas.
-  //  - "cat": el producto SÍ existe en el catálogo de Panes (Dulces, Panes saludables, y casi
-  //    toda Empanadas) -- se copia el mismo dato de venta que ya se calcula ahí (ventasAm/
-  //    ventasPm), en vez de depender de un código aparte. Así la Miel en sus 4 tamaños queda
-  //    bien, sin tener que adivinar a qué tamaño corresponde cada código de su reporte.
+  //  - "cat": el producto SÍ existe en el catálogo de Panes (Dulces y Panes saludables) -- se
+  //    copia el mismo dato de venta que ya se calcula ahí (ventasAm/ventasPm), en vez de
+  //    depender de un código aparte. Así la Miel en sus 4 tamaños queda bien, sin tener que
+  //    adivinar a qué tamaño corresponde cada código de su reporte.
+  //
+  //    OJO (set-2026, Jessica): Empanadas NO usa "cat" aunque el producto exista en el catálogo
+  //    de Panes -- esa venta calculada depende de que se cuente físicamente el "Saldo Final"
+  //    cada día, y las empanadas no se cuentan así (se venden del día, no se les lleva stock
+  //    físico como al pan). Por eso Empanadas usa "cod" igual que Frutas/Sánguches/Cafés: toma
+  //    el dato directo de su reporte de ventas por código, que sí es confiable para estos.
+  //
+  //    Mismo caso en Dulces (set-2026): Galletas Full Omega, Porción Fondant de Chocolate y
+  //    Porción Tarta de Queso ya se pasaron a "cod" (4017/4010/4012) por el mismo motivo. Los
+  //    demás de Dulces (Muffins x3, Molde Fondant, Molde Tarta, 40 Mini Galletas, Miel x4) TODAVÍA
+  //    quedan en "cat" -- pendiente de que Jessica pase sus códigos del reporte para pasarlos
+  //    también, si igual no se les lleva Saldo Final físico.
   //
   // OJO: esto solo LEE lo que ya está en Panes/Bebidas/Embutidos/Triples para copiarlo a Metas
   // -- nunca escribe ni cambia nada en esas pestañas ni en cómo se ven o se llenan.
@@ -1067,9 +1093,9 @@ var TRIPLES = [
       "Muffin de arándanos": { src:"cat", name:"Muffins de Arándanos" },
       "Muffin de manzana": { src:"cat", name:"Muffins de Manzana" },
       "Muffin de plátano y chocolate": { src:"cat", name:"Muffins de Plátano y Chocolate" },
-      "Galletas full omega": { src:"cat", name:"Galletas Full Omega" },
-      "Porción fondant de chocolate": { src:"cat", name:"Porción Fondant Chocolate" },
-      "Porción tarta de queso": { src:"cat", name:"Porción de Tarta de Queso y Vainilla" },
+      "Galletas full omega": { src:"cod", codes:[4017] },
+      "Porción fondant de chocolate": { src:"cod", codes:[4010] },
+      "Porción tarta de queso": { src:"cod", codes:[4012] },
       "Molde fondant de chocolate": { src:"cat", name:"Molde Fondant de Chocolate" },
       "Molde tarta de queso y vainilla": { src:"cat", name:"Molde Tarta de Queso y Vainilla" },
       "40 mini galletas": { src:"cat", name:"40 Mini Galletas" },
@@ -1085,10 +1111,10 @@ var TRIPLES = [
       "Molde especial de semillas": { src:"cat", name:"Molde Especial Semillas Chico" }
     },
     empanadas: {
-      "Empanada de carne": { src:"cat", name:"Empanada de Carne" },
-      "Empanada mixta (jamón y queso)": { src:"cat", name:"Empanada Mixta" },
-      "Empanada de ají de gallina": { src:"cat", name:"Empanada Ají de Gallina" },
-      "Porción pastel de acelga": { src:"cat", name:"Porción Pastel de Acelga con 3 Quesos" },
+      "Empanada de carne": { src:"cod", codes:[4001] },
+      "Empanada mixta (jamón y queso)": { src:"cod", codes:[4050] },
+      "Empanada de ají de gallina": { src:"cod", codes:[4003] },
+      "Porción pastel de acelga": { src:"cod", codes:[4006] },
       "Molde pastel de acelga": { src:"cod", codes:[4005] }
     }
   };
@@ -1426,7 +1452,11 @@ var TRIPLES = [
       t: makeSection(TRIPLES, prevDay, "t"),
       o: makeSection(STATE.customCatalog, prevDay, "o"),
       metas: makeMetasDay(),
-      movimientos: { am: [], pm: [] }
+      movimientos: { am: [], pm: [] },
+      // Guarda el reporte de ventas tal cual se importó (código + cantidad de cada línea),
+      // para poder recalcular Metas más adelante sin depender de que alguien guarde el
+      // archivo Excel/CSV original -- ver recalcularMetasDesdeCrudo().
+      ventasCrudas: { am: [], pm: [] }
     };
   }
   // Otros crece con el tiempo: cuando se agrega un producto nuevo, los días ya guardados
@@ -1439,6 +1469,21 @@ var TRIPLES = [
       var prevFinal = getPrevFinal(prevDay, key, i);
       sec.am.push(emptyAmRow(prevFinal));
       sec.pm.push(emptyPmRow(prevFinal));
+    }
+    // Si un día se abre/toca ANTES de que el día anterior quede cerrado (por ejemplo, alguien
+    // entra al día de hoy temprano, o el reloj cambia de fecha antes de que se guarde el cierre
+    // de la tarde anterior), el Saldo Anterior de ese momento queda en null porque todavía no
+    // hay Saldo Final de ayer con qué llenarlo -- y como antes solo se calculaba UNA vez al
+    // crear la fila, se quedaba en blanco para siempre aunque el cierre de ayer se guardara
+    // minutos u horas después. Ahora, cada vez que se abre un día ya existente, si su Saldo
+    // Anterior sigue en blanco y el día anterior YA tiene Saldo Final contado, se completa solo.
+    // Nunca se pisa un valor que ya esté puesto (sea porque se calculó bien la primera vez, sea
+    // porque alguien lo escribió/corrigió a mano).
+    for(var j = 0; j < sec.am.length; j++){
+      if(sec.am[j].a === null){
+        var pf2 = getPrevFinal(prevDay, key, j);
+        if(pf2 !== null) sec.am[j].a = pf2;
+      }
     }
   }
   function backfillDay(day, date){
@@ -1456,6 +1501,12 @@ var TRIPLES = [
     if(!day.movimientos) day.movimientos = { am: [], pm: [] };
     if(!day.movimientos.am) day.movimientos.am = [];
     if(!day.movimientos.pm) day.movimientos.pm = [];
+    // Días guardados antes de que existiera "ventasCrudas" no tienen este campo -- se completa
+    // vacío (no hay reporte crudo guardado de esos días, así que no se puede recalcular Metas
+    // sin volver a importar el archivo original para esas fechas puntuales).
+    if(!day.ventasCrudas) day.ventasCrudas = { am: [], pm: [] };
+    if(!day.ventasCrudas.am) day.ventasCrudas.am = [];
+    if(!day.ventasCrudas.pm) day.ventasCrudas.pm = [];
     // OJO: aquí ANTES se llamaba a cleanupSaldoFinalMigrado(day) en cada render para
     // corregir un patrón puntual que venía de la migración del Excel de setiembre. Se quitó
     // por completo: esa "corrección" asumía que, en una fila sin ningún otro movimiento
@@ -2295,6 +2346,23 @@ var TRIPLES = [
     });
     return { updatedMetas: updatedMetas };
   }
+  // Vuelve a calcular Metas de un día a partir del reporte de ventas que ya se guardó en su
+  // momento (día.ventasCrudas), SIN necesitar que alguien vuelva a subir el archivo Excel/CSV.
+  // Sirve, por ejemplo, cuando se corrige más adelante a qué código de producto está vinculado
+  // un ítem de Metas (ver METAS_ITEM_LINKS): con esto se recalcula solo, en vez de tener que
+  // reimportar a mano cada día ya guardado. Si el día es de antes de que existiera esta función,
+  // no hay reporte crudo guardado (ventasCrudas queda vacío) y no hay nada que recalcular.
+  function recalcularMetasDesdeCrudo(date){
+    var day = ensureDay(date);
+    var total = 0;
+    ["am","pm"].forEach(function(shift){
+      var items = day.ventasCrudas && day.ventasCrudas[shift];
+      if(items && items.length){
+        total += applyImportToMetas(items, date, shift).updatedMetas;
+      }
+    });
+    return total;
+  }
   function handleImportFile(file, date, shift, statusEl){
     if(readOnly){ showToast("Vista de solo lectura: no puedes importar aquí."); return; }
     if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo."); return; }
@@ -2312,6 +2380,10 @@ var TRIPLES = [
         }
         var result = applyImport(items, date, shift);
         result.updatedMetas = applyImportToMetas(items, date, shift).updatedMetas;
+        // Guarda el reporte crudo (código + cantidad de cada línea) para poder recalcular
+        // Metas más adelante sin depender del archivo original -- ver recalcularMetasDesdeCrudo().
+        var dayForRaw = ensureDay(date);
+        dayForRaw.ventasCrudas[shift] = items;
         markDirty();
         scheduleAutosave();
         // Guardamos el resumen ANTES de repintar el panel, para que el bloque "Última
@@ -2753,6 +2825,7 @@ var TRIPLES = [
       var sec = day.metas[cat.key];
       var objetivos = cat.conMeta ? (STATE.metasObjetivos[weekdayKey] && STATE.metasObjetivos[weekdayKey][cat.key]) : null;
       var metaArr = objetivos ? (objetivos[shift] || []) : [];
+      html += '<div class="metas-cat-block">';
       html += "<h2>" + esc(cat.label) + "</h2>";
       html += '<table class="metas-print-table"><thead><tr><th>Producto</th>';
       cat.subcols.forEach(function(sc){ html += "<th>" + esc(sc.label) + "</th>"; });
@@ -2796,7 +2869,7 @@ var TRIPLES = [
         });
         html += "</tr>";
       }
-      html += "</tfoot></table>";
+      html += "</tfoot></table></div>";
     });
     html += '<div class="print-footer">Generado ' + esc(new Date().toLocaleString("es-PE",{ timeZone:"America/Lima" })) + "</div>";
     return html;
@@ -3818,6 +3891,27 @@ var TRIPLES = [
     metasPrintBtn.title = "Imprime las tablas de Metas de este día y turno tal como se ven en pantalla.";
     metasPrintBtn.addEventListener("click", function(){ doPrintMetas(currentDate, shiftView.metas); });
     searchRow.appendChild(metasPrintBtn);
+
+    var metasRecalcBtn = document.createElement("button");
+    metasRecalcBtn.type = "button";
+    metasRecalcBtn.className = "btn btn-sm";
+    metasRecalcBtn.textContent = "🔄 Recalcular Metas";
+    metasRecalcBtn.title = "Vuelve a calcular Metas de este día a partir del reporte de ventas ya importado (útil si se corrige algún código de producto más adelante). No hace falta volver a subir el archivo.";
+    metasRecalcBtn.addEventListener("click", function(){
+      if(readOnly){ showToast("Vista de solo lectura: no puedes recalcular aquí."); return; }
+      var crudo = day.ventasCrudas || {};
+      var tieneCrudo = (crudo.am && crudo.am.length) || (crudo.pm && crudo.pm.length);
+      if(!tieneCrudo){
+        showToast("Este día no tiene un reporte de ventas guardado para recalcular (es de antes de esta función, o nunca se importó). Si tienes el archivo, puedes volver a subirlo en Turno.");
+        return;
+      }
+      var n = recalcularMetasDesdeCrudo(currentDate);
+      markDirty();
+      scheduleAutosave();
+      showToast("Metas recalculadas: " + n + " casilla(s) actualizada(s).");
+      renderPanel();
+    });
+    searchRow.appendChild(metasRecalcBtn);
     topCard.appendChild(searchRow);
 
     var hint = document.createElement("div");
