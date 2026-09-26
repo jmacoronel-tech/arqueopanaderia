@@ -674,34 +674,36 @@
   .moz-drawer-total .moz-val{ font-family:"Fraunces",Georgia,serif; font-size:1.5rem; font-weight:700; color:var(--ink); }
   .moz-drawer-footer .moz-btn-enviar{ width:100%; }
 
-  /* ---------- Mozos / Salón -- tema oscuro "premium" (set-2026, pedido de Jessica: "quiero
-     cambiar la pantalla por una negra premium, texto blanco... me gustaría que fuera como
-     despacho, es una referencia"). Reutiliza EXACTAMENTE la misma paleta ya definida arriba
-     para Despacho (.desp-*) -- no se toca ni una línea de Despacho, solo se reusan sus mismos
-     colores acá, encerrados en un wrapper propio ".moz-dark" para no afectar ningún otro
-     módulo. Como casi todas las reglas .moz-* de arriba ya usan var(--token) en vez de un
-     color fijo, con solo redefinir los tokens dentro de .moz-dark toda la pantalla se pone
-     oscura sin tener que reescribir cada uno de los selectores. ---------- */
+  /* ---------- Mozos / Salón -- paleta "gastronómica premium" (set-2026, pedido de Jessica:
+     el negro/gris se sentía "como pantalla de duelo" -- cambio ÚNICAMENTE de colores, nada de
+     estructura/distribución/botones/funcionamiento, todo eso sigue igual). Paleta cálida
+     inspirada en la identidad de Carmelitas: crema/marfil de fondo, café espresso para el
+     texto, dorado/champagne en los detalles y botones principales. El nombre de la clase
+     ".moz-dark" se mantiene tal cual (es solo un identificador interno, no se ve en pantalla)
+     para no tener que tocar cada selector que la usa -- únicamente cambian los COLORES que
+     define acá adentro. Como casi todas las reglas .moz-* de arriba ya usan var(--token) en
+     vez de un color fijo, con solo redefinir los tokens acá toda la pantalla cambia de paleta
+     sin reescribir cada selector. ---------- */
   .moz-dark{
-    --bg:#0d0f12;
-    --surface:#1a1d22;
-    --surface-2:#20242a;
-    --border:#272b32;
-    --ink:#f5f6f8;
-    --ink-soft:#9aa0ab;
-    --ink-muted:#5b6070;
-    --accent:#f5f6f8;
-    --accent-soft:rgba(245,246,248,.14);
-    --accent-ink:#0d0f12;
-    --good:#38d996;
-    --good-soft:rgba(56,217,150,.16);
-    --bad:#ff5449;
-    --bad-soft:rgba(255,84,73,.16);
-    --warn:#ffb545;
-    --warn-soft:rgba(255,181,69,.16);
-    /* Colores fuertes/encendidos para el estado de la mesa (pedido explícito de Jessica:
-       OCUPADA en verde fuerte, LIBRE en rojo fuerte, letra blanca, todo el cuadro sombreado
-       -- no el tinte suave que se usa en el resto de la app). Son colores propios, no los
+    --bg:#f7f1e3;
+    --surface:#fffbf2;
+    --surface-2:#efe2c8;
+    --border:#ddc9a3;
+    --ink:#3a2415;
+    --ink-soft:#6b5137;
+    --ink-muted:#9c8567;
+    --accent:#9c6b18;
+    --accent-soft:rgba(156,107,24,.14);
+    --accent-ink:#fdf8ee;
+    --good:#2f8f52;
+    --good-soft:rgba(47,143,82,.14);
+    --bad:#b23a2e;
+    --bad-soft:rgba(178,58,46,.14);
+    --warn:#b8791a;
+    --warn-soft:rgba(184,121,26,.14);
+    /* Colores fuertes/encendidos para el estado de la mesa (pedido explícito de Jessica,
+       YA APROBADO: OCUPADA en verde fuerte, LIBRE en rojo fuerte, letra blanca, todo el
+       cuadro sombreado -- esto NO cambia con la paleta cálida). Son colores propios, no los
        tokens --good/--bad de arriba, para no afectar ningún otro uso de esos tokens
        (etiquetas "nuevo", el banner de error, etc.) dentro de Mozos. */
     --moz-verde-fuerte:#16a34a;
@@ -710,15 +712,24 @@
     color:var(--ink);
   }
   /* Excepciones puntuales: estas sombras/fondos no estaban armadas con var(--token) sino con
-     un color fijo pensado para el tema claro (derivado del --ink claro #241C13 o del --accent
-     teal anterior) -- se ajustan a mano para que se vean bien sobre fondo negro. */
-  .moz-dark .moz-sticky-search{ box-shadow:0 6px 12px -10px rgba(0,0,0,.55); }
-  .moz-dark .moz-cart-bar{ box-shadow:0 -8px 24px -12px rgba(0,0,0,.6); }
-  .moz-dark .moz-btn-enviar{ box-shadow:0 6px 18px -6px rgba(245,246,248,.22); }
-  .moz-dark .moz-drawer-backdrop{ background:rgba(0,0,0,.65); }
-  .moz-dark .moz-drawer{ box-shadow:-12px 0 32px -12px rgba(0,0,0,.6); }
+     un color fijo -- se ajustan a mano para que se vean bien sobre el fondo crema (una sombra
+     oscura sigue siendo lo correcto para dar profundidad, sea cual sea el tema de fondo). */
+  .moz-dark .moz-sticky-search{ box-shadow:0 6px 12px -10px rgba(58,36,21,.18); }
+  .moz-dark .moz-cart-bar{ box-shadow:0 -8px 24px -12px rgba(58,36,21,.22); }
+  .moz-dark .moz-btn-enviar{ box-shadow:0 6px 18px -6px rgba(156,107,24,.45); }
+  .moz-dark .moz-drawer-backdrop{ background:rgba(58,36,21,.45); }
+  .moz-dark .moz-drawer{ box-shadow:-12px 0 32px -12px rgba(58,36,21,.25); }
   .moz-dark .moz-mesa-tile.ocupada{ background:var(--moz-verde-fuerte); border-color:var(--moz-verde-fuerte); color:#fff; }
   .moz-dark .moz-mesa-tile.libre{ background:var(--moz-rojo-fuerte); border-color:var(--moz-rojo-fuerte); color:#fff; }
+  /* moz-mesa-num/meta/total tienen su propio color:var(--ink) (para que se vean bien en el
+     resto de la app) -- eso GANA por sobre el color heredado del cuadro de la mesa, así que
+     sin esto quedarían en café espresso sobre el verde/rojo en vez de blanco. Se fuerza acá. */
+  .moz-dark .moz-mesa-tile.ocupada .moz-mesa-num,
+  .moz-dark .moz-mesa-tile.ocupada .moz-mesa-meta,
+  .moz-dark .moz-mesa-tile.ocupada .moz-mesa-total,
+  .moz-dark .moz-mesa-tile.libre .moz-mesa-num,
+  .moz-dark .moz-mesa-tile.libre .moz-mesa-meta,
+  .moz-dark .moz-mesa-tile.libre .moz-mesa-total{ color:#fff; }
 </style>
 
 <div id="lockScreen" class="lock-screen" hidden>
