@@ -581,6 +581,8 @@
   .moz-mesa-tile:active{ transform:scale(.97); }
   .moz-mesa-tile.libre{ background:var(--good-soft); color:var(--good); border:2px solid var(--good); }
   .moz-mesa-tile.ocupada{ background:var(--bad-soft); color:var(--bad); border:2px solid var(--bad); }
+  .moz-mesa-tile:disabled{ opacity:.5; cursor:not-allowed; }
+  .moz-mesa-tile:disabled:active{ transform:none; }
   .moz-mesa-num{ font-family:"Fraunces",Georgia,serif; font-size:1.7rem; font-weight:700; line-height:1; color:var(--ink); }
   .moz-mesa-estado{ font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; opacity:.9; margin-top:.15rem; }
   .moz-mesa-meta{ font-size:.8rem; font-weight:600; margin-top:.6rem; color:var(--ink); }
@@ -669,6 +671,43 @@
   .moz-drawer-total .moz-lbl{ font-size:.78rem; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
   .moz-drawer-total .moz-val{ font-family:"Fraunces",Georgia,serif; font-size:1.5rem; font-weight:700; color:var(--ink); }
   .moz-drawer-footer .moz-btn-enviar{ width:100%; }
+
+  /* ---------- Mozos / Salón -- tema oscuro "premium" (set-2026, pedido de Jessica: "quiero
+     cambiar la pantalla por una negra premium, texto blanco... me gustaría que fuera como
+     despacho, es una referencia"). Reutiliza EXACTAMENTE la misma paleta ya definida arriba
+     para Despacho (.desp-*) -- no se toca ni una línea de Despacho, solo se reusan sus mismos
+     colores acá, encerrados en un wrapper propio ".moz-dark" para no afectar ningún otro
+     módulo. Como casi todas las reglas .moz-* de arriba ya usan var(--token) en vez de un
+     color fijo, con solo redefinir los tokens dentro de .moz-dark toda la pantalla se pone
+     oscura sin tener que reescribir cada uno de los selectores. ---------- */
+  .moz-dark{
+    --bg:#0d0f12;
+    --surface:#1a1d22;
+    --surface-2:#20242a;
+    --border:#272b32;
+    --ink:#f5f6f8;
+    --ink-soft:#9aa0ab;
+    --ink-muted:#5b6070;
+    --accent:#f5f6f8;
+    --accent-soft:rgba(245,246,248,.14);
+    --accent-ink:#0d0f12;
+    --good:#38d996;
+    --good-soft:rgba(56,217,150,.16);
+    --bad:#ff5449;
+    --bad-soft:rgba(255,84,73,.16);
+    --warn:#ffb545;
+    --warn-soft:rgba(255,181,69,.16);
+    background:var(--bg);
+    color:var(--ink);
+  }
+  /* Excepciones puntuales: estas sombras/fondos no estaban armadas con var(--token) sino con
+     un color fijo pensado para el tema claro (derivado del --ink claro #241C13 o del --accent
+     teal anterior) -- se ajustan a mano para que se vean bien sobre fondo negro. */
+  .moz-dark .moz-sticky-search{ box-shadow:0 6px 12px -10px rgba(0,0,0,.55); }
+  .moz-dark .moz-cart-bar{ box-shadow:0 -8px 24px -12px rgba(0,0,0,.6); }
+  .moz-dark .moz-btn-enviar{ box-shadow:0 6px 18px -6px rgba(245,246,248,.22); }
+  .moz-dark .moz-drawer-backdrop{ background:rgba(0,0,0,.65); }
+  .moz-dark .moz-drawer{ box-shadow:-12px 0 32px -12px rgba(0,0,0,.6); }
 </style>
 
 <div id="lockScreen" class="lock-screen" hidden>
@@ -11697,6 +11736,12 @@ var TRIPLES = [
   var MOZOS_NUM_MESAS = 15;
   var MESAS_DOCS = {};           // numero (string) -> doc tal cual viene de Firestore
   var mesasSyncError = false;
+  // true recién DESPUÉS de que llegó el primer snapshot real de Firestore -- antes de eso,
+  // MESAS_DOCS está vacío pero eso NO significa que todas las mesas estén libres, solo que
+  // todavía no sabemos su estado real (ver mozosAbrirMesa, bug reportado por Jessica set-2026:
+  // con varios mozos compartiendo la misma tablet/celular, abrir una mesa durante esta ventana
+  // sin datos podía CREAR una mesa en blanco y pisar el pedido real que ya tenía otro mozo).
+  var mesasCargadas = false;
   var mozosVista = "mesas";      // "mesas" | "comanda"
   var mozosMesaActual = null;    // número de mesa abierta en la vista Comanda
 
@@ -11757,6 +11802,7 @@ var TRIPLES = [
     mesasSyncError = false;
     db.collection("mesas").onSnapshot(function(snap){
       mesasSyncError = false;
+      mesasCargadas = true;
       var map = {};
       snap.forEach(function(doc){
         var data = doc.data();
@@ -11785,7 +11831,20 @@ var TRIPLES = [
     try{ sessionStorage.setItem("arqueo_mozo_default", nombre || ""); }catch(e){}
   }
 
+  // Bug reportado por Jessica (set-2026, foto de su celular): con 3-4 mozos compartiendo la
+  // misma tablet o el celular de la tienda, si este aparato todavía no recibió el estado REAL
+  // de las mesas (recién abrió la app, o se cortó la conexión un momento) y alguien toca una
+  // mesa que en realidad YA estaba ocupada por otro mozo, antes se creaba una mesa nueva en
+  // blanco y se PISABA (sobrescribía) el pedido real de esa mesa en Firestore -- el mozo del
+  // celular veía "Mesa 1 ocupada" pero sin nombre ni total, porque literalmente se acababa de
+  // borrar. Ahora, mientras no haya llegado el primer snapshot real o haya un error de conexión,
+  // no se deja abrir NINGUNA mesa -- se avisa y no se toca nada, para nunca arriesgar el pedido
+  // de otro mozo.
   function mozosAbrirMesa(numero){
+    if(!mesasCargadas || mesasSyncError){
+      showToast("Todavía no se pudo confirmar el estado real de las mesas (revisa tu conexión). Espera unos segundos y vuelve a intentar -- así no se pisa el pedido de otro mozo.", 6500);
+      return;
+    }
     var mesa = mozosGetMesa(numero);
     if(mesa.estado !== "ocupada"){
       var nombreMozo = mozosGetDefault();
@@ -12113,7 +12172,7 @@ var TRIPLES = [
   // ---- UI ----
   function buildMozosPanel(){
     var wrap = document.createElement("div");
-    wrap.className = "moz-wrap";
+    wrap.className = "moz-wrap moz-dark";
 
     var nav = document.createElement("div");
     nav.className = "moz-nav-pill";
@@ -12131,10 +12190,12 @@ var TRIPLES = [
     nav.appendChild(btnMesas); nav.appendChild(btnComanda);
     wrap.appendChild(nav);
 
-    if(mesasSyncError){
+    if(mesasSyncError || !mesasCargadas){
       var err = document.createElement("div");
       err.className = "moz-error";
-      err.textContent = "No se pudo cargar Mozos / Salón en este momento (revisa tu conexión).";
+      err.textContent = mesasSyncError
+        ? "No se pudo cargar Mozos / Salón en este momento (revisa tu conexión). Por seguridad, no se puede abrir ninguna mesa hasta que se recupere la conexión -- así no se pisa el pedido de otro mozo."
+        : "Confirmando el estado real de las mesas... por seguridad, espera un momento antes de abrir una mesa.";
       wrap.appendChild(err);
     }
 
@@ -12154,6 +12215,7 @@ var TRIPLES = [
       '<span><span class="moz-dot" style="background:var(--bad)"></span>Mesa ocupada</span>';
     box.appendChild(legend);
 
+    var mesasSeguro = mesasCargadas && !mesasSyncError;
     var grid = document.createElement("div");
     grid.className = "moz-grid-mesas";
     for(var n = 1; n <= MOZOS_NUM_MESAS; n++){
@@ -12162,6 +12224,10 @@ var TRIPLES = [
         var tile = document.createElement("button");
         tile.type = "button";
         tile.className = "moz-mesa-tile " + (mesa.estado === "ocupada" ? "ocupada" : "libre");
+        // Mientras no se confirmó el estado real (ver mozosAbrirMesa más arriba), las mesas
+        // quedan visualmente deshabilitadas -- ni siquiera se deja tocar, no solo se avisa
+        // después del toque.
+        tile.disabled = !mesasSeguro;
         tile.addEventListener("click", function(){ mozosAbrirMesa(numero); });
         var html = '<div><div class="moz-mesa-num">Mesa ' + numero + '</div>' +
           '<div class="moz-mesa-estado">' + (mesa.estado === "ocupada" ? "Ocupada" : "Libre") + '</div></div>';
