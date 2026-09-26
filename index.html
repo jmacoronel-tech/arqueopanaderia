@@ -11837,8 +11837,12 @@ var TRIPLES = [
       // la pantalla (se perdería lo que esté escribiendo en el buscador) -- la vista de Comanda
       // ya lee directo de MESAS_DOCS (actualizado arriba), así que igual queda al día.
       if(currentTab === "mozos" && mozosVista !== "comanda") renderPanel();
-    }, function(){
+    }, function(err){
       mesasSyncError = true;
+      // Antes esto fallaba en silencio -- no quedaba ni rastro del motivo real en la consola
+      // del navegador. Ahora sí se imprime el error tal cual lo entrega Firestore (código +
+      // mensaje), para poder diagnosticar sin adivinar (Jessica, set-2026: "sigue así").
+      try{ console.error("Mozos/Salón -- error al conectar con la colección 'mesas':", err); }catch(e){}
       if(currentTab === "mozos") renderPanel();
       if(!mesasRetryTimer){
         mesasRetryTimer = setTimeout(function(){ mesasRetryTimer = null; attachMesasSync(); }, 6000);
