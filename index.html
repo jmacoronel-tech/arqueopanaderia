@@ -572,7 +572,9 @@
   .moz-nav-btn{ border:none; background:transparent; color:var(--ink-soft); padding:.6rem 1.1rem; border-radius:999px; font-size:.9rem; font-weight:700; cursor:pointer; font-family:inherit; }
   .moz-nav-btn.active{ background:var(--accent); color:var(--accent-ink); }
   .moz-nav-btn:disabled{ opacity:.4; cursor:not-allowed; }
-  .moz-error{ background:var(--bad-soft); color:var(--bad); border-radius:var(--radius-sm); padding:.7rem .9rem; font-size:.88rem; font-weight:600; margin-bottom:1rem; }
+  .moz-error{ background:var(--bad-soft); color:var(--bad); border-radius:var(--radius-sm); padding:.7rem .9rem; font-size:.88rem; font-weight:600; margin-bottom:1rem; display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; justify-content:space-between; }
+  .moz-error-retry{ flex:none; border:1.3px solid var(--bad); background:transparent; color:var(--bad); border-radius:999px; padding:.5rem .9rem; font-size:.82rem; font-weight:800; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .moz-error-retry:active{ transform:scale(.97); }
 
   .moz-legend{ display:flex; gap:1.2rem; align-items:center; margin-bottom:1rem; font-size:.86rem; color:var(--ink-soft); }
   .moz-dot{ display:inline-block; width:.7rem; height:.7rem; border-radius:50%; margin-right:.35rem; vertical-align:middle; }
@@ -697,6 +699,13 @@
     --bad-soft:rgba(255,84,73,.16);
     --warn:#ffb545;
     --warn-soft:rgba(255,181,69,.16);
+    /* Colores fuertes/encendidos para el estado de la mesa (pedido explícito de Jessica:
+       OCUPADA en verde fuerte, LIBRE en rojo fuerte, letra blanca, todo el cuadro sombreado
+       -- no el tinte suave que se usa en el resto de la app). Son colores propios, no los
+       tokens --good/--bad de arriba, para no afectar ningún otro uso de esos tokens
+       (etiquetas "nuevo", el banner de error, etc.) dentro de Mozos. */
+    --moz-verde-fuerte:#16a34a;
+    --moz-rojo-fuerte:#dc2626;
     background:var(--bg);
     color:var(--ink);
   }
@@ -708,6 +717,8 @@
   .moz-dark .moz-btn-enviar{ box-shadow:0 6px 18px -6px rgba(245,246,248,.22); }
   .moz-dark .moz-drawer-backdrop{ background:rgba(0,0,0,.65); }
   .moz-dark .moz-drawer{ box-shadow:-12px 0 32px -12px rgba(0,0,0,.6); }
+  .moz-dark .moz-mesa-tile.ocupada{ background:var(--moz-verde-fuerte); border-color:var(--moz-verde-fuerte); color:#fff; }
+  .moz-dark .moz-mesa-tile.libre{ background:var(--moz-rojo-fuerte); border-color:var(--moz-rojo-fuerte); color:#fff; }
 </style>
 
 <div id="lockScreen" class="lock-screen" hidden>
@@ -11798,11 +11809,22 @@ var TRIPLES = [
       showToast("No se pudo guardar la mesa " + mesa.numero + " -- revisa tu conexión.");
     });
   }
+  // Reintento (set-2026, Jessica: en la tienda a veces la tablet/celular pierde señal un
+  // instante y el listener de Firestore queda "caído" -- antes había que acordarse de recargar
+  // la página entera a mano para que las mesas volvieran a funcionar, y mientras tanto ninguna
+  // mesa se podía abrir (por seguridad, ver mozosAbrirMesa). Ahora, cada vez que queda en error
+  // se reintenta solo cada 6s hasta reconectar, y además hay un botón "Reintentar ahora" en el
+  // aviso para no tener que esperar.
+  var mesasUnsub = null;
+  var mesasRetryTimer = null;
   function attachMesasSync(){
+    if(mesasRetryTimer){ clearTimeout(mesasRetryTimer); mesasRetryTimer = null; }
+    if(mesasUnsub){ try{ mesasUnsub(); }catch(e){} mesasUnsub = null; }
     mesasSyncError = false;
-    db.collection("mesas").onSnapshot(function(snap){
+    mesasUnsub = db.collection("mesas").onSnapshot(function(snap){
       mesasSyncError = false;
       mesasCargadas = true;
+      if(mesasRetryTimer){ clearTimeout(mesasRetryTimer); mesasRetryTimer = null; }
       var map = {};
       snap.forEach(function(doc){
         var data = doc.data();
@@ -11818,6 +11840,9 @@ var TRIPLES = [
     }, function(){
       mesasSyncError = true;
       if(currentTab === "mozos") renderPanel();
+      if(!mesasRetryTimer){
+        mesasRetryTimer = setTimeout(function(){ mesasRetryTimer = null; attachMesasSync(); }, 6000);
+      }
     });
   }
 
@@ -12193,9 +12218,24 @@ var TRIPLES = [
     if(mesasSyncError || !mesasCargadas){
       var err = document.createElement("div");
       err.className = "moz-error";
-      err.textContent = mesasSyncError
-        ? "No se pudo cargar Mozos / Salón en este momento (revisa tu conexión). Por seguridad, no se puede abrir ninguna mesa hasta que se recupere la conexión -- así no se pisa el pedido de otro mozo."
+      var errTxt = document.createElement("span");
+      errTxt.textContent = mesasSyncError
+        ? "No se pudo cargar Mozos / Salón en este momento (revisa tu conexión). Por seguridad, no se puede abrir ninguna mesa hasta que se recupere la conexión -- así no se pisa el pedido de otro mozo. Reintenta solo cada pocos segundos."
         : "Confirmando el estado real de las mesas... por seguridad, espera un momento antes de abrir una mesa.";
+      err.appendChild(errTxt);
+      // Botón para reintentar YA, sin esperar el reintento automático ni recargar toda la
+      // página (pedido de Jessica: necesita poder destrabarse ella misma para hacer pruebas).
+      if(mesasSyncError){
+        var btnReintentar = document.createElement("button");
+        btnReintentar.type = "button";
+        btnReintentar.className = "moz-error-retry";
+        btnReintentar.textContent = "🔄 Reintentar ahora";
+        btnReintentar.addEventListener("click", function(){
+          if(db) attachMesasSync();
+          renderPanel();
+        });
+        err.appendChild(btnReintentar);
+      }
       wrap.appendChild(err);
     }
 
@@ -12211,8 +12251,8 @@ var TRIPLES = [
     var box = document.createElement("div");
     var legend = document.createElement("div");
     legend.className = "moz-legend";
-    legend.innerHTML = '<span><span class="moz-dot" style="background:var(--good)"></span>Mesa libre</span>' +
-      '<span><span class="moz-dot" style="background:var(--bad)"></span>Mesa ocupada</span>';
+    legend.innerHTML = '<span><span class="moz-dot" style="background:var(--moz-rojo-fuerte,var(--bad))"></span>Mesa libre</span>' +
+      '<span><span class="moz-dot" style="background:var(--moz-verde-fuerte,var(--good))"></span>Mesa ocupada</span>';
     box.appendChild(legend);
 
     var mesasSeguro = mesasCargadas && !mesasSyncError;
