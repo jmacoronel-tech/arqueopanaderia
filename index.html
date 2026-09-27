@@ -26,6 +26,22 @@
     --bad-soft:rgba(178,58,46,.14);
     --warn:#b8791a;
     --warn-soft:rgba(184,121,26,.14);
+    /* set-2026, REORGANIZACIÓN VISUAL -- MÓDULO PEDIDOS: 2 tokens nuevos, solo para poder
+       retematizar Despacho (antes negro/gris) a la identidad Carmelitas sin perder los 5
+       colores de estado que ya distinguía Jessica de un vistazo -- "en preparación" (azul) y
+       "programado" (morado) no tenían equivalente entre los tokens de arriba. */
+    --info:#3e7ca6;
+    --info-soft:rgba(62,124,166,.14);
+    --plum:#7c5a94;
+    --plum-soft:rgba(124,90,148,.14);
+    /* Paleta de café que mandó Jessica para los íconos decorativos de Pedidos (set-2026,
+       "USA ESTA PALETA DE COLORES POR AHORA"): Vanilla/Caramel/Almond/Coffee/Mocca/Espresso. */
+    --vainilla:#D7BDA6;
+    --caramelo:#AB7743;
+    --almendra:#B7957F;
+    --cafe:#6D3914;
+    --mocca:#84593D;
+    --espresso:#4C2B08;
     --radius:12px;
     --radius-sm:8px;
     --shadow:0 1px 2px rgba(36,28,19,.06), 0 10px 28px -14px rgba(36,28,19,.22);
@@ -46,6 +62,7 @@
       --accent:#72B8CB; --accent-ink:#0E2A31; --accent-soft:#213A3F;
       --good:#71BE93; --good-soft:#1F3627; --bad:#E28369; --bad-soft:#3D2419;
       --warn:#D9A75E; --warn-soft:#3A2C16;
+      --info:#7EC1DE; --info-soft:#1D323C; --plum:#C7A6DE; --plum-soft:#33253C;
       color-scheme: dark;
     }
   }
@@ -55,6 +72,7 @@
     --accent:#72B8CB; --accent-ink:#0E2A31; --accent-soft:#213A3F;
     --good:#71BE93; --good-soft:#1F3627; --bad:#E28369; --bad-soft:#3D2419;
     --warn:#D9A75E; --warn-soft:#3A2C16;
+    --info:#7EC1DE; --info-soft:#1D323C; --plum:#C7A6DE; --plum-soft:#33253C;
     color-scheme: dark;
   }
 
@@ -192,6 +210,85 @@
   .shift-toggle{ display:inline-flex; background:var(--surface-2); border-radius:999px; padding:.2rem; gap:.15rem; }
   .shift-btn{ border:none; background:transparent; color:var(--ink-soft); padding:.4rem .95rem; border-radius:999px; font-size:.84rem; font-weight:700; cursor:pointer; }
   .shift-btn.active{ background:var(--accent); color:var(--accent-ink); }
+
+  /* Navegación agrupada de Pedidos (set-2026, "REORGANIZACIÓN VISUAL -- MÓDULO PEDIDOS", pedido
+     de Jessica): OPERACIÓN / CONTROL / COBRANZA, 3 categorías con su etiqueta arriba en vez de
+     6 botones sueltos en una sola fila -- solo navegación, mismo pedidosView de siempre. */
+  .pedidos-nav{ display:flex; flex-wrap:wrap; gap:1.5rem 2.2rem; align-items:flex-start; margin-bottom:1.2rem; padding-bottom:1.1rem; border-bottom:1px solid var(--border); }
+  .pedidos-nav-group{ display:flex; flex-direction:column; gap:.45rem; }
+  .pedidos-nav-label{ font-size:.66rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-muted); }
+  .pedidos-nav-btns{ display:flex; flex-wrap:wrap; gap:.4rem; }
+  .pedidos-nav-btn{ display:inline-flex; align-items:center; gap:.4rem; border:1px solid var(--border); background:var(--surface); color:var(--ink-soft); padding:.52rem 1.05rem; border-radius:999px; font-size:.85rem; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; transition:filter .12s ease; }
+  .pedidos-nav-btn:hover{ border-color:var(--accent); }
+  .pedidos-nav-btn.active{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .pedidos-nav-btn svg{ width:15px; height:15px; stroke:currentColor; flex:none; }
+
+  /* Íconos de sección (set-2026, "REORGANIZACIÓN VISUAL -- MÓDULO PEDIDOS", ajuste estético
+     pedido por Jessica sobre un modelo de referencia -- "AJUSTARLO POR ESTETICA (ICONOS)"):
+     insignia de color + ícono de línea junto al título de cada una de las 6 secciones y en los
+     números resumen. Paleta que mandó Jessica ("USA ESTA PALETA DE COLORES POR AHORA"):
+     Vanilla/Caramel/Almond/Coffee/Mocca/Espresso -- SOLO decorativo, el verde/rojo de
+     "Pagado"/"Vencido" etc. sigue siendo el mismo de siempre porque ahí el color es un estado,
+     no decoración. */
+  .pedidos-sec-head{ display:flex; align-items:center; gap:.65rem; }
+  .pedidos-sec-head h2{ margin:0; }
+  .icon-badge, .icon-badge-sm{ display:inline-flex; align-items:center; justify-content:center; flex:none; }
+  .icon-badge{ width:34px; height:34px; border-radius:10px; }
+  .icon-badge svg{ width:19px; height:19px; }
+  .icon-badge-sm{ width:26px; height:26px; border-radius:8px; }
+  .icon-badge-sm svg{ width:14px; height:14px; }
+  .icon-badge.caramelo, .icon-badge-sm.caramelo{ background:rgba(171,119,67,.16); }
+  .icon-badge.caramelo svg, .icon-badge-sm.caramelo svg{ stroke:var(--caramelo); }
+  .icon-badge.cafe, .icon-badge-sm.cafe{ background:rgba(109,57,20,.14); }
+  .icon-badge.cafe svg, .icon-badge-sm.cafe svg{ stroke:var(--cafe); }
+  .icon-badge.almendra, .icon-badge-sm.almendra{ background:rgba(183,149,127,.28); }
+  .icon-badge.almendra svg, .icon-badge-sm.almendra svg{ stroke:var(--mocca); }
+  .icon-badge.mocca, .icon-badge-sm.mocca{ background:rgba(132,89,61,.16); }
+  .icon-badge.mocca svg, .icon-badge-sm.mocca svg{ stroke:var(--mocca); }
+  .icon-badge.vainilla, .icon-badge-sm.vainilla{ background:rgba(215,189,166,.35); }
+  .icon-badge.vainilla svg, .icon-badge-sm.vainilla svg{ stroke:var(--cafe); }
+  .icon-badge.espresso, .icon-badge-sm.espresso{ background:rgba(76,43,8,.14); }
+  .icon-badge.espresso svg, .icon-badge-sm.espresso svg{ stroke:var(--espresso); }
+
+  /* Columna ENTREGA de "Todos los pedidos" (set-2026, pedido de Jessica: juntar Fecha(s)+Hora
+     en un solo dato principal, con "Tomado: fecha · responsable" chico debajo). */
+  .entrega-principal{ font-weight:700; color:var(--ink); white-space:nowrap; }
+  .entrega-secundaria{ font-size:.72rem; color:var(--ink-muted); margin-top:.15rem; font-weight:600; white-space:nowrap; }
+
+  /* Resumen ejecutivo arriba de tabla (set-2026, "REORGANIZACIÓN VISUAL -- MÓDULO PEDIDOS"):
+     usado en Cuentas por Cobrar y Pedidos Tomados -- unos números grandes antes del detalle,
+     mismos cálculos que ya existían, sin lógica nueva. */
+  .stat-row{ display:flex; flex-wrap:wrap; gap:.8rem; margin:0 0 1.1rem; }
+  .stat-tile{ flex:1 1 170px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.85rem 1.05rem; display:flex; gap:.65rem; align-items:flex-start; }
+  .stat-tile-body{ flex:1 1 auto; min-width:0; }
+  .stat-tile-label{ font-size:.68rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-muted); margin-bottom:.3rem; }
+  .stat-tile-value{ font-size:1.4rem; font-weight:700; color:var(--ink); font-family:"Fraunces", Georgia, serif; line-height:1.1; }
+  .stat-tile-value.bad{ color:var(--bad); }
+  .stat-tile-value.good{ color:var(--good); }
+  .stat-tile-sub{ font-size:.74rem; color:var(--ink-soft); margin-top:.2rem; font-weight:600; }
+
+  /* Barra de controles agrupados (set-2026, "REORGANIZACIÓN VISUAL -- MÓDULO PEDIDOS") --
+     usada en Producción por día: fecha + botones alineados en una sola fila, con una línea
+     divisoria antes de la tabla en vez de quedar todo suelto uno debajo del otro. */
+  .pedidos-toolbar{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:1rem 1.4rem; margin:1rem 0 1.2rem; padding-bottom:1.1rem; border-bottom:1px solid var(--border); }
+  .pedidos-toolbar .field{ margin:0; }
+  .pedidos-toolbar-actions{ display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; }
+
+  /* Grupos con etiqueta (BUSCAR / FECHA DE ENTREGA / ORIGEN / RESULTADOS) para los controles de
+     "Todos los pedidos" (set-2026, "REORGANIZACIÓN VISUAL -- MÓDULO PEDIDOS") -- misma idea que
+     .pedidos-nav arriba, para que cada control se entienda de un vistazo en vez de verse suelto. */
+  .pedidos-filtros{ display:flex; flex-wrap:wrap; gap:1.1rem 1.8rem; align-items:flex-start; margin-bottom:1rem; padding-bottom:1.1rem; border-bottom:1px solid var(--border); }
+  .pedidos-filtros-col{ display:flex; flex-direction:column; gap:.45rem; }
+  .pedidos-filtros-col .field{ margin:0; }
+  .field-group-label{ font-size:.66rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-muted); }
+  .pedidos-filtros-row-inline{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:.6rem; }
+  .pedidos-resultados-label{ font-size:.66rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-muted); margin:0 0 .6rem; }
+
+  /* Historial del cliente (set-2026, nuevo -- "cuando se localice un cliente, permitir abrir
+     Historial del cliente"): reusa el mismo overlay flotante de .pedido-preview-box, pero más
+     ancho porque adentro va una tabla con varias columnas (fecha, productos, canal, total...). */
+  .pedidos-historial-box{ max-width:840px; }
+  .pedidos-historial-trigger{ display:inline-block; margin-top:.25rem; background:none; border:none; padding:0; color:var(--accent, #9c6b18); font-size:.72rem; font-weight:700; cursor:pointer; text-decoration:underline; }
 
   .name-cell{ display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
   .btn-del{ flex:none; width:1.5rem; height:1.5rem; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--bad); font-size:.75rem; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
@@ -455,96 +552,100 @@
   }
 
   /* ---------- Despacho: pantalla operativa "compacta" (Jessica, set-2026) ----------
-     Pensada para revisar ~50 pedidos/día de un vistazo: tema oscuro propio (no el
-     claro/oscuro del resto de la app), tarjetas compactas en grilla (1 col celular,
-     2 en escritorio), y colores fijos por estado para identificar rápido. Todas las
-     clases van con prefijo "desp-" y quedan encerradas dentro de .desp-panel para no
-     tocar ningún otro estilo de la app. */
-  .desp-panel{ background:#0d0f12; border-radius:16px; padding:1rem 1rem 1.3rem; }
+     Pensada para revisar ~50 pedidos/día de un vistazo: tarjetas compactas en grilla (1 col
+     celular, 2 en escritorio), colores fijos por estado para identificar rápido. RETEMATIZADO
+     set-2026 (pedido de Jessica, "REORGANIZACIÓN VISUAL -- MÓDULO PEDIDOS"): antes tenía su
+     propio tema oscuro (negro/gris) totalmente aparte del resto de la app -- ahora usa los
+     MISMOS tokens var(--...) que ya usa toda la app (crema/chocolate/dorado), para que se vea
+     integrado y siga el toggle claro/oscuro existente sin código nuevo. Cero cambios de
+     lógica/HTML/JS acá -- solo color. Todas las clases van con prefijo "desp-" y quedan
+     encerradas dentro de .desp-panel para no tocar ningún otro estilo de la app. */
+  .desp-panel{ background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow); border-radius:var(--radius); padding:1.1rem 1.1rem 1.4rem; }
   .desp-panel *{ box-sizing:border-box; }
   .desp-head{ display:flex; flex-direction:column; gap:.15rem; }
-  .desp-head h2{ font-size:1.05rem; font-weight:800; margin:0; color:#f5f6f8; display:flex; align-items:center; gap:.5rem; font-family:"Public Sans", ui-sans-serif, system-ui, sans-serif; }
-  .desp-live-dot{ width:8px; height:8px; border-radius:50%; background:#38d996; box-shadow:0 0 0 4px rgba(56,217,150,.18); flex:none; }
-  .desp-hoy-pill{ font-size:.66rem; font-weight:900; letter-spacing:.04em; background:#1a1d22; border:1px solid #272b32; color:#9aa0ab; border-radius:999px; padding:.18rem .5rem; }
-  .desp-sub{ font-size:.76rem; color:#9aa0ab; }
+  .desp-head h2{ font-size:1.2rem; font-weight:700; margin:0; color:var(--ink); display:flex; align-items:center; gap:.55rem; font-family:"Fraunces", Georgia, serif; }
+  .desp-live-dot{ width:8px; height:8px; border-radius:50%; background:var(--good); box-shadow:0 0 0 4px var(--good-soft); flex:none; }
+  .desp-hoy-pill{ font-size:.66rem; font-weight:900; letter-spacing:.04em; background:var(--accent-soft); border:1px solid var(--accent); color:var(--accent); border-radius:999px; padding:.18rem .55rem; font-family:"Public Sans", ui-sans-serif, system-ui, sans-serif; }
+  .desp-sub{ font-size:.8rem; color:var(--ink-soft); }
 
-  .desp-filtros{ display:flex; gap:.5rem; margin-top:.75rem; overflow-x:auto; padding-bottom:.1rem; scrollbar-width:none; }
+  .desp-filtros{ display:flex; gap:.5rem; margin-top:.8rem; overflow-x:auto; padding-bottom:.15rem; scrollbar-width:none; }
   .desp-filtros::-webkit-scrollbar{ display:none; }
-  .desp-filtro{ flex:0 0 auto; display:flex; align-items:center; gap:.4rem; background:#1a1d22; border:1px solid #272b32; border-radius:999px; padding:.4rem .75rem; cursor:pointer; font-family:inherit; }
-  .desp-filtro.active{ border-color:#f5f6f8; background:#20242a; }
-  .desp-filtro .n{ font-size:.82rem; font-weight:900; font-variant-numeric:tabular-nums; color:#f5f6f8; }
-  .desp-filtro .t{ font-size:.72rem; color:#9aa0ab; font-weight:700; }
-  .desp-filtro.rojo .n{ color:#ff5449; }
-  .desp-filtro.morado .n{ color:#b892ff; }
-  .desp-filtro.azul .n{ color:#5b9dff; }
-  .desp-filtro.verde .n{ color:#38d996; }
+  .desp-filtro{ flex:0 0 auto; display:flex; align-items:center; gap:.4rem; background:var(--bg); border:1px solid var(--border); border-radius:999px; padding:.42rem .8rem; cursor:pointer; font-family:inherit; }
+  .desp-filtro.active{ border-color:var(--accent); background:var(--accent-soft); }
+  .desp-filtro .n{ font-size:.82rem; font-weight:900; font-variant-numeric:tabular-nums; color:var(--ink); }
+  .desp-filtro .t{ font-size:.72rem; color:var(--ink-soft); font-weight:700; }
+  .desp-filtro.rojo .n{ color:var(--bad); }
+  .desp-filtro.morado .n{ color:var(--plum); }
+  .desp-filtro.azul .n{ color:var(--info); }
+  .desp-filtro.verde .n{ color:var(--good); }
 
-  .desp-list{ padding-top:1rem; display:grid; grid-template-columns:1fr; gap:.65rem; }
-  @media (min-width:680px){ .desp-list{ grid-template-columns:1fr 1fr; gap:.7rem; } }
+  .desp-list{ padding-top:1.1rem; display:grid; grid-template-columns:1fr; gap:.75rem; }
+  @media (min-width:680px){ .desp-list{ grid-template-columns:1fr 1fr; gap:.8rem; } }
 
-  .desp-card{ border-radius:14px; padding:.75rem .85rem .7rem; border:1.5px solid #272b32; background:#1a1d22; display:flex; flex-direction:column; gap:.32rem; }
-  .desp-card.terminal{ opacity:.6; }
+  .desp-card{ border-radius:var(--radius); padding:.9rem 1rem .85rem; border:1px solid var(--border); background:var(--surface); box-shadow:var(--shadow); display:flex; flex-direction:column; gap:.36rem; }
+  .desp-card.terminal{ opacity:.7; }
 
   .desp-row-top{ display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
-  .desp-tag{ font-size:.66rem; font-weight:900; letter-spacing:.03em; text-transform:uppercase; display:inline-flex; align-items:center; gap:.32rem; padding:.24rem .5rem; border-radius:7px; white-space:nowrap; }
+  .desp-tag{ font-size:.66rem; font-weight:900; letter-spacing:.03em; text-transform:uppercase; display:inline-flex; align-items:center; gap:.32rem; padding:.26rem .55rem; border-radius:7px; white-space:nowrap; }
   .desp-tag .dot{ width:6px; height:6px; border-radius:50%; flex:none; }
-  .desp-tag.nuevo{ background:rgba(255,181,69,.14); color:#ffb545; } .desp-tag.nuevo .dot{ background:#ffb545; }
-  .desp-tag.enprep{ background:rgba(91,157,255,.15); color:#5b9dff; } .desp-tag.enprep .dot{ background:#5b9dff; }
-  .desp-tag.listo{ background:rgba(56,217,150,.15); color:#38d996; } .desp-tag.listo .dot{ background:#38d996; }
-  .desp-tag.programado{ background:rgba(184,146,255,.15); color:#b892ff; } .desp-tag.programado .dot{ background:#b892ff; }
-  .desp-tag.atrasado{ background:#ff5449; color:#1c0705; } .desp-tag.atrasado .dot{ background:#1c0705; }
-  .desp-tag.entregado{ background:#23262c; color:#9aa0ab; } .desp-tag.entregado .dot{ background:#5b6070; }
+  .desp-tag.nuevo{ background:var(--warn-soft); color:var(--warn); } .desp-tag.nuevo .dot{ background:var(--warn); }
+  .desp-tag.enprep{ background:var(--info-soft); color:var(--info); } .desp-tag.enprep .dot{ background:var(--info); }
+  .desp-tag.listo{ background:var(--good-soft); color:var(--good); } .desp-tag.listo .dot{ background:var(--good); }
+  .desp-tag.programado{ background:var(--plum-soft); color:var(--plum); } .desp-tag.programado .dot{ background:var(--plum); }
+  .desp-tag.atrasado{ background:var(--bad); color:var(--accent-ink); } .desp-tag.atrasado .dot{ background:var(--accent-ink); }
+  .desp-tag.entregado{ background:var(--surface-2); color:var(--ink-muted); } .desp-tag.entregado .dot{ background:var(--ink-muted); }
 
   .desp-listo-chip{ font-size:.86rem; font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:-.01em; display:flex; align-items:center; gap:.25rem; white-space:nowrap; }
-  .desp-listo-chip.c-ambar{ color:#ffb545; }
-  .desp-listo-chip.c-azul{ color:#5b9dff; }
-  .desp-listo-chip.c-verde{ color:#38d996; }
-  .desp-listo-chip.c-morado{ color:#b892ff; }
-  .desp-listo-chip.c-rojo{ color:#ff5449; }
+  .desp-listo-chip.c-ambar{ color:var(--warn); }
+  .desp-listo-chip.c-azul{ color:var(--info); }
+  .desp-listo-chip.c-verde{ color:var(--good); }
+  .desp-listo-chip.c-morado{ color:var(--plum); }
+  .desp-listo-chip.c-rojo{ color:var(--bad); }
 
-  .desp-cliente{ font-size:1.02rem; font-weight:800; letter-spacing:-.01em; line-height:1.15; color:#f5f6f8; }
-  .desp-meta{ font-size:.74rem; color:#9aa0ab; font-weight:600; display:flex; align-items:center; gap:.3rem; }
+  .desp-cliente{ font-size:1.05rem; font-weight:700; letter-spacing:-.01em; line-height:1.15; color:var(--ink); font-family:"Fraunces", Georgia, serif; }
+  .desp-meta{ font-size:.76rem; color:var(--ink-soft); font-weight:600; display:flex; align-items:center; gap:.3rem; }
 
-  .desp-prod-row{ display:flex; justify-content:space-between; align-items:baseline; gap:.5rem; font-size:.82rem; font-weight:700; color:#9aa0ab; padding-top:.4rem; margin-top:.1rem; border-top:1px solid #272b32; }
-  .desp-prod-row b{ color:#f5f6f8; font-weight:800; }
-  .desp-prod-row .desp-total{ color:#f5f6f8; font-weight:900; font-size:.86rem; white-space:nowrap; }
+  .desp-prod-row{ display:flex; justify-content:space-between; align-items:baseline; gap:.5rem; font-size:.82rem; font-weight:700; color:var(--ink-soft); padding-top:.45rem; margin-top:.15rem; border-top:1px dashed var(--border); }
+  .desp-prod-row b{ color:var(--ink); font-weight:800; }
+  .desp-prod-row .desp-total{ color:var(--accent); font-weight:900; font-size:.9rem; white-space:nowrap; }
 
-  .desp-creado{ font-size:.66rem; color:#5b6070; font-weight:600; }
+  .desp-creado{ font-size:.68rem; color:var(--ink-muted); font-weight:600; }
 
-  .desp-actions{ display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.2rem; }
-  .desp-btn{ border:none; border-radius:9px; font-weight:800; font-size:.72rem; padding:.55rem .3rem; cursor:pointer; white-space:nowrap; font-family:inherit; }
-  .desp-btn-primary{ flex:1.6; background:#f5f6f8; color:#0d0f12; }
-  .desp-btn-outline{ flex:1; min-width:88px; background:transparent; border:1.3px solid #272b32; color:#f5f6f8; }
+  .desp-actions{ display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.25rem; }
+  .desp-btn{ border:none; border-radius:var(--radius-sm); font-weight:800; font-size:.74rem; padding:.6rem .3rem; cursor:pointer; white-space:nowrap; font-family:inherit; transition:filter .12s ease; }
+  .desp-btn:hover{ filter:brightness(.96); }
+  .desp-btn-primary{ flex:1.6; background:var(--accent); color:var(--accent-ink); }
+  .desp-btn-outline{ flex:1; min-width:88px; background:var(--surface); border:1.3px solid var(--border); color:var(--ink); }
   /* "✅ Producción" (set-2026, ver despachoEnviarProduccion): ya se envió a la impresora de
      producción -- se ve apagado a propósito para no competir con las acciones pendientes, pero
      sigue tocable por si hace falta reenviar (pide confirmación antes). */
-  .desp-btn-enviado{ opacity:.55; }
+  .desp-btn-enviado{ opacity:.6; }
 
-  .desp-empty{ color:#9aa0ab; font-size:.9rem; padding:1.4rem 0; text-align:center; }
+  .desp-empty{ color:var(--ink-muted); font-size:.9rem; padding:1.4rem 0; text-align:center; }
 
   /* Calendario de Despacho (set-2026): 📅 al lado de HOY para consultar otra fecha sin crear
      pestaña ni sección nueva -- ver buildDespachoCalendarioHTML/despachoFechaSeleccionada. */
-  .desp-cal-btn{ background:#1a1d22; border:1px solid #272b32; color:#f5f6f8; border-radius:999px; width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; font-size:.82rem; cursor:pointer; padding:0; line-height:1; }
-  .desp-cal-btn:hover{ border-color:#4d545f; }
-  .desp-cal-btn.active{ background:#20242a; border-color:#f5f6f8; }
-  .desp-fecha-pill{ font-size:.66rem; font-weight:900; letter-spacing:.04em; background:rgba(184,146,255,.15); border:1px solid rgba(184,146,255,.4); color:#b892ff; border-radius:999px; padding:.18rem .5rem; }
-  .desp-volver-hoy{ font-size:.72rem; font-weight:800; color:#5b9dff; background:none; border:none; cursor:pointer; padding:0; margin-top:.3rem; text-decoration:underline; text-underline-offset:2px; font-family:inherit; }
-  .desp-cal-popover{ margin-top:.6rem; background:#15171b; border:1px solid #272b32; border-radius:12px; padding:.7rem .75rem .8rem; max-width:280px; }
+  .desp-cal-btn{ background:var(--surface); border:1px solid var(--border); color:var(--ink); border-radius:999px; width:27px; height:27px; display:inline-flex; align-items:center; justify-content:center; font-size:.82rem; cursor:pointer; padding:0; line-height:1; }
+  .desp-cal-btn:hover{ border-color:var(--accent); }
+  .desp-cal-btn.active{ background:var(--accent-soft); border-color:var(--accent); }
+  .desp-fecha-pill{ font-size:.66rem; font-weight:900; letter-spacing:.04em; background:var(--plum-soft); border:1px solid var(--plum); color:var(--plum); border-radius:999px; padding:.18rem .55rem; }
+  .desp-volver-hoy{ font-size:.74rem; font-weight:800; color:var(--info); background:none; border:none; cursor:pointer; padding:0; margin-top:.3rem; text-decoration:underline; text-underline-offset:2px; font-family:inherit; }
+  .desp-cal-popover{ margin-top:.6rem; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:.7rem .75rem .8rem; max-width:280px; box-shadow:var(--shadow); }
   .desp-config-popover{ max-width:340px; }
-  .desp-config-popover input{ background:#1a1d22; border:1px solid #272b32; color:#f5f6f8; border-radius:8px; padding:.5rem .6rem; font-size:.85rem; }
+  .desp-config-popover input{ background:var(--bg); border:1px solid var(--border); color:var(--ink); border-radius:8px; padding:.5rem .6rem; font-size:.85rem; }
   .desp-cal-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:.4rem; }
-  .desp-cal-navbtn{ background:#1a1d22; border:1px solid #272b32; color:#f5f6f8; border-radius:7px; width:26px; height:26px; cursor:pointer; font-size:.9rem; padding:0; font-family:inherit; }
-  .desp-cal-mes{ font-size:.78rem; font-weight:800; color:#f5f6f8; text-align:center; flex:1; }
-  .desp-cal-weekdays{ display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:.62rem; color:#5b6070; font-weight:700; margin-bottom:.15rem; }
+  .desp-cal-navbtn{ background:var(--surface-2); border:1px solid var(--border); color:var(--ink); border-radius:7px; width:26px; height:26px; cursor:pointer; font-size:.9rem; padding:0; font-family:inherit; }
+  .desp-cal-mes{ font-size:.78rem; font-weight:800; color:var(--ink); text-align:center; flex:1; }
+  .desp-cal-weekdays{ display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:.62rem; color:var(--ink-muted); font-weight:700; margin-bottom:.15rem; }
   .desp-cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
-  .desp-cal-cell{ background:transparent; border:none; color:#c7cbd1; font-size:.74rem; font-weight:600; padding:.32rem 0; border-radius:7px; cursor:pointer; font-family:inherit; }
+  .desp-cal-cell{ background:transparent; border:none; color:var(--ink-soft); font-size:.74rem; font-weight:600; padding:.32rem 0; border-radius:7px; cursor:pointer; font-family:inherit; }
   .desp-cal-cell.empty{ cursor:default; }
-  .desp-cal-cell:not(.empty):hover{ background:#20242a; }
-  .desp-cal-cell.today{ color:#38d996; font-weight:900; }
-  .desp-cal-cell.selected{ background:#f5f6f8; color:#0d0f12; font-weight:900; }
+  .desp-cal-cell:not(.empty):hover{ background:var(--surface-2); }
+  .desp-cal-cell.today{ color:var(--good); font-weight:900; }
+  .desp-cal-cell.selected{ background:var(--accent); color:var(--accent-ink); font-weight:900; }
   .desp-cal-actions{ display:flex; justify-content:space-between; margin-top:.5rem; gap:.4rem; }
-  .desp-cal-hoy-btn, .desp-cal-cerrar-btn{ flex:1; background:#1a1d22; border:1px solid #272b32; color:#f5f6f8; border-radius:8px; font-size:.72rem; font-weight:800; padding:.4rem 0; cursor:pointer; font-family:inherit; }
-  .desp-cal-hoy-btn:hover, .desp-cal-cerrar-btn:hover{ border-color:#4d545f; }
+  .desp-cal-hoy-btn, .desp-cal-cerrar-btn{ flex:1; background:var(--surface-2); border:1px solid var(--border); color:var(--ink); border-radius:8px; font-size:.72rem; font-weight:800; padding:.4rem 0; cursor:pointer; font-family:inherit; }
+  .desp-cal-hoy-btn:hover, .desp-cal-cerrar-btn:hover{ border-color:var(--accent); }
 
   /* ================== Asistente de pedido (paso a paso) -- solo "Nuevo pedido" ================== */
   .pw-wrap{ max-width:640px; margin:0 auto 1rem; }
@@ -1541,6 +1642,18 @@ var TRIPLES = [
   // Por defecto todos cerrados (solo el resumen ejecutivo); se guarda acá para que no se cierre
   // solo cada vez que la lista se vuelve a pintar por otro cambio (ver buildPedidosLista).
   var pedidosMasivoDetalleAbierto = {};
+  // ---- Historial del cliente (set-2026, "REORGANIZACIÓN VISUAL -- MÓDULO PEDIDOS", pedido de
+  // Jessica: "cuando se localice un cliente, permitir abrir Historial del cliente") ----
+  // Se abre como una ventana flotante aparte (mismo patrón que showPedidoDespachoDetalle), NO
+  // como parte del render normal de "Todos los pedidos" -- así cambiar de periodo adentro no
+  // reconstruye toda la lista de pedidos ni pierde el filtro/búsqueda de la pantalla de atrás.
+  var pedidosHistorialCliente = null; // { key, nombre, telefono } o null = cerrado
+  var pedidosHistorialPeriodo = "mes"; // "mes" | "3m" | "6m" | "anio" | "personalizado"
+  var pedidosHistorialDesde = "";
+  var pedidosHistorialHasta = "";
+  var pedidosHistorialCargando = false;
+  var pedidosHistorialError = false;
+  var pedidosHistorialResultados = null; // null = todavía no se buscó nada
   // Filtro de la vista "Despacho" -- una sola cola con TODOS los canales mezclados, ordenada
   // por hora de atención. "todos" es el filtro por defecto (activos, de cualquier canal, sin
   // separar) porque Jessica pidió justamente que no se corte la cola en vistas por canal.
@@ -4993,6 +5106,12 @@ var TRIPLES = [
   // tome en el día, quien lo tomo". A diferencia de pedidosProduccionDate (que filtra por fecha
   // de ENTREGA), este filtra por la fecha en que el pedido se registró en el sistema (createdAt).
   var pedidosTomadosDate = null;
+  // Qué persona tiene su detalle desplegado en la vista de pantalla de "Pedidos tomados" (set-
+  // 2026, pedido de Jessica: "no es necesario tener permanentemente desplegado el enorme
+  // detalle de todos los pedidos" -- ahora la pantalla muestra primero el resumen ejecutivo por
+  // persona, y recién al pulsar "Ver detalle" se despliega la lista de esa persona puntual).
+  // null = nadie desplegado. Se reinicia solo al cambiar de fecha (ver buildPedidosTomadosView).
+  var pedidosTomadosPersonaAbierta = null;
 
   function newPedidoDraft(canal){
     canal = canal || "delivery";
@@ -5349,22 +5468,92 @@ var TRIPLES = [
     return wrap;
   }
 
+  // Íconos de línea + colores por sección de Pedidos (set-2026, ajuste estético pedido por
+  // Jessica sobre un modelo de referencia: "AJUSTARLO POR ESTETICA (ICONOS)", paleta confirmada
+  // después: "USA ESTA PALETA DE COLORES POR AHORA" -- Vanilla/Caramel/Almond/Coffee/Mocca/
+  // Espresso). Esto es SOLO decorativo: un ícono junto al título de cada sección, en la barra de
+  // navegación y en los números resumen -- ninguna lógica ni dato cambia.
+  var PEDIDOS_SEC_ICONOS = {
+    nuevo:      { color:"caramelo", svg:"<path d='M12 5v14M5 12h14'/>" },
+    despacho:   { color:"cafe",     svg:"<path d='M3 7h11v9H3z'/><path d='M14 10h4l3 3v3h-7z'/><circle cx='7' cy='18' r='1.6'/><circle cx='17.5' cy='18' r='1.6'/>" },
+    produccion: { color:"almendra", svg:"<path d='M4 8 12 4l8 4-8 4-8-4Z'/><path d='M4 8v8l8 4 8-4V8'/><path d='M12 12v8'/>" },
+    lista:      { color:"mocca",    svg:"<rect x='5' y='4' width='14' height='17' rx='2'/><path d='M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1'/><path d='M9 11h6M9 15h6'/>" },
+    tomados:    { color:"vainilla", svg:"<circle cx='9' cy='8' r='3'/><path d='M3 20c0-3 2.6-5 6-5s6 2 6 5'/><circle cx='17' cy='9' r='2.3'/><path d='M15.3 13.3c2.2.5 3.6 2 4.1 3.9'/>" },
+    cobrar:     { color:"espresso", svg:"<ellipse cx='12' cy='7' rx='7' ry='3'/><path d='M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7'/><path d='M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5'/>" }
+  };
+  function pedidosIconSvgHtml(key){
+    var def = PEDIDOS_SEC_ICONOS[key];
+    if(!def) return "";
+    return "<svg viewBox='0 0 24 24' fill='none' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'>" + def.svg + "</svg>";
+  }
+  // Insignia de color (grande, junto al título de cada sección, o chica para números resumen)
+  // -- devuelve un <span> listo para insertar, ej: card.appendChild(pedidosIconBadge("cobrar")).
+  function pedidosIconBadge(key, small){
+    var def = PEDIDOS_SEC_ICONOS[key];
+    var span = document.createElement("span");
+    span.className = (small ? "icon-badge-sm " : "icon-badge ") + (def ? def.color : "caramelo");
+    span.innerHTML = pedidosIconSvgHtml(key);
+    return span;
+  }
+  // Igual que pedidosIconBadge pero para un color/ícono suelto (números resumen que no
+  // corresponden 1 a 1 con una sección, ej. "Vencidos / Por vencer" usa un ícono de check).
+  function pedidosIconBadgeCustom(colorClass, svgPaths, small){
+    var span = document.createElement("span");
+    span.className = (small ? "icon-badge-sm " : "icon-badge ") + colorClass;
+    span.innerHTML = "<svg viewBox='0 0 24 24' fill='none' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'>" + svgPaths + "</svg>";
+    return span;
+  }
+  // Envuelve un <h2> ya armado con su insignia de ícono a la izquierda (mismo texto/margen de
+  // siempre, solo se agrega el ícono) -- devuelve el wrapper listo para reemplazar el
+  // card.appendChild(h2) de cada sección.
+  function pedidosSecHead(key, h2){
+    var head = document.createElement("div");
+    head.className = "pedidos-sec-head";
+    head.style.margin = h2.style.margin || "0";
+    h2.style.margin = "0";
+    head.appendChild(pedidosIconBadge(key));
+    head.appendChild(h2);
+    return head;
+  }
+
+  // Agrupación visual de los 6 procesos de Pedidos en 3 categorías (set-2026, pedido de
+  // Jessica, "REORGANIZACIÓN VISUAL -- MÓDULO PEDIDOS"): OPERACIÓN (el día a día: tomar,
+  // despachar, producir) / CONTROL (consultar y revisar lo ya tomado) / COBRANZA (crédito
+  // pendiente). Es SOLO reordenamiento de navegación -- los mismos 6 valores de pedidosView,
+  // el mismo renderPanel(), ningún dato ni lógica nueva.
+  var PEDIDOS_NAV_GRUPOS = [
+    { label:"Operación", items:[["nuevo","+ Nuevo pedido"], ["despacho","Despacho"], ["produccion","Producción por día"]] },
+    { label:"Control", items:[["lista","Todos los pedidos"], ["tomados","Pedidos tomados"]] },
+    { label:"Cobranza", items:[["cobrar","Cuentas por Cobrar"]] }
+  ];
   function buildPedidosPanel(){
     if(!isPedidosUnlocked()){ return buildPedidosLockGate(); }
     var wrap = document.createElement("div");
 
-    var viewToggle = document.createElement("div");
-    viewToggle.className = "shift-toggle";
-    viewToggle.style.marginBottom = "1rem";
-    [["nuevo","Nuevo pedido"], ["despacho","Despacho"], ["produccion","Producción por día"], ["lista","Todos los pedidos"], ["tomados","Pedidos tomados"], ["cobrar","Cuentas por Cobrar"]].forEach(function(pair){
-      var b = document.createElement("button");
-      b.type = "button";
-      b.className = "shift-btn" + (pedidosView === pair[0] ? " active" : "");
-      b.textContent = pair[1];
-      b.addEventListener("click", function(){ pedidosView = pair[0]; renderPanel(); });
-      viewToggle.appendChild(b);
+    var nav = document.createElement("div");
+    nav.className = "pedidos-nav";
+    PEDIDOS_NAV_GRUPOS.forEach(function(grupo){
+      var g = document.createElement("div");
+      g.className = "pedidos-nav-group";
+      var lbl = document.createElement("div");
+      lbl.className = "pedidos-nav-label";
+      lbl.textContent = grupo.label;
+      g.appendChild(lbl);
+      var btns = document.createElement("div");
+      btns.className = "pedidos-nav-btns";
+      grupo.items.forEach(function(pair){
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "pedidos-nav-btn" + (pedidosView === pair[0] ? " active" : "");
+        b.innerHTML = pedidosIconSvgHtml(pair[0]) + " <span></span>";
+        b.querySelector("span").textContent = pair[1];
+        b.addEventListener("click", function(){ pedidosView = pair[0]; renderPanel(); });
+        btns.appendChild(b);
+      });
+      g.appendChild(btns);
+      nav.appendChild(g);
     });
-    wrap.appendChild(viewToggle);
+    wrap.appendChild(nav);
 
     if(PEDIDOS === null){
       var loading = document.createElement("div");
@@ -6190,7 +6379,7 @@ var TRIPLES = [
     var h2 = document.createElement("h2");
     h2.style.margin = "0";
     h2.textContent = "Nuevo pedido";
-    headRow.appendChild(h2);
+    headRow.appendChild(pedidosSecHead("nuevo", h2));
     var cancelBtn = document.createElement("button");
     cancelBtn.type = "button";
     cancelBtn.className = "pw-cancel-link";
@@ -7493,6 +7682,19 @@ var TRIPLES = [
     }
     return false;
   }
+  // Identidad de "el mismo cliente" entre pedidos distintos, para el Historial del cliente
+  // (set-2026) -- no existe un id de cliente guardado en cada pedido (p.cliente es solo texto
+  // suelto: nombre/teléfono/ruc/dni), así que se identifica por teléfono (lo más confiable, sin
+  // dígitos no numéricos) y, si no hay teléfono, por el nombre normalizado (sin tildes/mayúsculas)
+  // -- mismo criterio de "coincide" que ya usa pedidoMatchesBusqueda arriba, solo que acá hace
+  // falta una IGUALDAD exacta (una clave), no una búsqueda parcial.
+  function pedidoClienteKey(p){
+    var c = (p && p.cliente) || {};
+    var tel = String(c.telefono || "").replace(/\D/g, "");
+    if(tel) return "tel:" + tel;
+    var nombre = pedidoBusquedaNormTexto(c.nombre || "").trim();
+    return nombre ? "nom:" + nombre : "";
+  }
   function pedidoFechasDeItems(items, fechaDefault){
     var seen = {}; var out = [];
     (items || []).forEach(function(it){
@@ -7975,6 +8177,21 @@ var TRIPLES = [
     if(!iso) return "";
     var parts = iso.split("-");
     return parts.length === 3 ? (parts[2] + "/" + parts[1] + "/" + parts[0]) : iso;
+  }
+  // Fecha corta SIN año (set-2026, columna ENTREGA de "Todos los pedidos", pedido de Jessica:
+  // "27/09 · 3:30 p. m." en vez de la fecha completa) -- para no recargar la tabla con el año,
+  // que casi nunca hace falta ver de un vistazo en la operación del día a día.
+  function fmtFechaDiaMes(iso){
+    if(!iso) return "";
+    var parts = iso.split("-");
+    return parts.length === 3 ? (parts[2] + "/" + parts[1]) : iso;
+  }
+  // Igual que fmtFechaDiaMes pero a partir de un timestamp en milisegundos (para "Tomado:
+  // fecha" a partir de createdAt) -- calculado en America/Lima igual que el resto de fechas de
+  // la app (ver fmtFechaHoraMillis), no con el huso horario del navegador.
+  function fmtFechaDiaMesMillis(ms){
+    if(!ms) return "";
+    try{ return new Date(ms).toLocaleDateString("es-PE", { timeZone:"America/Lima", day:"2-digit", month:"2-digit" }); }catch(e){ return ""; }
   }
   // Suma días de calendario a una fecha ISO (yyyy-mm-dd) -- usado para calcular el vencimiento
   // de un pedido a crédito (fecha de entrega + días de crédito del cliente).
@@ -8980,6 +9197,15 @@ var TRIPLES = [
       showToast("No se pudo generar el archivo. Intenta de nuevo.");
     }
   }
+  // Vista de pantalla de "Pedidos tomados" (set-2026, "REORGANIZACIÓN VISUAL -- MÓDULO
+  // PEDIDOS", pedido de Jessica: "la pantalla principal debe ser más ejecutiva... no es
+  // necesario tener permanentemente desplegado el enorme detalle de todos los pedidos").
+  // Reusa EXACTAMENTE los mismos datos/cálculos de siempre (buildPedidosTomadosRows,
+  // pedidosTomadosResumenPorPersona) -- nada nuevo se calcula acá, solo se presenta distinto:
+  // primero un resumen ejecutivo, después una fila por persona, y el detalle completo de una
+  // persona puntual se despliega solo al pedirlo con "Ver detalle" (pedidosTomadosPersonaAbierta).
+  // La impresión y el Excel siguen usando buildPedidosTomadosHTML/doExportPedidosTomados tal
+  // cual, con el resumen por persona + detalle completo de siempre -- eso NO cambió.
   function buildPedidosTomadosView(){
     var wrap = document.createElement("div");
     var card = document.createElement("div");
@@ -8987,7 +9213,7 @@ var TRIPLES = [
     var h2 = document.createElement("h2");
     h2.style.margin = "0 0 .4rem";
     h2.textContent = "Pedidos tomados";
-    card.appendChild(h2);
+    card.appendChild(pedidosSecHead("tomados", h2));
     var hint = document.createElement("div");
     hint.className = "hint";
     hint.textContent = "Todos los pedidos que se registraron en el sistema este día (sin importar para cuándo son), agrupados por quién los atendió — para revisar al cerrar el día cuánto tomó cada persona.";
@@ -9005,6 +9231,7 @@ var TRIPLES = [
     dateInput.value = pedidosTomadosDate || todayISO();
     dateInput.addEventListener("change", function(){
       pedidosTomadosDate = dateInput.value || todayISO();
+      pedidosTomadosPersonaAbierta = null;
       renderPanel();
     });
     dateRow.appendChild(dateInput);
@@ -9016,24 +9243,92 @@ var TRIPLES = [
     btnRow.style.display = "flex";
     btnRow.style.gap = ".5rem";
     btnRow.style.flexWrap = "wrap";
-    btnRow.style.margin = "0 0 1rem";
+    btnRow.style.margin = "0 0 1.1rem";
     var printBtn = document.createElement("button");
     printBtn.type = "button";
     printBtn.className = "btn btn-sm";
-    printBtn.textContent = "Imprimir esta vista";
+    printBtn.textContent = "🖨️ Imprimir esta vista";
     printBtn.addEventListener("click", function(){ doPrintPedidosTomados(targetDate); });
     btnRow.appendChild(printBtn);
     var excelBtn = document.createElement("button");
     excelBtn.type = "button";
     excelBtn.className = "btn btn-sm";
-    excelBtn.textContent = "Descargar Excel";
+    excelBtn.textContent = "📊 Descargar Excel";
     excelBtn.addEventListener("click", function(){ doExportPedidosTomados(targetDate); });
     btnRow.appendChild(excelBtn);
     card.appendChild(btnRow);
 
-    var contentWrap = document.createElement("div");
-    contentWrap.innerHTML = buildPedidosTomadosHTML(targetDate);
-    card.appendChild(contentWrap);
+    var rows = buildPedidosTomadosRows(targetDate);
+    if(rows.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "No se tomó ningún pedido este día.";
+      card.appendChild(empty);
+      wrap.appendChild(card);
+      return wrap;
+    }
+
+    var resumen = pedidosTomadosResumenPorPersona(rows);
+    var totalGeneral = round2(rows.reduce(function(s, r){ return s + r.total; }, 0));
+
+    var statRow = document.createElement("div");
+    statRow.className = "stat-row";
+    function stat(label, value, iconColor, iconSvg){
+      var t = document.createElement("div");
+      t.className = "stat-tile";
+      if(iconSvg) t.appendChild(pedidosIconBadgeCustom(iconColor, iconSvg, true));
+      var body = document.createElement("div");
+      body.className = "stat-tile-body";
+      body.innerHTML = "<div class='stat-tile-label'>" + esc(label) + "</div><div class='stat-tile-value'>" + esc(value) + "</div>";
+      t.appendChild(body);
+      return t;
+    }
+    statRow.appendChild(stat("Pedidos del día", String(rows.length),
+      "almendra", "<rect x='5' y='4' width='14' height='17' rx='2'/><path d='M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1'/><path d='M9 11h6M9 15h6'/>"));
+    statRow.appendChild(stat("Monto registrado", "S/ " + fmt(totalGeneral),
+      "caramelo", "<circle cx='12' cy='12' r='8.2'/><path d='M12 7.5v9M9.3 15c.3 1 1.3 1.6 2.7 1.6 1.7 0 2.8-.8 2.8-2 0-1.3-1.2-1.7-2.8-2-1.6-.3-2.7-.8-2.7-2 0-1.1 1-1.9 2.7-1.9 1.3 0 2.3.5 2.6 1.4'/>"));
+    statRow.appendChild(stat("Personas que tomaron pedidos", String(resumen.length),
+      "mocca", "<circle cx='9' cy='8' r='3'/><path d='M3 20c0-3 2.6-5 6-5s6 2 6 5'/><circle cx='17' cy='9' r='2.3'/><path d='M15.3 13.3c2.2.5 3.6 2 4.1 3.9'/>"));
+    card.appendChild(statRow);
+
+    var resumenTableWrap = document.createElement("div");
+    resumenTableWrap.className = "table-wrap";
+    var resumenTable = document.createElement("table");
+    resumenTable.className = "data-table";
+    resumenTable.innerHTML = "<thead><tr><th>Persona</th><th>Cantidad de pedidos</th><th>Total</th><th></th></tr></thead><tbody></tbody>";
+    var resumenTbody = resumenTable.querySelector("tbody");
+    resumen.forEach(function(r){
+      var abierto = pedidosTomadosPersonaAbierta === r.nombre;
+      var tr = document.createElement("tr");
+      tr.innerHTML = "<td><strong>" + esc(r.nombre) + "</strong></td>" +
+        "<td>" + r.pedidos + "</td>" +
+        "<td>S/ " + fmt(r.total) + "</td>" +
+        "<td><button type='button' class='btn btn-sm pedidos-tomados-ver-detalle' data-nombre=\"" + esc(r.nombre) + "\">" + (abierto ? "Ocultar detalle ▴" : "Ver detalle ▾") + "</button></td>";
+      resumenTbody.appendChild(tr);
+      if(abierto){
+        var detTr = document.createElement("tr");
+        var detRows = rows.filter(function(x){ return x.atendidoPor === r.nombre; });
+        var detHtml = "<div class='table-wrap' style='margin-top:.4rem;'><table class='data-table'>" +
+          "<thead><tr><th>N°</th><th>Hora</th><th>Cliente</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th></tr></thead><tbody>";
+        detRows.forEach(function(d){
+          detHtml += "<tr><td>" + esc(d.numero) + "</td><td>" + esc(d.hora) + "</td><td>" + esc(d.cliente) + "</td><td>" + esc(d.canal) + "</td>" +
+            "<td class='pedido-productos-cell'>" + esc(d.productos) + "</td><td>S/ " + fmt(d.total) + "</td><td>" + (d.pagado ? "Sí" : "No") + "</td></tr>";
+        });
+        detHtml += "</tbody></table></div>";
+        detTr.innerHTML = "<td colspan='4'>" + detHtml + "</td>";
+        resumenTbody.appendChild(detTr);
+      }
+    });
+    resumenTableWrap.appendChild(resumenTable);
+    card.appendChild(resumenTableWrap);
+
+    resumenTbody.querySelectorAll(".pedidos-tomados-ver-detalle").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var nombre = btn.getAttribute("data-nombre");
+        pedidosTomadosPersonaAbierta = (pedidosTomadosPersonaAbierta === nombre) ? null : nombre;
+        renderPanel();
+      });
+    });
 
     wrap.appendChild(card);
     return wrap;
@@ -9124,16 +9419,22 @@ var TRIPLES = [
     var h2 = document.createElement("h2");
     h2.style.margin = "0 0 .4rem";
     h2.textContent = "Producción por día";
-    card.appendChild(h2);
+    card.appendChild(pedidosSecHead("produccion", h2));
     var hint = document.createElement("div");
     hint.className = "hint";
     hint.textContent = "Elige una fecha y suma, por producto, lo comprometido entre delivery, recojo en tienda y pedidos masivos que entreguen ese día.";
     card.appendChild(hint);
 
+    // Encabezado + controles agrupados en una sola barra alineada (set-2026, "REORGANIZACIÓN
+    // VISUAL -- MÓDULO PEDIDOS": "solo ordenar mejor el encabezado, controles y tabla") --
+    // misma fecha/botones/cálculo de siempre, solo mejor presentados con una línea divisoria
+    // antes de la tabla.
+    var toolbar = document.createElement("div");
+    toolbar.className = "pedidos-toolbar";
+
     var dateRow = document.createElement("div");
     dateRow.className = "field";
     dateRow.style.maxWidth = "220px";
-    dateRow.style.margin = "1rem 0";
     var dl = document.createElement("label");
     dl.textContent = "Fecha";
     dateRow.appendChild(dl);
@@ -9150,19 +9451,16 @@ var TRIPLES = [
       renderPanel();
     });
     dateRow.appendChild(dateInput);
-    card.appendChild(dateRow);
+    toolbar.appendChild(dateRow);
 
     var targetDate = pedidosProduccionDate || todayISO();
 
     var btnRow = document.createElement("div");
-    btnRow.style.display = "flex";
-    btnRow.style.flexWrap = "wrap";
-    btnRow.style.gap = ".5rem";
-    btnRow.style.margin = "0 0 1rem";
+    btnRow.className = "pedidos-toolbar-actions";
     var printDiaBtn = document.createElement("button");
     printDiaBtn.type = "button";
     printDiaBtn.className = "btn btn-sm";
-    printDiaBtn.textContent = "PDF de todos los pedidos de este día";
+    printDiaBtn.textContent = "📄 PDF de todos los pedidos de este día";
     printDiaBtn.addEventListener("click", function(){ doPrintPedidosDia(targetDate); });
     btnRow.appendChild(printDiaBtn);
     // Excel con TODO junto para este día -- Jessica: "debe haber un excel... si se puede para
@@ -9174,7 +9472,9 @@ var TRIPLES = [
     excelProduccionBtn.textContent = "📊 Exportar Excel (Producción del día)";
     excelProduccionBtn.addEventListener("click", function(){ doExportProduccion(targetDate); });
     btnRow.appendChild(excelProduccionBtn);
-    card.appendChild(btnRow);
+    toolbar.appendChild(btnRow);
+    card.appendChild(toolbar);
+
     var totals = pedidosProduccionTotales(targetDate);
     var names = Object.keys(totals).sort();
     if(names.length === 0){
@@ -9246,23 +9546,32 @@ var TRIPLES = [
     var h2 = document.createElement("h2");
     h2.style.margin = "0 0 .8rem";
     h2.textContent = "Todos los pedidos";
-    card.appendChild(h2);
+    card.appendChild(pedidosSecHead("lista", h2));
 
-    // Buscador único: cliente, N° de orden, teléfono o RUC/DNI, con coincidencia parcial
-    // (no hace falta escribir el nombre completo ni el número entero). Mientras haya texto
-    // acá, manda la búsqueda y se ignoran los filtros de fecha/origen de abajo -- es para
-    // ENCONTRAR un pedido puntual sin tener que saber en qué fecha o canal quedó.
+    // Controles agrupados con etiqueta (set-2026, "REORGANIZACIÓN VISUAL -- MÓDULO PEDIDOS":
+    // BUSCAR / FECHA DE ENTREGA / ORIGEN) -- misma lógica de siempre (pedidosListaBusqueda,
+    // pedidosListaFecha, pedidosListaVerTodos, pedidosOrigenFilter), solo se agrupan visualmente
+    // para que no se vean como controles sueltos uno debajo del otro.
+    var filtrosRow = document.createElement("div");
+    filtrosRow.className = "pedidos-filtros";
+
+    // BUSCAR: cliente, N° de orden, teléfono o RUC/DNI, con coincidencia parcial (no hace falta
+    // escribir el nombre completo ni el número entero). Mientras haya texto acá, manda la
+    // búsqueda y se ignoran los filtros de fecha/origen -- es para ENCONTRAR un pedido puntual
+    // sin tener que saber en qué fecha o canal quedó.
+    var buscarCol = document.createElement("div");
+    buscarCol.className = "pedidos-filtros-col";
+    buscarCol.style.minWidth = "260px";
+    var buscarLbl = document.createElement("div");
+    buscarLbl.className = "field-group-label";
+    buscarLbl.textContent = "Buscar";
+    buscarCol.appendChild(buscarLbl);
     var busquedaField = document.createElement("div");
     busquedaField.className = "field";
-    busquedaField.style.maxWidth = "360px";
-    busquedaField.style.margin = "0 0 .8rem";
-    var busquedaLbl = document.createElement("label");
-    busquedaLbl.textContent = "Buscar (cliente, N° de orden, teléfono o RUC/DNI)";
-    busquedaField.appendChild(busquedaLbl);
     var busquedaInput = document.createElement("input");
     busquedaInput.type = "search";
     busquedaInput.id = "pedidosListaBusquedaInput";
-    busquedaInput.placeholder = "Ej: Gomez, T-0057, 999888777…";
+    busquedaInput.placeholder = "Cliente, N.º pedido, teléfono o RUC/DNI…";
     busquedaInput.value = pedidosListaBusqueda;
     // renderPanel() reconstruye TODO el panel (igual que el resto de Pedidos), lo que borra y
     // vuelve a crear este input en cada tecla -- sin esto, el navegador le quita el foco
@@ -9277,32 +9586,30 @@ var TRIPLES = [
       if(again){ again.focus(); try{ again.setSelectionRange(selStart, selStart); }catch(e){} }
     });
     busquedaField.appendChild(busquedaInput);
-    card.appendChild(busquedaField);
+    buscarCol.appendChild(busquedaField);
     if(pedidosListaBusqueda.trim()){
       var busquedaHint = document.createElement("div");
       busquedaHint.className = "hint";
-      busquedaHint.style.margin = "-.5rem 0 .8rem";
-      busquedaHint.textContent = "Buscando en TODOS los pedidos guardados (se ignora la fecha y el origen de abajo mientras haya texto acá).";
-      card.appendChild(busquedaHint);
+      busquedaHint.textContent = "Buscando en TODOS los pedidos guardados (se ignora la fecha y el origen mientras haya texto acá).";
+      buscarCol.appendChild(busquedaHint);
     }
+    filtrosRow.appendChild(buscarCol);
 
-    // Filtro por fecha: por defecto solo el día que se está trabajando (no la lista entera),
+    // FECHA DE ENTREGA: por defecto solo el día que se está trabajando (no la lista entera),
     // igual que pide Jessica -- con selector de fecha para revisar otro día, y un botón para
     // ver todo sin filtrar cuando de verdad haga falta (por ejemplo, buscar un pedido viejo
     // sin recordar la fecha exacta).
+    var fechaCol = document.createElement("div");
+    fechaCol.className = "pedidos-filtros-col";
+    var fechaLbl2 = document.createElement("div");
+    fechaLbl2.className = "field-group-label";
+    fechaLbl2.textContent = "Fecha de entrega";
+    fechaCol.appendChild(fechaLbl2);
     var fechaFilterRow = document.createElement("div");
-    fechaFilterRow.style.display = "flex";
-    fechaFilterRow.style.flexWrap = "wrap";
-    fechaFilterRow.style.alignItems = "flex-end";
-    fechaFilterRow.style.gap = ".8rem";
-    fechaFilterRow.style.marginBottom = ".8rem";
+    fechaFilterRow.className = "pedidos-filtros-row-inline";
     var fechaField = document.createElement("div");
     fechaField.className = "field";
-    fechaField.style.maxWidth = "200px";
-    fechaField.style.margin = "0";
-    var fechaLbl = document.createElement("label");
-    fechaLbl.textContent = "Fecha de entrega";
-    fechaField.appendChild(fechaLbl);
+    fechaField.style.maxWidth = "180px";
     var fechaInput = document.createElement("input");
     fechaInput.type = "date";
     fechaInput.disabled = pedidosListaVerTodos;
@@ -9316,19 +9623,25 @@ var TRIPLES = [
     var verTodosBtn = document.createElement("button");
     verTodosBtn.type = "button";
     verTodosBtn.className = "btn btn-sm";
-    verTodosBtn.textContent = pedidosListaVerTodos ? "Ver solo esta fecha" : "Ver todos (sin filtrar fecha)";
+    verTodosBtn.textContent = pedidosListaVerTodos ? "Ver solo esta fecha" : "Ver todos";
     verTodosBtn.addEventListener("click", function(){
       pedidosListaVerTodos = !pedidosListaVerTodos;
       renderPanel();
     });
     fechaFilterRow.appendChild(verTodosBtn);
-    card.appendChild(fechaFilterRow);
+    fechaCol.appendChild(fechaFilterRow);
+    filtrosRow.appendChild(fechaCol);
 
-    // Filtro por origen: de dónde vino el pedido (Whatsapp o Tienda), para poder ver por
-    // separado, como los reportes "Hoy Canal Tienda" / "Hoy Canal Whatsapp" que se usaban antes.
+    // ORIGEN: de dónde vino el pedido (Whatsapp o Tienda), para poder ver por separado, como los
+    // reportes "Hoy Canal Tienda" / "Hoy Canal Whatsapp" que se usaban antes.
+    var origenCol = document.createElement("div");
+    origenCol.className = "pedidos-filtros-col";
+    var origenLbl = document.createElement("div");
+    origenLbl.className = "field-group-label";
+    origenLbl.textContent = "Origen";
+    origenCol.appendChild(origenLbl);
     var origenFilterRow = document.createElement("div");
     origenFilterRow.className = "shift-toggle";
-    origenFilterRow.style.marginBottom = "1rem";
     [["todos","Todos"], ["whatsapp","WhatsApp"], ["tienda","Tienda"]].forEach(function(pair){
       var fb = document.createElement("button");
       fb.type = "button";
@@ -9340,7 +9653,15 @@ var TRIPLES = [
       });
       origenFilterRow.appendChild(fb);
     });
-    card.appendChild(origenFilterRow);
+    origenCol.appendChild(origenFilterRow);
+    filtrosRow.appendChild(origenCol);
+
+    card.appendChild(filtrosRow);
+
+    var resultadosLbl = document.createElement("div");
+    resultadosLbl.className = "pedidos-resultados-label";
+    resultadosLbl.textContent = "Resultados";
+    card.appendChild(resultadosLbl);
 
     var targetFecha = pedidosListaFecha || todayISO();
     var busquedaActiva = !!pedidosListaBusqueda.trim();
@@ -9381,7 +9702,7 @@ var TRIPLES = [
     tableWrap.className = "table-wrap";
     var table = document.createElement("table");
     table.className = "data-table";
-    table.innerHTML = "<thead><tr><th>N°</th><th>Fecha(s)</th><th>Hora</th><th>Cliente</th><th>Origen</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th>Entregado</th><th></th><th></th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
+    table.innerHTML = "<thead><tr><th>N°</th><th>Entrega</th><th>Cliente</th><th>Origen</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th>Entregado</th><th></th><th></th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
     // Para la fila de detalle expandible de un pedido Masivo (colspan = todas las columnas).
     var PEDIDOS_TABLE_COLS = table.querySelectorAll("thead th").length;
     var tbody = table.querySelector("tbody");
@@ -9394,7 +9715,22 @@ var TRIPLES = [
         if(it.fecha && !seen[it.fecha]){ seen[it.fecha] = true; fechas.push(it.fecha); }
       });
       fechas.sort();
-      var fechaLabel = fechas.length <= 1 ? (fechas[0] || "—") : (fechas[0] + " → " + fechas[fechas.length-1]);
+      // Columna ENTREGA (set-2026, pedido de Jessica): antes eran 2 columnas sueltas
+      // (Fecha(s) + Hora) -- ahora un solo dato principal (fecha corta + hora de entrega) y,
+      // chico debajo, "Tomado: fecha · responsable" (createdAt + atendidoPor, mismo dato de
+      // siempre, solo que antes no se veía en esta tabla). Para Masivo se sigue mostrando el
+      // rango completo de fechas de entrega, tal cual ya calculaba fechaLabel.
+      var fechaEntregaCorta = fechas.length <= 1
+        ? (fechas[0] ? fmtFechaDiaMes(fechas[0]) : "—")
+        : (fmtFechaDiaMes(fechas[0]) + " → " + fmtFechaDiaMes(fechas[fechas.length-1]));
+      var horaEntregaTxt = fmtHora12(p.hora);
+      var entregaPrincipal = fechaEntregaCorta + (horaEntregaTxt ? " · " + horaEntregaTxt : "");
+      var tomadoFechaTxt = fmtFechaDiaMesMillis(p.createdAt) || "—";
+      var tomadoResponsableTxt = p.atendidoPor ? esc(p.atendidoPor) : "sin responsable";
+      var entregaCellHtml = "<td>" +
+        "<div class='entrega-principal'>" + esc(entregaPrincipal) + "</div>" +
+        "<div class='entrega-secundaria'>Tomado: " + esc(tomadoFechaTxt) + " · " + tomadoResponsableTxt + "</div>" +
+      "</td>";
       var itemsValidos = (p.items||[]).filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
       var esMasivo = p.canal === "masivo";
       var productosLabel = itemsValidos.map(function(it){ return it.cantidad + "x " + productoDisplay(it.producto); }).join(", ");
@@ -9429,6 +9765,12 @@ var TRIPLES = [
       if(p.anulado){
         clienteCell += ' <span class="chip bad" title="' + esc(p.motivoAnulacion || "Sin motivo registrado") + '">ANULADO</span>';
       }
+      // Historial del cliente (set-2026, nuevo -- "cuando se localice un cliente, permitir abrir
+      // Historial del cliente"): solo se muestra si hay con qué identificar al cliente
+      // (teléfono o nombre, ver pedidoClienteKey) -- ver abrirHistorialCliente más abajo.
+      if(pedidoClienteKey(p)){
+        clienteCell += "<br><button type='button' class='pedidos-historial-trigger pedido-ver-historial' data-id='" + p.id + "'>🕘 Historial</button>";
+      }
       var anularBtnHtml = p.anulado
         ? (readOnly ? "" : "<button type='button' class='btn btn-sm pedido-reactivar' data-id='" + p.id + "'>Reactivar</button>")
         : (readOnly ? "" : "<button type='button' class='btn btn-sm pedido-anular' data-id='" + p.id + "'>Anular</button>");
@@ -9441,8 +9783,7 @@ var TRIPLES = [
         : (readOnly ? "—" : "<button type='button' class='btn btn-sm pedido-entregar' data-id='" + p.id + "'>Marcar entregado</button>");
       tr.innerHTML =
         "<td>" + esc(p.numero || "—") + "</td>" +
-        "<td>" + esc(fechaLabel) + "</td>" +
-        "<td>" + esc(fmtHora12(p.hora) || "—") + "</td>" +
+        entregaCellHtml +
         "<td>" + clienteCell + "</td>" +
         "<td>" + esc(origenLabel) + "</td>" +
         "<td>" + esc(canalLabel) + "</td>" +
@@ -9515,6 +9856,12 @@ var TRIPLES = [
         var id = btn.getAttribute("data-id");
         pedidosMasivoDetalleAbierto[id] = !pedidosMasivoDetalleAbierto[id];
         renderPanel();
+      });
+    });
+    tbody.querySelectorAll(".pedido-ver-historial").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var p = PEDIDOS.filter(function(x){ return x.id === btn.getAttribute("data-id"); })[0];
+        if(p) abrirHistorialCliente(p);
       });
     });
 
@@ -9893,7 +10240,7 @@ var TRIPLES = [
     var head = document.createElement("div");
     head.className = "desp-head";
     var h2 = document.createElement("h2");
-    h2.innerHTML = "<span class='desp-live-dot'></span>Despacho " +
+    h2.innerHTML = "<span class='icon-badge cafe'>" + pedidosIconSvgHtml("despacho") + "</span><span class='desp-live-dot'></span>Despacho " +
       (esVistaHoy ? "<span class='desp-hoy-pill'>HOY</span>" : "<span class='desp-fecha-pill'>" + esc(fmtFechaCorta(despachoFechaActual())) + "</span>") +
       "<button type='button' class='desp-cal-btn" + (despachoCalAbierto ? " active" : "") + "' title='Consultar otra fecha'>📅</button>" +
       "<button type='button' class='desp-cal-btn' id='despConfigBtn' title='Conexión del puente de impresión de producción'>⚙️</button>";
@@ -10119,6 +10466,13 @@ var TRIPLES = [
     var NORMAL = ESC + "!" + String.fromCharCode(0x00);
     var GRANDE = ESC + "!" + String.fromCharCode(0x30);
     var NEGRITA = ESC + "!" + String.fromCharCode(0x08);
+    // Doble alto + negrita, SIN doble ancho (set-2026, pedido de Jessica: "el tamaño de la
+    // letra es muy chico, puede ser un poco más grande" -- vista previa aprobada). A propósito
+    // no se usa doble ANCHO acá: eso reduciría cuánto entra por línea y un nombre de producto o
+    // de cliente largo se cortaría o pasaría a una segunda línea de forma fea -- con doble alto
+    // nada más, el papel sigue entrando la misma cantidad de caracteres por línea, solo se ven
+    // más altos/gruesos.
+    var GRANDE_ALTO_NEGRITA = ESC + "!" + String.fromCharCode(0x18);
     var raya = "--------------------------------\n";
     var out = ESC + "@"; // init: no toca nada de la impresora, solo reinicia el trabajo actual
     out += GRANDE + produccionTextoPlano((PRODUCCION_PUNTOS[puntoKey] || {}).label || puntoKey).toUpperCase() + "\n";
@@ -10129,12 +10483,15 @@ var TRIPLES = [
     out += raya;
     out += NEGRITA + "NUEVA ORDEN DE " + produccionTextoPlano((CANAL_LABEL[p.canal] || CANAL_LABEL.tienda).toUpperCase()) + NORMAL + "\n";
     out += "Pedido #" + produccionTextoPlano(p.numero || "-") + "\n";
-    out += "Cliente: " + produccionTextoPlano((p.cliente && p.cliente.nombre) || "-") + "\n";
+    // Cliente y LISTO son, según Jessica, lo que más debe resaltar en este ticket (set-2026:
+    // "lo único que resaltaría más es el nombre del cliente y LISTO") -- mismo tamaño que los
+    // productos de abajo, para que salten a la vista igual de rápido.
+    out += GRANDE_ALTO_NEGRITA + "Cliente: " + produccionTextoPlano((p.cliente && p.cliente.nombre) || "-") + NORMAL + "\n";
     if(p.canal === "masivo") out += "Fecha: " + produccionTextoPlano(fmtFechaCorta(fechaISO)) + "\n";
-    if(horaListoTxt) out += NEGRITA + "LISTO: " + produccionTextoPlano(horaListoTxt) + NORMAL + "\n";
+    if(horaListoTxt) out += GRANDE_ALTO_NEGRITA + "LISTO: " + produccionTextoPlano(horaListoTxt) + NORMAL + "\n";
     out += raya;
     items.forEach(function(it){
-      out += NEGRITA + produccionTextoPlano(num(it.cantidad) + " x " + it.producto) + NORMAL + "\n";
+      out += GRANDE_ALTO_NEGRITA + produccionTextoPlano(num(it.cantidad) + " x " + it.producto) + NORMAL + "\n";
       if(it.obs) out += "  Obs: " + produccionTextoPlano(it.obs) + "\n";
     });
     if(p.notas && String(p.notas).trim()){
@@ -10725,6 +11082,366 @@ var TRIPLES = [
     return card;
   }
 
+  // ---------- Historial del cliente (set-2026, "REORGANIZACIÓN VISUAL -- MÓDULO PEDIDOS",
+  // nueva funcionalidad pedida por Jessica: "cuando se localice un cliente, permitir abrir
+  // Historial del cliente") ----------
+  // Se identifica al cliente con pedidoClienteKey (teléfono si existe, si no nombre normalizado)
+  // porque los pedidos no guardan un id de cliente -- ver el comentario en esa función. La
+  // búsqueda reusa el MISMO patrón que doBuscarPedidosAntiguos (consulta puntual por rango de
+  // createdAt, no un listener en vivo) para no cargar la app con una segunda suscripción
+  // permanente ni tocar PEDIDOS/attachPedidosSync.
+  // Calcula el rango de fechas de un periodo rápido con aritmética de enteros (año/mes/día),
+  // NUNCA restando meses a un objeto Date -- eso se corre con desbordes de día (31 de enero
+  // menos 1 mes) y con la zona horaria del navegador. todayISO() ya devuelve la fecha correcta
+  // en America/Lima; a partir de ahí todo es aritmética simple.
+  function pedidosHistorialRango(periodo, desde, hasta){
+    var hoy = todayISO();
+    var partes = hoy.split("-");
+    var anioHoy = parseInt(partes[0], 10), mesHoy = parseInt(partes[1], 10), diaHoy = parseInt(partes[2], 10);
+    function pad2(n){ return (n < 10 ? "0" : "") + n; }
+    function esBisiesto(anio){ return (anio % 4 === 0 && anio % 100 !== 0) || anio % 400 === 0; }
+    function diasEnMes(anio, mes){
+      return [31, esBisiesto(anio) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][mes - 1];
+    }
+    function fechaMesesAtras(nMeses){
+      var totalMeses = (anioHoy * 12 + (mesHoy - 1)) - nMeses;
+      var anio = Math.floor(totalMeses / 12);
+      var mes = (totalMeses % 12) + 1;
+      var dia = Math.min(diaHoy, diasEnMes(anio, mes));
+      return anio + "-" + pad2(mes) + "-" + pad2(dia);
+    }
+    if(periodo === "personalizado") return { desde: desde || hoy, hasta: hasta || hoy };
+    if(periodo === "3m") return { desde: fechaMesesAtras(3), hasta: hoy };
+    if(periodo === "6m") return { desde: fechaMesesAtras(6), hasta: hoy };
+    if(periodo === "anio") return { desde: anioHoy + "-01-01", hasta: hoy };
+    return { desde: anioHoy + "-" + pad2(mesHoy) + "-01", hasta: hoy }; // "mes" (default)
+  }
+  function doBuscarHistorialCliente(){
+    if(!db || !pedidosHistorialCliente) return;
+    var rango = pedidosHistorialRango(pedidosHistorialPeriodo, pedidosHistorialDesde, pedidosHistorialHasta);
+    if(pedidosHistorialPeriodo === "personalizado" && (!pedidosHistorialDesde || !pedidosHistorialHasta)){
+      showToast("Elige una fecha \"Desde\" y una \"Hasta\" para buscar.");
+      return;
+    }
+    pedidosHistorialCargando = true;
+    pedidosHistorialError = false;
+    renderHistorialClienteOverlay();
+    var desdeMs = new Date(rango.desde + "T00:00:00").getTime();
+    var hastaMs = new Date(rango.hasta + "T23:59:59").getTime();
+    var key = pedidosHistorialCliente.key;
+    db.collection("pedidos").where("createdAt", ">=", desdeMs).where("createdAt", "<=", hastaMs).get().then(function(snap){
+      var list = [];
+      snap.forEach(function(doc){
+        var data = doc.data();
+        data.id = doc.id;
+        if(data.anulado) return;
+        if(pedidoClienteKey(data) !== key) return;
+        list.push(data);
+      });
+      list.sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
+      pedidosHistorialResultados = list;
+      pedidosHistorialCargando = false;
+      renderHistorialClienteOverlay();
+    }).catch(function(){
+      pedidosHistorialCargando = false;
+      pedidosHistorialError = true;
+      renderHistorialClienteOverlay();
+    });
+  }
+  // Abre el historial a partir de un pedido cualquiera de "Todos los pedidos" (botón "🕘
+  // Historial" en la celda del cliente) -- toma el nombre/teléfono de ESE pedido solo para
+  // mostrarlo en el encabezado; la búsqueda real es por pedidoClienteKey, así que junta todos los
+  // pedidos de ese mismo cliente sin importar con cuál se abrió.
+  function abrirHistorialCliente(p){
+    var c = (p && p.cliente) || {};
+    var key = pedidoClienteKey(p);
+    if(!key){
+      showToast("Este pedido no tiene teléfono ni nombre de cliente registrado -- no se puede armar su historial.");
+      return;
+    }
+    pedidosHistorialCliente = { key: key, nombre: tituloCase(c.nombre || "") || "Cliente sin nombre", telefono: c.telefono || "" };
+    pedidosHistorialPeriodo = "mes";
+    pedidosHistorialDesde = "";
+    pedidosHistorialHasta = "";
+    pedidosHistorialResultados = null;
+    pedidosHistorialCargando = false;
+    pedidosHistorialError = false;
+    renderHistorialClienteOverlay();
+    doBuscarHistorialCliente();
+  }
+  function closeHistorialCliente(){
+    var ov = document.getElementById("historialClienteOverlay");
+    if(ov) ov.remove();
+    document.removeEventListener("keydown", historialClienteEscHandler);
+    pedidosHistorialCliente = null;
+  }
+  function historialClienteEscHandler(ev){
+    if(ev.key === "Escape") closeHistorialCliente();
+  }
+  // Igual que showPedidoDespachoDetalle: reconstruye la ventana flotante entera desde cero cada
+  // vez (no usa renderPanel), para que cambiar de periodo o buscar adentro NO reconstruya "Todos
+  // los pedidos" detrás ni pierda su búsqueda/filtro.
+  function renderHistorialClienteOverlay(){
+    var existing = document.getElementById("historialClienteOverlay");
+    if(existing) existing.remove();
+    if(!pedidosHistorialCliente) return;
+    document.removeEventListener("keydown", historialClienteEscHandler);
+    document.addEventListener("keydown", historialClienteEscHandler);
+
+    var overlay = document.createElement("div");
+    overlay.className = "pedido-preview-overlay";
+    overlay.id = "historialClienteOverlay";
+    overlay.addEventListener("click", function(ev){ if(ev.target === overlay) closeHistorialCliente(); });
+
+    var box = document.createElement("div");
+    box.className = "pedido-preview-box pedidos-historial-box";
+
+    var head = document.createElement("div");
+    head.className = "pedido-preview-head";
+    var headText = document.createElement("div");
+    headText.innerHTML = "🕘 <strong>Historial de " + esc(pedidosHistorialCliente.nombre) + "</strong>" +
+      (pedidosHistorialCliente.telefono ? " <span class='pedido-preview-hint'>· " + esc(pedidosHistorialCliente.telefono) + "</span>" : "");
+    head.appendChild(headText);
+    var closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "pedido-preview-close";
+    closeBtn.textContent = "✕";
+    closeBtn.title = "Cerrar";
+    closeBtn.addEventListener("click", closeHistorialCliente);
+    head.appendChild(closeBtn);
+    box.appendChild(head);
+
+    var body = document.createElement("div");
+    body.className = "pedido-preview-body";
+
+    var periodosRow = document.createElement("div");
+    periodosRow.className = "shift-toggle";
+    periodosRow.style.marginBottom = ".8rem";
+    [["mes","Este mes"], ["3m","Últimos 3 meses"], ["6m","Últimos 6 meses"], ["anio","Este año"], ["personalizado","Personalizado"]].forEach(function(pair){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "shift-btn" + (pedidosHistorialPeriodo === pair[0] ? " active" : "");
+      b.textContent = pair[1];
+      b.addEventListener("click", function(){
+        if(pedidosHistorialPeriodo === pair[0]) return;
+        pedidosHistorialPeriodo = pair[0];
+        if(pair[0] === "personalizado"){ renderHistorialClienteOverlay(); }
+        else { doBuscarHistorialCliente(); }
+      });
+      periodosRow.appendChild(b);
+    });
+    body.appendChild(periodosRow);
+
+    if(pedidosHistorialPeriodo === "personalizado"){
+      var rangoRow = document.createElement("div");
+      rangoRow.style.display = "flex";
+      rangoRow.style.flexWrap = "wrap";
+      rangoRow.style.gap = ".8rem";
+      rangoRow.style.marginBottom = ".8rem";
+      rangoRow.style.alignItems = "flex-end";
+      var desdeField = document.createElement("div");
+      desdeField.className = "field";
+      desdeField.style.margin = "0";
+      var desdeLbl = document.createElement("label");
+      desdeLbl.textContent = "Desde";
+      desdeField.appendChild(desdeLbl);
+      var desdeInput = document.createElement("input");
+      desdeInput.type = "date";
+      desdeInput.value = pedidosHistorialDesde;
+      desdeInput.addEventListener("change", function(){ pedidosHistorialDesde = desdeInput.value; });
+      desdeField.appendChild(desdeInput);
+      rangoRow.appendChild(desdeField);
+      var hastaField = document.createElement("div");
+      hastaField.className = "field";
+      hastaField.style.margin = "0";
+      var hastaLbl = document.createElement("label");
+      hastaLbl.textContent = "Hasta";
+      hastaField.appendChild(hastaLbl);
+      var hastaInput = document.createElement("input");
+      hastaInput.type = "date";
+      hastaInput.value = pedidosHistorialHasta;
+      hastaInput.addEventListener("change", function(){ pedidosHistorialHasta = hastaInput.value; });
+      hastaField.appendChild(hastaInput);
+      rangoRow.appendChild(hastaField);
+      var buscarBtn = document.createElement("button");
+      buscarBtn.type = "button";
+      buscarBtn.className = "btn btn-sm";
+      buscarBtn.textContent = "Buscar";
+      buscarBtn.addEventListener("click", function(){ doBuscarHistorialCliente(); });
+      rangoRow.appendChild(buscarBtn);
+      body.appendChild(rangoRow);
+    }
+
+    if(pedidosHistorialCargando){
+      var loadingDiv = document.createElement("div");
+      loadingDiv.className = "empty-state";
+      loadingDiv.textContent = "Buscando…";
+      body.appendChild(loadingDiv);
+    } else if(pedidosHistorialError){
+      var errDiv = document.createElement("div");
+      errDiv.className = "empty-state";
+      errDiv.textContent = "No se pudo cargar el historial. Intenta de nuevo.";
+      body.appendChild(errDiv);
+    } else if(pedidosHistorialResultados !== null){
+      var lista = pedidosHistorialResultados;
+      var totalComprado = round2(lista.reduce(function(s, p){
+        var itemsValidos = (p.items || []).filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
+        var sub = itemsValidos.reduce(function(s2, it){ return s2 + num(it.cantidad) * num(it.precio); }, 0) + num(p.deliveryMonto);
+        return s + sub;
+      }, 0));
+
+      var statRow = document.createElement("div");
+      statRow.className = "stat-row";
+      function stat(label, value, iconColor, iconSvg){
+        var tile = document.createElement("div");
+        tile.className = "stat-tile";
+        if(iconSvg) tile.appendChild(pedidosIconBadgeCustom(iconColor, iconSvg, true));
+        var tileBody = document.createElement("div");
+        tileBody.className = "stat-tile-body";
+        var lbl = document.createElement("div");
+        lbl.className = "stat-tile-label";
+        lbl.textContent = label;
+        var val = document.createElement("div");
+        val.className = "stat-tile-value";
+        val.textContent = value;
+        tileBody.appendChild(lbl);
+        tileBody.appendChild(val);
+        tile.appendChild(tileBody);
+        return tile;
+      }
+      statRow.appendChild(stat("Cantidad de pedidos", String(lista.length),
+        "mocca", "<rect x='5' y='4' width='14' height='17' rx='2'/><path d='M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1'/><path d='M9 11h6M9 15h6'/>"));
+      statRow.appendChild(stat("Total comprado", "S/ " + fmt(totalComprado),
+        "caramelo", "<circle cx='12' cy='12' r='8.2'/><path d='M12 7.5v9M9.3 15c.3 1 1.3 1.6 2.7 1.6 1.7 0 2.8-.8 2.8-2 0-1.3-1.2-1.7-2.8-2-1.6-.3-2.7-.8-2.7-2 0-1.1 1-1.9 2.7-1.9 1.3 0 2.3.5 2.6 1.4'/>"));
+      body.appendChild(statRow);
+
+      if(lista.length){
+        var excelBtn = document.createElement("button");
+        excelBtn.type = "button";
+        excelBtn.className = "btn btn-sm";
+        excelBtn.style.marginBottom = ".9rem";
+        excelBtn.textContent = "📊 Exportar Excel";
+        excelBtn.addEventListener("click", function(){ doExportHistorialCliente(pedidosHistorialCliente, lista); });
+        body.appendChild(excelBtn);
+      }
+
+      if(lista.length === 0){
+        var emptyDiv = document.createElement("div");
+        emptyDiv.className = "empty-state";
+        emptyDiv.textContent = "Este cliente no tiene pedidos registrados en este periodo.";
+        body.appendChild(emptyDiv);
+      } else {
+        var tableWrap = document.createElement("div");
+        tableWrap.className = "table-wrap";
+        var table = document.createElement("table");
+        table.className = "data-table";
+        var theadHtml = "<thead><tr><th>Fecha</th><th>N°</th><th>Productos/cantidades</th><th>Origen/Canal</th><th>Total</th><th>Pago</th><th>Entrega</th></tr></thead>";
+        var tbodyHtml = lista.map(function(p){
+          var itemsValidos = (p.items || []).filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
+          var productosLabel = itemsValidos.map(function(it){ return it.cantidad + "x " + productoDisplay(it.producto); }).join(", ") || "—";
+          var sub = itemsValidos.reduce(function(s, it){ return s + num(it.cantidad) * num(it.precio); }, 0) + num(p.deliveryMonto);
+          return "<tr>" +
+            "<td>" + esc(fmtFechaHoraMillis(p.createdAt) || "—") + "</td>" +
+            "<td>" + esc(p.numero || "—") + "</td>" +
+            "<td>" + esc(productosLabel) + "</td>" +
+            "<td>" + esc(pedidoCanalBadgeTxt(p)) + "</td>" +
+            "<td>S/ " + fmt(sub) + "</td>" +
+            "<td>" + (p.pagado ? "Pagado" : "Pendiente") + "</td>" +
+            "<td>" + (p.entregadoEn ? "✓ Entregado" : "—") + "</td>" +
+          "</tr>";
+        }).join("");
+        table.innerHTML = theadHtml + "<tbody>" + tbodyHtml + "</tbody>";
+        tableWrap.appendChild(table);
+        body.appendChild(tableWrap);
+      }
+    }
+
+    box.appendChild(body);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  }
+  // Excel del historial (set-2026, nuevo): a diferencia de doExportPedidosTomados (todo un día,
+  // todas las personas), este va SOLO del cliente y periodo que se está viendo en la ventana --
+  // mismos colores/estilo de marca (DARK/ORANGE/BLUE/LIGHT) que ya usa el resto de exportes.
+  function doExportHistorialCliente(clienteInfo, lista){
+    if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo."); return; }
+    if(!lista || lista.length === 0){ showToast("No hay pedidos de este cliente en este periodo para exportar."); return; }
+    try{
+      var DARK = "5A3A22", ORANGE = "C2660C", BLUE = "4472C4", LIGHT = "F6E3BD";
+      var rango = pedidosHistorialRango(pedidosHistorialPeriodo, pedidosHistorialDesde, pedidosHistorialHasta);
+      var headers = ["Fecha","N°","Productos/cantidades","Origen/Canal","Total S/","Pago","Entrega"];
+      var aoa = [];
+      aoa.push(["PANADERÍA CARMELITAS — HISTORIAL DEL CLIENTE","","","","","",""]);
+      aoa.push(["Cliente: " + clienteInfo.nombre + (clienteInfo.telefono ? " · " + clienteInfo.telefono : ""),"","","","","",""]);
+      aoa.push(["Periodo: " + fmtFechaCorta(rango.desde) + " al " + fmtFechaCorta(rango.hasta),"","","","","",""]);
+      aoa.push(["","","","","","",""]);
+      var totalComprado = round2(lista.reduce(function(s, p){
+        var itemsValidos = (p.items || []).filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
+        var sub = itemsValidos.reduce(function(s2, it){ return s2 + num(it.cantidad) * num(it.precio); }, 0) + num(p.deliveryMonto);
+        return s + sub;
+      }, 0));
+      var resumenIdx = aoa.length;
+      aoa.push(["Cantidad de pedidos", lista.length, "", "Total comprado S/", totalComprado, "", ""]);
+      aoa.push(["","","","","","",""]);
+      var headerRowIdx = aoa.length;
+      aoa.push(headers.slice());
+      var firstDataIdx = aoa.length;
+      lista.forEach(function(p){
+        var itemsValidos = (p.items || []).filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
+        var productosLabel = itemsValidos.map(function(it){ return it.cantidad + "x " + productoDisplay(it.producto); }).join(", ") || "—";
+        var sub = itemsValidos.reduce(function(s, it){ return s + num(it.cantidad) * num(it.precio); }, 0) + num(p.deliveryMonto);
+        aoa.push([fmtFechaHoraMillis(p.createdAt) || "—", p.numero || "—", productosLabel, pedidoCanalBadgeTxt(p), round2(sub), p.pagado ? "Sí" : "No", p.entregadoEn ? "Sí" : "No"]);
+      });
+      var lastDataIdx = aoa.length - 1;
+
+      var ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!cols"] = [{wch:18},{wch:10},{wch:45},{wch:20},{wch:13},{wch:8},{wch:9}];
+      var merges = [
+        { s:{r:0,c:0}, e:{r:0,c:6} },
+        { s:{r:1,c:0}, e:{r:1,c:6} },
+        { s:{r:2,c:0}, e:{r:2,c:6} },
+        { s:{r:resumenIdx,c:0}, e:{r:resumenIdx,c:1} },
+        { s:{r:resumenIdx,c:3}, e:{r:resumenIdx,c:4} }
+      ];
+      ws["!merges"] = merges;
+
+      try{
+        var ref = XLSX.utils.encode_cell({r:0,c:0});
+        if(ws[ref]) ws[ref].s = { font:{ bold:true, underline:true, sz:14, color:{rgb:ORANGE} }, alignment:{ horizontal:"center" } };
+        ref = XLSX.utils.encode_cell({r:1,c:0});
+        if(ws[ref]) ws[ref].s = { font:{ bold:true, sz:11, color:{rgb:DARK} }, alignment:{ horizontal:"center" } };
+        ref = XLSX.utils.encode_cell({r:2,c:0});
+        if(ws[ref]) ws[ref].s = { font:{ italic:true, sz:10, color:{rgb:"666666"} }, alignment:{ horizontal:"center" } };
+        [0,3].forEach(function(c){
+          var rref = XLSX.utils.encode_cell({r:resumenIdx, c:c});
+          if(ws[rref]) ws[rref].s = { font:{ bold:true, color:{rgb:DARK} }, fill:{ fgColor:{rgb:LIGHT} } };
+        });
+        for(var hc=0; hc<headers.length; hc++){
+          ref = XLSX.utils.encode_cell({r:headerRowIdx, c:hc});
+          if(ws[ref]) ws[ref].s = { font:{ bold:true, color:{rgb:"FFFFFF"} }, fill:{ fgColor:{rgb:BLUE} }, alignment:{ horizontal:"center" } };
+        }
+        for(var ri=firstDataIdx; ri<=lastDataIdx; ri++){
+          for(var ci=0; ci<headers.length; ci++){
+            ref = XLSX.utils.encode_cell({r:ri, c:ci});
+            if(!ws[ref]) continue;
+            var st = { font:{ sz:10 } };
+            if(ci === 1 || ci === 4 || ci === 5 || ci === 6) st.alignment = { horizontal:"center" };
+            if((ri - firstDataIdx) % 2 === 1) st.fill = { fgColor:{rgb:"FBF7F0"} };
+            ws[ref].s = st;
+          }
+        }
+      }catch(e){}
+
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Historial cliente");
+      var slugNombre = pedidoBusquedaNormTexto(clienteInfo.nombre || "cliente").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "cliente";
+      XLSX.writeFile(wb, "historial-" + slugNombre + ".xlsx");
+      showToast("Historial descargado.");
+    }catch(err){
+      showToast("No se pudo generar el archivo. Intenta de nuevo.");
+    }
+  }
+
   // ---------- Cuentas por Cobrar (pedidos a crédito, 7 o 15 días) ----------
   // Jessica: "en la sección de pedidos trabajamos con algunos clientes a crédito 7 y 15 días".
   // Esta vista junta solo los pedidos de clientes a crédito que todavía no están pagados, con
@@ -10742,7 +11459,7 @@ var TRIPLES = [
     var h2 = document.createElement("h2");
     h2.style.margin = "0 0 .4rem";
     h2.textContent = "Cuentas por Cobrar";
-    card.appendChild(h2);
+    card.appendChild(pedidosSecHead("cobrar", h2));
     var hint = document.createElement("div");
     hint.className = "hint";
     hint.textContent = "Pedidos de clientes a crédito (7 o 15 días) que todavía no están marcados como pagados, ordenados por fecha de vencimiento — primero los más urgentes.";
@@ -10772,13 +11489,36 @@ var TRIPLES = [
     }
 
     var totalDeuda = pendientes.reduce(function(s, r){ return s + r.total; }, 0);
-    var totalVencido = pendientes.filter(function(r){ return r.dias !== null && r.dias < 0; }).reduce(function(s, r){ return s + r.total; }, 0);
-    var resumen = document.createElement("div");
-    resumen.style.margin = "0 0 1rem";
-    resumen.style.fontSize = "0.95rem";
-    resumen.innerHTML = "Total por cobrar: <strong>S/ " + fmt(totalDeuda) + "</strong>" +
-      (totalVencido > 0 ? ' &nbsp;·&nbsp; <span style="color:#B34428; font-weight:700;">Vencido: S/ ' + fmt(totalVencido) + "</span>" : "");
-    card.appendChild(resumen);
+    var vencidos = pendientes.filter(function(r){ return r.dias !== null && r.dias < 0; });
+    var totalVencido = vencidos.reduce(function(s, r){ return s + r.total; }, 0);
+    var porVencerCount = pendientes.length - vencidos.length;
+
+    // Resumen ejecutivo arriba de la tabla (set-2026, pedido de Jessica): TOTAL POR COBRAR /
+    // CANTIDAD DE PENDIENTES / VENCIDOS Y POR VENCER, de un vistazo antes de bajar a la tabla
+    // de siempre -- mismos números que ya se calculaban acá, solo mejor presentados.
+    var statRow = document.createElement("div");
+    statRow.className = "stat-row";
+    function stat(label, value, cls, sub, iconColor, iconSvg){
+      var t = document.createElement("div");
+      t.className = "stat-tile";
+      if(iconSvg) t.appendChild(pedidosIconBadgeCustom(iconColor, iconSvg, true));
+      var body = document.createElement("div");
+      body.className = "stat-tile-body";
+      body.innerHTML = "<div class='stat-tile-label'>" + esc(label) + "</div>" +
+        "<div class='stat-tile-value" + (cls ? " " + cls : "") + "'>" + esc(value) + "</div>" +
+        (sub ? "<div class='stat-tile-sub'>" + esc(sub) + "</div>" : "");
+      t.appendChild(body);
+      return t;
+    }
+    statRow.appendChild(stat("Total por cobrar", "S/ " + fmt(totalDeuda), null, null,
+      "caramelo", "<circle cx='12' cy='12' r='8.2'/><path d='M12 7.5v9M9.3 15c.3 1 1.3 1.6 2.7 1.6 1.7 0 2.8-.8 2.8-2 0-1.3-1.2-1.7-2.8-2-1.6-.3-2.7-.8-2.7-2 0-1.1 1-1.9 2.7-1.9 1.3 0 2.3.5 2.6 1.4'/>"));
+    statRow.appendChild(stat("Cantidad de pendientes", String(pendientes.length), null, null,
+      "mocca", "<rect x='4' y='5' width='16' height='15' rx='2'/><path d='M4 10h16M9 3v4M15 3v4'/>"));
+    statRow.appendChild(stat("Vencidos / Por vencer", vencidos.length + " / " + porVencerCount,
+      vencidos.length > 0 ? "bad" : "good",
+      vencidos.length > 0 ? ("S/ " + fmt(totalVencido) + " vencido") : "Todo al día",
+      "espresso", "<circle cx='12' cy='12' r='8.5'/><path d='M8.5 12.5 11 15l4.5-6'/>"));
+    card.appendChild(statRow);
 
     var tableWrap = document.createElement("div");
     tableWrap.className = "table-wrap";
@@ -12281,6 +13021,10 @@ var TRIPLES = [
     var NORMAL = ESC + "!" + String.fromCharCode(0x00);
     var NEGRITA = ESC + "!" + String.fromCharCode(0x08);
     var GRANDE_NEGRITA = ESC + "!" + String.fromCharCode(0x38);
+    // Doble alto + negrita, SIN doble ancho -- mismo criterio que produccionTicketTexto (set-2026,
+    // pedido de Jessica de letra más grande en los productos, vista previa aprobada): el papel
+    // sigue entrando la misma cantidad de caracteres por línea, solo se ven más altos.
+    var GRANDE_ALTO_NEGRITA = ESC + "!" + String.fromCharCode(0x18);
     var raya = "------------------------\n";
     var mesaTxt = ("0" + mesa.numero).slice(-2);
     var out = ESC + "@";
@@ -12298,7 +13042,7 @@ var TRIPLES = [
       // Productos al peso (Especialidades de la Casa / Embutidos): se imprime el peso en kg en
       // vez de una cantidad de unidades -- ver mozosEsProductoAlPeso más arriba.
       var cantTxt = mozosEsProductoAlPeso(it.producto) ? (num(it.cantidad).toFixed(3) + " kg") : String(it.cantidad);
-      out += NEGRITA + produccionTextoPlano(cantTxt + "  " + it.producto) + NORMAL + "\n";
+      out += GRANDE_ALTO_NEGRITA + produccionTextoPlano(cantTxt + "  " + it.producto) + NORMAL + "\n";
       if(it.obs) out += produccionTextoPlano("   *** " + String(it.obs).toUpperCase() + " ***") + "\n";
     });
     out += raya;
@@ -12471,6 +13215,9 @@ var TRIPLES = [
     var NORMAL = ESC + "!" + String.fromCharCode(0x00);
     var NEGRITA = ESC + "!" + String.fromCharCode(0x08);
     var GRANDE_NEGRITA = ESC + "!" + String.fromCharCode(0x38);
+    // Doble alto + negrita, SIN doble ancho -- mismo criterio que en los otros 2 tickets (ver
+    // produccionTicketTexto), vista previa aprobada por Jessica set-2026.
+    var GRANDE_ALTO_NEGRITA = ESC + "!" + String.fromCharCode(0x18);
     var raya = "------------------------\n";
     var nombres = Object.keys(mesa.items || {}).filter(function(n){ return (mesa.items[n].cant || 0) > 0; }).sort();
     var total = 0;
@@ -12492,7 +13239,7 @@ var TRIPLES = [
       total += sub;
       var esPeso = mozosEsProductoAlPeso(nombre);
       var cantTxt = esPeso ? (num(cant).toFixed(3) + " kg") : String(cant);
-      out += NEGRITA + produccionTextoPlano(nombre) + NORMAL + "\n";
+      out += GRANDE_ALTO_NEGRITA + produccionTextoPlano(nombre) + NORMAL + "\n";
       out += produccionTextoPlano(cantTxt + " x S/" + fmtMoney(precio) + " = S/" + fmtMoney(sub)) + "\n";
       if(it.obs) out += produccionTextoPlano("   *** " + String(it.obs).toUpperCase() + " ***") + "\n";
     });
