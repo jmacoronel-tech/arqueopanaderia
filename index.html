@@ -620,6 +620,12 @@
      producción -- se ve apagado a propósito para no competir con las acciones pendientes, pero
      sigue tocable por si hace falta reenviar (pide confirmación antes). */
   .desp-btn-enviado{ opacity:.6; }
+  /* "Exigir pago antes de preparar" (set-2026, ver pedidoNecesitaPagoPrevio): etiqueta roja en
+     la tarjeta, aviso y botón para marcar pagado ahí mismo sin salir de Despacho. */
+  .desp-sinpago-tag{ background:var(--bad-soft); color:var(--bad); }
+  .desp-sinpago-tag .dot{ display:none; }
+  .desp-bloqueo-nota{ font-size:.76rem; color:var(--bad); background:var(--bad-soft); border-radius:var(--radius-sm); padding:.55rem .65rem; margin-bottom:.6rem; line-height:1.35; font-weight:600; }
+  .desp-btn-pagar{ flex:1.6; background:var(--warn-soft); color:var(--warn); border:1.3px solid var(--warn); }
 
   .desp-empty{ color:var(--ink-muted); font-size:.9rem; padding:1.4rem 0; text-align:center; }
 
@@ -772,6 +778,18 @@
   .moz-error-retry{ flex:none; border:1.3px solid var(--bad); background:transparent; color:var(--bad); border-radius:999px; padding:.5rem .9rem; font-size:.82rem; font-weight:800; cursor:pointer; font-family:inherit; white-space:nowrap; }
   .moz-error-retry:active{ transform:scale(.97); }
 
+  /* set-2026: aviso pegajoso de comanda no impresa -- a propósito NO usa .moz-error para que no
+     se confunda con el aviso de "sin conexión" (que se resuelve solo apenas vuelve el internet);
+     éste necesita notarse más y quedarse hasta que alguien lo resuelva de verdad reintentando. */
+  .moz-alerta-impresion{ background:var(--bad); color:#fff; border-radius:var(--radius-sm); padding:.75rem .9rem; font-size:.88rem; font-weight:700; margin-bottom:1rem; display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; justify-content:space-between; animation:mozAlertaPulso 1.6s ease-in-out infinite; }
+  .moz-alerta-impresion-txt{ flex:1 1 240px; }
+  .moz-alerta-impresion-btn{ flex:none; border:1.3px solid #fff; background:#fff; color:var(--bad); border-radius:999px; padding:.5rem .9rem; font-size:.82rem; font-weight:800; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .moz-alerta-impresion-btn:active{ transform:scale(.97); }
+  @keyframes mozAlertaPulso{ 0%,100%{ box-shadow:0 0 0 0 rgba(178,58,46,.55); } 50%{ box-shadow:0 0 0 .5rem rgba(178,58,46,0); } }
+  .moz-mesa-tile-falla{ outline:3px solid var(--bad); outline-offset:2px; }
+  .moz-mesa-badge-falla{ background:var(--bad); color:#fff; font-size:.72rem; font-weight:800; border-radius:6px; padding:.2rem .45rem; display:inline-block; margin:.3rem 0; }
+  .moz-drawer-hist-falla{ color:var(--bad); font-weight:700; font-size:.78rem; margin-top:.2rem; }
+
   .moz-legend{ display:flex; gap:1.2rem; align-items:center; margin-bottom:1rem; font-size:.86rem; color:var(--ink-soft); }
   .moz-dot{ display:inline-block; width:.7rem; height:.7rem; border-radius:50%; margin-right:.35rem; vertical-align:middle; }
   .moz-grid-mesas{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:.9rem; padding-bottom:1rem; }
@@ -841,6 +859,7 @@
   .moz-cart-total .moz-lbl{ font-size:.72rem; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
   .moz-cart-total .moz-val{ font-family:"Fraunces",Georgia,serif; font-size:1.6rem; font-weight:700; color:var(--ink); }
   .moz-btn-precuenta{ border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:var(--radius-sm); padding:.9rem 1rem; font-size:.92rem; font-weight:700; cursor:pointer; font-family:inherit; }
+  .moz-btn-precuenta-falla{ border:1.6px solid var(--bad); background:var(--bad-soft); color:var(--bad); }
   .moz-btn-enviar{ border:none; background:var(--accent); color:var(--accent-ink); border-radius:var(--radius-sm); padding:1rem 1.4rem; font-size:1.05rem; font-weight:800; cursor:pointer; flex:1; min-width:200px; box-shadow:0 6px 18px -6px rgba(31,91,110,.55); font-family:inherit; }
   .moz-btn-enviar:active{ transform:scale(.98); }
   .moz-btn-vercarrito{ border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:var(--radius-sm); padding:.9rem 1rem; font-size:.92rem; font-weight:700; cursor:pointer; font-family:inherit; position:relative; }
@@ -5179,13 +5198,82 @@ var TRIPLES = [
   // escrito distinto a como quedó en el Excel de precios subido por Jessica -- para Firestore/
   // JS son dos textos distintos, así que cada uno quedaba como un producto aparte SIN precio
   // en Mozos y Pedidos. Se enlazan acá, sin tocar ni renombrar nada de la hoja de conteo.
+  // set-2026, pedido de Jessica tras un reclamo real de personal ("me van a descontar un
+  // producto que no tenía precio ni debería aparecer" -- el caso puntual fue "Oreja" en Mozos,
+  // S/0.00, apareciendo aparte de "Orejas", que sí tiene precio oficial S/8.50): auditoría
+  // completa de los 4 catálogos del Arqueo (Panes/Bebidas/Embutidos/Triples) contra la lista de
+  // precios real que subió (precio_250826, Excel de Carmelitas Pan S.A.C.), comparando cada
+  // nombre por su CÓDIGO de producto de esa lista, tal como pidió ("guíate de los códigos, los
+  // códigos no se duplican"). Se encontraron 23 casos más del mismo patrón que Aceituna: el
+  // mismo producto (mismo código en su lista de precios), pero escrito distinto en el catálogo
+  // del Arqueo (tilde, abreviatura, singular/plural, con o sin el peso en el nombre) -- cada uno
+  // se enlaza acá. Quedaron AFUERA de este arreglo automático (necesitan que Jessica decida,
+  // ver aviso aparte): "Huevos de Corral (Unid)" (la lista de precios solo trae el precio de la
+  // CAJA de 8, no el de la unidad suelta), "Mantequilla Laive 90g" (su lista de precios solo
+  // trae "100 GR", no "90g" -- no se sabe si es el mismo producto mal rotulado o uno distinto),
+  // y "Manjar Blanco", "Pan Molido x Kg Milossi", "Queso Belpaese", "Rústico 7 Semillas",
+  // "Tostada 7 Semillas al Ajo" y "Tostadas Dulces" (ningún código de esa lista de precios
+  // coincide con estos nombres). set-2026, ronda 2 (Jessica confirmó por voz cada uno de estos
+  // casos): "Huevos de Corral" se vende por caja de 8 en Mozos/Pedidos (la lista de precios solo
+  // trae el precio de la caja, código 3020, S/9.80) -- el Arqueo lo sigue contando por unidad
+  // suelta, sin tocar (ver CATALOGO_RENOMBRE_MOZOS_PEDIDOS más abajo, que solo renombra cómo se
+  // VE/VENDE en Mozos y Pedidos, nunca la fila de conteo). "Queso Mozzarella", "Rústico 7
+  // Semillas", "Multigranos" y "Tostada Mickey" se confirmó que NO se venden sueltos en Mozos/
+  // Pedidos (Mozzarella es insumo de producción; los otros tres, Jessica pidió quitarlos de la
+  // lista) -- se excluyen del catálogo vendible con CATALOGO_EXCLUIDO_MOZOS_PEDIDOS, sin borrar
+  // ni reordenar nada de su fila de conteo en Arqueo/Panes o Arqueo/Embutidos. Siguen sin precio,
+  // pendientes de que Jessica confirme código: "Mantequilla Laive 90g" (confirmó que SÍ es un
+  // producto real de 90g, distinto del "MANT. LAIVE 100 GR" de la lista -- no es el mismo
+  // producto mal rotulado, así que no se le puede prestar ese precio), "Pan Molido x Kg Milossi",
+  // "Queso Belpaese" (confirmó que sí se vende), "Manjar Blanco", "Tostada 7 Semillas al Ajo" y
+  // "Tostadas Dulces" (confirmó que sí se venden tostadas, pero ninguna de las dos coincide con
+  // los 5 códigos reales de la familia "Tostadas de Casa" de la lista de precios).
   var OTROS_PRECIO_ALIAS = [
     { catalogo:"Aceituna", seed:"ACEITUNA ENTERA POR KILO" },
     { catalogo:"Jamón Inglés", seed:"JAMÓN INGLES" },
     { catalogo:"Jamón de Pierna Artesanal", seed:"JAMON DE PIERNA ARTESANAL" },
     { catalogo:"Queso Andino Carmelitas (AD)", seed:"QUESO ANDINO CARMELITAS ( AD)" },
-    { catalogo:"Queso de Cabra (Kg)", seed:"QUESO DE CABRA KG" }
+    { catalogo:"Queso de Cabra (Kg)", seed:"QUESO DE CABRA KG" },
+    { catalogo:"Oreja", seed:"OREJAS" },
+    { catalogo:"Café Molido 250g", seed:"CAFE MOLIDO 250G" },
+    { catalogo:"Croissant De Manjar", seed:"CROISANT DE MANJAR" },
+    { catalogo:"Leche Light Caja LT - Semi", seed:"LECHE LIGTH CAJA LT - SEMI" },
+    { catalogo:"Mantequilla Laive 180g", seed:"MANT. LAIVE 180 GR" },
+    { catalogo:"Masa Madre con Frutos", seed:"MASA MADRE CON FRUTOS ENTERO" },
+    { catalogo:"Miel Frasco 200g", seed:"MIEL FRASCO 200 GR" },
+    { catalogo:"Miel Frasco 250g", seed:"MIEL FRASCO 250 GR" },
+    { catalogo:"Miel Frasco 500g", seed:"MIEL FRASCO 500 GR" },
+    { catalogo:"Muffins de Arándanos", seed:"MUFFINS DE ARANDANOS" },
+    { catalogo:"Muffins de Plátano y Chocolate", seed:"MUFFINS DE PLATANO Y CHOCOLATE" },
+    { catalogo:"Pan Mini Francés", seed:"PAN MINI FRANCES" },
+    { catalogo:"Pan Mini Árabe", seed:"PAN MINI ARABE" },
+    { catalogo:"Paté", seed:"PATE" },
+    { catalogo:"Paté Finas Hierbas", seed:"PATE FINAS HIERBAS" },
+    { catalogo:"Petipán", seed:"PETIPAN" },
+    { catalogo:"Porción Fondant Chocolate", seed:"PORCION FONDANT CHOCOLATE" },
+    { catalogo:"Porción de Budín", seed:"PORCION DE BUDIN" },
+    { catalogo:"Porción de Tarta de Queso y Vainilla", seed:"PORCION DE TARTA DE QUESO Y VAINILLA" },
+    { catalogo:"Tostada Ciabatta al Ajo", seed:"TOSTADA AL AJO x 0.130G" },
+    { catalogo:"Tostada Clasica", seed:"TOSTADA CLASICA X 180G" },
+    { catalogo:"Tostada Integral", seed:"TOSTADA INTEGRAL x 0.120G" },
+    { catalogo:"Tostada Masa Madre", seed:"TOSTADAS MASA MADRE x 0.120GR" },
+    { catalogo:"Huevos de Corral (Caja x8)", seed:"HUEVOS DE CORRAL ( CAJA )" }
   ];
+  // set-2026, ronda 2: productos que Jessica pidió quitar del catálogo VENDIBLE de Mozos y
+  // Pedidos (ver aviso arriba de OTROS_PRECIO_ALIAS) -- comparación por nombre EXACTO tal como
+  // está escrito en PANES/EMBUTIDOS (arriba, líneas ~1039-1070), nunca se borra ni reordena nada
+  // de esos arreglos ni de su fila de conteo en Arqueo.
+  var CATALOGO_EXCLUIDO_MOZOS_PEDIDOS = ["Rústico 7 Semillas", "Multigranos", "Tostada Mickey", "Queso Mozzarella"];
+  // set-2026, ronda 2: "Huevos de Corral (Unid)" se sigue contando por unidad suelta en el
+  // Arqueo (fila de conteo intacta), pero en el catálogo vendible de Mozos/Pedidos se muestra con
+  // este otro nombre para que quede clarísimo que 1 = una caja de 8 (y no un huevo suelto) --
+  // Jessica: "huevos en el arqueo dejalo como está en mozo y pedidos consiideera la caja por 8".
+  var CATALOGO_RENOMBRE_MOZOS_PEDIDOS = { "Huevos de Corral (Unid)": "Huevos de Corral (Caja x8)" };
+  // set-2026, ronda 2: el nombre CRUDO de la lista de precios detrás de un renombrado de arriba
+  // (ej. "HUEVOS DE CORRAL ( CAJA )") no debe aparecer TAMBIÉN por su cuenta en Mozos/Pedidos --
+  // si no se ocultara, quedarían dos tarjetas para el mismo producto ("Huevos De Corral ( Caja )"
+  // Y "Huevos de Corral (Caja x8)"), la misma clase de duplicado que Jessica pidió eliminar.
+  var CATALOGO_SEED_OCULTO_MOZOS_PEDIDOS = ["HUEVOS DE CORRAL ( CAJA )"];
   var pedidoPrecioAliasMap = null;
   function getPedidoPrecioAliasMap(){
     if(pedidoPrecioAliasMap) return pedidoPrecioAliasMap;
@@ -5200,11 +5288,44 @@ var TRIPLES = [
 
   function buildCatalogNameList(){
     var idx = buildCatalogIndex();
+    var aliasMap = getPedidoPrecioAliasMap();
     var names = [];
     var seen = {};
+    // set-2026, ronda 2: un excluido (ej. "Multigranos", "Tostada Mickey") también existe tal
+    // cual en PEDIDO_PRECIO_SEED (la lista de precios) -- sin esto, el bucle de abajo que recorre
+    // PEDIDO_PRECIO_SEED lo volvería a agregar igual, porque nunca lo marcó como "visto". Se marca
+    // acá ANTES de los dos bucles para que quede afuera de ambos.
+    CATALOGO_EXCLUIDO_MOZOS_PEDIDOS.forEach(function(n){ seen[normalizePrecioKey(n)] = true; });
+    CATALOGO_SEED_OCULTO_MOZOS_PEDIDOS.forEach(function(n){ seen[normalizePrecioKey(n)] = true; });
     Object.keys(idx).forEach(function(k){
       var name = idx[k].name;
+      // set-2026, ronda 2: nombres que Jessica pidió quitar del catálogo vendible (ver aviso
+      // arriba de CATALOGO_EXCLUIDO_MOZOS_PEDIDOS) no aparecen en Mozos/Pedidos, aunque su fila
+      // de conteo del Arqueo sigue intacta (usa este mismo arreglo por POSICIÓN, no por este
+      // listado). "Huevos de Corral (Unid)" se muestra con otro nombre acá (ver
+      // CATALOGO_RENOMBRE_MOZOS_PEDIDOS) para vender por caja de 8, también sin tocar su fila de
+      // conteo.
+      if(CATALOGO_EXCLUIDO_MOZOS_PEDIDOS.indexOf(name) !== -1) return;
+      if(CATALOGO_RENOMBRE_MOZOS_PEDIDOS.hasOwnProperty(name)){
+        // set-2026, ronda 2: un renombrado (ej. Huevos de Corral) es a propósito un nombre NUEVO
+        // que no existe ni en el Arqueo ni en la lista de precios tal cual -- no pasa por el
+        // chequeo de aliasMap de abajo (que es para ocultar un nombre DUPLICADO y mostrar el otro
+        // en su lugar), porque acá no hay ningún otro nombre que lo vaya a reemplazar: si se
+        // saltara iqual, el producto desaparecería del todo del catálogo vendible.
+        name = CATALOGO_RENOMBRE_MOZOS_PEDIDOS[name];
+        var keyRenombrado = normalizePrecioKey(name);
+        if(!seen[keyRenombrado]){ seen[keyRenombrado] = true; names.push(name); }
+        return;
+      }
       var key = normalizePrecioKey(name);
+      // set-2026: un nombre del Arqueo (Panes/Bebidas/Embutidos/Triples) que está enlazado en
+      // TRIPLE_PRECIO_ALIAS/OTROS_PRECIO_ALIAS (ver arriba, ej. "Oreja" -> "OREJAS") es el MISMO
+      // producto que ya va a aparecer con su nombre oficial de la lista de precios más abajo --
+      // se salta acá para que el buscador de Pedidos/Mozos muestre ese producto UNA sola vez,
+      // con su nombre y precio oficiales, en vez de dos (uno con precio y uno fantasma en
+      // S/0.00). La hoja de conteo diario del Arqueo (que usa este mismo nombre por posición,
+      // NO por este listado) no se toca para nada.
+      if(aliasMap.hasOwnProperty(key)) return;
       if(!seen[key]){ seen[key] = true; names.push(name); }
     });
     PEDIDO_PRECIO_SEED.forEach(function(item){
@@ -6924,7 +7045,8 @@ var TRIPLES = [
           '<div class="field" style="margin-top:.4rem;"><label>Observación (opcional)</label><input type="text" class="pw-item-obs-input" data-idx="' + idx + '" value="' + esc(it.obs || "") + '" placeholder="Ej: poca grasa, cortado en 10…"></div>';
         if(draft.canal === "masivo"){
           html += '<div class="field" style="margin-top:.4rem;"><label>Fecha de entrega</label><input type="date" class="pw-item-fecha-input" data-idx="' + idx + '" value="' + esc(it.fecha) + '">' +
-            '<button type="button" class="btn btn-sm pw-item-repetir-btn" data-idx="' + idx + '" style="margin-top:.4rem;">📅 Repetir esta línea en más fechas</button></div>';
+            '<button type="button" class="btn btn-sm pw-item-repetir-btn" data-idx="' + idx + '" style="margin-top:.4rem;">📅 Repetir esta línea en más fechas</button> ' +
+            '<button type="button" class="btn btn-sm pw-item-duplicar-btn" data-idx="' + idx + '" style="margin-top:.4rem;" title="Crea una línea nueva independiente con el mismo producto -- útil cuando el mismo cliente reparte el mismo producto en varios puntos el mismo día">➕ Otra línea (mismo producto)</button></div>';
         }
         html += '</div>';
       });
@@ -7007,6 +7129,27 @@ var TRIPLES = [
     });
     body.querySelectorAll(".pw-item-repetir-btn").forEach(function(btn){
       btn.addEventListener("click", function(){ pedidoWizRepetirLinea(+btn.getAttribute("data-idx")); });
+    });
+    // "➕ Otra línea (mismo producto)" -- Jessica (set-2026): un mismo cliente Masivo puede
+    // repartir el MISMO producto, para la MISMA fecha, en dos puntos de entrega distintos (ej.
+    // Papachos: 360 panes en un punto + 96 en otro, mismo día). El buscador de arriba no sirve
+    // para esto -- tocar el mismo producto dos veces solo le suma 1 a la línea que ya existe
+    // (pedidoWizAgregarProducto), así que no hay forma de dejar una segunda cantidad aparte.
+    // Este botón crea una línea nueva e independiente al toque (mismo producto/precio/fecha,
+    // cantidad en 1 para que la editen), igual que "+ Agregar línea" en la pantalla de editar
+    // un pedido ya guardado -- ahí nunca hubo este problema porque cada línea se escribe suelta,
+    // sin buscar-y-sumar. El campo "Observación" ya existente sirve para anotar a qué punto va
+    // cada línea si hace falta (ej. "Punto 2 - Miraflores").
+    body.querySelectorAll(".pw-item-duplicar-btn").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var idx = +btn.getAttribute("data-idx");
+        var item = draft.items[idx];
+        if(!item || !item.producto || !item.producto.trim()){ showToast("Completa el producto de esta línea antes de agregar otra igual."); return; }
+        var nuevaLinea = { producto: item.producto, cantidad: 1, precio: item.precio, fecha: item.fecha, obs: "" };
+        draft.items.splice(idx + 1, 0, nuevaLinea);
+        showToast("Línea nueva agregada -- edita su cantidad.");
+        renderPanel();
+      });
     });
   }
   function pedidoWizRepetirLinea(idx){
@@ -10376,25 +10519,44 @@ var TRIPLES = [
   // Devuelve siempre una promesa que SE RESUELVE (nunca rechaza) con
   // { httpOk, status, data, errorRed }: errorRed=true significa que ni siquiera se pudo conectar
   // con el puente (antes esto se manejaba con un .catch() aparte en cada lugar de llamada).
+  //
+  // set-2026, pedido de Jessica tras revisar a fondo por qué a veces "la primera comanda no
+  // sale y recién con reimpresión sale": el fetch() de acá ABAJO no tenía ningún límite de
+  // tiempo propio. Si el wifi de la tablet del mozo tenía un bajón justo en ese instante (un
+  // salto distinto al cable impresora-puente, que ese sí es fijo y no falla), el pedido se
+  // quedaba esperando una respuesta que podía tardar muchísimo o no llegar nunca -- y como
+  // nunca llegaba a fallar de verdad, TAMPOCO se disparaba el reintento automático de acá
+  // abajo. El mozo veía que "no pasaba nada" y recién al tocar "Reimprimir" a mano (que sí
+  // vuelve a intentar desde cero) funcionaba. Ahora cada intento tiene un límite de tiempo
+  // (por defecto 5s); si se pasa, se corta solo y se trata como una falla más -- así el
+  // reintento automático entra en acción enseguida en vez de quedarse colgado.
   function despachoImprimirConReintento(trabajos, opts){
     opts = opts || {};
     var maxIntentos = opts.maxIntentos || 4;
     var esperaBaseMs = 650;
+    var timeoutMs = opts.timeoutMs || 5000;
     var MOTIVOS_REINTENTABLES = { ya_hay_un_envio_en_curso:true, cola_llena:true };
     function esperar(ms){ return new Promise(function(resolve){ setTimeout(resolve, ms); }); }
     function intentar(numeroIntento){
+      var controller = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      var seVencioPorTiempo = false;
+      var timeoutId = controller ? setTimeout(function(){ seVencioPorTiempo = true; controller.abort(); }, timeoutMs) : null;
       return fetch(despachoImpresionBridgeUrl() + "/imprimir", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ trabajos: trabajos })
+        body: JSON.stringify({ trabajos: trabajos }),
+        signal: controller ? controller.signal : undefined
       }).then(function(res){
+        if(timeoutId) clearTimeout(timeoutId);
         return res.json().catch(function(){ return null; }).then(function(data){
           return { httpOk: res.ok, status: res.status, data: data, errorRed: false };
         });
       }, function(){
-        // El fetch mismo falló (puente apagado, IP/URL mal escrita, sin red, etc.) -- se trata
-        // igual que una respuesta no-ok para poder reintentar con la misma lógica de abajo.
-        return { httpOk: false, status: 0, data: null, errorRed: true };
+        if(timeoutId) clearTimeout(timeoutId);
+        // El fetch mismo falló (puente apagado, IP/URL mal escrita, sin red, se agotó el
+        // tiempo de espera de acá arriba, etc.) -- se trata igual que una respuesta no-ok para
+        // poder reintentar con la misma lógica de abajo.
+        return { httpOk: false, status: 0, data: null, errorRed: true, porTiempo: seVencioPorTiempo };
       }).then(function(resp){
         if(resp.httpOk) return resp;
         var motivo = resp.data && resp.data.error;
@@ -10595,9 +10757,21 @@ var TRIPLES = [
     });
   }
 
+  // ---------- Exigir pago antes de preparar (Jessica, set-2026) ----------
+  // "Todos nuestros pedidos en general, salvo los de crédito, son pagos previamente al contado
+  // para poder iniciar el proceso de preparación." Antes, ni "Iniciar preparación" ni
+  // "🖨️ Producción" preguntaban nada -- de ahí que se mandaran a preparar pedidos que después
+  // nunca se pagaban ni se recogían. Un cliente a Crédito (cliente.diasCredito > 0, el mismo
+  // dato que ya usa Cuentas por Cobrar) queda libre de este freno porque ya está pre-aprobado.
+  function pedidoNecesitaPagoPrevio(p){
+    if(p.pagado) return false;
+    if(num(p.cliente && p.cliente.diasCredito) > 0) return false;
+    return true;
+  }
   function buildDespachoCard(p){
     var esTerminal = (p.estado === "ENTREGADO" || p.estado === "CANCELADO");
     var tagInfo = despachoTagInfo(p);
+    var faltaPago = !esTerminal && pedidoNecesitaPagoPrevio(p);
 
     var card = document.createElement("div");
     card.className = "desp-card" + (esTerminal ? " terminal" : "");
@@ -10608,6 +10782,12 @@ var TRIPLES = [
     tag.className = "desp-tag " + tagInfo.cls;
     tag.innerHTML = "<span class='dot'></span>" + esc(tagInfo.label);
     rowTop.appendChild(tag);
+    if(faltaPago){
+      var sinPagoTag = document.createElement("span");
+      sinPagoTag.className = "desp-tag desp-sinpago-tag";
+      sinPagoTag.innerHTML = "⚠️ Sin pago";
+      rowTop.appendChild(sinPagoTag);
+    }
     if(!esTerminal){
       var listoChip = document.createElement("span");
       listoChip.className = "desp-listo-chip " + (DESP_CHIP_COLOR[tagInfo.cls] || "c-ambar");
@@ -10659,8 +10839,12 @@ var TRIPLES = [
     // Consultar una fecha distinta a HOY con el calendario es solo planificación -- no se debe
     // poder avanzar el estado de un pedido desde ahí (ver despachoEsVistaHoy()). En HOY el botón
     // principal se comporta exactamente igual que siempre.
-    if(!esTerminal && !readOnly && despachoEsVistaHoy()){
-      var siguiente = pedidoProximoEstado(p);
+    var siguiente = pedidoProximoEstado(p);
+    // "Confirmar pedido" (NUEVO -> CONFIRMADO) NO se bloquea -- ese paso no gasta insumos, es
+    // solo anotar que ya se vio el pedido. El freno es justo en el paso que sí compromete
+    // producto: CONFIRMADO -> EN_PREPARACION (ver pedidoNecesitaPagoPrevio arriba).
+    var bloqueaEsteAvance = faltaPago && siguiente === "EN_PREPARACION";
+    if(!esTerminal && !readOnly && despachoEsVistaHoy() && !bloqueaEsteAvance){
       if(siguiente){
         var mainBtn = document.createElement("button");
         mainBtn.type = "button";
@@ -10670,15 +10854,37 @@ var TRIPLES = [
         actions.appendChild(mainBtn);
       }
     }
+    if(faltaPago && !readOnly && despachoEsVistaHoy()){
+      var bloqueoNota = document.createElement("div");
+      bloqueoNota.className = "desp-bloqueo-nota";
+      bloqueoNota.textContent = "Este pedido no está pagado. Según la política de la panadería, hay que cobrar antes de mandarlo a preparación.";
+      card.appendChild(bloqueoNota);
+      var pagarBtn = document.createElement("button");
+      pagarBtn.type = "button";
+      pagarBtn.className = "desp-btn desp-btn-pagar";
+      pagarBtn.textContent = "💰 Marcar pagado";
+      pagarBtn.addEventListener("click", function(){
+        if(!db) return;
+        if(pedidoFaltaFotoComprobante({ pagado:true, tipoPago:p.tipoPago, comprobante:p.comprobante })){
+          showToast("Falta subir la foto del Yape/transferencia. Entra a \"Ver detalle\" > Editar para subirla antes de marcarlo pagado.");
+          return;
+        }
+        db.collection("pedidos").doc(p.id).update({ pagado: true }).catch(function(){
+          showToast("No se pudo actualizar. Intenta de nuevo.");
+        });
+      });
+      actions.appendChild(pagarBtn);
+    }
     // "🖨️ Producción" (set-2026): manda el pedido directo a la impresora de Cocina y/o Jugos
     // (ver despachoEnviarProduccion). A propósito NO se limita a despachoEsVistaHoy() -- Jessica
     // quiere poder ir a un Masivo de mañana con el calendario y mandarlo a producción con
     // anticipación; esto no cambia estado, fecha ni ningún otro dato del pedido, solo dispara la
-    // impresión y guarda cuándo se envió (para no repetirla por accidente).
+    // impresión y guarda cuándo se envió (para no repetirla por accidente). Sí se bloquea si
+    // falta el pago -- imprimir la comanda de cocina también compromete producto.
     var fechaProd = despachoFechaActual();
     var agrProd = produccionAgruparItemsParaPedido(p, itemsHoy);
     var puntosProd = Object.keys(agrProd.grupos);
-    if(!esTerminal && !readOnly && puntosProd.length){
+    if(!esTerminal && !readOnly && !faltaPago && puntosProd.length){
       var yaEnviadosProd = (p.produccionEnviada && p.produccionEnviada[fechaProd]) || {};
       var todosEnviados = puntosProd.every(function(k){ return !!yaEnviadosProd[k]; });
       var prodBtn = document.createElement("button");
@@ -13043,6 +13249,10 @@ var TRIPLES = [
       // vez de una cantidad de unidades -- ver mozosEsProductoAlPeso más arriba.
       var cantTxt = mozosEsProductoAlPeso(it.producto) ? (num(it.cantidad).toFixed(3) + " kg") : String(it.cantidad);
       out += GRANDE_ALTO_NEGRITA + produccionTextoPlano(cantTxt + "  " + it.producto) + NORMAL + "\n";
+      // set-2026: producto al peso cuyo número reemplaza un peso ya enviado antes de esta misma
+      // mesa (ver mozosEnviarComanda) -- se avisa bien visible para que cocina/jugos usen ESTE
+      // peso como el total correcto, en vez de sumarlo al que ya tenían de la comanda anterior.
+      if(it.pesoCorregido) out += produccionTextoPlano("   *** PESO CORREGIDO: ES EL TOTAL, NO SUMAR ***") + "\n";
       if(it.obs) out += produccionTextoPlano("   *** " + String(it.obs).toUpperCase() + " ***") + "\n";
     });
     out += raya;
@@ -13087,17 +13297,84 @@ var TRIPLES = [
     });
     return { grupos: grupos, sinAsignar: [] };
   }
+  // ---- Aviso pegajoso de comandas que NO se imprimieron (set-2026, pedido de Jessica tras un
+  // reclamo de un cliente: le preocupa que en momentos de mucha demanda una comanda se quede
+  // sin imprimir en cocina/jugos y el mozo, confiado, crea que sí se mandó a preparar) ----
+  // A diferencia del showToast normal (aparece un rato y desaparece solo, fácil de no ver si el
+  // mozo está ocupado con otra mesa o si sale otro aviso encima), esto se calcula a partir del
+  // estadoImpresion que YA se guarda en cada comanda (mozosEnviarComanda / mozosReimprimirComanda
+  // arriba) -- así que:
+  //   - queda GUARDADO en la mesa (Firestore), no en una variable de pantalla: se ve igual en
+  //     cualquier tablet/celular que tenga Mozos abierto, no solo en el aparato que mandó la
+  //     comanda:
+  //   - se mantiene mientras no se vuelva a intentar con éxito (no se "lee y se olvida" solo);
+  //   - se limpia solo apenas un reintento (botón "🖨️ Reimprimir") sí funciona -- no hace falta
+  //     que nadie lo apague a mano.
+  function mozosMesasConFallaImpresion(){
+    var out = [];
+    for(var n = 1; n <= MOZOS_NUM_MESAS; n++){
+      var mesa = mozosGetMesa(n);
+      if(mesa.estado !== "ocupada") continue;
+      (mesa.comandas || []).forEach(function(c){
+        var estado = c.estadoImpresion || {};
+        var puntosFallidos = Object.keys(estado).filter(function(k){ return estado[k] === false; });
+        if(puntosFallidos.length){
+          out.push({
+            numero: n,
+            tipo: "comanda",
+            comandaId: c.id,
+            comandaNumero: c.numero,
+            puntos: puntosFallidos.map(function(k){ return (PRODUCCION_PUNTOS[k] || {}).label || k; }),
+            etiqueta: "comanda #" + c.numero
+          });
+        }
+      });
+      // set-2026: la precuenta usa el mismo mecanismo -- ver doPrintMozosPrecuenta arriba, que
+      // guarda mesa.precuentaImpresionFallo en vez de un estadoImpresion por comanda (acá solo
+      // hay un ticket, no una lista).
+      if(mesa.precuentaImpresionFallo){
+        out.push({
+          numero: n,
+          tipo: "precuenta",
+          comandaId: null,
+          comandaNumero: null,
+          puntos: ["Jugos"],
+          etiqueta: "precuenta"
+        });
+      }
+    }
+    return out;
+  }
   // Envía a producción SOLO los productos NUEVOS de esta comanda (cant - enviado de cada
   // producto), NUNCA reimprime lo de comandas anteriores de la misma mesa -- pedido explícito
   // de Jessica. Usa mozosAgruparItems (arriba) para que CADA producto llegue a Cocina o Jugos
   // según la regla completa que dio Jessica, sin dejar nada "sin ruta".
+  // set-2026: CORRECCIÓN para productos al peso (Especialidades de la Casa / Embutidos, ver
+  // mozosEsProductoAlPeso) -- error real reportado por Jessica con Turrón Carmelitas: escribió
+  // 0.240 kg y la comanda impresa mostró 0.030 kg. Causa: un producto al peso reutilizaba la
+  // misma resta "cant - enviado" que los productos por unidad (ver mozosSetPeso, arriba) -- pero
+  // ahí "cant" es el peso TOTAL que marca la balanza cada vez que el mozo vuelve a pesar, nunca
+  // "cuánto más agregar" como si fuera una unidad nueva. Si el mozo pesó mal la primera vez (ej.
+  // 0.03 kg) y corrigió después a la balanza real (0.24 kg), la resta imprimía la DIFERENCIA
+  // (0.21 kg) en vez del peso real que cocina/jugos debe preparar -- y si corregía hacia ABAJO,
+  // la resta daba negativa y no imprimía nada, dejando la corrección sin avisar. Para estos
+  // productos se manda siempre el peso TOTAL actual (nunca la resta), y si ya se había enviado
+  // algo antes de este mismo producto en esta mesa, el ticket lo marca como corrección (ver
+  // mozosProduccionTicketTexto más abajo) para que cocina/jugos no sumen de más.
   function mozosEnviarComanda(numero){
     var mesa = mozosGetMesa(numero);
     if(mesa.estado !== "ocupada") return;
     var deltaItems = [];
     Object.keys(mesa.items).forEach(function(nombre){
       var it = mesa.items[nombre];
-      var delta = (it.cant || 0) - (it.enviado || 0);
+      var enviadoPrevio = it.enviado || 0;
+      if(mozosEsProductoAlPeso(nombre)){
+        if((it.cant || 0) > 0 && (it.cant || 0) !== enviadoPrevio){
+          deltaItems.push({ producto: nombre, cantidad: it.cant, obs: it.obs || "", pesoCorregido: enviadoPrevio > 0 });
+        }
+        return;
+      }
+      var delta = (it.cant || 0) - enviadoPrevio;
       if(delta > 0) deltaItems.push({ producto: nombre, cantidad: delta, obs: it.obs || "" });
     });
     if(!deltaItems.length){
@@ -13134,6 +13411,13 @@ var TRIPLES = [
     });
     despachoImprimirConReintento(trabajos).then(function(resp){
       if(!resp.httpOk){
+        // set-2026: acá también se marca estadoImpresion=false por cada punto (antes NO se
+        // tocaba en esta rama) -- si no, este caso, que es justo el más grave (ni siquiera se
+        // pudo conectar con el puente tras los reintentos), quedaba SIN registro y la alerta
+        // pegajoso (mozosMesasConFallaImpresion) nunca se disparaba.
+        disponibles.forEach(function(puntoKey){ comandaRegistro.estadoImpresion[puntoKey] = false; });
+        mozosGuardarMesa(mesa);
+        mozosRefrescarAlertaImpresion(numero);
         var msgFalla = resp.errorRed
           ? "Comanda registrada, pero no se pudo conectar con el puente de impresión local."
           : "Comanda registrada, pero no se pudo enviar a producción (puente no disponible). Avisa en cocina/jugos a mano -- puedes revisar la conexión del puente desde Despacho.";
@@ -13147,6 +13431,7 @@ var TRIPLES = [
       exitosos.forEach(function(puntoKey){ comandaRegistro.estadoImpresion[puntoKey] = true; });
       fallidos.forEach(function(r){ if(r && r.punto) comandaRegistro.estadoImpresion[r.punto] = false; });
       mozosGuardarMesa(mesa);
+      mozosRefrescarAlertaImpresion(numero);
       // showToast usa textContent (no innerHTML) -- sin etiquetas <b> acá, si no se ven los
       // símbolos "<b>" literales en el aviso al mozo.
       var msg = "Comanda enviada.";
@@ -13190,7 +13475,14 @@ var TRIPLES = [
     });
     showToast("Reimprimiendo comanda #" + comanda.numero + "...", 2500);
     despachoImprimirConReintento(trabajos).then(function(resp){
+      // set-2026: acá también se actualiza comanda.estadoImpresion (antes SOLO lo tocaba
+      // mozosEnviarComanda) -- así un reintento manual que sí funciona limpia la alerta
+      // pegajosa de la mesa (ver mozosMesasConFallaImpresion), y uno que sigue sin
+      // funcionar la deja tal cual, en vez de quedar desactualizada.
       if(!resp.httpOk){
+        disponibles.forEach(function(puntoKey){ comanda.estadoImpresion[puntoKey] = false; });
+        mozosGuardarMesa(mesa);
+        mozosRefrescarAlertaImpresion(numero);
         var msgFalla = resp.errorRed
           ? "No se pudo conectar con el puente de impresión local."
           : "No se pudo reimprimir (puente no disponible). Revisa la conexión del puente desde Despacho.";
@@ -13198,10 +13490,16 @@ var TRIPLES = [
         return;
       }
       var resultados = (resp.data && resp.data.resultados) || [];
-      var exitosos = resultados.filter(function(r){ return r && r.ok; }).map(function(r){ return (PRODUCCION_PUNTOS[r.punto] || {}).label || r.punto; });
-      var fallidos = resultados.filter(function(r){ return !r || !r.ok; }).map(function(r){ return (PRODUCCION_PUNTOS[r && r.punto] || {}).label || (r && r.punto) || "?"; });
-      var msg = exitosos.length ? ("Comanda #" + comanda.numero + " reimpresa en: " + exitosos.join(" y ") + ".") : "No se pudo reimprimir.";
-      if(fallidos.length) msg += " No se pudo en: " + fallidos.join(", ") + ".";
+      var exitosos = resultados.filter(function(r){ return r && r.ok; }).map(function(r){ return r.punto; });
+      var fallidos = resultados.filter(function(r){ return !r || !r.ok; });
+      exitosos.forEach(function(puntoKey){ comanda.estadoImpresion[puntoKey] = true; });
+      fallidos.forEach(function(r){ if(r && r.punto) comanda.estadoImpresion[r.punto] = false; });
+      mozosGuardarMesa(mesa);
+      mozosRefrescarAlertaImpresion(numero);
+      var nombresOk = exitosos.map(function(k){ return (PRODUCCION_PUNTOS[k] || {}).label || k; });
+      var nombresFallo = fallidos.map(function(r){ return (PRODUCCION_PUNTOS[r && r.punto] || {}).label || (r && r.punto) || "?"; });
+      var msg = nombresOk.length ? ("Comanda #" + comanda.numero + " reimpresa en: " + nombresOk.join(" y ") + ".") : "No se pudo reimprimir.";
+      if(nombresFallo.length) msg += " No se pudo en: " + nombresFallo.join(", ") + ".";
       showToast(msg, 6000);
     });
   }
@@ -13258,7 +13556,14 @@ var TRIPLES = [
     var texto = mozosPrecuentaTicketTexto(mesa);
     var trabajos = [{ punto: "jugos", ip: conf.ip, port: conf.port, datosBase64: produccionTextoABase64(texto) }];
     despachoImprimirConReintento(trabajos).then(function(resp){
+      // set-2026, pedido de Jessica (le pasó en vivo: la precuenta no salió y el aviso se
+      // borró solo sin que nadie lo notara) -- igual que con la comanda, el resultado queda
+      // GUARDADO en la mesa (no solo un showToast que desaparece), para que alimente la misma
+      // alerta pegajosa de arriba (ver mozosMesasConFallaImpresion).
       if(!resp.httpOk){
+        mesa.precuentaImpresionFallo = true;
+        mozosGuardarMesa(mesa);
+        mozosRefrescarAlertaImpresion(numero);
         var msgFalla = resp.errorRed
           ? "No se pudo conectar con el puente de impresión local para la precuenta."
           : "No se pudo imprimir la precuenta (puente no disponible). Puedes revisar la conexión del puente desde Despacho.";
@@ -13267,11 +13572,67 @@ var TRIPLES = [
       }
       var resultados = (resp.data && resp.data.resultados) || [];
       var ok = resultados.some(function(r){ return r && r.ok; });
+      mesa.precuentaImpresionFallo = !ok;
+      mozosGuardarMesa(mesa);
+      mozosRefrescarAlertaImpresion(numero);
       showToast(ok ? "Precuenta impresa en Jugos." : "No se pudo imprimir la precuenta en Jugos.", 4500);
     });
   }
 
   // ---- UI ----
+  // Aviso pegajoso de comandas/precuentas que NO se imprimieron -- se dibuja SIEMPRE adentro de
+  // "container" (un <div> vacío que buildMozosPanel deja fijo en el DOM, ver más abajo), para
+  // que un mismo helper pueda tanto ARMARLO la primera vez como VOLVER A DIBUJARLO después
+  // (ver mozosRefrescarAlertaImpresion) sin reconstruir el resto de la pantalla -- así no se
+  // pierde lo que el mozo esté escribiendo en el buscador mientras espera el resultado de una
+  // impresión (ver el "porqué" completo en mozosRefrescarAlertaImpresion).
+  function mozosRenderAlertaBox(container){
+    container.innerHTML = "";
+    var fallasImpresion = mozosMesasConFallaImpresion();
+    if(!fallasImpresion.length) return;
+    var alerta = document.createElement("div");
+    alerta.className = "moz-alerta-impresion";
+    var alertaTxt = document.createElement("div");
+    alertaTxt.className = "moz-alerta-impresion-txt";
+    var resumen = fallasImpresion.map(function(f){
+      return "Mesa " + f.numero + " (" + f.etiqueta + ", " + f.puntos.join("/") + ")";
+    }).join(" · ");
+    alertaTxt.textContent = "🔴 No se imprimió en cocina/jugos -- avisa a mano y reintenta: " + resumen;
+    alerta.appendChild(alertaTxt);
+    var btnIrAMesa = document.createElement("button");
+    btnIrAMesa.type = "button";
+    btnIrAMesa.className = "moz-alerta-impresion-btn";
+    btnIrAMesa.textContent = "Ir a Mesa " + fallasImpresion[0].numero;
+    btnIrAMesa.addEventListener("click", function(){
+      mozosVista = "comanda";
+      mozosMesaActual = fallasImpresion[0].numero;
+      renderPanel();
+    });
+    alerta.appendChild(btnIrAMesa);
+    container.appendChild(alerta);
+  }
+  // set-2026, pedido de Jessica tras un reclamo de cliente EN VIVO por esto mismo: llamado desde
+  // mozosEnviarComanda / mozosReimprimirComanda / doPrintMozosPrecuenta apenas se sabe si de
+  // verdad se pudo imprimir o no. A PROPÓSITO NO llama a renderPanel() (que reconstruye TODA la
+  // pantalla de Mozos, incluido el buscador de productos de la vista Comanda) -- un envío puede
+  // tardar varios segundos en resolverse (con el timeout + reintentos nuevos, hasta ~20s en el
+  // peor caso) y para entonces el mozo bien puede estar escribiendo el siguiente producto; con
+  // renderPanel() ahí, ese texto se borraría solo. En cambio, esto solo vuelve a dibujar el
+  // cajón fijo del aviso pegajoso (mozAlertaBox) y, si el mozo sigue en la MISMA mesa que acaba
+  // de intentar imprimir, el estado del botón "🧾 Precuenta" -- lo único que de verdad cambió.
+  function mozosRefrescarAlertaImpresion(numeroMesaTocada){
+    if(currentTab !== "mozos") return;
+    var box = document.getElementById("mozAlertaBox");
+    if(box) mozosRenderAlertaBox(box);
+    if(mozosVista === "comanda" && mozosMesaActual && mozosMesaActual === numeroMesaTocada){
+      var btnPrecuenta = document.getElementById("mozBtnPrecuenta");
+      if(btnPrecuenta){
+        var mesaLocal = mozosGetMesa(numeroMesaTocada);
+        btnPrecuenta.textContent = mesaLocal.precuentaImpresionFallo ? "🧾 Precuenta ⚠️" : "🧾 Precuenta";
+        btnPrecuenta.classList.toggle("moz-btn-precuenta-falla", !!mesaLocal.precuentaImpresionFallo);
+      }
+    }
+  }
   function buildMozosPanel(){
     var wrap = document.createElement("div");
     wrap.className = "moz-wrap moz-dark";
@@ -13316,6 +13677,16 @@ var TRIPLES = [
       wrap.appendChild(err);
     }
 
+    // Aviso pegajoso de comandas/precuentas que no se imprimieron -- se muestra SIEMPRE, en
+    // Mesas o en Comanda, para que un mozo que esté ocupado con otra mesa igual lo vea (ver
+    // mozosMesasConFallaImpresion arriba). No se auto-oculta como showToast: se queda hasta que
+    // un reintento realmente funcione. Vive en un cajón fijo (mozAlertaBox) para poder
+    // actualizarse solo (ver mozosRefrescarAlertaImpresion) sin reconstruir toda la pantalla.
+    var alertaBox = document.createElement("div");
+    alertaBox.id = "mozAlertaBox";
+    wrap.appendChild(alertaBox);
+    mozosRenderAlertaBox(alertaBox);
+
     if(mozosVista === "comanda" && mozosMesaActual){
       wrap.appendChild(buildMozosComandaView(mozosMesaActual));
     } else {
@@ -13333,6 +13704,11 @@ var TRIPLES = [
     box.appendChild(legend);
 
     var mesasSeguro = mesasCargadas && !mesasSyncError;
+    // Mesas con al menos una comanda que no se pudo imprimir -- ver mozosMesasConFallaImpresion.
+    // Se marca de una vez en la grilla, no solo en el aviso de arriba, para que se note aunque
+    // el mozo no haya llegado a leer el texto del banner.
+    var mesasConFalla = {};
+    mozosMesasConFallaImpresion().forEach(function(f){ mesasConFalla[f.numero] = true; });
     var grid = document.createElement("div");
     grid.className = "moz-grid-mesas";
     for(var n = 1; n <= MOZOS_NUM_MESAS; n++){
@@ -13340,7 +13716,8 @@ var TRIPLES = [
         var mesa = mozosGetMesa(numero);
         var tile = document.createElement("button");
         tile.type = "button";
-        tile.className = "moz-mesa-tile " + (mesa.estado === "ocupada" ? "ocupada" : "libre");
+        tile.className = "moz-mesa-tile " + (mesa.estado === "ocupada" ? "ocupada" : "libre") +
+          (mesasConFalla[numero] ? " moz-mesa-tile-falla" : "");
         // Mientras no se confirmó el estado real (ver mozosAbrirMesa más arriba), las mesas
         // quedan visualmente deshabilitadas -- ni siquiera se deja tocar, no solo se avisa
         // después del toque.
@@ -13348,6 +13725,7 @@ var TRIPLES = [
         tile.addEventListener("click", function(){ mozosAbrirMesa(numero); });
         var html = '<div><div class="moz-mesa-num">Mesa ' + numero + '</div>' +
           '<div class="moz-mesa-estado">' + (mesa.estado === "ocupada" ? "Ocupada" : "Libre") + '</div></div>';
+        if(mesasConFalla[numero]) html += '<div class="moz-mesa-badge-falla">⚠️ No se imprimió</div>';
         if(mesa.estado === "ocupada"){
           var minutos = mesa.horaApertura ? Math.max(0, Math.round((Date.now() - mesa.horaApertura) / 60000)) : 0;
           html += '<div><div class="moz-mesa-meta">👤 ' + esc(mesa.mozo || "-") + ' · ⏱ ' + minutos + ' min</div>' +
@@ -13725,6 +14103,16 @@ var TRIPLES = [
           histInfo.className = "moz-drawer-hist-info";
           histInfo.innerHTML = '<div class="moz-drawer-hist-num">Comanda #' + esc(c.numero) + ' · ' + esc(fmtHoraCortaMillis(c.horaEnvio)) + '</div>' +
             '<div class="moz-drawer-hist-items">' + esc(itemResumen) + '</div>';
+          // set-2026: si el último intento de esta comanda quedó fallido en algún punto, se
+          // marca acá mismo (ya no hace falta adivinar cuál de todas fue la que no salió).
+          var puntosFallidos = Object.keys(c.estadoImpresion || {}).filter(function(k){ return c.estadoImpresion[k] === false; });
+          if(puntosFallidos.length){
+            var nombresFallidos = puntosFallidos.map(function(k){ return (PRODUCCION_PUNTOS[k] || {}).label || k; }).join(", ");
+            var histFalla = document.createElement("div");
+            histFalla.className = "moz-drawer-hist-falla";
+            histFalla.textContent = "⚠️ No se imprimió en: " + nombresFallidos;
+            histInfo.appendChild(histFalla);
+          }
           var histBtn = document.createElement("button");
           histBtn.type = "button";
           histBtn.className = "moz-btn-reimprimir";
@@ -13753,7 +14141,11 @@ var TRIPLES = [
     btnVerPedido.type = "button"; btnVerPedido.className = "moz-btn-vercarrito"; btnVerPedido.textContent = "🛒 Tu pedido";
     btnVerPedido.addEventListener("click", function(){ drawerAbierto = true; renderDrawer(); });
     var btnPrecuenta = document.createElement("button");
-    btnPrecuenta.type = "button"; btnPrecuenta.className = "moz-btn-precuenta"; btnPrecuenta.textContent = "🧾 Precuenta";
+    btnPrecuenta.type = "button"; btnPrecuenta.id = "mozBtnPrecuenta"; btnPrecuenta.className = "moz-btn-precuenta";
+    // set-2026: si la última precuenta de ESTA mesa quedó fallida, se marca acá mismo (además
+    // del banner de arriba) -- justo donde el mozo va a tocar de nuevo para reintentar.
+    btnPrecuenta.textContent = mesa.precuentaImpresionFallo ? "🧾 Precuenta ⚠️" : "🧾 Precuenta";
+    if(mesa.precuentaImpresionFallo) btnPrecuenta.classList.add("moz-btn-precuenta-falla");
     btnPrecuenta.addEventListener("click", function(){ doPrintMozosPrecuenta(numero); });
     var btnEnviar = document.createElement("button");
     btnEnviar.type = "button"; btnEnviar.className = "moz-btn-enviar"; btnEnviar.textContent = "📨 ENVIAR COMANDA";
@@ -13856,8 +14248,9 @@ var TRIPLES = [
 
   // Rendimiento a futuro: cargar TODA la colección con un solo onSnapshot (como era antes)
   // crece sin límite -- entre más pedidos se guarden con los años, más lento se pone abrir la
-  // app, sin importar cuántos sean por día. En vez de eso, se mantienen dos listeners en vivo,
-  // chicos y de tamaño FIJO, que se combinan en PEDIDOS:
+  // app, sin importar cuántos sean por día. En vez de eso, se mantienen TRES listeners en vivo,
+  // chicos y de tamaño FIJO (o que solo crecen si de verdad hay trabajo pendiente de ese tipo),
+  // que se combinan en PEDIDOS:
   //  1) Los últimos PEDIDOS_LIMITE_RECIENTES pedidos (por "createdAt", cuándo se tomaron) --
   //     alimenta "Todos los pedidos" y "Producción". Por CANTIDAD, no por días: así el
   //     tamaño de lo que se carga y se dibuja en pantalla queda igual de rápido así el
@@ -13866,9 +14259,15 @@ var TRIPLES = [
   //     nunca deja de mostrar una deuda vieja solo porque quedó fuera de los recientes de
   //     arriba. Esta sí puede crecer con el tiempo, pero solo si se acumulan deudas de
   //     verdad sin cobrar -- no con el volumen total de pedidos.
-  // Un pedido antiguo y ya pagado que quede fuera de ambos se puede seguir encontrando con el
-  // buscador de "Pedidos antiguos" en la pestaña Pedidos (una consulta aparte, no un listener
-  // en vivo -- no vuelve a cargar todo el historial cada vez).
+  //  3) TODOS los pedidos Masivo que sigan activos (set-2026, Jessica: "en Despacho no aparece
+  //     ningún pedido Masivo"), sin importar cuándo se tomaron ni si ya están pagados -- un
+  //     Masivo se suele tomar con anticipación para una fecha futura, así que uno ya pagado
+  //     podía quedar empujado fuera de (1) por el volumen normal del día a día y desaparecer
+  //     de Despacho aunque su entrega todavía no hubiera pasado. Como los contratos Masivo
+  //     duran como mucho un mes (nunca años), este grupo tampoco crece sin límite.
+  // Un pedido antiguo y ya pagado (y que no sea Masivo activo) que quede fuera de los tres se
+  // puede seguir encontrando con el buscador de "Pedidos antiguos" en la pestaña Pedidos (una
+  // consulta aparte, no un listener en vivo -- no vuelve a cargar todo el historial cada vez).
   // ---------- Aviso en pantalla de pedido "para ahora" (sonido + banner) ----------
   // Jessica pidió aviso "desde el inicio" tanto en pantalla como al celular (ver
   // pedidoNotificarDespacho para el push por ntfy.sh), y luego corrigió el alcance: YA NO es
@@ -13944,10 +14343,12 @@ var TRIPLES = [
   function attachPedidosSync(){
     var recientesMap = {};
     var impagosMap = {};
+    var masivoActivoMap = {};
     function mergeAndSetPedidos(){
       var merged = {};
       Object.keys(recientesMap).forEach(function(id){ merged[id] = recientesMap[id]; });
       Object.keys(impagosMap).forEach(function(id){ merged[id] = impagosMap[id]; });
+      Object.keys(masivoActivoMap).forEach(function(id){ merged[id] = masivoActivoMap[id]; });
       var list = Object.keys(merged).map(function(id){ return merged[id]; });
       // Defensa: un pedido guardado sin "estado" (por ejemplo, desde una pestaña vieja del
       // navegador que quedó abierta con una versión anterior de la app, antes de que el
@@ -13989,6 +14390,28 @@ var TRIPLES = [
     db.collection("pedidos").where("pagado", "==", false).onSnapshot(function(snap){
       impagosMap = {};
       snap.forEach(function(doc){ var data = doc.data(); data.id = doc.id; impagosMap[doc.id] = data; });
+      mergeAndSetPedidos();
+    }, function(){});
+    // 3) TODOS los pedidos Masivo que sigan activos (ni Entregado ni Cancelado), sin importar
+    // cuándo se tomaron ni si ya están pagados (Jessica, set-2026: "en Despacho no aparece
+    // ningún pedido Masivo" -- un pedido Masivo se suele tomar con anticipación para una fecha
+    // de entrega futura, así que si ya está pagado y el volumen de pedidos normales del día a
+    // día lo empuja fuera de los PEDIDOS_LIMITE_RECIENTES de arriba, desaparecía de Despacho/
+    // Producción/Todos los pedidos aunque su entrega todavía no hubiera pasado -- exactamente
+    // igual que ya se protege a las deudas sin pagar (impagosMap) de arriba, pero acá por canal
+    // en vez de por si está pagado). Se filtra "activo" del lado del cliente (no en la consulta)
+    // a propósito para que no haga falta crear ningún índice compuesto en Firestore -- Jessica
+    // dijo que sus clientes Masivo duran como mucho un mes, así que este grupo en vivo nunca
+    // crece de más: siempre son solo los contratos vigentes en este momento, sin importar
+    // cuántos años lleve funcionando la panadería.
+    db.collection("pedidos").where("canal", "==", "masivo").onSnapshot(function(snap){
+      masivoActivoMap = {};
+      snap.forEach(function(doc){
+        var data = doc.data();
+        if(data.estado === "ENTREGADO" || data.estado === "CANCELADO") return;
+        data.id = doc.id;
+        masivoActivoMap[doc.id] = data;
+      });
       mergeAndSetPedidos();
     }, function(){});
   }
