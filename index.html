@@ -792,6 +792,88 @@
 
   .moz-legend{ display:flex; gap:1.2rem; align-items:center; margin-bottom:1rem; font-size:.86rem; color:var(--ink-soft); }
   .moz-dot{ display:inline-block; width:.7rem; height:.7rem; border-radius:50%; margin-right:.35rem; vertical-align:middle; }
+
+  /* ---------- Ítem 9: resumen compacto arriba de Mesas (set-2026) ---------- */
+  .moz-mesas-resumen{ background:var(--surface-2); border:1px solid var(--border); border-radius:999px; padding:.55rem 1.1rem; font-size:.88rem; font-weight:700; color:var(--ink-soft); margin-bottom:.9rem; display:inline-block; }
+
+  /* ---------- 📊 Reporte de Mozos (set-2026 / retoque visual premium set-2026-v2) ---------- */
+  /* Curvas propias (Emil Kowalski): ease-out fuerte para entradas, ease normal para hover/color.
+     Todo lo de acá es puramente visual -- ningún cálculo, filtro ni dato cambia con esto. */
+  .moz-rep{
+    padding-bottom:1rem;
+    --moz-ease-out: cubic-bezier(.23,1,.32,1);
+    --moz-ease: cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes mozRepAparece{ from{ opacity:0; transform:translateY(5px); } to{ opacity:1; transform:translateY(0); } }
+  .moz-rep-filtros{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.05rem 1.1rem; margin-bottom:1.2rem; box-shadow:var(--shadow); }
+  /* set-2026: PERÍODO y TURNO como grupos separados -- rótulo arriba de sus chips, con una
+     línea divisoria entre los dos grupos para que no se lean como una sola fila corrida. */
+  .moz-rep-filtro-grupo{ display:flex; flex-direction:column; gap:.5rem; }
+  .moz-rep-filtro-divisor{ height:1px; background:var(--border); margin:.9rem 0; opacity:.8; }
+  .moz-rep-filtros-fila{ display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; }
+  .moz-rep-filtros-fila-fechas{ margin-top:.15rem; }
+  .moz-rep-filtro-lbl{ font-weight:800; color:var(--ink-soft); font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; }
+  .moz-rep-chip{ border:1.5px solid var(--border); background:var(--surface); color:var(--ink-soft); padding:.42rem .9rem; border-radius:999px; font-size:.84rem; font-weight:700; cursor:pointer; font-family:inherit; transition:background-color 140ms var(--moz-ease), border-color 140ms var(--moz-ease), color 140ms var(--moz-ease), transform 120ms var(--moz-ease-out); }
+  .moz-rep-chip:active{ transform:scale(.95); }
+  @media (hover:hover) and (pointer:fine){ .moz-rep-chip:hover{ border-color:var(--accent); color:var(--accent); } .moz-rep-chip.active:hover{ color:var(--accent-ink); } }
+  .moz-rep-chip.active{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); box-shadow:0 3px 10px -4px rgba(156,107,24,.5); }
+  .moz-rep-chip-buscar{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
+  .moz-rep-fecha-input{ border:1.5px solid var(--border); border-radius:8px; padding:.4rem .6rem; font-size:.84rem; font-family:inherit; color:var(--ink); background:var(--surface); }
+  .moz-rep-msg{ color:var(--ink-soft); font-size:.9rem; padding:1.2rem 0; text-align:center; }
+  .moz-rep-msg-error{ display:flex; flex-direction:column; align-items:center; gap:.6rem; color:var(--bad); }
+
+  .moz-rep-cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:.8rem; margin-bottom:1.2rem; animation:mozRepAparece 220ms var(--moz-ease-out) both; }
+  .moz-rep-card{ position:relative; overflow:hidden; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1rem .9rem; box-shadow:var(--shadow); text-align:center; transition:box-shadow 160ms var(--moz-ease), transform 160ms var(--moz-ease-out); }
+  .moz-rep-card::before{ content:""; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--accent),var(--accent-soft)); opacity:.85; }
+  @media (hover:hover) and (pointer:fine){ .moz-rep-card:hover{ box-shadow:0 10px 24px -14px rgba(58,36,21,.35); transform:translateY(-1px); } }
+  .moz-rep-card-val{ font-family:"Fraunces",Georgia,serif; font-size:1.55rem; font-weight:700; color:var(--accent); line-height:1.15; }
+  .moz-rep-card-lbl{ font-size:.76rem; color:var(--ink-soft); font-weight:700; margin-top:.25rem; text-transform:uppercase; letter-spacing:.025em; }
+
+  /* Líder del turno -- más protagonismo (insignia dorada + brillo sutil) sin llenar de medallas:
+     una sola insignia por tarjeta, discreta en la versión "sin datos". */
+  .moz-rep-copas{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:1rem; margin-bottom:1.4rem; animation:mozRepAparece 260ms var(--moz-ease-out) both; animation-delay:40ms; }
+  .moz-rep-copa{ position:relative; overflow:hidden; background:linear-gradient(150deg,var(--accent-soft) 0%,var(--surface) 65%); border:1.5px solid var(--accent); border-radius:calc(var(--radius) + 2px); padding:1.15rem 1.25rem; box-shadow:0 10px 26px -16px rgba(156,107,24,.55), var(--shadow); transition:transform 180ms var(--moz-ease-out), box-shadow 180ms var(--moz-ease); }
+  @media (hover:hover) and (pointer:fine){ .moz-rep-copa:not(.vacia):hover{ transform:translateY(-2px); box-shadow:0 14px 30px -14px rgba(156,107,24,.6), var(--shadow); } }
+  .moz-rep-copa.vacia{ background:var(--surface); opacity:.7; border-style:dashed; box-shadow:none; }
+  .moz-rep-copa-icono{ position:absolute; top:-6px; right:-2px; font-size:2.6rem; line-height:1; opacity:.16; transform:rotate(8deg); filter:drop-shadow(0 2px 3px rgba(156,107,24,.3)); pointer-events:none; }
+  .moz-rep-copa.vacia .moz-rep-copa-icono{ opacity:.08; filter:none; }
+  .moz-rep-copa-titulo{ position:relative; font-size:.78rem; font-weight:800; color:var(--accent); text-transform:uppercase; letter-spacing:.05em; display:flex; align-items:center; gap:.35rem; }
+  .moz-rep-copa-titulo::before{ content:"🏆"; font-size:.95rem; }
+  .moz-rep-copa-mozo{ position:relative; font-family:"Fraunces",Georgia,serif; font-size:1.5rem; font-weight:700; color:var(--ink); margin:.25rem 0 .15rem; line-height:1.2; }
+  .moz-rep-copa-datos{ position:relative; font-size:.84rem; color:var(--ink-soft); font-weight:700; }
+  .moz-rep-copa-vacia-txt{ font-size:.84rem; color:var(--ink-muted); margin-top:.3rem; }
+
+  .moz-rep-seccion-titulo{ font-family:"Fraunces",Georgia,serif; font-size:1.1rem; font-weight:700; color:var(--ink); margin:1.3rem 0 .65rem; }
+  .moz-rep-tabla{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); animation:mozRepAparece 220ms var(--moz-ease-out) both; animation-delay:60ms; }
+  .moz-rep-tabla-fila{ display:grid; grid-template-columns:1.6fr repeat(4,1fr); gap:.5rem; padding:.7rem .95rem; align-items:center; font-size:.86rem; border-bottom:1px solid var(--border); text-align:left; width:100%; background:none; border-left:none; border-right:none; border-top:none; font-family:inherit; color:var(--ink); transition:background-color 120ms var(--moz-ease); }
+  .moz-rep-tabla-fila:last-child{ border-bottom:none; }
+  .moz-rep-tabla-head{ background:var(--surface-2); font-weight:800; color:var(--ink-soft); font-size:.75rem; text-transform:uppercase; letter-spacing:.03em; }
+  .moz-rep-tabla-row{ cursor:pointer; transition:background-color 120ms var(--moz-ease), transform 100ms var(--moz-ease-out); }
+  .moz-rep-tabla-row:active{ transform:scale(.997); }
+  @media (hover:hover) and (pointer:fine){ .moz-rep-tabla-row:hover{ background:var(--accent-soft); } }
+  .moz-rep-tabla-row.active{ background:var(--accent-soft); }
+  .moz-rep-trofeo-inline{ display:inline-block; background:linear-gradient(135deg,var(--accent),var(--accent-soft)); color:var(--accent-ink); font-size:.68rem; font-weight:800; letter-spacing:.02em; padding:.14rem .5rem; border-radius:999px; margin-left:.3rem; white-space:nowrap; vertical-align:middle; box-shadow:0 2px 6px -2px rgba(156,107,24,.5); }
+  .moz-rep-tabla-detalle .moz-rep-tabla-fila{ grid-template-columns:.7fr .85fr 1.15fr 1.15fr .7fr .8fr .9fr auto; }
+  .moz-rep-fila-anulada{ opacity:.55; flex-wrap:wrap; }
+  .moz-rep-anulado-info{ grid-column:1/-1; font-size:.74rem; font-style:italic; color:var(--ink-muted); margin-top:-.1rem; }
+  .moz-rep-mini-btn{ border:1.3px solid var(--border); background:var(--surface); color:var(--ink-soft); padding:.3rem .65rem; border-radius:8px; font-size:.74rem; font-weight:700; cursor:pointer; font-family:inherit; justify-self:end; transition:background-color 120ms var(--moz-ease), transform 100ms var(--moz-ease-out); }
+  .moz-rep-mini-btn:active{ transform:scale(.94); }
+  @media (hover:hover) and (pointer:fine){ .moz-rep-mini-btn:hover{ background:var(--surface-2); } }
+  .moz-rep-detalle{ margin-top:.4rem; animation:mozRepAparece 200ms var(--moz-ease-out) both; }
+
+  .moz-rep-acciones{ display:flex; gap:.7rem; margin-top:1.4rem; flex-wrap:wrap; }
+  .moz-rep-btn-accion{ background:var(--accent); color:var(--accent-ink); border:none; border-radius:999px; padding:.7rem 1.3rem; font-size:.88rem; font-weight:800; cursor:pointer; font-family:inherit; box-shadow:0 6px 18px -6px rgba(156,107,24,.45); transition:filter 140ms var(--moz-ease), transform 120ms var(--moz-ease-out); }
+  .moz-rep-btn-accion:active{ transform:scale(.97); }
+  @media (hover:hover) and (pointer:fine){ .moz-rep-btn-accion:hover{ filter:brightness(1.05); } }
+  @media (max-width: 720px){
+    .moz-rep-tabla-fila{ grid-template-columns:1fr; gap:.15rem; padding:.7rem .8rem; }
+    .moz-rep-tabla-head{ display:none; }
+    .moz-rep-mini-btn{ justify-self:start; margin-top:.3rem; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .moz-rep-cards, .moz-rep-copas, .moz-rep-tabla, .moz-rep-detalle{ animation:none; }
+    .moz-rep-card, .moz-rep-copa, .moz-rep-chip, .moz-rep-tabla-row, .moz-rep-mini-btn, .moz-rep-btn-accion{ transition:none; }
+  }
   .moz-grid-mesas{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:.9rem; padding-bottom:1rem; }
   .moz-mesa-tile{ border:none; border-radius:var(--radius); padding:1.1rem .9rem; cursor:pointer; text-align:left; box-shadow:var(--shadow); min-height:128px; display:flex; flex-direction:column; justify-content:space-between; transition:transform .08s ease; font-family:inherit; }
   .moz-mesa-tile:active{ transform:scale(.97); }
@@ -13199,12 +13281,634 @@ var TRIPLES = [
     mozosGuardarMesa(mesa);
   }
 
+  // ---------- Historial de atenciones de Mozos (set-2026, módulo Reporte de Mozos) ----------
+  // Hasta ahora, "Liberar mesa" borraba TODO lo que tenía la mesa (mesa.items/comandas) para
+  // dejarla libre de nuevo -- correcto para la operación (Mesas tiene que quedar limpia y rápida
+  // para el siguiente cliente), pero no quedaba ningún registro de lo atendido. Ahora, justo
+  // ANTES de vaciar la mesa, se guarda una COPIA de lo que tenía en una colección aparte
+  // ("mozosHistorial") -- la mesa se sigue vaciando exactamente igual que siempre (mismo
+  // comportamiento visual, mismo flujo de Mesas/Comanda), esto SOLO agrega un registro permanente
+  // para alimentar el Reporte de Mozos, nunca cambia lo que ve el mozo.
+  // Turno: horario oficial de tienda que dio Jessica -- Mañana 6:00am-2:00pm, Tarde 2:00pm-10:00pm.
+  // Se calcula con la hora de APERTURA de la mesa (cuándo el mozo empezó a atenderla), no con la
+  // de cierre -- representa mejor en qué turno se hizo el trabajo real de atender la mesa. Una
+  // mesa abierta a las 1:55pm y cerrada a las 2:10pm queda contada en "mañana" completa (caso
+  // raro, se puede ajustar si Jessica lo nota distinto en la práctica).
+  function mozosTurnoDe(millis){
+    var horaLima = Number(new Date(millis).toLocaleString("en-US", { timeZone:"America/Lima", hour:"2-digit", hour12:false }));
+    return (isFinite(horaLima) && horaLima >= 14) ? "tarde" : "manana";
+  }
+  function mozosFechaDe(millis){
+    try{ return new Date(millis).toLocaleDateString("en-CA", { timeZone:"America/Lima" }); }
+    catch(e){ return todayISO(); }
+  }
+  // Solo se guarda si la mesa tuvo actividad real (al menos una comanda enviada, o algún producto
+  // cargado con cantidad) -- abrir una mesa por error y liberarla al toque no debe ensuciar el
+  // Reporte de Mozos con una atención de S/0.00 y 0 comandas.
+  function mozosTuvoActividad(mesa){
+    if((mesa.comandas || []).length > 0) return true;
+    return Object.keys(mesa.items || {}).some(function(n){ return ((mesa.items[n] || {}).cant || 0) > 0; });
+  }
+  // set-2026, pedido de Jessica: las pruebas hechas durante el desarrollo (o un cierre real que
+  // haya que anular después) no deben sumar en el Reporte, pero tampoco deben desaparecer sin
+  // dejar rastro. En vez de agregar un interruptor "modo prueba" en el flujo de Liberar mesa
+  // (eso volvería más lenta la operación diaria, justo lo que Jessica pidió NO hacer), todo
+  // cierre se guarda igual como "cerrada", y desde el Reporte de Mozos (detalle por mozo) se
+  // puede marcar cualquier registro puntual como "anulado" -- sirve tanto para una prueba de
+  // desarrollo como para un cierre real que haya que invalidar. Un "anulado" nunca suma en el
+  // resumen, la tabla por mozo ni la copa del turno, pero sigue apareciendo en el historial
+  // (marcado) para trazabilidad -- nunca se borra.
+  function mozosGuardarHistorial(mesa){
+    if(!db) return;
+    if(!mozosTuvoActividad(mesa)) return;
+    var horaCierre = Date.now();
+    var horaApertura = mesa.horaApertura || horaCierre;
+    var registro = {
+      numero: mesa.numero,
+      mozo: mesa.mozo || mesa.abiertoPor || "(sin nombre)",
+      abiertoPor: mesa.abiertoPor || mesa.mozo || "",
+      horaApertura: horaApertura,
+      horaCierre: horaCierre,
+      fecha: mozosFechaDe(horaApertura),
+      turno: mozosTurnoDe(horaApertura),
+      items: mesa.items || {},
+      comandas: mesa.comandas || [],
+      totalComandas: (mesa.comandas || []).length,
+      total: round2(mozosTotalMesa(mesa)),
+      estado: "cerrada",
+      motivoAnulado: "",
+      creadoEn: horaCierre
+    };
+    var id = "h" + horaCierre + "_m" + mesa.numero;
+    db.collection("mozosHistorial").doc(id).set(registro).catch(function(){
+      showToast("La mesa se liberó, pero no se pudo guardar su historial para el Reporte de Mozos (revisa tu conexión).", 5000);
+    });
+  }
   function mozosLiberarMesa(numero){
     if(!confirm("¿Liberar la mesa " + numero + "? Se borran los productos cargados de esta cuenta (si ya imprimiste la precuenta, ese papel no se pierde).")) return;
+    var mesaAnterior = mozosGetMesa(numero);
+    mozosGuardarHistorial(mesaAnterior);
     mozosGuardarMesa({ numero: numero, estado: "libre", mozo: "", abiertoPor: "", horaApertura: null, items: {}, comandas: [] });
     mozosVista = "mesas";
     mozosMesaActual = null;
     renderPanel();
+  }
+
+  // ---------- 📊 Reporte de Mozos (set-2026) ----------
+  // Lee SOLO de "mozosHistorial" (arriba) -- nunca duplica ni recalcula sobre mesas/comandas en
+  // vivo. Mesas sigue siendo la pantalla operativa rápida; este módulo es análisis, y se carga
+  // con consultas puntuales (.get(), no onSnapshot) -- mismo patrón que ya usa la búsqueda de
+  // pedidos antiguos (ver doBuscarPedidosAntiguos, Pedidos) -- para no dejar un listener siempre
+  // abierto sobre un historial que puede crecer mucho.
+  var mozosReporteRango = "hoy";              // "hoy" | "ayer" | "semana" | "mes" | "personalizado"
+  var mozosReporteTurno = "todo";             // "manana" | "tarde" | "todo"
+  var mozosReportePersonalDesde = todayISO();
+  var mozosReportePersonalHasta = todayISO();
+  var mozosReporteCargando = false;
+  var mozosReporteError = false;
+  var mozosReporteRegistros = [];             // docs crudos del rango cargado (TODOS los turnos, incluye anulados)
+  var mozosReporteRangoCargado = null;        // "desde|hasta" del último rango efectivamente traído
+  var mozosReporteMozoSeleccionado = null;
+
+  // "Semana" = semana calendario actual (Lunes a Domingo, hasta hoy si la semana no terminó).
+  // "Mes" = mes calendario actual (día 1 hasta hoy). Ambos con el mismo criterio de "hoy" que ya
+  // usa el resto del Arqueo (America/Lima, ver todayISO).
+  function mozosReporteRangoFechas(rango){
+    var hoy = todayISO();
+    function sumarDias(iso, delta){
+      var d = new Date(iso + "T12:00:00");
+      d.setDate(d.getDate() + delta);
+      return d.toLocaleDateString("en-CA");
+    }
+    if(rango === "ayer"){ var ayer = sumarDias(hoy, -1); return { desde: ayer, hasta: ayer }; }
+    if(rango === "semana"){
+      var dLocal = new Date(hoy + "T12:00:00");
+      var diaSemana = dLocal.getDay();
+      var offsetLunes = (diaSemana === 0) ? -6 : (1 - diaSemana);
+      return { desde: sumarDias(hoy, offsetLunes), hasta: hoy };
+    }
+    if(rango === "mes") return { desde: hoy.slice(0, 8) + "01", hasta: hoy };
+    if(rango === "personalizado") return { desde: mozosReportePersonalDesde || hoy, hasta: mozosReportePersonalHasta || hoy };
+    return { desde: hoy, hasta: hoy };
+  }
+  function mozosReporteCargar(){
+    if(!db){ showToast("No hay conexión con la base de datos todavía."); return; }
+    var rango = mozosReporteRangoFechas(mozosReporteRango);
+    if(rango.desde > rango.hasta){ showToast("La fecha \"Desde\" no puede ser después de \"Hasta\"."); return; }
+    mozosReporteCargando = true;
+    mozosReporteError = false;
+    mozosReporteMozoSeleccionado = null;
+    renderPanel();
+    db.collection("mozosHistorial").where("fecha", ">=", rango.desde).where("fecha", "<=", rango.hasta).get().then(function(snap){
+      var list = [];
+      snap.forEach(function(doc){ var data = doc.data(); data.id = doc.id; list.push(data); });
+      list.sort(function(a, b){ return (b.horaApertura || 0) - (a.horaApertura || 0); });
+      mozosReporteRegistros = list;
+      mozosReporteRangoCargado = rango.desde + "|" + rango.hasta;
+      mozosReporteCargando = false;
+      renderPanel();
+    }).catch(function(){
+      mozosReporteCargando = false;
+      mozosReporteError = true;
+      renderPanel();
+    });
+  }
+  // Se llama al entrar a la pestaña y cada vez que cambia Fecha/Personalizado -- Turno NO recarga
+  // nada, se filtra en el navegador sobre lo ya traído (ver mozosReporteRegistrosVisibles).
+  function mozosReporteAsegurarCargado(){
+    var rango = mozosReporteRangoFechas(mozosReporteRango);
+    var clave = rango.desde + "|" + rango.hasta;
+    if(mozosReporteRangoCargado !== clave && !mozosReporteCargando) mozosReporteCargar();
+  }
+  // Registros "reales" para estadísticas: nunca un "anulado" (prueba o cierre invalidado, ver
+  // mozosReporteAnular más abajo) y, si se pide, solo el turno elegido. turnoFiltro="todo" no
+  // filtra por turno.
+  function mozosReporteRegistrosVisibles(turnoFiltro){
+    return mozosReporteRegistros.filter(function(r){
+      if(r.estado === "anulado") return false;
+      if(turnoFiltro && turnoFiltro !== "todo") return r.turno === turnoFiltro;
+      return true;
+    });
+  }
+  function mozosReporteResumen(registros){
+    var pedidos = 0, venta = 0;
+    var mozosSet = {};
+    registros.forEach(function(r){
+      pedidos += (r.totalComandas || 0);
+      venta += (r.total || 0);
+      if(r.mozo) mozosSet[r.mozo] = true;
+    });
+    var mesas = registros.length;
+    return {
+      mesas: mesas,
+      pedidos: pedidos,
+      venta: round2(venta),
+      ticketProm: mesas ? round2(venta / mesas) : 0,
+      mozosActivos: Object.keys(mozosSet).length
+    };
+  }
+  function mozosReportePorMozo(registros){
+    var map = {};
+    registros.forEach(function(r){
+      var key = r.mozo || "(sin nombre)";
+      if(!map[key]) map[key] = { mozo: key, mesas: 0, pedidos: 0, venta: 0 };
+      map[key].mesas += 1;
+      map[key].pedidos += (r.totalComandas || 0);
+      map[key].venta += (r.total || 0);
+    });
+    var out = Object.keys(map).map(function(k){
+      var m = map[k];
+      m.venta = round2(m.venta);
+      m.ticketProm = m.mesas ? round2(m.venta / m.mesas) : 0;
+      return m;
+    });
+    out.sort(function(a, b){ return b.venta - a.venta; });
+    return out;
+  }
+  // 🏆 set-2026, pedido de Jessica: motivación visual para el personal. SIEMPRE se calculan las
+  // dos copas (Mañana/Tarde) por separado, sin importar el filtro de Turno de arriba -- así en
+  // "Todo el día" se ven las dos sin perder el desglose (pedido explícito). Se calcula sobre el
+  // rango de FECHA elegido arriba: para "Hoy" es la copa de hoy; para un rango de varios días, es
+  // la copa acumulada de ese periodo. Nunca cuenta un "anulado". Regla: más mesas atendidas gana;
+  // empate se desempata por mayor venta atendida (ambas reglas confirmadas por Jessica).
+  function mozosReporteLideresDeTurno(){
+    var out = { manana: null, tarde: null };
+    ["manana", "tarde"].forEach(function(turno){
+      var porMozo = mozosReportePorMozo(mozosReporteRegistrosVisibles(turno));
+      if(!porMozo.length) return;
+      var ordenado = porMozo.slice().sort(function(a, b){
+        if(b.mesas !== a.mesas) return b.mesas - a.mesas;
+        return b.venta - a.venta;
+      });
+      out[turno] = ordenado[0];
+    });
+    return out;
+  }
+  // set-2026, pedido de Jessica: las pruebas del desarrollo (o un cierre real que haya que
+  // corregir) no deben sumar en el Reporte, pero deben quedar visibles para trazabilidad -- nunca
+  // se borran. "Anular" es reversible (Restaurar) y queda disponible desde el detalle de cada
+  // mozo (ver buildMozosReporteDetalleMozo). Ajuste posterior de Jessica: además del motivo
+  // (obligatorio, validado en la UI antes de llamar acá) se guarda quién anuló y cuándo, para
+  // que quede trazable quién tomó la decisión.
+  function mozosReporteAnular(id, motivo, quien){
+    if(!db) return;
+    var anuladoEn = Date.now();
+    db.collection("mozosHistorial").doc(id).update({ estado: "anulado", motivoAnulado: motivo || "", anuladoPor: quien || "", anuladoEn: anuladoEn }).then(function(){
+      var reg = mozosReporteRegistros.filter(function(r){ return r.id === id; })[0];
+      if(reg){ reg.estado = "anulado"; reg.motivoAnulado = motivo || ""; reg.anuladoPor = quien || ""; reg.anuladoEn = anuladoEn; }
+      renderPanel();
+    }).catch(function(){ showToast("No se pudo anular ese registro -- revisa tu conexión.", 4000); });
+  }
+  function mozosReporteRestaurar(id){
+    if(!db) return;
+    db.collection("mozosHistorial").doc(id).update({ estado: "cerrada", motivoAnulado: "", anuladoPor: "", anuladoEn: null }).then(function(){
+      var reg = mozosReporteRegistros.filter(function(r){ return r.id === id; })[0];
+      if(reg){ reg.estado = "cerrada"; reg.motivoAnulado = ""; reg.anuladoPor = ""; reg.anuladoEn = null; }
+      renderPanel();
+    }).catch(function(){ showToast("No se pudo restaurar ese registro -- revisa tu conexión.", 4000); });
+  }
+  function mozosReporteFmtDuracion(ms){
+    var mins = Math.max(0, Math.round(ms / 60000));
+    if(mins < 60) return mins + " min";
+    var h = Math.floor(mins / 60), m = mins % 60;
+    return h + "h" + (m ? " " + m + "m" : "");
+  }
+  var MOZOS_REPORTE_RANGO_LABEL = { hoy: "Hoy", ayer: "Ayer", semana: "Semana", mes: "Mes", personalizado: "Personalizado" };
+  var MOZOS_REPORTE_TURNO_LABEL = { manana: "Mañana", tarde: "Tarde", todo: "Todo el día" };
+  // set-2026, ajuste visual puntual de Jessica: SOLO cambia el texto de los chips de filtro (más
+  // claros/largos) -- las claves ("hoy"/"semana"/"personalizado", "manana"/"tarde"/"todo") y toda
+  // la lógica de filtrado siguen exactamente igual. MOZOS_REPORTE_TURNO_LABEL de arriba NO se toca
+  // porque también se usa en el Excel, el Imprimir y la columna Turno del detalle -- ahí el texto
+  // corto ("Mañana"/"Tarde") sigue siendo el correcto.
+  var MOZOS_REPORTE_RANGO_CHIP_LABEL = { hoy: "Hoy", ayer: "Ayer", semana: "Esta semana", mes: "Este mes", personalizado: "📅 Elegir fechas" };
+  var MOZOS_REPORTE_TURNO_CHIP_LABEL = { manana: "☀️ Mañana 6–2", tarde: "🌙 Tarde 2–10", todo: "Todo el día" };
+
+  function buildMozosReporteView(){
+    mozosReporteAsegurarCargado();
+    var box = document.createElement("div");
+    box.className = "moz-rep";
+
+    // ---- Filtros ----
+    // set-2026, ajuste visual de Jessica: PERÍODO y TURNO ahora son dos grupos claramente
+    // separados (rótulo arriba de sus chips + una línea divisoria entre ambos), en vez de la
+    // fila "Fecha: [chips]" / "Turno: [chips]" corrida que resultaba confusa. Los mismos rangos
+    // ("hoy"/"ayer"/"semana"/"mes"/"personalizado") y turnos ("manana"/"tarde"/"todo") de siempre,
+    // con los mismos manejadores de clic -- solo cambia cómo se ve.
+    var filtros = document.createElement("div");
+    filtros.className = "moz-rep-filtros";
+
+    var grupoPeriodo = document.createElement("div");
+    grupoPeriodo.className = "moz-rep-filtro-grupo";
+    var lblFecha = document.createElement("div"); lblFecha.className = "moz-rep-filtro-lbl"; lblFecha.textContent = "Período";
+    grupoPeriodo.appendChild(lblFecha);
+
+    var filaFecha = document.createElement("div");
+    filaFecha.className = "moz-rep-filtros-fila";
+    ["hoy", "ayer", "semana", "mes", "personalizado"].forEach(function(r){
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "moz-rep-chip" + (mozosReporteRango === r ? " active" : "");
+      btn.textContent = MOZOS_REPORTE_RANGO_CHIP_LABEL[r];
+      btn.addEventListener("click", function(){ mozosReporteRango = r; mozosReporteCargar(); });
+      filaFecha.appendChild(btn);
+    });
+    grupoPeriodo.appendChild(filaFecha);
+
+    if(mozosReporteRango === "personalizado"){
+      var filaPersonal = document.createElement("div");
+      filaPersonal.className = "moz-rep-filtros-fila moz-rep-filtros-fila-fechas";
+      var inDesde = document.createElement("input");
+      inDesde.type = "date"; inDesde.className = "moz-rep-fecha-input"; inDesde.value = mozosReportePersonalDesde;
+      inDesde.addEventListener("change", function(){ mozosReportePersonalDesde = inDesde.value; });
+      var inHasta = document.createElement("input");
+      inHasta.type = "date"; inHasta.className = "moz-rep-fecha-input"; inHasta.value = mozosReportePersonalHasta;
+      inHasta.addEventListener("change", function(){ mozosReportePersonalHasta = inHasta.value; });
+      var btnBuscar = document.createElement("button");
+      btnBuscar.type = "button"; btnBuscar.className = "moz-rep-chip moz-rep-chip-buscar"; btnBuscar.textContent = "Buscar";
+      btnBuscar.addEventListener("click", function(){ mozosReporteCargar(); });
+      filaPersonal.appendChild(inDesde); filaPersonal.appendChild(inHasta); filaPersonal.appendChild(btnBuscar);
+      grupoPeriodo.appendChild(filaPersonal);
+    }
+    filtros.appendChild(grupoPeriodo);
+
+    var divisor = document.createElement("div");
+    divisor.className = "moz-rep-filtro-divisor";
+    filtros.appendChild(divisor);
+
+    var grupoTurno = document.createElement("div");
+    grupoTurno.className = "moz-rep-filtro-grupo";
+    var lblTurno = document.createElement("div"); lblTurno.className = "moz-rep-filtro-lbl"; lblTurno.textContent = "Turno";
+    grupoTurno.appendChild(lblTurno);
+
+    var filaTurno = document.createElement("div");
+    filaTurno.className = "moz-rep-filtros-fila";
+    ["manana", "tarde", "todo"].forEach(function(t){
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "moz-rep-chip" + (mozosReporteTurno === t ? " active" : "");
+      btn.textContent = MOZOS_REPORTE_TURNO_CHIP_LABEL[t];
+      btn.addEventListener("click", function(){ mozosReporteTurno = t; mozosReporteMozoSeleccionado = null; renderPanel(); });
+      filaTurno.appendChild(btn);
+    });
+    grupoTurno.appendChild(filaTurno);
+    filtros.appendChild(grupoTurno);
+
+    box.appendChild(filtros);
+
+    if(mozosReporteCargando){
+      var cargando = document.createElement("div"); cargando.className = "moz-rep-msg"; cargando.textContent = "Cargando reporte...";
+      box.appendChild(cargando);
+      return box;
+    }
+    if(mozosReporteError){
+      var errBox = document.createElement("div"); errBox.className = "moz-rep-msg moz-rep-msg-error";
+      var errTxt = document.createElement("span"); errTxt.textContent = "No se pudo cargar el reporte (revisa tu conexión).";
+      var btnReintentar = document.createElement("button");
+      btnReintentar.type = "button"; btnReintentar.className = "moz-rep-chip"; btnReintentar.textContent = "🔄 Reintentar";
+      btnReintentar.addEventListener("click", function(){ mozosReporteCargar(); });
+      errBox.appendChild(errTxt); errBox.appendChild(btnReintentar);
+      box.appendChild(errBox);
+      return box;
+    }
+
+    var registrosVisibles = mozosReporteRegistrosVisibles(mozosReporteTurno);
+    var resumen = mozosReporteResumen(registrosVisibles);
+    var porMozo = mozosReportePorMozo(registrosVisibles);
+    var lideres = mozosReporteLideresDeTurno();
+
+    // ---- Resumen superior ----
+    var cards = document.createElement("div");
+    cards.className = "moz-rep-cards";
+    [
+      { lbl: "Mesas atendidas", val: String(resumen.mesas) },
+      { lbl: "Pedidos/comandas", val: String(resumen.pedidos) },
+      { lbl: "Venta atendida", val: "S/" + fmtMoney(resumen.venta) },
+      { lbl: "Ticket promedio", val: "S/" + fmtMoney(resumen.ticketProm) },
+      { lbl: "Mozos activos", val: String(resumen.mozosActivos) }
+    ].forEach(function(c){
+      var card = document.createElement("div"); card.className = "moz-rep-card";
+      var v = document.createElement("div"); v.className = "moz-rep-card-val"; v.textContent = c.val;
+      var l = document.createElement("div"); l.className = "moz-rep-card-lbl"; l.textContent = c.lbl;
+      card.appendChild(v); card.appendChild(l);
+      cards.appendChild(card);
+    });
+    box.appendChild(cards);
+
+    // ---- 🏆 Líder del turno ----
+    if(lideres.manana || lideres.tarde){
+      var copas = document.createElement("div");
+      copas.className = "moz-rep-copas";
+      [["manana", "Líder Mañana"], ["tarde", "Líder Tarde"]].forEach(function(par){
+        var turno = par[0], titulo = par[1];
+        var lider = lideres[turno];
+        var copa = document.createElement("div");
+        copa.className = "moz-rep-copa" + (lider ? "" : " vacia");
+        var iconoHtml = '<div class="moz-rep-copa-icono" aria-hidden="true">🏆</div>';
+        if(lider){
+          copa.innerHTML = iconoHtml + '<div class="moz-rep-copa-titulo">' + esc(titulo) + '</div>' +
+            '<div class="moz-rep-copa-mozo">' + esc(lider.mozo) + '</div>' +
+            '<div class="moz-rep-copa-datos">' + lider.mesas + ' mesas · S/' + fmtMoney(lider.venta) + '</div>';
+        } else {
+          copa.innerHTML = iconoHtml + '<div class="moz-rep-copa-titulo">' + esc(titulo) + '</div>' +
+            '<div class="moz-rep-copa-vacia-txt">Sin datos todavía</div>';
+        }
+        copas.appendChild(copa);
+      });
+      box.appendChild(copas);
+    }
+
+    // ---- Rendimiento por mozo ----
+    var tablaTitulo = document.createElement("div");
+    tablaTitulo.className = "moz-rep-seccion-titulo";
+    tablaTitulo.textContent = "Rendimiento por mozo";
+    box.appendChild(tablaTitulo);
+
+    if(!porMozo.length){
+      var vacio = document.createElement("div");
+      vacio.className = "moz-rep-msg";
+      vacio.textContent = "No hay atenciones registradas para este período/turno todavía.";
+      box.appendChild(vacio);
+    } else {
+      var tabla = document.createElement("div");
+      tabla.className = "moz-rep-tabla";
+      var head = document.createElement("div");
+      head.className = "moz-rep-tabla-fila moz-rep-tabla-head";
+      head.innerHTML = '<span>Mozo</span><span>Mesas</span><span>Pedidos</span><span>Venta</span><span>Ticket prom.</span>';
+      tabla.appendChild(head);
+      porMozo.forEach(function(m){
+        var fila = document.createElement("button");
+        fila.type = "button";
+        fila.className = "moz-rep-tabla-fila moz-rep-tabla-row" + (mozosReporteMozoSeleccionado === m.mozo ? " active" : "");
+        var esLiderManana = lideres.manana && lideres.manana.mozo === m.mozo;
+        var esLiderTarde = lideres.tarde && lideres.tarde.mozo === m.mozo;
+        // set-2026, ajuste de Jessica: en "Todo el día" nunca un trofeo genérico -- si ganó un
+        // solo turno se rotula CUÁL (Mañana/Tarde); si ganó los dos, se muestran ambas
+        // distinciones. Filtrado a un turno específico el contexto ya es obvio, así que ahí sí
+        // basta un solo 🏆.
+        var trofeoHtml = "";
+        if(mozosReporteTurno === "todo"){
+          var partes = [];
+          if(esLiderManana) partes.push("🏆 Mañana");
+          if(esLiderTarde) partes.push("🏆 Tarde");
+          if(partes.length) trofeoHtml = ' <span class="moz-rep-trofeo-inline">' + partes.join(" ") + '</span>';
+        } else {
+          var esLiderTurnoActual = (mozosReporteTurno === "manana" && esLiderManana) || (mozosReporteTurno === "tarde" && esLiderTarde);
+          if(esLiderTurnoActual) trofeoHtml = ' <span class="moz-rep-trofeo-inline">🏆</span>';
+        }
+        fila.innerHTML = '<span>' + esc(m.mozo) + trofeoHtml + '</span><span>' + m.mesas + '</span><span>' + m.pedidos +
+          '</span><span>S/' + fmtMoney(m.venta) + '</span><span>S/' + fmtMoney(m.ticketProm) + '</span>';
+        fila.addEventListener("click", function(){
+          mozosReporteMozoSeleccionado = (mozosReporteMozoSeleccionado === m.mozo) ? null : m.mozo;
+          renderPanel();
+        });
+        tabla.appendChild(fila);
+      });
+      box.appendChild(tabla);
+    }
+
+    if(mozosReporteMozoSeleccionado){
+      box.appendChild(buildMozosReporteDetalleMozo(mozosReporteMozoSeleccionado, mozosReporteTurno));
+    }
+
+    // ---- Exportación ----
+    var acciones = document.createElement("div");
+    acciones.className = "moz-rep-acciones";
+    var btnImprimir = document.createElement("button");
+    btnImprimir.type = "button"; btnImprimir.className = "moz-rep-btn-accion"; btnImprimir.textContent = "🖨️ Imprimir reporte";
+    btnImprimir.addEventListener("click", function(){ mozosReporteImprimir(registrosVisibles, resumen); });
+    var btnExcel = document.createElement("button");
+    btnExcel.type = "button"; btnExcel.className = "moz-rep-btn-accion"; btnExcel.textContent = "📥 Descargar Excel";
+    btnExcel.addEventListener("click", function(){ mozosReporteExportarExcel(registrosVisibles); });
+    acciones.appendChild(btnImprimir); acciones.appendChild(btnExcel);
+    box.appendChild(acciones);
+
+    return box;
+  }
+
+  // Detalle de un mozo: Mesa | Apertura | Cierre | Tiempo | Total | Estado -- respeta el turno
+  // elegido arriba, pero acá SÍ se muestran los "anulados" de ese mozo (marcados, con opción de
+  // Restaurar), porque este es justo el lugar para revisar/corregir trazabilidad -- nunca se
+  // esconden, solo no suman en el resumen/tabla/copa de arriba (ver mozosReporteRegistrosVisibles).
+  function buildMozosReporteDetalleMozo(nombreMozo, turnoFiltro){
+    var det = document.createElement("div");
+    det.className = "moz-rep-detalle";
+    var titulo = document.createElement("div");
+    titulo.className = "moz-rep-seccion-titulo";
+    titulo.textContent = "Detalle -- " + nombreMozo;
+    det.appendChild(titulo);
+
+    var registros = mozosReporteRegistros.filter(function(r){
+      if((r.mozo || "(sin nombre)") !== nombreMozo) return false;
+      if(turnoFiltro && turnoFiltro !== "todo") return r.turno === turnoFiltro;
+      return true;
+    });
+
+    if(!registros.length){
+      var vacio = document.createElement("div"); vacio.className = "moz-rep-msg"; vacio.textContent = "Sin mesas registradas.";
+      det.appendChild(vacio);
+      return det;
+    }
+
+    var tabla = document.createElement("div");
+    tabla.className = "moz-rep-tabla moz-rep-tabla-detalle";
+    var head = document.createElement("div");
+    head.className = "moz-rep-tabla-fila moz-rep-tabla-head";
+    head.innerHTML = '<span>Mesa</span><span>Turno</span><span>Apertura</span><span>Cierre</span><span>Tiempo</span><span>Total</span><span>Estado</span>';
+    tabla.appendChild(head);
+    registros.forEach(function(r){
+      var fila = document.createElement("div");
+      fila.className = "moz-rep-tabla-fila";
+      if(r.estado === "anulado") fila.className += " moz-rep-fila-anulada";
+      var estadoTxt = (r.estado === "anulado") ? ("Anulada" + (r.motivoAnulado ? " (" + r.motivoAnulado + ")" : "")) : "Cerrada";
+      fila.innerHTML = '<span>Mesa ' + esc(String(r.numero)) + '</span>' +
+        '<span>' + esc(MOZOS_REPORTE_TURNO_LABEL[r.turno] || r.turno || "") + '</span>' +
+        '<span>' + esc(fmtFechaHoraMillis(r.horaApertura)) + '</span>' +
+        '<span>' + esc(fmtFechaHoraMillis(r.horaCierre)) + '</span>' +
+        '<span>' + esc(mozosReporteFmtDuracion((r.horaCierre || 0) - (r.horaApertura || 0))) + '</span>' +
+        '<span>S/' + fmtMoney(r.total || 0) + '</span>' +
+        '<span>' + esc(estadoTxt) + '</span>';
+      var accBtn = document.createElement("button");
+      accBtn.type = "button";
+      accBtn.className = "moz-rep-mini-btn";
+      if(r.estado === "anulado"){
+        accBtn.textContent = "Restaurar";
+        accBtn.addEventListener("click", function(){
+          if(!confirm("¿Restaurar esta atención (Mesa " + r.numero + ", " + nombreMozo + ")? Volverá a contar en las ventas y estadísticas del reporte.")) return;
+          mozosReporteRestaurar(r.id);
+        });
+        if(r.motivoAnulado || r.anuladoPor){
+          var infoAnulado = document.createElement("div");
+          infoAnulado.className = "moz-rep-anulado-info";
+          infoAnulado.textContent = "Anulado por " + (r.anuladoPor || "-") + (r.anuladoEn ? (" el " + fmtFechaHoraMillis(r.anuladoEn)) : "");
+          fila.appendChild(infoAnulado);
+        }
+      } else {
+        accBtn.textContent = "Anular";
+        accBtn.addEventListener("click", function(){
+          // set-2026, ajuste de Jessica: anular ya no es una acción de un solo clic -- exige
+          // confirmación explícita y un motivo obligatorio (no se puede dejar vacío), y queda
+          // registrado quién anuló y cuándo. El registro nunca se borra, solo cambia de estado
+          // (ver mozosReporteAnular) y deja de sumar en ventas/estadísticas/copa.
+          if(!confirm("¿Anular esta atención (Mesa " + r.numero + ", " + nombreMozo + ", S/" + fmtMoney(r.total || 0) + ")?\n\nEl registro NO se borra, pero deja de contar en las ventas, estadísticas y el 🏆 del turno.")) return;
+          var motivo = "";
+          while(true){
+            motivo = prompt("Motivo obligatorio de la anulación (por ejemplo: \"prueba\", \"cerrado por error\"):", motivo || "");
+            if(motivo === null) return; // canceló -- no se anula nada
+            motivo = motivo.replace(/^\s+|\s+$/g, "");
+            if(motivo) break;
+            alert("El motivo es obligatorio para anular -- escribe una razón breve.");
+          }
+          var quien = mozosGetDefault();
+          if(!quien){
+            quien = prompt("¿Quién está anulando este registro? (tu nombre)", "");
+            if(quien === null || !quien.replace(/^\s+|\s+$/g, "")) { showToast("No se anuló -- falta indicar quién anula."); return; }
+            quien = quien.replace(/^\s+|\s+$/g, "");
+          }
+          mozosReporteAnular(r.id, motivo, quien);
+        });
+      }
+      fila.appendChild(accBtn);
+      tabla.appendChild(fila);
+    });
+    det.appendChild(tabla);
+    return det;
+  }
+
+  // ---- Exportación: Excel (mismo mecanismo SheetJS que ya usa el resto de la app) ----
+  function mozosReporteExportarExcel(registros){
+    if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el generador de Excel. Revisa tu conexión e intenta de nuevo."); return; }
+    var aoa = [["Fecha", "Turno", "Mozo", "Mesa", "Apertura", "Cierre", "Tiempo", "Pedidos", "Total", "Estado"]];
+    registros.slice().sort(function(a, b){ return (a.horaApertura || 0) - (b.horaApertura || 0); }).forEach(function(r){
+      aoa.push([
+        r.fecha || "",
+        MOZOS_REPORTE_TURNO_LABEL[r.turno] || r.turno || "",
+        r.mozo || "",
+        r.numero,
+        fmtFechaHoraMillis(r.horaApertura),
+        fmtFechaHoraMillis(r.horaCierre),
+        mozosReporteFmtDuracion((r.horaCierre || 0) - (r.horaApertura || 0)),
+        r.totalComandas || 0,
+        round2(r.total || 0),
+        r.estado === "anulado" ? "Anulada" : "Cerrada"
+      ]);
+    });
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Reporte Mozos");
+    var rango = mozosReporteRangoFechas(mozosReporteRango);
+    var filename = "reporte-mozos_" + rango.desde + "_a_" + rango.hasta + ".xlsx";
+    XLSX.writeFile(wb, filename);
+  }
+
+  // ---- Exportación: Imprimir (diálogo normal del navegador, NO el puente térmico -- este
+  // reporte es una tabla para leer/archivar, no un ticket de cocina) ----
+  function mozosReporteImprimir(registros, resumen){
+    var rango = mozosReporteRangoFechas(mozosReporteRango);
+    var win = window.open("", "_blank");
+    if(!win){ showToast("El navegador bloqueó la ventana de impresión -- permite ventanas emergentes para este sitio e intenta de nuevo.", 5000); return; }
+    var filas = registros.slice().sort(function(a, b){ return (a.horaApertura || 0) - (b.horaApertura || 0); }).map(function(r){
+      return "<tr><td>" + esc(r.fecha || "") + "</td><td>" + esc(MOZOS_REPORTE_TURNO_LABEL[r.turno] || "") + "</td><td>" +
+        esc(r.mozo || "") + "</td><td>Mesa " + esc(String(r.numero)) + "</td><td>" + esc(fmtFechaHoraMillis(r.horaApertura)) +
+        "</td><td>" + esc(fmtFechaHoraMillis(r.horaCierre)) + "</td><td>" + (r.totalComandas || 0) + "</td><td>S/" +
+        fmtMoney(r.total || 0) + "</td></tr>";
+    }).join("");
+    var html = "<!doctype html><html><head><meta charset='utf-8'><title>Reporte de Mozos</title><style>" +
+      "body{font-family:Arial,sans-serif;color:#3a2415;padding:24px;}" +
+      "h1{font-size:18px;margin:0 0 4px;} .sub{color:#6b5137;margin:0 0 16px;font-size:13px;}" +
+      "table{width:100%;border-collapse:collapse;font-size:12px;} th,td{border:1px solid #ddc9a3;padding:6px 8px;text-align:left;}" +
+      "th{background:#efe2c8;} .resumen{margin:12px 0 20px;font-size:13px;}" +
+      "</style></head><body>" +
+      "<h1>Panadería Carmelitas -- Reporte de Mozos</h1>" +
+      "<p class='sub'>Del " + esc(rango.desde) + " al " + esc(rango.hasta) + " · Turno: " + esc(MOZOS_REPORTE_TURNO_LABEL[mozosReporteTurno]) + "</p>" +
+      "<p class='resumen'>Mesas atendidas: <b>" + resumen.mesas + "</b> · Pedidos/comandas: <b>" + resumen.pedidos +
+      "</b> · Venta atendida: <b>S/" + fmtMoney(resumen.venta) + "</b> · Ticket promedio: <b>S/" + fmtMoney(resumen.ticketProm) +
+      "</b> · Mozos activos: <b>" + resumen.mozosActivos + "</b></p>" +
+      "<table><thead><tr><th>Fecha</th><th>Turno</th><th>Mozo</th><th>Mesa</th><th>Apertura</th><th>Cierre</th><th>Pedidos</th><th>Total</th></tr></thead><tbody>" +
+      filas + "</tbody></table></body></html>";
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
+  }
+
+  // ---- Ítem 9: resumen compacto + copa discreta en la portada de Mesas ----
+  // Cache liviana del líder DEL TURNO ACTUAL (según la hora real de ahora, no un filtro elegido)
+  // para el día de HOY -- se recalcula solo cada 2 minutos (no en cada render de Mesas, que tiene
+  // que seguir siendo rápida) y si la consulta falla simplemente no se muestra ninguna copa: la
+  // portada de Mesas NUNCA debe trabarse ni retrasarse por esto.
+  var mozosLiderHoyCache = null;   // { turno, mozo } o null
+  var mozosLiderHoyCacheEn = 0;
+  function mozosRefrescarLiderHoyCache(){
+    if(!db) return;
+    var ahora = Date.now();
+    if(ahora - mozosLiderHoyCacheEn < 120000) return;
+    mozosLiderHoyCacheEn = ahora;
+    var hoy = todayISO();
+    var turnoActual = mozosTurnoDe(ahora);
+    db.collection("mozosHistorial").where("fecha", "==", hoy).get().then(function(snap){
+      var list = [];
+      snap.forEach(function(doc){ var d = doc.data(); if(d.estado !== "anulado" && d.turno === turnoActual) list.push(d); });
+      var porMozo = mozosReportePorMozo(list);
+      if(!porMozo.length){ mozosLiderHoyCache = null; return; }
+      var ordenado = porMozo.slice().sort(function(a, b){
+        if(b.mesas !== a.mesas) return b.mesas - a.mesas;
+        return b.venta - a.venta;
+      });
+      mozosLiderHoyCache = { turno: turnoActual, mozo: ordenado[0].mozo };
+    }).catch(function(){ /* silencioso: la copa es decorativa, nunca debe interrumpir Mesas */ });
+  }
+  function buildMozosMesasResumenCompacto(){
+    var ocupadas = 0, totalAbierto = 0;
+    for(var n = 1; n <= MOZOS_NUM_MESAS; n++){
+      var mesa = mozosGetMesa(n);
+      if(mesa.estado === "ocupada"){ ocupadas++; totalAbierto += mozosTotalMesa(mesa); }
+    }
+    var libres = MOZOS_NUM_MESAS - ocupadas;
+    var res = document.createElement("div");
+    res.className = "moz-mesas-resumen";
+    res.innerHTML = MOZOS_NUM_MESAS + " mesas · 🟢 " + ocupadas + " ocupadas · 🔴 " + libres +
+      " libres · S/" + fmtMoney(totalAbierto) + " en mesas abiertas";
+    return res;
   }
 
   // ---- Impresión de comanda (delta -- SOLO lo nuevo de esta mesa) ----
@@ -13650,8 +14354,18 @@ var TRIPLES = [
     btnComanda.textContent = "📋 Comanda";
     btnComanda.disabled = !mozosMesaActual;
     btnComanda.addEventListener("click", function(){ if(mozosMesaActual){ mozosVista = "comanda"; renderPanel(); } });
-    nav.appendChild(btnMesas); nav.appendChild(btnComanda);
+    var btnReporte = document.createElement("button");
+    btnReporte.type = "button";
+    btnReporte.className = "moz-nav-btn" + (mozosVista === "reporte" ? " active" : "");
+    btnReporte.textContent = "📊 Reporte de Mozos";
+    btnReporte.addEventListener("click", function(){ mozosVista = "reporte"; renderPanel(); });
+    nav.appendChild(btnMesas); nav.appendChild(btnComanda); nav.appendChild(btnReporte);
     wrap.appendChild(nav);
+
+    if(mozosVista === "reporte"){
+      wrap.appendChild(buildMozosReporteView());
+      return wrap;
+    }
 
     if(mesasSyncError || !mesasCargadas){
       var err = document.createElement("div");
@@ -13696,7 +14410,9 @@ var TRIPLES = [
   }
 
   function buildMozosMesasView(){
+    mozosRefrescarLiderHoyCache();
     var box = document.createElement("div");
+    box.appendChild(buildMozosMesasResumenCompacto());
     var legend = document.createElement("div");
     legend.className = "moz-legend";
     legend.innerHTML = '<span><span class="moz-dot" style="background:var(--moz-rojo-fuerte,var(--bad))"></span>Mesa libre</span>' +
@@ -13728,7 +14444,11 @@ var TRIPLES = [
         if(mesasConFalla[numero]) html += '<div class="moz-mesa-badge-falla">⚠️ No se imprimió</div>';
         if(mesa.estado === "ocupada"){
           var minutos = mesa.horaApertura ? Math.max(0, Math.round((Date.now() - mesa.horaApertura) / 60000)) : 0;
-          html += '<div><div class="moz-mesa-meta">👤 ' + esc(mesa.mozo || "-") + ' · ⏱ ' + minutos + ' min</div>' +
+          // Copa discreta (set-2026, ítem 9): solo si este mozo es HOY el líder del turno actual
+          // (cache de mozosRefrescarLiderHoyCache, arriba) -- decorativo, nunca bloquea nada si
+          // la consulta todavía no volvió o falló (mozosLiderHoyCache queda null).
+          var esLiderAhora = mozosLiderHoyCache && mesa.mozo && mozosLiderHoyCache.mozo === mesa.mozo;
+          html += '<div><div class="moz-mesa-meta">👤 ' + esc(mesa.mozo || "-") + (esLiderAhora ? " 🏆" : "") + ' · ⏱ ' + minutos + ' min</div>' +
             '<div class="moz-mesa-total">S/' + fmtMoney(mozosTotalMesa(mesa)) + '</div></div>';
         } else {
           html += '<div class="moz-mesa-meta">Toca para abrir</div>';
