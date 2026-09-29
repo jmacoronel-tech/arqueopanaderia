@@ -13456,8 +13456,18 @@ var TRIPLES = [
   // esta función se ejecuta DESDE ADENTRO de un renderPanel() en curso (ver comentario arriba),
   // así que NUNCA debe llamar a renderPanel() ella misma -- solo prende la bandera de "cargando"
   // y dispara el fetch; el build que ya está en marcha pinta el estado de carga solo.
+  // set-2026, causa real del "Cargando reporte..." que Jessica veía sin fin: Mesas tiene un
+  // onSnapshot en vivo (attachMesasSync) que llama a renderPanel() cada vez que CUALQUIER mesa
+  // cambia en toda la panadería -- algo que en un día con movimiento pasa todo el tiempo. Cada uno
+  // de esos renders volvía a pasar por acá, y como esta función no revisaba si YA habíamos
+  // terminado en error, disparaba de nuevo el fetch fallido una y otra vez, sin parar jamás en el
+  // aviso "No se pudo cargar el reporte / Reintentar" el tiempo suficiente para que se llegue a
+  // ver -- por fuera se sentía como si nunca terminara de cargar. Ahora, una vez que se llega a un
+  // error, esta función ya NO reintenta sola en cada render ajeno -- el usuario decide cuándo
+  // reintentar con el botón "🔄 Reintentar" (que llama a mozosReporteCargar(), fuera de acá).
   function mozosReporteAsegurarCargado(){
     if(!db) return;
+    if(mozosReporteError) return;
     var rango = mozosReporteRangoFechas(mozosReporteRango);
     var clave = rango.desde + "|" + rango.hasta;
     if(mozosReporteRangoCargado === clave || mozosReporteCargando) return;
