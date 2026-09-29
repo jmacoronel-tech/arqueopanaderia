@@ -13391,15 +13391,37 @@ var TRIPLES = [
     if(rango === "personalizado") return { desde: mozosReportePersonalDesde || hoy, hasta: mozosReportePersonalHasta || hoy };
     return { desde: hoy, hasta: hoy };
   }
-  function mozosReporteCargar(){
-    if(!db){ showToast("No hay conexión con la base de datos todavía."); return; }
+  // set-2026, arreglo de un bug real que reportó Jessica (pantalla duplicada + "Cargando
+  // reporte..." que nunca termina): mozosReporteAsegurarCargado() se llama DESDE ADENTRO de
+  // buildMozosReporteView(), que a su vez se llama desde ADENTRO de renderPanel() (todavía a
+  // medio construir el panel). Si esa función disparaba directo un renderPanel() para mostrar
+  // "Cargando...", ese renderPanel() quedaba anidado DENTRO del renderPanel() de afuera que
+  // todavía no había terminado de armar/pegar su propio contenido -- resultado: dos copias de
+  // toda la pestaña (tabs + filtros) pegadas una sobre otra en el panel. Por eso ahora el fetch
+  // real vive en mozosReporteEjecutarCarga(), sin ningún renderPanel() propio hasta que la
+  // consulta termina; quien SÍ necesita pintar "Cargando..." de inmediato (un clic del usuario en
+  // un chip, en "Buscar" o en "Reintentar", que pasa FUERA de un render en curso) lo hace desde
+  // mozosReporteCargar(), y quien dispara la carga automática DURANTE un render en curso
+  // (mozosReporteAsegurarCargado) solo prende la bandera -- el build que ya está en marcha la lee
+  // solo, sin necesidad de otro renderPanel() anidado.
+  function mozosReporteEjecutarCarga(){
     var rango = mozosReporteRangoFechas(mozosReporteRango);
-    if(rango.desde > rango.hasta){ showToast("La fecha \"Desde\" no puede ser después de \"Hasta\"."); return; }
-    mozosReporteCargando = true;
-    mozosReporteError = false;
-    mozosReporteMozoSeleccionado = null;
-    renderPanel();
+    var yaResolvio = false;
+    // Salvavidas: si la consulta real se cae o se queda colgada (por ejemplo permisos de
+    // Firestore que todavía no incluyen la colección nueva "mozosHistorial"), después de 15s se
+    // muestra el error con "Reintentar" en vez de dejar la rueda de "Cargando..." girando para
+    // siempre.
+    var timeoutId = setTimeout(function(){
+      if(yaResolvio) return;
+      yaResolvio = true;
+      mozosReporteCargando = false;
+      mozosReporteError = true;
+      renderPanel();
+    }, 15000);
     db.collection("mozosHistorial").where("fecha", ">=", rango.desde).where("fecha", "<=", rango.hasta).get().then(function(snap){
+      if(yaResolvio) return;
+      yaResolvio = true;
+      clearTimeout(timeoutId);
       var list = [];
       snap.forEach(function(doc){ var data = doc.data(); data.id = doc.id; list.push(data); });
       list.sort(function(a, b){ return (b.horaApertura || 0) - (a.horaApertura || 0); });
@@ -13408,17 +13430,41 @@ var TRIPLES = [
       mozosReporteCargando = false;
       renderPanel();
     }).catch(function(){
+      if(yaResolvio) return;
+      yaResolvio = true;
+      clearTimeout(timeoutId);
       mozosReporteCargando = false;
       mozosReporteError = true;
       renderPanel();
     });
   }
+  // Se llama desde un clic del usuario (chip de Fecha, "Buscar", "Reintentar") -- eso pasa FUERA
+  // de un render en curso, así que acá sí hay que forzar un renderPanel() para que "Cargando..."
+  // se vea de inmediato.
+  function mozosReporteCargar(){
+    if(!db){ showToast("No hay conexión con la base de datos todavía."); return; }
+    var rango = mozosReporteRangoFechas(mozosReporteRango);
+    if(rango.desde > rango.hasta){ showToast("La fecha \"Desde\" no puede ser después de \"Hasta\"."); return; }
+    mozosReporteCargando = true;
+    mozosReporteError = false;
+    mozosReporteMozoSeleccionado = null;
+    renderPanel();
+    mozosReporteEjecutarCarga();
+  }
   // Se llama al entrar a la pestaña y cada vez que cambia Fecha/Personalizado -- Turno NO recarga
-  // nada, se filtra en el navegador sobre lo ya traído (ver mozosReporteRegistrosVisibles).
+  // nada, se filtra en el navegador sobre lo ya traído (ver mozosReporteRegistrosVisibles). Ojo:
+  // esta función se ejecuta DESDE ADENTRO de un renderPanel() en curso (ver comentario arriba),
+  // así que NUNCA debe llamar a renderPanel() ella misma -- solo prende la bandera de "cargando"
+  // y dispara el fetch; el build que ya está en marcha pinta el estado de carga solo.
   function mozosReporteAsegurarCargado(){
+    if(!db) return;
     var rango = mozosReporteRangoFechas(mozosReporteRango);
     var clave = rango.desde + "|" + rango.hasta;
-    if(mozosReporteRangoCargado !== clave && !mozosReporteCargando) mozosReporteCargar();
+    if(mozosReporteRangoCargado === clave || mozosReporteCargando) return;
+    if(rango.desde > rango.hasta) return;
+    mozosReporteCargando = true;
+    mozosReporteError = false;
+    mozosReporteEjecutarCarga();
   }
   // Registros "reales" para estadísticas: nunca un "anulado" (prueba o cierre invalidado, ver
   // mozosReporteAnular más abajo) y, si se pide, solo el turno elegido. turnoFiltro="todo" no
@@ -13666,7 +13712,7 @@ var TRIPLES = [
     if(!porMozo.length){
       var vacio = document.createElement("div");
       vacio.className = "moz-rep-msg";
-      vacio.textContent = "No hay atenciones registradas para este período/turno todavía.";
+      vacio.textContent = "No hay atenciones para este período.";
       box.appendChild(vacio);
     } else {
       var tabla = document.createElement("div");
