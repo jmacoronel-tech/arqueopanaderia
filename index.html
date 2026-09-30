@@ -8106,7 +8106,7 @@ var TRIPLES = [
     if(draft.cliente && draft.cliente._direccionesNuevas) delete draft.cliente._direccionesNuevas;
     pedidosSaving = true;
     renderPanel();
-    nextPedidoNumero(draft.canal).then(function(numero){
+    conReintentos(function(){ return nextPedidoNumero(draft.canal); }).then(function(numero){
       var payload = {
         canal: draft.canal,
         origen: draft.origen || "whatsapp",
@@ -8143,7 +8143,7 @@ var TRIPLES = [
       payload.tiempoPreparacionMin = null;
       payload.tiempoDeliveryMin = null;
       payload.tiempoTotalMin = null;
-      return db.collection("pedidos").add(payload).then(function(docRef){
+      return conReintentos(function(){ return db.collection("pedidos").add(payload); }).then(function(docRef){
         pedidosSaving = false;
         upsertCliente(payload.cliente, direccionesNuevasParaCliente);
         pedidoRegistrarResponsable(payload.atendidoPor);
@@ -8461,6 +8461,24 @@ var TRIPLES = [
   // prefijo de canal (T-0001, D-0001, M-0001).
   var PEDIDO_NUMERO_PREFIJO = { tienda:"T", delivery:"D", masivo:"M" };
   var PEDIDO_NUMERO_CAMPO = { tienda:"ultimoTienda", delivery:"ultimoDelivery", masivo:"ultimoMasivo" };
+  // set-2026, campaña Día de la Madre: con varios cajeros guardando pedidos casi al mismo
+  // tiempo, el contador compartido (contadores/pedidos, un solo documento) puede recibir más
+  // tráfico en ráfaga del que Firestore permite para UN documento y responder momentáneamente
+  // "resource-exhausted" (429) -- no es un corte de internet real, es un tope de ráfaga que
+  // casi siempre se destraba solo si se espera un toque y se reintenta. Antes esto se le
+  // mostraba de inmediato como error al cajero, obligándolo a reintentar a mano. Ahora
+  // savePedido() reintenta esto solo, en silencio (con espera creciente entre intento e
+  // intento), antes de rendirse y recién ahí avisarle a alguien.
+  function conReintentos(fn, intentosRestantes, esperaMs){
+    intentosRestantes = (intentosRestantes == null) ? 3 : intentosRestantes;
+    esperaMs = (esperaMs == null) ? 1500 : esperaMs;
+    return fn().catch(function(err){
+      if(intentosRestantes <= 0) throw err;
+      return new Promise(function(resolve){ setTimeout(resolve, esperaMs); }).then(function(){
+        return conReintentos(fn, intentosRestantes - 1, esperaMs * 2);
+      });
+    });
+  }
   function nextPedidoNumero(canal){
     var prefijo = PEDIDO_NUMERO_PREFIJO[canal] || "D";
     var campo = PEDIDO_NUMERO_CAMPO[canal] || "ultimoDelivery";
