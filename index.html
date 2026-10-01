@@ -895,6 +895,10 @@
   .moz-mozo-field{ display:flex; align-items:center; gap:.5rem; margin-left:auto; }
   .moz-mozo-field label{ font-size:.78rem; color:var(--ink-soft); font-weight:700; }
   .moz-mozo-field input{ border:1px solid var(--border); background:var(--surface); border-radius:var(--radius-sm); padding:.55rem .7rem; font-size:.95rem; width:150px; }
+  /* set-2026, identificación de Mozos por PIN: el nombre resuelto se ve aparte (angosto no hace
+     falta, es solo texto); el input de al lado solo recibe 4 dígitos, por eso es angosto. */
+  .moz-mozo-actual{ font-size:.95rem; font-weight:700; color:var(--ink); }
+  .moz-mozo-field input.moz-mozo-pin-input{ width:70px; text-align:center; letter-spacing:.15em; }
   .moz-btn-liberar{ border:1px solid var(--border); background:var(--surface); color:var(--ink-muted); border-radius:var(--radius-sm); padding:.55rem .8rem; font-size:.8rem; font-weight:700; cursor:pointer; font-family:inherit; }
   .moz-btn-liberar:disabled, .moz-btn-enviar:disabled, .moz-btn-precuenta:disabled{ opacity:.55; cursor:not-allowed; }
   .moz-btn-liberar.pendiente-cobro{ opacity:.55; border-style:dashed; }
@@ -13310,9 +13314,40 @@ var TRIPLES = [
     });
   }
 
+  // ---- Identificación de Mozos por PIN (set-2026, pedido de Jessica) ----
+  // Antes el campo "Mozo" de la Comanda era texto libre: cualquiera podía escribir cualquier
+  // nombre (o dejarlo mal escrito/inventado), así que no había certeza real de quién abrió una
+  // mesa. Ahora cada mozo tiene un PIN de 4 dígitos propio -- lo escribe para identificarse y el
+  // sistema resuelve su nombre real (ver mozosNombrePorPin/MOZOS_PINES). A diferencia de Caja
+  // Cajeros (CAJERO_CLAVES), esto NO restringe lo que cada mozo ve o puede hacer -- todas las
+  // mesas siguen siendo compartidas igual que antes, el PIN es solo para que quede registrado
+  // con certeza quién es quién (abrió la mesa, mandó la comanda, anuló un registro, etc.).
+  // Si cambia el equipo, se actualiza esta lista a pedido de Jessica (igual que
+  // CAJERO_NOMBRES_REALES/CAJERO_CLAVES).
+  var MOZOS_PINES = {
+    "Sandra": "4821",
+    "José": "7193",
+    "Juan": "3056",
+    "Leo": "9247",
+    "July": "5638",
+    "Marcelo": "2904",
+    "Lucero": "6715"
+  };
+  var MOZOS_NOMBRES_REALES = ["Sandra", "José", "Juan", "Leo", "July", "Marcelo", "Lucero"];
+  // Resuelve un PIN de 4 dígitos al nombre real del mozo, o "" si no calza con ninguno (PIN mal
+  // escrito o inventado). Comparación exacta, nada de adivinar por parecido -- un PIN o es el
+  // correcto o no identifica a nadie.
+  function mozosNombrePorPin(pin){
+    var limpio = String(pin || "").trim();
+    if(!/^\d{4}$/.test(limpio)) return "";
+    return Object.keys(MOZOS_PINES).filter(function(n){ return MOZOS_PINES[n] === limpio; })[0] || "";
+  }
+
   // "Mozo" recordado en este aparato (mismo mecanismo que pedidoGetAtendidoDefault/
   // pedidoSetAtendidoDefault más arriba, para "Atendido por" de Pedidos) -- así no hay que
-  // volver a escribir el nombre cada vez que se abre una mesa nueva desde el mismo tablet.
+  // volver a identificarse cada vez que se abre una mesa nueva desde el mismo tablet. Guarda
+  // el NOMBRE ya resuelto (nunca el PIN) -- solo llega acá después de que mozosCambiarMozo
+  // confirmó el PIN contra MOZOS_PINES, así que lo que queda recordado siempre es un mozo real.
   function mozosGetDefault(){
     try{ return sessionStorage.getItem("arqueo_mozo_default") || ""; }catch(e){ return ""; }
   }
@@ -14028,11 +14063,14 @@ var TRIPLES = [
             if(motivo) break;
             alert("El motivo es obligatorio para anular -- escribe una razón breve.");
           }
+          // set-2026: igual que en la Comanda, quién anula se identifica por PIN -- nunca se
+          // vuelve a escribir un nombre a mano (ver mozosNombrePorPin/MOZOS_PINES).
           var quien = mozosGetDefault();
           if(!quien){
-            quien = prompt("¿Quién está anulando este registro? (tu nombre)", "");
-            if(quien === null || !quien.replace(/^\s+|\s+$/g, "")) { showToast("No se anuló -- falta indicar quién anula."); return; }
-            quien = quien.replace(/^\s+|\s+$/g, "");
+            var pinQuien = prompt("Este aparato todavía no tiene un mozo identificado. Escribe tu PIN de 4 dígitos para anular:", "");
+            if(pinQuien === null) return; // canceló -- no se anula nada
+            quien = mozosNombrePorPin(pinQuien.replace(/^\s+|\s+$/g, ""));
+            if(!quien){ showToast("PIN no reconocido -- no se anuló nada."); return; }
           }
           mozosReporteAnular(r.id, motivo, quien);
         });
@@ -14785,10 +14823,37 @@ var TRIPLES = [
     var mozoField = document.createElement("div");
     mozoField.className = "moz-mozo-field";
     var lbl = document.createElement("label"); lbl.textContent = "Mozo";
+    // set-2026, pedido de Jessica: ya no se escribe el nombre libremente -- cada mozo tiene un
+    // PIN de 4 dígitos (ver MOZOS_PINES) para identificarse. El nombre ya resuelto se muestra
+    // aparte en .moz-mozo-actual (así se ve de un vistazo quién tiene la mesa); el input solo
+    // recibe el PIN para asignarse o cambiar de mozo, y empieza vacío siempre -- nunca muestra
+    // el PIN de quien ya está en la mesa.
+    var mozoActual = document.createElement("span");
+    mozoActual.className = "moz-mozo-actual";
+    mozoActual.textContent = mesa.mozo || "Sin asignar";
     var mozoInput = document.createElement("input");
-    mozoInput.type = "text"; mozoInput.value = mesa.mozo || ""; mozoInput.placeholder = "Nombre";
-    mozoInput.addEventListener("change", function(){ mozosCambiarMozo(numero, mozoInput.value.trim()); });
-    mozoField.appendChild(lbl); mozoField.appendChild(mozoInput);
+    mozoInput.type = "tel";
+    mozoInput.inputMode = "numeric";
+    mozoInput.maxLength = 4;
+    mozoInput.autocomplete = "off";
+    mozoInput.className = "moz-mozo-pin-input";
+    mozoInput.placeholder = "PIN";
+    mozoInput.addEventListener("input", function(){
+      mozoInput.value = mozoInput.value.replace(/\D/g, "").slice(0, 4);
+    });
+    mozoInput.addEventListener("change", function(){
+      var pin = mozoInput.value.trim();
+      mozoInput.value = "";
+      if(!pin) return;
+      var nombre = mozosNombrePorPin(pin);
+      if(!nombre){
+        showToast("PIN no reconocido -- pídele a Jessica que te confirme tu PIN.", 4000);
+        return;
+      }
+      mozosCambiarMozo(numero, nombre);
+      mozoActual.textContent = nombre;
+    });
+    mozoField.appendChild(lbl); mozoField.appendChild(mozoActual); mozoField.appendChild(mozoInput);
     head.appendChild(mozoField);
 
     var liberar = document.createElement("button");
