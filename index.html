@@ -265,6 +265,9 @@
   .stat-tile-value{ font-size:1.4rem; font-weight:700; color:var(--ink); font-family:"Fraunces", Georgia, serif; line-height:1.1; }
   .stat-tile-value.bad{ color:var(--bad); }
   .stat-tile-value.good{ color:var(--good); }
+  /* set-2026, candado de pago/crédito: azul para "A crédito", distinto de "bad" (falta pagar,
+     rojo) y "good" (pagado, verde) -- un cliente a crédito autorizado NO es un problema. */
+  .stat-tile-value.credito{ color:#1a5fb4; }
   .stat-tile-sub{ font-size:.74rem; color:var(--ink-soft); margin-top:.2rem; font-weight:600; }
 
   /* Barra de controles agrupados (set-2026, "REORGANIZACIÓN VISUAL -- MÓDULO PEDIDOS") --
@@ -398,6 +401,9 @@
   .chip{ font-size:.74rem; font-weight:700; border-radius:999px; padding:.2rem .6rem; white-space:nowrap; }
   .chip.good{ background:var(--good-soft); color:var(--good); }
   .chip.bad{ background:var(--bad-soft); color:var(--bad); }
+  /* set-2026, estado comercial de 3 vías (candado de pago/crédito): azul para "a crédito
+     autorizado" -- no es ni un problema (bad/rojo) ni dinero ya cobrado (good/verde). */
+  .chip.credito{ background:#dce8fb; color:#1a5fb4; }
   /* Jessica: "en la sección de pedidos donde dice pagado que se vea muy grande visible" --
      este chip en particular (Pagado/Pendiente en Todos los pedidos) sale más grande y más
      grueso que el resto de chips de la app, para que se note de un vistazo en la lista. */
@@ -624,8 +630,28 @@
      la tarjeta, aviso y botón para marcar pagado ahí mismo sin salir de Despacho. */
   .desp-sinpago-tag{ background:var(--bad-soft); color:var(--bad); }
   .desp-sinpago-tag .dot{ display:none; }
+  /* set-2026, candado obligatorio de pago: mismo tratamiento visual "bloqueado" que
+     .desp-sinpago-tag pero en ámbar, para distinguir a simple vista "falta pago" (rojo) de
+     "hora de entrega vencida, falta reprogramar" (ámbar) -- ambos son motivoBloqueo, pero con
+     una acción distinta para destrabarlos. */
+  .desp-vencida-tag{ background:var(--warn-soft); color:var(--warn); }
+  .desp-vencida-tag .dot{ display:none; }
+  /* set-2026, corrección del candado por hora vencida: estos dos YA NO bloquean nada -- son solo
+     aviso de a quién corresponde el atraso en un pedido que ya está en producción/listo.
+     Recojo en tienda = ámbar (mismo tono que "hora vencida", es informativo no urgente -- el
+     atraso es del cliente). Delivery = rojo (el atraso es del reparto, requiere actuar). */
+  .desp-esperando-recojo-tag{ background:var(--warn-soft); color:var(--warn); }
+  .desp-delivery-atrasado-tag{ background:var(--bad-soft); color:var(--bad); }
   .desp-bloqueo-nota{ font-size:.76rem; color:var(--bad); background:var(--bad-soft); border-radius:var(--radius-sm); padding:.55rem .65rem; margin-bottom:.6rem; line-height:1.35; font-weight:600; }
   .desp-btn-pagar{ flex:1.6; background:var(--warn-soft); color:var(--warn); border:1.3px solid var(--warn); }
+  /* set-2026, "Producción por día" -- bloque de pedidos impagos (candado obligatorio de pago):
+     mismo rojo que .desp-sinpago-tag para que a simple vista se note que es un bloque de alerta,
+     separado de la tabla de totales confirmados. */
+  .desp-pendientes-pago-card{ border:1.3px solid var(--bad); }
+  .desp-pendientes-pago-list{ display:flex; flex-direction:column; gap:.5rem; }
+  .desp-pendientes-pago-item{ display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; text-align:left; width:100%; background:var(--bad-soft); border:1.3px solid var(--bad); border-radius:var(--radius-sm); padding:.6rem .7rem; font-size:.85rem; color:var(--ink); cursor:pointer; }
+  .desp-pendientes-pago-item:hover{ filter:brightness(.97); }
+  .desp-pendientes-pago-tag{ margin-left:auto; font-size:.72rem; font-weight:700; color:var(--bad); background:var(--surface); border-radius:999px; padding:.2rem .55rem; }
 
   .desp-empty{ color:var(--ink-muted); font-size:.9rem; padding:1.4rem 0; text-align:center; }
 
@@ -5651,6 +5677,128 @@ var TRIPLES = [
     }
   }
 
+  // ---------- Crédito autorizado: vive en la FICHA del cliente, no en el pedido (set-2026,
+  // "CONTROL DE PAGO, CRÉDITO Y REPORTES — AJUSTE INTEGRAL") ----------
+  // Antes, el único dato de crédito era p.cliente.diasCredito: un campo suelto que cualquiera
+  // que tomara un pedido podía poner en 7 o 15 con un clic (el selector Contado/7 días/15 días
+  // del asistente), y eso YA bastaba para saltarse el candado de pago (ver pedidoNecesitaPagoPrevio
+  // más abajo, como estaba antes). Jessica fue explícita: "no quiero que cualquier trabajador
+  // pueda convertir manualmente un pedido impago en crédito para saltarse el bloqueo" -- el
+  // crédito tiene que estar autorizado en la ficha del cliente (colección "clientes"), no en
+  // cada pedido suelto. Estos dos campos son NUEVOS y viven ahí: tieneCredito (true/false) y
+  // plazoCredito (número de días) -- se autorizan una sola vez desde "Ver detalle" (ver
+  // clienteAutorizarCredito más abajo), nunca desde el formulario de Pedidos. El viejo
+  // p.cliente.diasCredito de cada pedido NO se toca ni se borra -- sigue sirviendo para lo que
+  // ya servía antes de este cambio (el plazo histórico impreso y pedidoVencimiento en Cuentas
+  // por Cobrar de pedidos ya tomados); simplemente deja de ser, por sí solo, un salvoconducto
+  // para saltarse el candado de producción.
+  function normalizeRucDni(v){
+    return String(v == null ? "" : v).replace(/[^0-9A-Za-z]/g, "").toUpperCase();
+  }
+  function findClienteByRuc(ruc){
+    var target = normalizeRucDni(ruc);
+    if(!target) return null;
+    var map = CLIENTES || {};
+    var found = null;
+    Object.keys(map).forEach(function(id){
+      if(found) return;
+      if(map[id].ruc && normalizeRucDni(map[id].ruc) === target){ found = { id:id, data:map[id] }; }
+    });
+    return found;
+  }
+  // Ficha real del cliente de este pedido -- por RUC primero (Jessica: "preferentemente
+  // asociado a su RUC", más confiable porque el nombre se puede repetir o escribir distinto),
+  // por nombre como respaldo si el pedido no tiene RUC. null si no se encuentra ficha (CLIENTES
+  // puede seguir cargando, o el cliente nunca se guardó con ese RUC/nombre) -- en ese caso NO
+  // se asume nada sobre su crédito (ver pedidoCreditoAutorizadoDias).
+  function clienteFichaDelPedido(p){
+    var c = (p && p.cliente) || {};
+    var match = (c.ruc && String(c.ruc).trim()) ? findClienteByRuc(c.ruc) : null;
+    if(!match && c.nombre) match = findClienteByNombre(c.nombre);
+    return match ? match.data : null;
+  }
+  // Plazo de crédito AUTORIZADO en días, o null si el cliente no tiene crédito autorizado en su
+  // ficha -- o si no se puede determinar con certeza (sin ficha clara). Nunca se asume: esta es
+  // la única función que debe usarse para decidir si un pedido puede pasar a producción sin
+  // pago, y para clasificar un pedido como "a crédito" en reportes -- así el dato nunca se
+  // desincroniza entre el candado, los reportes y lo impreso.
+  function pedidoCreditoAutorizadoDias(p){
+    var ficha = clienteFichaDelPedido(p);
+    if(!ficha || !ficha.tieneCredito) return null;
+    var plazo = num(ficha.plazoCredito);
+    return (plazo > 0) ? plazo : null;
+  }
+  // Estado comercial único del pedido -- fuente de verdad reutilizada en TODOS lados (candado de
+  // producción, impresión/vista previa/PDF, Pedidos Tomados, Ver detalle, Cuentas por Cobrar)
+  // para que nunca existan estados contradictorios entre pantallas (Jessica, punto 1 del ajuste
+  // integral). "credito" solo sale con pedidoCreditoAutorizadoDias(p) != null -- un cliente
+  // normal sin ficha autorizada, aunque tenga diasCredito puesto en el pedido, cae en "falta".
+  var PEDIDO_COMERCIAL_PAGADO = "pagado";
+  var PEDIDO_COMERCIAL_CREDITO = "credito";
+  var PEDIDO_COMERCIAL_FALTA = "falta";
+  function pedidoEstadoComercial(p){
+    if(p.pagado) return { codigo:PEDIDO_COMERCIAL_PAGADO, dias:null };
+    var dias = pedidoCreditoAutorizadoDias(p);
+    if(dias != null) return { codigo:PEDIDO_COMERCIAL_CREDITO, dias:dias };
+    return { codigo:PEDIDO_COMERCIAL_FALTA, dias:null };
+  }
+  // Texto exacto para lo IMPRESO (orden impresa, vista previa y PDF comparten esta misma tarjeta
+  // -- ver buildPedidoPrintCardHTML/pedidoInfoRowsHTML) -- sin emoji, mismo estilo de siempre
+  // (texto chico en negrita de color). Jessica, punto 11: "Pagado: PAGADO / Crédito autorizado:
+  // CRÉDITO A X DÍAS / Sin pago y sin crédito: PENDIENTE DE PAGO" -- usando el plazo REAL
+  // configurado para ese cliente, nunca "15 días" fijo para todos.
+  function pedidoEstadoComercialImpreso(p){
+    var e = pedidoEstadoComercial(p);
+    if(e.codigo === PEDIDO_COMERCIAL_PAGADO) return { texto:"PAGADO", color:"#2f7a4d" };
+    if(e.codigo === PEDIDO_COMERCIAL_CREDITO) return { texto:"CRÉDITO A " + e.dias + " DÍAS", color:"#1a5fb4" };
+    return { texto:"PENDIENTE DE PAGO", color:"#cc0000" };
+  }
+  // Insignia con emoji para pantalla (Ver detalle, Pedidos Tomados, resumen por persona, etc.).
+  function pedidoEstadoComercialBadge(p){
+    var e = pedidoEstadoComercial(p);
+    if(e.codigo === PEDIDO_COMERCIAL_PAGADO) return { texto:"🟢 PAGADO", cls:"good" };
+    if(e.codigo === PEDIDO_COMERCIAL_CREDITO) return { texto:"🔵 CRÉDITO " + e.dias + " DÍAS", cls:"credito" };
+    return { texto:"🔴 FALTA PAGAR", cls:"bad" };
+  }
+  // Autoriza (o quita) el crédito de la FICHA del cliente -- único lugar donde se puede tocar
+  // tieneCredito/plazoCredito, siempre a propósito y nunca como efecto secundario de guardar un
+  // pedido. Busca por RUC primero, por nombre si no hay RUC; si el cliente todavía no tiene
+  // ficha guardada, se crea una (necesita al menos el nombre). Reutiliza exactamente la misma
+  // colección "clientes" y el mismo patrón de upsertCliente -- no crea ningún módulo nuevo.
+  function clienteAutorizarCredito(p){
+    if(!db) return;
+    var c = (p && p.cliente) || {};
+    var match = (c.ruc && String(c.ruc).trim()) ? findClienteByRuc(c.ruc) : null;
+    if(!match && c.nombre) match = findClienteByNombre(c.nombre);
+    if(!match && (!c.nombre || !c.nombre.trim())){
+      alert("Este pedido no tiene nombre ni RUC de cliente -- no se puede autorizar crédito sin poder identificar a quién.");
+      return;
+    }
+    var fichaActual = match ? match.data : {};
+    var yaAutorizado = !!fichaActual.tieneCredito;
+    var plazoActual = num(fichaActual.plazoCredito) || 15;
+    if(yaAutorizado){
+      if(!confirm('Este cliente YA tiene crédito autorizado a ' + plazoActual + ' días. ¿Quitarle la autorización de crédito?')) return;
+      var payloadQuitar = { tieneCredito:false };
+      if(match) db.collection("clientes").doc(match.id).update(payloadQuitar).catch(function(){ alert("No se pudo guardar. Intenta de nuevo."); });
+      return;
+    }
+    var plazoTxt = prompt('Plazo de crédito autorizado para "' + (c.nombre || "este cliente") + '" (en días, ej. 15):', String(plazoActual));
+    if(plazoTxt === null) return;
+    var plazo = parseInt(String(plazoTxt).trim(), 10);
+    if(!(plazo > 0)){
+      alert("Plazo inválido. Escribe un número de días mayor a 0.");
+      return;
+    }
+    var payload = { tieneCredito:true, plazoCredito:plazo, nombre:(c.nombre||"").trim(), ruc:c.ruc||"", creditoAutorizadoEn:Date.now() };
+    if(match){
+      db.collection("clientes").doc(match.id).update(payload).catch(function(){ alert("No se pudo guardar. Intenta de nuevo."); });
+    } else {
+      payload.dni = c.dni || ""; payload.telefono = c.telefono || ""; payload.direccion = c.direccion || "";
+      db.collection("clientes").add(payload).catch(function(){ alert("No se pudo guardar. Intenta de nuevo."); });
+    }
+  }
+
   // Clave aparte para entrar a Pedidos: acá se manejan pedidos que el cliente ya pagó,
   // así que aunque cualquiera con la clave general puede ver el arqueo del día, hace falta
   // esta segunda clave para entrar, ver, borrar o cambiar algo en Pedidos.
@@ -6144,6 +6292,53 @@ var TRIPLES = [
     });
     creditoField.appendChild(creditoToggle);
     grid.appendChild(creditoField);
+    card.appendChild(grid);
+
+    // Autorización de crédito de la FICHA del cliente -- OJO: esto es DISTINTO del selector
+    // "Contado / 7 días / 15 días" de arriba. Ese selector es un dato informativo/histórico del
+    // pedido y NO autoriza nada por sí solo (de hecho ya no permite saltarse el candado de
+    // producción). Lo que de verdad autoriza a producir con crédito es esta ficha del cliente
+    // (tieneCredito/plazoCredito), que Jessica pidió que sea accesible y clara desde acá mismo
+    // -- "hazlo accesible de forma clara desde la ficha/detalle del cliente o desde este pedido"
+    // -- en vez de solamente en el modal de "Ver detalle" de Despacho, donde no lo encontraba.
+    var credFichaWrap = document.createElement("div");
+    credFichaWrap.style.margin = "0 0 1rem";
+    credFichaWrap.style.padding = ".7rem .9rem";
+    credFichaWrap.style.border = "1px solid #c9d6ea";
+    credFichaWrap.style.borderRadius = "8px";
+    credFichaWrap.style.background = "#eef3fb";
+    function renderCredFichaWrap(){
+      credFichaWrap.innerHTML = "";
+      var fichaCred = clienteFichaDelPedido({ cliente: draft.cliente });
+      var estLine = document.createElement("div");
+      estLine.style.fontWeight = "600";
+      estLine.style.marginBottom = ".45rem";
+      if(fichaCred && fichaCred.tieneCredito){
+        estLine.innerHTML = "Crédito del cliente: <span style=\"color:#1a5fb4;\">🔵 AUTORIZADO · " + num(fichaCred.plazoCredito) + " DÍAS</span>";
+      } else {
+        estLine.innerHTML = "Crédito del cliente: <span style=\"color:#667085;\">⚪ Sin autorizar</span>";
+      }
+      credFichaWrap.appendChild(estLine);
+      var credBtn = document.createElement("button");
+      credBtn.type = "button";
+      credBtn.className = "btn btn-sm";
+      credBtn.textContent = (fichaCred && fichaCred.tieneCredito)
+        ? "💳 Crédito autorizado (" + num(fichaCred.plazoCredito) + " días) — quitar"
+        : "💳 Autorizar crédito de este cliente";
+      if(readOnly) credBtn.disabled = true;
+      credBtn.addEventListener("click", function(){
+        clienteAutorizarCredito({ cliente: draft.cliente });
+        setTimeout(renderCredFichaWrap, 300);
+      });
+      credFichaWrap.appendChild(credBtn);
+      var credHint = document.createElement("div");
+      credHint.className = "hint";
+      credHint.style.margin = ".4rem 0 0";
+      credHint.textContent = "Esto autoriza el crédito en la FICHA del cliente (no en este pedido suelto). El selector \"Contado / 7 días / 15 días\" de arriba es solo informativo y no autoriza producción con crédito por sí solo.";
+      credFichaWrap.appendChild(credHint);
+    }
+    renderCredFichaWrap();
+    card.appendChild(credFichaWrap);
 
     if(draft.canal === "delivery"){
       grid.appendChild(buildField("Monto delivery (S/)", "number", draft.deliveryMonto, function(v){
@@ -6157,7 +6352,6 @@ var TRIPLES = [
         updatePedidoTotals(totalsRow);
       }));
     }
-    card.appendChild(grid);
 
     var fechaHoraWrap = document.createElement("div");
     fechaHoraWrap.style.display = "flex";
@@ -6850,7 +7044,7 @@ var TRIPLES = [
         pwFieldHtml("Teléfono", "pwClTel", c.telefono, "telefono") +
         pwFieldHtml("Correo", "pwClCorreo", c.correo, "correo") +
         '</div>' +
-        pwCreditoHtml();
+        pwCreditoHtml() + pwCreditoFichaHtml();
       return html;
     }
     var q = pedidoWizClienteBuscar;
@@ -6885,6 +7079,34 @@ var TRIPLES = [
         return '<button type="button" class="shift-btn' + (cur === p[0] ? " active" : "") + ' pw-credito-btn" data-dias="' + p[0] + '">' + p[1] + '</button>';
       }).join("") + '</div></div>';
   }
+  // Autorización de crédito de la FICHA del cliente -- mismo control que ya existe en "Editar
+  // pedido" (ver pwCreditoFichaHtml/renderCredFichaWrap allá), ahora también aquí en el
+  // asistente de "Nuevo pedido" (paso "Cliente") -- antes solo estaba en el modal de Despacho y
+  // luego en Editar pedido, pero nunca en este asistente de 9 pasos, que es por donde se crean
+  // los pedidos nuevos. DISTINTO del selector "Contado/7/15 días" de pwCreditoHtml: ese es solo
+  // informativo y no autoriza nada por sí solo.
+  function pwCreditoFichaHtml(){
+    var draft = pedidoDraft;
+    var fichaCred = clienteFichaDelPedido({ cliente: draft.cliente });
+    var autorizado = !!(fichaCred && fichaCred.tieneCredito);
+    var estTxt = autorizado ? ("🔵 AUTORIZADO · " + num(fichaCred.plazoCredito) + " DÍAS") : "⚪ Sin autorizar";
+    var btnTxt = autorizado
+      ? ("💳 Crédito autorizado (" + num(fichaCred.plazoCredito) + " días) — quitar")
+      : "💳 Autorizar crédito de este cliente";
+    return '<div class="pw-credito-ficha-box" style="margin-top:.9rem; padding:.7rem .9rem; border:1px solid #c9d6ea; border-radius:8px; background:#eef3fb;">' +
+      '<div style="font-weight:600; margin-bottom:.45rem;">Crédito del cliente: <span style="color:' + (autorizado ? "#1a5fb4" : "#667085") + ';">' + estTxt + '</span></div>' +
+      '<button type="button" class="btn btn-sm pw-credito-ficha-btn">' + esc(btnTxt) + '</button>' +
+      '<div class="hint" style="margin:.4rem 0 0;">Esto autoriza el crédito en la FICHA del cliente (no en este pedido suelto). El selector "Contado / 7 días / 15 días" de arriba es solo informativo y no autoriza producción con crédito por sí solo.</div>' +
+      '</div>';
+  }
+  function pwWireCreditoFichaBtn(body){
+    var btn = body.querySelector(".pw-credito-ficha-btn");
+    if(!btn) return;
+    btn.addEventListener("click", function(){
+      clienteAutorizarCredito({ cliente: pedidoDraft.cliente });
+      setTimeout(function(){ pedidoWizRenderStepOnly(); }, 300);
+    });
+  }
   function pedidoWizRenderClienteNuevo(){
     var draft = pedidoDraft;
     var c = draft.cliente;
@@ -6916,6 +7138,7 @@ var TRIPLES = [
       html += '<div class="pw-dup-warning">⚠️ Ya existe un cliente con estos datos: <b>' + esc(dup.data.nombre) + '</b> (' + esc(dup.data.telefono || "") + ').' +
         '<div style="margin-top:.5rem;"><button type="button" class="btn btn-primary pw-usar-existente-btn" data-id="' + esc(dup.id) + '">Usar este cliente existente</button></div></div>';
     }
+    if(c.nombre && c.nombre.trim()) html += pwCreditoFichaHtml();
     html += '<div class="pw-divider-or">o</div><button type="button" class="btn btn-sm pw-buscar-existente-btn" style="width:100%;">← Buscar un cliente existente</button>';
     return html;
   }
@@ -6970,6 +7193,7 @@ var TRIPLES = [
         body.querySelectorAll(".pw-credito-btn").forEach(function(btn){
           btn.addEventListener("click", function(){ draft.cliente.diasCredito = +btn.getAttribute("data-dias"); renderPanel(); });
         });
+        pwWireCreditoFichaBtn(body);
         return;
       }
       var buscarInput = body.querySelector(".pw-cliente-buscar-input");
@@ -7015,6 +7239,7 @@ var TRIPLES = [
       body.querySelectorAll(".pw-credito-btn").forEach(function(btn){
         btn.addEventListener("click", function(){ draft.cliente.diasCredito = +btn.getAttribute("data-dias"); renderPanel(); });
       });
+      pwWireCreditoFichaBtn(body);
       var usarExistenteBtn = body.querySelector(".pw-usar-existente-btn");
       if(usarExistenteBtn) usarExistenteBtn.addEventListener("click", function(){
         var id = usarExistenteBtn.getAttribute("data-id");
@@ -7621,7 +7846,12 @@ var TRIPLES = [
         (draft.canal === "masivo" ? ' <span class="pw-muted">(' + esc(fmtFechaCorta(it.fecha)) + ')</span>' : "") + '</span><span>S/ ' + fmt(num(it.cantidad) * num(it.precio)) + '</span></div>';
     }).join("");
     html += pwResumenBlock("Productos", itemsHtml || "—");
-    html += pwResumenBlock("Pago", (draft.tipoPago || "—") + '<span class="pw-resumen-sub">' + (draft.pagado ? "Pagado" : "Pendiente de pago") + '</span>');
+    // Mismo estado comercial que se usa en toda la app (pagado / crédito autorizado / falta
+    // pagar) -- así un cliente con crédito ya autorizado (como Mambrino) no se ve acá como
+    // "Pendiente de pago" al momento de guardar el pedido nuevo, igual que en la orden impresa.
+    var pwEstBadge = pedidoEstadoComercialBadge(draft);
+    var pwEstColor = pwEstBadge.cls === "good" ? "#2f7a4d" : (pwEstBadge.cls === "credito" ? "#1a5fb4" : "#cc0000");
+    html += pwResumenBlock("Pago", (draft.tipoPago || "—") + '<span class="pw-resumen-sub" style="color:' + pwEstColor + '; font-weight:700;">' + esc(pwEstBadge.texto) + '</span>');
     html += '<div class="field" style="margin-top:1rem;"><label>Atendido por</label><input type="text" class="pw-atendido-input" list="pedidoAtendidoList" value="' + esc(draft.atendidoPor || "") + '" placeholder="¿Quién tomó este pedido?"></div>';
     html += '<div class="field" style="margin-top:.7rem;"><label>Notas (opcional)</label><textarea class="pw-notas-input" placeholder="Cualquier detalle adicional…">' + esc(draft.notas || "") + '</textarea></div>';
     html += '<div class="pw-total-line" style="font-size:1.05rem; margin-top:1rem;"><span>Total</span><span>S/ ' + fmt(pedidoSubtotal({ items: validItems }) + pedidoDeliveryTotal(draft)) + '</span></div>';
@@ -8265,6 +8495,23 @@ var TRIPLES = [
     var p = PEDIDOS && PEDIDOS.filter(function(x){ return x.id === id; })[0];
     if(!p || !db) return;
     if(!PEDIDO_ESTADO_LABEL[nuevoEstado]) return;
+    // CANDADO OBLIGATORIO DE PAGO (set-2026, regla operativa crítica de Carmelitas): pasar a
+    // EN_PREPARACION es el paso que compromete producto, igual que "🖨️ Producción" (ver
+    // despachoEnviarProduccion) -- misma función de verdad (despachoMotivoBloqueoProduccion),
+    // para que la regla no pueda desincronizarse entre las dos. A propósito acá SÍ se revisa
+    // aunque la tarjeta de Despacho ya oculte el botón "Avanzar" en este caso (ver
+    // bloqueaEsteAvance en buildDespachoCard): esta función se puede llamar por otro camino,
+    // como el selector "Corregir estado manualmente" del detalle del pedido, y el candado tiene
+    // que rechazar el intento igual -- "el sistema debe impedir físicamente el error", no solo
+    // esconder un botón.
+    if(nuevoEstado === "EN_PREPARACION"){
+      var motivoBloqueo = despachoMotivoBloqueoProduccion(p, despachoFechaActual());
+      if(motivoBloqueo){ showToast(motivoBloqueo, 5000); return; }
+      // Candado contra doble clic/doble envío (requisito 4), compartido con
+      // despachoEnviarProduccion -- un pedido no puede tener dos acciones de producción en
+      // vuelo (imprimir Y avanzar de estado) chocando entre sí al mismo tiempo.
+      if(despachoAccionProduccionEnCurso[id]) return;
+    }
     var quien = ensureDespachoEncargado();
     if(quien === null) return; // canceló el prompt del encargado -- no se hace el cambio
     var ahora = Date.now();
@@ -8284,10 +8531,13 @@ var TRIPLES = [
       payload.tiempoDeliveryMin = Math.max(0, Math.round((ahora - salida) / 60000));
       payload.tiempoTotalMin = Math.max(0, Math.round((ahora - (p.createdAt || ahora)) / 60000));
     }
+    if(nuevoEstado === "EN_PREPARACION") despachoAccionProduccionEnCurso[id] = true;
     db.collection("pedidos").doc(id).update(payload).then(function(){
       showToast("Pedido actualizado: " + PEDIDO_ESTADO_LABEL[nuevoEstado] + ".");
     }).catch(function(){
       showToast("No se pudo actualizar el pedido. Intenta de nuevo.");
+    }).finally(function(){
+      if(nuevoEstado === "EN_PREPARACION") delete despachoAccionProduccionEnCurso[id];
     });
   }
 
@@ -8586,19 +8836,37 @@ var TRIPLES = [
         '<div style="width:130px; flex:none; font-weight:700;">' + esc(r[0]) + '</div>' +
         '<div>' + esc(r[1] || "") + '</div></div>';
     });
-    // La forma de pago (Yape, Transferencia, Efectivo…) y si ya está pagado o no van juntas
-    // y siempre visibles — a diferencia de los datos de arriba, esto sí le importa al equipo
-    // aunque no se haya llenado la forma de pago todavía.
+    // La forma de pago (Yape, Transferencia, Efectivo…) y el estado comercial del pedido van
+    // juntas y siempre visibles — a diferencia de los datos de arriba, esto sí le importa al
+    // equipo aunque no se haya llenado la forma de pago todavía.
     // Jessica probó un banner grande de PAGADO/PENDIENTE separado (como el de Entrega/Recojo)
     // y no era lo que quería ahí -- pidió dejar esto donde estaba antes, del mismo tamaño chico
     // junto a la forma de pago; lo grande y visible lo quería era el checkbox "Pagado" del
     // formulario (ver pedido-checkbox-label), no esto.
+    // CORRECCIÓN (set-2026, "CONTROL DE PAGO, CRÉDITO Y REPORTES"): antes esto solo sabía
+    // PAGADO/PENDIENTE -- un cliente con crédito autorizado (ej. Mambrino SAC) salía impreso
+    // como "Transferencia — PENDIENTE", que es incorrecto y contradice su condición real. Ahora
+    // usa pedidoEstadoComercialImpreso (misma fuente de verdad que el candado de producción):
+    // PAGADO / CRÉDITO A X DÍAS (con el plazo REAL autorizado para ESE cliente, nunca fijo) /
+    // PENDIENTE DE PAGO. El crédito se imprime en su propia línea, bien visible, en vez de
+    // meterlo apretado junto a la forma de pago -- esto SÍ es información nueva que agregar, no
+    // solo texto suelto; el resto del diseño de la orden no se toca.
     var tipoPago = p.tipoPago && String(p.tipoPago).trim() ? esc(p.tipoPago) : "—";
-    var pagadoColor = p.pagado ? "#2f7a4d" : "#cc0000";
-    var pagadoTexto = p.pagado ? "PAGADO" : "PENDIENTE";
+    var estadoImpreso = pedidoEstadoComercialImpreso(p);
+    var esCredito = estadoImpreso.texto.indexOf("CRÉDITO") === 0;
     html += '<div style="display:flex; padding:1px 0; align-items:center;">' +
       '<div style="width:130px; flex:none; font-weight:700;">FORMA DE PAGO:</div>' +
-      '<div>' + tipoPago + ' &nbsp; <span style="color:' + pagadoColor + '; font-weight:800; font-size:10px;">' + pagadoTexto + '</span></div></div>';
+      '<div>' + tipoPago +
+      (esCredito ? "" : (' &nbsp; <span style="color:' + estadoImpreso.color + '; font-weight:800; font-size:10px;">' + esc(estadoImpreso.texto) + '</span>')) +
+      '</div></div>';
+    if(esCredito){
+      // El crédito se imprime en su propia línea, bien visible -- nunca metido junto a la forma
+      // de pago -- para que nunca salga algo contradictorio como "Transferencia — PENDIENTE"
+      // para un cliente que sí tiene crédito autorizado.
+      html += '<div style="display:flex; padding:1px 0; align-items:center;">' +
+        '<div style="width:130px; flex:none;"></div>' +
+        '<div style="color:' + estadoImpreso.color + '; font-weight:800; font-size:11px;">' + esc(estadoImpreso.texto) + '</div></div>';
+    }
     return html;
   }
   // Convierte un timestamp en milisegundos (Date.now()) al formato "dd/mm/aaaa hh:mm a.m./p.m."
@@ -9285,6 +9553,13 @@ var TRIPLES = [
       var total = (p.items || []).reduce(function(s, it){ return s + num(it.cantidad) * num(it.precio); }, 0) + num(p.deliveryMonto);
       var canalLabel = CANAL_LABEL[p.canal] || p.canal;
       if(p.canal === "masivo" && p.masivoModo){ canalLabel += " (" + (p.masivoModo === "delivery" ? "Delivery" : "Recojo") + ")"; }
+      // set-2026, "CONTROL DE PAGO, CRÉDITO Y REPORTES": estadoComercial es la MISMA fuente de
+      // verdad que el candado de producción y lo impreso (pedidoEstadoComercial) -- así este
+      // reporte nunca contradice lo que diga el resto del sistema sobre si un pedido está
+      // pagado, a crédito autorizado, o falta pagar. "Pagado" se deja tal cual (ya se usaba en
+      // otros lados) por compatibilidad, pero la clasificación real para FALTA PAGAR vs A
+      // CRÉDITO usa estadoComercial.codigo, NUNCA el viejo p.cliente.diasCredito suelto.
+      var estadoComercial = pedidoEstadoComercial(p);
       rows.push({
         id: p.id,
         atendidoPor: (p.atendidoPor && String(p.atendidoPor).trim()) ? String(p.atendidoPor).trim() : "Sin especificar",
@@ -9295,7 +9570,9 @@ var TRIPLES = [
         canal: canalLabel,
         productos: productosLabel || "—",
         total: round2(total),
-        pagado: !!p.pagado
+        pagado: !!p.pagado,
+        estadoCodigo: estadoComercial.codigo,
+        estadoDias: estadoComercial.dias
       });
     });
     rows.sort(function(a, b){
@@ -9304,15 +9581,33 @@ var TRIPLES = [
     });
     return rows;
   }
+  // set-2026, punto 7 del ajuste integral: además del total de siempre, cuánto de lo que tomó
+  // cada persona quedó FALTA PAGAR (sin pago y sin crédito autorizado) y cuánto A CRÉDITO (saldo
+  // de un cliente con crédito autorizado, todavía no cobrado) -- sin mezclar ambos conceptos.
+  // Ej.: si Xiomara tomó pedidos de Mambrino (crédito autorizado), esos cuentan como "a crédito"
+  // para ella, nunca como "falta pagar".
   function pedidosTomadosResumenPorPersona(rows){
     var map = {};
     var orden = [];
     rows.forEach(function(r){
-      if(!map[r.atendidoPor]){ map[r.atendidoPor] = { pedidos:0, total:0 }; orden.push(r.atendidoPor); }
-      map[r.atendidoPor].pedidos += 1;
-      map[r.atendidoPor].total += r.total;
+      if(!map[r.atendidoPor]){
+        map[r.atendidoPor] = { pedidos:0, total:0, faltaPedidos:0, faltaTotal:0, creditoPedidos:0, creditoTotal:0 };
+        orden.push(r.atendidoPor);
+      }
+      var m = map[r.atendidoPor];
+      m.pedidos += 1;
+      m.total += r.total;
+      if(r.estadoCodigo === PEDIDO_COMERCIAL_FALTA){ m.faltaPedidos += 1; m.faltaTotal += r.total; }
+      else if(r.estadoCodigo === PEDIDO_COMERCIAL_CREDITO){ m.creditoPedidos += 1; m.creditoTotal += r.total; }
     });
-    return orden.map(function(nombre){ return { nombre:nombre, pedidos:map[nombre].pedidos, total:round2(map[nombre].total) }; });
+    return orden.map(function(nombre){
+      var m = map[nombre];
+      return {
+        nombre:nombre, pedidos:m.pedidos, total:round2(m.total),
+        faltaPedidos:m.faltaPedidos, faltaTotal:round2(m.faltaTotal),
+        creditoPedidos:m.creditoPedidos, creditoTotal:round2(m.creditoTotal)
+      };
+    });
   }
   function buildPedidosTomadosHTML(date){
     var rows = buildPedidosTomadosRows(date);
@@ -9562,16 +9857,26 @@ var TRIPLES = [
 
     var resumen = pedidosTomadosResumenPorPersona(rows);
     var totalGeneral = round2(rows.reduce(function(s, r){ return s + r.total; }, 0));
+    // set-2026, puntos 6 y 10 del ajuste integral: "Monto registrado" de arriba puede incluir
+    // pagados + a crédito + pendientes revueltos -- por eso NO es dinero ya cobrado, y se separan
+    // estos tres sin duplicar ningún monto entre ellos (estadoCodigo es uno solo por pedido, ver
+    // pedidoEstadoComercial: nunca "pagado" y "credito" a la vez).
+    var pagadoRows = rows.filter(function(r){ return r.estadoCodigo === PEDIDO_COMERCIAL_PAGADO; });
+    var creditoRows = rows.filter(function(r){ return r.estadoCodigo === PEDIDO_COMERCIAL_CREDITO; });
+    var faltaRows = rows.filter(function(r){ return r.estadoCodigo === PEDIDO_COMERCIAL_FALTA; });
+    var pagadoTotal = round2(pagadoRows.reduce(function(s, r){ return s + r.total; }, 0));
+    var creditoTotal = round2(creditoRows.reduce(function(s, r){ return s + r.total; }, 0));
+    var faltaTotal = round2(faltaRows.reduce(function(s, r){ return s + r.total; }, 0));
 
     var statRow = document.createElement("div");
     statRow.className = "stat-row";
-    function stat(label, value, iconColor, iconSvg){
+    function stat(label, value, iconColor, iconSvg, cls){
       var t = document.createElement("div");
       t.className = "stat-tile";
       if(iconSvg) t.appendChild(pedidosIconBadgeCustom(iconColor, iconSvg, true));
       var body = document.createElement("div");
       body.className = "stat-tile-body";
-      body.innerHTML = "<div class='stat-tile-label'>" + esc(label) + "</div><div class='stat-tile-value'>" + esc(value) + "</div>";
+      body.innerHTML = "<div class='stat-tile-label'>" + esc(label) + "</div><div class='stat-tile-value" + (cls ? " " + cls : "") + "'>" + esc(value) + "</div>";
       t.appendChild(body);
       return t;
     }
@@ -9581,6 +9886,12 @@ var TRIPLES = [
       "caramelo", "<circle cx='12' cy='12' r='8.2'/><path d='M12 7.5v9M9.3 15c.3 1 1.3 1.6 2.7 1.6 1.7 0 2.8-.8 2.8-2 0-1.3-1.2-1.7-2.8-2-1.6-.3-2.7-.8-2.7-2 0-1.1 1-1.9 2.7-1.9 1.3 0 2.3.5 2.6 1.4'/>"));
     statRow.appendChild(stat("Personas que tomaron pedidos", String(resumen.length),
       "mocca", "<circle cx='9' cy='8' r='3'/><path d='M3 20c0-3 2.6-5 6-5s6 2 6 5'/><circle cx='17' cy='9' r='2.3'/><path d='M15.3 13.3c2.2.5 3.6 2 4.1 3.9'/>"));
+    statRow.appendChild(stat("🟢 Pagado", pagadoRows.length + " pedidos · S/ " + fmt(pagadoTotal),
+      "espresso", "<circle cx='12' cy='12' r='8.5'/><path d='M8.5 12.5 11 15l4.5-6'/>", "good"));
+    statRow.appendChild(stat("🔵 A crédito", creditoRows.length + " pedidos · S/ " + fmt(creditoTotal),
+      "cafe", "<circle cx='12' cy='8' r='3.2'/><path d='M12 11.5v7M9 15.5h6'/>", "credito"));
+    statRow.appendChild(stat("🔴 Falta pagar", faltaRows.length + " pedidos · S/ " + fmt(faltaTotal),
+      "vainilla", "<circle cx='12' cy='12' r='8.5'/><path d='M12 7.5v6M12 16.3h.01'/>", "bad"));
     card.appendChild(statRow);
 
     var resumenTableWrap = document.createElement("div");
@@ -9592,7 +9903,12 @@ var TRIPLES = [
     resumen.forEach(function(r){
       var abierto = pedidosTomadosPersonaAbierta === r.nombre;
       var tr = document.createElement("tr");
-      tr.innerHTML = "<td><strong>" + esc(r.nombre) + "</strong></td>" +
+      // set-2026, punto 7: debajo del nombre, discreto (texto chico, no otra columna ancha), solo
+      // lo que corresponda -- si no tiene ningún pendiente ni crédito, no se muestra nada extra.
+      var subLineas = "";
+      if(r.faltaPedidos > 0) subLineas += "<div class='entrega-secundaria' style='color:var(--bad);'>🔴 " + r.faltaPedidos + " pendiente" + (r.faltaPedidos === 1 ? "" : "s") + " · S/ " + fmt(r.faltaTotal) + "</div>";
+      if(r.creditoPedidos > 0) subLineas += "<div class='entrega-secundaria' style='color:#1a5fb4;'>🔵 " + r.creditoPedidos + " a crédito · S/ " + fmt(r.creditoTotal) + "</div>";
+      tr.innerHTML = "<td><strong>" + esc(r.nombre) + "</strong>" + subLineas + "</td>" +
         "<td>" + r.pedidos + "</td>" +
         "<td>S/ " + fmt(r.total) + "</td>" +
         "<td><button type='button' class='btn btn-sm pedidos-tomados-ver-detalle' data-nombre=\"" + esc(r.nombre) + "\">" + (abierto ? "Ocultar detalle ▴" : "Ver detalle ▾") + "</button></td>";
@@ -9601,10 +9917,15 @@ var TRIPLES = [
         var detTr = document.createElement("tr");
         var detRows = rows.filter(function(x){ return x.atendidoPor === r.nombre; });
         var detHtml = "<div class='table-wrap' style='margin-top:.4rem;'><table class='data-table'>" +
-          "<thead><tr><th>N°</th><th>Hora</th><th>Cliente</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th></tr></thead><tbody>";
+          "<thead><tr><th>N°</th><th>Hora</th><th>Cliente</th><th>Canal</th><th>Productos</th><th>Total</th><th>Estado</th></tr></thead><tbody>";
         detRows.forEach(function(d){
+          // set-2026: antes solo Sí/No (binario) -- ahora el estado comercial de 3 vías, para no
+          // volver a mostrar "No" (que se lee como falta pagar) a un cliente con crédito autorizado.
+          var estTxt = d.estadoCodigo === PEDIDO_COMERCIAL_PAGADO ? "🟢 Pagado"
+            : d.estadoCodigo === PEDIDO_COMERCIAL_CREDITO ? "🔵 Crédito " + d.estadoDias + "D"
+            : "🔴 Falta pagar";
           detHtml += "<tr><td>" + esc(d.numero) + "</td><td>" + esc(d.hora) + "</td><td>" + esc(d.cliente) + "</td><td>" + esc(d.canal) + "</td>" +
-            "<td class='pedido-productos-cell'>" + esc(d.productos) + "</td><td>S/ " + fmt(d.total) + "</td><td>" + (d.pagado ? "Sí" : "No") + "</td></tr>";
+            "<td class='pedido-productos-cell'>" + esc(d.productos) + "</td><td>S/ " + fmt(d.total) + "</td><td>" + estTxt + "</td></tr>";
         });
         detHtml += "</tbody></table></div>";
         detTr.innerHTML = "<td colspan='4'>" + detHtml + "</td>";
@@ -9633,6 +9954,10 @@ var TRIPLES = [
     var totals = {};
     (PEDIDOS || []).forEach(function(p){
       if(p.anulado) return;
+      // set-2026: candado de pago -- un pedido impago NUNCA suma a producción confirmada,
+      // aunque esté guardado y visible para seguimiento/cobranza (ver buildProduccionView,
+      // bloque "Pendientes de pago"). Pedido pagado o cliente con crédito sí cuenta normal.
+      if(pedidoNecesitaPagoPrevio(p)) return;
       (p.items || []).forEach(function(it){
         if(it.fecha !== date) return;
         if(!totals[it.producto]) totals[it.producto] = { delivery:0, tienda:0, masivo:0 };
@@ -9797,6 +10122,47 @@ var TRIPLES = [
       card.appendChild(tableWrap);
     }
     wrap.appendChild(card);
+
+    // set-2026, "CANDADO OBLIGATORIO DE PAGO ANTES DE PRODUCCIÓN": los pedidos impagos de este
+    // día NO se borran ni se sacan de la lista -- deben seguir visibles para cobranza/seguimiento --
+    // pero tampoco suman en la tabla de arriba (pedidosProduccionTotales ya los excluye). Acá se
+    // listan aparte, bien marcados, para que quede clarísimo que faltan por cobrar y no se van a
+    // producción mientras sigan así.
+    var pendientesPago = (PEDIDOS || []).filter(function(p){
+      if(p.anulado) return false;
+      if(!pedidoNecesitaPagoPrevio(p)) return false;
+      return pedidoLineasDeFecha(p, targetDate).length > 0;
+    });
+    if(pendientesPago.length > 0){
+      var pagoCard = document.createElement("div");
+      pagoCard.className = "card desp-pendientes-pago-card";
+      var pagoH2 = document.createElement("h2");
+      pagoH2.style.margin = "0 0 .4rem";
+      pagoH2.textContent = "🔴 Pendientes de pago — NO PRODUCIR";
+      pagoCard.appendChild(pagoH2);
+      var pagoHint = document.createElement("div");
+      pagoHint.className = "hint";
+      pagoHint.style.marginBottom = ".6rem";
+      pagoHint.textContent = "Estos pedidos tienen entrega para este día pero no están pagados (ni tienen crédito autorizado). No están incluidos en los totales de producción de arriba y no se pueden enviar a producción hasta registrar el pago. El pedido y la cotización siguen guardados para que no se pierda el seguimiento de cobranza.";
+      pagoCard.appendChild(pagoHint);
+      var pagoList = document.createElement("div");
+      pagoList.className = "desp-pendientes-pago-list";
+      pendientesPago.forEach(function(p){
+        var item = document.createElement("button");
+        item.type = "button";
+        item.className = "desp-pendientes-pago-item";
+        var nombre = (p.cliente && p.cliente.nombre) || "Cliente";
+        var totalItems = (pedidoLineasDeFecha(p, targetDate) || []).reduce(function(acc, it){ return acc + num(it.cantidad); }, 0);
+        item.innerHTML = "<strong>#" + esc(p.numero || "—") + "</strong> — " + esc(nombre) +
+          (p.hora ? " · " + esc(fmtHora12(p.hora)) : "") +
+          " · " + totalItems + " producto" + (totalItems === 1 ? "" : "s") +
+          "<span class=\"desp-pendientes-pago-tag\">🔒 FALTA PAGO</span>";
+        item.addEventListener("click", function(){ showPedidoDespachoDetalle(p); });
+        pagoList.appendChild(item);
+      });
+      pagoCard.appendChild(pagoList);
+      wrap.appendChild(pagoCard);
+    }
 
     // Reportes "Pedidos Orden de Tienda" y "Pedidos Delivery": lo que antes bajaban de
     // Universalio y recortaban a mano en Excel para mandar al grupo de WhatsApp.
@@ -9994,7 +10360,7 @@ var TRIPLES = [
     tableWrap.className = "table-wrap";
     var table = document.createElement("table");
     table.className = "data-table";
-    table.innerHTML = "<thead><tr><th>N°</th><th>Entrega</th><th>Cliente</th><th>Origen</th><th>Canal</th><th>Productos</th><th>Total</th><th>Pagado</th><th>Entregado</th><th></th><th></th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
+    table.innerHTML = "<thead><tr><th>N°</th><th>Entrega</th><th>Cliente</th><th>Origen</th><th>Canal</th><th>Productos</th><th>Total</th><th>Estado comercial</th><th>Estado producción</th><th>Entregado</th><th></th><th></th><th></th><th></th><th></th></tr></thead><tbody></tbody>";
     // Para la fila de detalle expandible de un pedido Masivo (colspan = todas las columnas).
     var PEDIDOS_TABLE_COLS = table.querySelectorAll("thead th").length;
     var tbody = table.querySelector("tbody");
@@ -10047,7 +10413,19 @@ var TRIPLES = [
       } else {
         productosCellHtml = "<td class='pedido-productos-cell'>" + esc(productosLabel) + "</td>";
       }
-      var pagadoClass = "chip pedido-pagado-toggle " + (p.pagado ? "good" : "bad");
+      // set-2026, punto 8 del ajuste integral ("VER DETALLE"): antes este botón solo sabía
+      // Pagado/Pendiente (binario) -- un cliente con crédito autorizado salía en rojo como
+      // "Pendiente", exactamente la confusión que Jessica reportó. Ahora usa el mismo estado
+      // comercial de 3 vías que el candado de producción y lo impreso -- el botón SIGUE
+      // marcando/desmarcando pagado de un toque igual que siempre (ver el listener más abajo),
+      // solo cambia lo que muestra.
+      var estadoBadge = pedidoEstadoComercialBadge(p);
+      var pagadoClass = "chip pedido-pagado-toggle " + estadoBadge.cls;
+      // "Estado producción": 🔒 NO PRODUCIR cuando el candado de pago/crédito lo bloquearía
+      // ahora mismo (pedidoNecesitaPagoPrevio, única fuente de verdad) -- en blanco si ya puede
+      // producirse (pagado o crédito autorizado). No repite el detalle de hora vencida/atraso,
+      // que es propio de la cola de Despacho (ver despachoMotivoBloqueoProduccion).
+      var estadoProduccionHtml = pedidoNecesitaPagoPrevio(p) ? "<span class='chip bad'>🔒 NO PRODUCIR</span>" : "—";
       var canalLabel = CANAL_LABEL[p.canal] || p.canal;
       if(p.canal === "masivo" && p.masivoModo){
         canalLabel += " (" + (p.masivoModo === "delivery" ? "Delivery" : "Recojo") + ")";
@@ -10081,7 +10459,8 @@ var TRIPLES = [
         "<td>" + esc(canalLabel) + "</td>" +
         productosCellHtml +
         "<td>S/ " + fmt(subtotal) + "</td>" +
-        "<td><button type='button' class='" + pagadoClass + "' data-id='" + p.id + "'>" + (p.pagado ? "Pagado" : "Pendiente") + "</button></td>" +
+        "<td><button type='button' class='" + pagadoClass + "' data-id='" + p.id + "'>" + esc(estadoBadge.texto) + "</button></td>" +
+        "<td>" + estadoProduccionHtml + "</td>" +
         "<td>" + entregadoBtnHtml + "</td>" +
         "<td>" + (readOnly ? "" : "<button type='button' class='btn btn-sm pedido-editar' data-id='" + p.id + "'>Editar</button>") + "</td>" +
         "<td>" + (esMasivo
@@ -10828,6 +11207,25 @@ var TRIPLES = [
   // queda pendiente para poder reintentar sin repetir los que sí llegaron.
   function despachoEnviarProduccion(p, fechaISO, opts){
     opts = opts || {};
+    // CANDADO OBLIGATORIO DE PAGO (set-2026, regla operativa crítica de Carmelitas) -- se revisa
+    // PRIMERO, antes de tocar cualquier otra cosa, para que sea imposible imprimir una comanda
+    // de cocina/jugos de un pedido sin pagar (o con la hora de entrega vencida) aunque esta
+    // función se llegue a llamar por un camino que no sea el botón "🖨️ Producción" de esta
+    // tarjeta -- ver despachoMotivoBloqueoProduccion, única fuente de verdad.
+    var motivoBloqueo = despachoMotivoBloqueoProduccion(p, fechaISO);
+    if(motivoBloqueo){
+      showToast(motivoBloqueo, 5000);
+      if(opts.onDone) opts.onDone();
+      return;
+    }
+    // Candado contra doble clic/doble envío (requisito 4): si ya hay un envío de producción en
+    // vuelo para este mismo pedido, se ignora el segundo intento en vez de mandar los tickets
+    // dos veces -- el primero sigue su curso normal y marca produccionEnviada como siempre.
+    if(despachoAccionProduccionEnCurso[p.id]){
+      if(opts.onDone) opts.onDone();
+      return;
+    }
+    despachoAccionProduccionEnCurso[p.id] = true;
     var items = pedidoLineasDeFecha(p, fechaISO);
     var agr = produccionAgruparItemsParaPedido(p, items);
     var disponibles = Object.keys(agr.grupos);
@@ -10835,12 +11233,16 @@ var TRIPLES = [
       showToast(agr.sinAsignar.length
         ? "Ninguno de los productos de este pedido tiene un punto de producción configurado todavía."
         : "No hay productos para enviar a producción.");
+      delete despachoAccionProduccionEnCurso[p.id];
+      if(opts.onDone) opts.onDone();
       return;
     }
     var yaEnviados = (p.produccionEnviada && p.produccionEnviada[fechaISO]) || {};
     var pendientes = opts.forzar ? disponibles : disponibles.filter(function(k){ return !yaEnviados[k]; });
     if(!pendientes.length){
       showToast("Este pedido ya se envió a producción.");
+      delete despachoAccionProduccionEnCurso[p.id];
+      if(opts.onDone) opts.onDone();
       return;
     }
     var horaListoTxt = fmtHoraCortaMillis(despachoHoraAtencionMs(p)) || fmtHora12(p.hora) || "";
@@ -10901,6 +11303,7 @@ var TRIPLES = [
     }).catch(function(){
       showToast("No se pudo conectar con el puente de impresión local. Verifica que esté encendido, o si Chrome pidió permiso para \"red local\" y hay que aceptarlo (botón ⚙️ → Probar conexión, para más detalle).", 6000);
     }).finally(function(){
+      delete despachoAccionProduccionEnCurso[p.id];
       if(opts.onDone) opts.onDone();
       renderPanel();
     });
@@ -10910,17 +11313,156 @@ var TRIPLES = [
   // "Todos nuestros pedidos en general, salvo los de crédito, son pagos previamente al contado
   // para poder iniciar el proceso de preparación." Antes, ni "Iniciar preparación" ni
   // "🖨️ Producción" preguntaban nada -- de ahí que se mandaran a preparar pedidos que después
-  // nunca se pagaban ni se recogían. Un cliente a Crédito (cliente.diasCredito > 0, el mismo
-  // dato que ya usa Cuentas por Cobrar) queda libre de este freno porque ya está pre-aprobado.
+  // nunca se pagaban ni se recogían. Un cliente a Crédito queda libre de este freno porque ya
+  // está pre-aprobado -- PERO (corrección, "CONTROL DE PAGO, CRÉDITO Y REPORTES — AJUSTE
+  // INTEGRAL") ese "pre-aprobado" ahora se verifica contra la FICHA real del cliente
+  // (pedidoCreditoAutorizadoDias, autorizada a propósito desde "Ver detalle"), nunca contra el
+  // viejo p.cliente.diasCredito del pedido suelto, que cualquiera podía poner en 7 o 15 con un
+  // clic en el formulario y saltarse este mismo candado.
   function pedidoNecesitaPagoPrevio(p){
     if(p.pagado) return false;
-    if(num(p.cliente && p.cliente.diasCredito) > 0) return false;
+    if(pedidoCreditoAutorizadoDias(p) != null) return false;
     return true;
   }
+
+  // ---------- CANDADO OBLIGATORIO DE PAGO ANTES DE PRODUCCIÓN (set-2026, regla operativa
+  // crítica de Carmelitas, pedido explícito de Jessica) ----------
+  // Antes, pedidoNecesitaPagoPrevio() de arriba SOLO decidía qué botones dibujar en la tarjeta
+  // de Despacho (ocultar "Avanzar"/"🖨️ Producción", mostrar "💰 Marcar pagado" en su lugar) --
+  // nada impedía que un pedido impago avanzara a EN_PREPARACION o se imprimiera si se llegaba a
+  // esa acción por OTRO camino (el selector "Corregir estado manualmente" del detalle, por
+  // ejemplo, que llama a pedidoAvanzarEstado directo). Jessica fue explícita: "el sistema debe
+  // impedir físicamente el error", no solo mostrar un aviso visual. Por eso el candado real
+  // vive DENTRO de las dos funciones que de verdad comprometen producto --
+  // despachoEnviarProduccion (imprime) y pedidoAvanzarEstado cuando el nuevo estado es
+  // EN_PREPARACION -- y no solo en la interfaz. Esta es la ÚNICA función que decide si un
+  // pedido puede avanzar a producción ahora mismo; ambas funciones reales la llaman, así que no
+  // hay dos lugares con la regla que se puedan desincronizar.
+  var PEDIDO_MSG_SIN_PAGO = "Pedido no pagado. No puede enviarse a producción.";
+  var PEDIDO_MSG_ENTREGA_VENCIDA = "⚠️ La hora de entrega solicitada ya venció. Reprograma la entrega antes de enviar a producción.";
+  // "Hora de entrega SOLICITADA" tal cual se escribió en el pedido (fecha de la línea + p.hora),
+  // SIN el descuento de traslado que sí aplica despachoHoraAtencionMs para ordenar la cola de
+  // Despacho -- acá interesa la hora que pidió el cliente, no cuándo debía salir de panadería.
+  // null = el pedido no tiene una hora programada específica ("para ahora"), y en ese caso no
+  // hay nada que pueda estar vencido.
+  function despachoHoraEntregaSolicitadaMs(p, fechaISO){
+    if(p.canal === "masivo"){
+      if(!p.hora) return null;
+      try{
+        var ms = new Date((fechaISO || despachoFechaActual()) + "T" + p.hora + ":00-05:00").getTime();
+        return isNaN(ms) ? null : ms;
+      }catch(e){ return null; }
+    }
+    return pedidoHoraEntregaMs(p);
+  }
+  function despachoEntregaSolicitadaVencida(p, fechaISO){
+    var ms = despachoHoraEntregaSolicitadaMs(p, fechaISO);
+    return ms != null && ms < Date.now();
+  }
+  // set-2026, CORRECCIÓN del candado por hora vencida (Jessica): el bloqueo por hora vencida
+  // solo tiene sentido ANTES de que el pedido quede autorizado para producción -- una vez que ya
+  // se imprimió el ticket (produccionEnviada) o ya avanzó de estado a EN_PREPARACION o más
+  // adelante, el pedido YA está comprometido/preparado y el atraso que venga después es de otra
+  // naturaleza (cliente que no llega a recoger, o reparto demorado), no un motivo para impedir
+  // nada. "Ya autorizado" se revisa con DOS señales porque "🖨️ Producción" y "Avanzar a En
+  // preparación" son caminos independientes -- cualquiera de los dos ya compromete el pedido.
+  var DESP_ESTADOS_YA_EN_PRODUCCION = { EN_PREPARACION:true, LISTO_DESPACHO:true, SALIO_TIENDA:true, EN_RUTA:true, ENTREGADO:true };
+  function despachoProduccionYaAutorizada(p, fechaISO){
+    var enviados = p.produccionEnviada && p.produccionEnviada[fechaISO];
+    if(enviados && Object.keys(enviados).length) return true;
+    return !!DESP_ESTADOS_YA_EN_PRODUCCION[p.estado];
+  }
+  // Devuelve "" si el pedido SÍ puede enviarse a producción ahora mismo, o el mensaje exacto a
+  // mostrar si no. El pago se revisa primero (si falta pago, ese es el motivo que se muestra,
+  // aunque la hora también esté vencida -- un solo mensaje a la vez, el más urgente). El ESTADO
+  // real del pedido se revisa ANTES que la hora (Jessica: "no uses simplemente hora actual >
+  // hora entrega = bloquear") -- si ya está autorizado para producción, la hora vencida deja de
+  // ser un motivo de bloqueo (ver despachoAtrasoInfo, que la muestra como aviso, no candado).
+  function despachoMotivoBloqueoProduccion(p, fechaISO){
+    if(pedidoNecesitaPagoPrevio(p)) return PEDIDO_MSG_SIN_PAGO;
+    if(despachoProduccionYaAutorizada(p, fechaISO)) return "";
+    if(despachoEntregaSolicitadaVencida(p, fechaISO)) return PEDIDO_MSG_ENTREGA_VENCIDA;
+    return "";
+  }
+  // Aviso informativo (NUNCA bloquea nada) para un pedido que ya está autorizado para producción
+  // pero cuya hora solicitada ya pasó -- distingue de quién es el atraso, tal como pidió Jessica:
+  // si es recojo en tienda, el atraso es del cliente que no ha venido; si es delivery, el atraso
+  // es del reparto y hay que poder actuar. Se conserva la hora originalmente prometida -- esto
+  // nunca obliga a reprogramar para "esconder" el atraso. null si no aplica (a tiempo, terminal,
+  // o todavía no autorizado -- ese caso sigue siendo el candado normal).
+  function despachoAtrasoInfo(p, fechaISO){
+    if(p.estado === "ENTREGADO" || p.estado === "CANCELADO") return null;
+    if(!despachoProduccionYaAutorizada(p, fechaISO)) return null;
+    if(!despachoEntregaSolicitadaVencida(p, fechaISO)) return null;
+    var ms = despachoHoraEntregaSolicitadaMs(p, fechaISO);
+    var min = ms != null ? Math.max(0, Math.round((Date.now() - ms) / 60000)) : 0;
+    if(pedidoRequiereReparto(p)){
+      return { cls:"desp-delivery-atrasado-tag", label:"🔴 DELIVERY ATRASADO " + min + " MIN" };
+    }
+    return { cls:"desp-esperando-recojo-tag", label:"🟠 ESPERANDO RECOJO · cliente demorado " + min + " min" };
+  }
+  // Candado contra doble clic/doble envío (set-2026, requisito 4): un mismo pedido no puede
+  // tener dos acciones de producción (imprimir, o avanzar a EN_PREPARACION) en vuelo a la vez.
+  // Esto es ADEMÁS de deshabilitar el botón mientras dura el envío (ver onStart/onDone en
+  // buildDespachoCard) -- protege también si se llega a disparar dos veces por otro camino.
+  var despachoAccionProduccionEnCurso = {};
+  // Reprograma la entrega de un pedido cuyo horario solicitado ya venció -- único camino para
+  // destrabar PEDIDO_MSG_ENTREGA_VENCIDA. Pedido normal: la fecha vive repetida en CADA línea
+  // (todas comparten la misma, ver "it.fecha = draft.fechaDefault" en el wizard), así que se
+  // actualizan todas. Masivo: cada línea puede tener su propia fecha (un pedido recurrente con
+  // varias entregas), así que acá SOLO se mueven las líneas del día que se estaba mirando
+  // (fechaISO) -- las demás fechas de ese pedido no se tocan. p.hora sí es una sola hora
+  // compartida por todas las fechas de un Masivo (ver despachoHoraAtencionMs), así que cambiarla
+  // acá la cambia para todas sus entregas, a propósito: es la hora de entrega del pedido, no una
+  // excepción de un solo día. Exige una fecha/hora realmente futura antes de guardar -- si se
+  // cancela o se deja inválida, el pedido sigue bloqueado.
+  function despachoReprogramarEntrega(p, fechaISO){
+    if(!db) return;
+    var fechaDefecto = fechaISO || (p.items && p.items[0] && p.items[0].fecha) || todayISO();
+    var horaDefecto = p.hora || "09:00";
+    var nuevaFecha, nuevaHora, ms;
+    while(true){
+      nuevaFecha = prompt("Nueva fecha de entrega (AAAA-MM-DD):", fechaDefecto);
+      if(nuevaFecha === null) return;
+      nuevaFecha = nuevaFecha.trim();
+      nuevaHora = prompt("Nueva hora de entrega (HH:MM, 24 horas):", horaDefecto);
+      if(nuevaHora === null) return;
+      nuevaHora = nuevaHora.trim();
+      try{ ms = new Date(nuevaFecha + "T" + nuevaHora + ":00-05:00").getTime(); }catch(e){ ms = NaN; }
+      if(isNaN(ms)){
+        alert("Fecha u hora inválida. Usa el formato AAAA-MM-DD y HH:MM (24 horas).");
+        continue;
+      }
+      if(ms <= Date.now()){
+        alert("Esa fecha/hora también ya pasó (o es ahora mismo). Elige una fecha/hora futura.");
+        continue;
+      }
+      break;
+    }
+    var nuevosItems = (p.items || []).map(function(it){
+      if(p.canal === "masivo" && it.fecha !== fechaISO) return it;
+      return Object.assign({}, it, { fecha: nuevaFecha });
+    });
+    db.collection("pedidos").doc(p.id).update({ items: nuevosItems, hora: nuevaHora }).then(function(){
+      showToast("Entrega reprogramada. Ya se puede enviar a producción.");
+    }).catch(function(){
+      showToast("No se pudo reprogramar. Intenta de nuevo.");
+    });
+  }
+
   function buildDespachoCard(p){
     var esTerminal = (p.estado === "ENTREGADO" || p.estado === "CANCELADO");
     var tagInfo = despachoTagInfo(p);
-    var faltaPago = !esTerminal && pedidoNecesitaPagoPrevio(p);
+    // fechaProd se calcula UNA vez acá arriba y se reusa en todo el candado de esta tarjeta
+    // (tag, nota, botones) -- antes "🖨️ Producción" la recalculaba aparte más abajo.
+    var fechaProd = despachoFechaActual();
+    // Candado obligatorio de pago (ver despachoMotivoBloqueoProduccion arriba, única fuente de
+    // verdad -- las mismas dos funciones reales, despachoEnviarProduccion y pedidoAvanzarEstado,
+    // usan exactamente esta misma función para rechazar el intento aunque se llegue por otro
+    // camino que no sea esta tarjeta).
+    var motivoBloqueo = esTerminal ? "" : despachoMotivoBloqueoProduccion(p, fechaProd);
+    var faltaPago = !!motivoBloqueo && pedidoNecesitaPagoPrevio(p);
+    var entregaVencida = !!motivoBloqueo && !faltaPago;
 
     var card = document.createElement("div");
     card.className = "desp-card" + (esTerminal ? " terminal" : "");
@@ -10932,10 +11474,29 @@ var TRIPLES = [
     tag.innerHTML = "<span class='dot'></span>" + esc(tagInfo.label);
     rowTop.appendChild(tag);
     if(faltaPago){
+      // Texto exacto pedido por Jessica para que el candado de pago se vea igual de claro sin
+      // importar desde dónde se mire el pedido.
       var sinPagoTag = document.createElement("span");
       sinPagoTag.className = "desp-tag desp-sinpago-tag";
-      sinPagoTag.innerHTML = "⚠️ Sin pago";
+      sinPagoTag.innerHTML = "🔒 BLOQUEADO — FALTA PAGO";
       rowTop.appendChild(sinPagoTag);
+    } else if(entregaVencida){
+      var vencidaTag = document.createElement("span");
+      vencidaTag.className = "desp-tag desp-vencida-tag";
+      vencidaTag.innerHTML = "🔒 BLOQUEADO — HORA VENCIDA";
+      rowTop.appendChild(vencidaTag);
+    } else if(!esTerminal){
+      // set-2026, corrección: pedido YA autorizado para producción (ticket enviado o ya en
+      // preparación/listo) cuya hora solicitada pasó -- esto ya NO es un candado (ver
+      // despachoMotivoBloqueoProduccion arriba), solo un aviso de a quién corresponde el atraso.
+      // Se mantiene la hora original prometida; no se pide reprogramar para "esconder" el atraso.
+      var atrasoInfo = despachoAtrasoInfo(p, fechaProd);
+      if(atrasoInfo){
+        var atrasoTag = document.createElement("span");
+        atrasoTag.className = "desp-tag " + atrasoInfo.cls;
+        atrasoTag.innerHTML = esc(atrasoInfo.label);
+        rowTop.appendChild(atrasoTag);
+      }
     }
     if(!esTerminal){
       var listoChip = document.createElement("span");
@@ -10992,7 +11553,12 @@ var TRIPLES = [
     // "Confirmar pedido" (NUEVO -> CONFIRMADO) NO se bloquea -- ese paso no gasta insumos, es
     // solo anotar que ya se vio el pedido. El freno es justo en el paso que sí compromete
     // producto: CONFIRMADO -> EN_PREPARACION (ver pedidoNecesitaPagoPrevio arriba).
-    var bloqueaEsteAvance = faltaPago && siguiente === "EN_PREPARACION";
+    // El freno cubre AMBOS motivos de bloqueo (sin pago o entrega vencida) -- el paso que de
+    // verdad compromete producto sigue siendo justo CONFIRMADO -> EN_PREPARACION (ver
+    // despachoMotivoBloqueoProduccion arriba). Esto es solo la parte VISUAL (ocultar el botón);
+    // el candado real, que no se puede saltar aunque se llegue por otro camino (como "Corregir
+    // estado manualmente" del detalle), vive DENTRO de pedidoAvanzarEstado.
+    var bloqueaEsteAvance = !!motivoBloqueo && siguiente === "EN_PREPARACION";
     if(!esTerminal && !readOnly && despachoEsVistaHoy() && !bloqueaEsteAvance){
       if(siguiente){
         var mainBtn = document.createElement("button");
@@ -11018,22 +11584,44 @@ var TRIPLES = [
           showToast("Falta subir la foto del Yape/transferencia. Entra a \"Ver detalle\" > Editar para subirla antes de marcarlo pagado.");
           return;
         }
-        db.collection("pedidos").doc(p.id).update({ pagado: true }).catch(function(){
+        db.collection("pedidos").doc(p.id).update({ pagado: true }).then(function(){
+          // set-2026, requisito 3: si al registrar el pago la hora de entrega solicitada ya
+          // venció, NO se habilita producción solo por marcar pagado -- se avisa de inmediato
+          // (no hay que esperar a que alguien intente "🖨️ Producción" para enterarse) y sigue
+          // bloqueado hasta reprogramar. despachoMotivoBloqueoProduccion ya revisa esto solo en
+          // cada render porque el pago ya quedó guardado -- acá solo se informa con el mensaje
+          // exacto pedido por Jessica.
+          if(despachoEntregaSolicitadaVencida(p, fechaProd)){
+            showToast(PEDIDO_MSG_ENTREGA_VENCIDA, 6000);
+          }
+        }).catch(function(){
           showToast("No se pudo actualizar. Intenta de nuevo.");
         });
       });
       actions.appendChild(pagarBtn);
     }
+    if(entregaVencida && !readOnly && despachoEsVistaHoy()){
+      var bloqueoNotaVencida = document.createElement("div");
+      bloqueoNotaVencida.className = "desp-bloqueo-nota";
+      bloqueoNotaVencida.textContent = PEDIDO_MSG_ENTREGA_VENCIDA;
+      card.appendChild(bloqueoNotaVencida);
+      var reprogramarBtn = document.createElement("button");
+      reprogramarBtn.type = "button";
+      reprogramarBtn.className = "desp-btn desp-btn-pagar";
+      reprogramarBtn.textContent = "📅 Reprogramar entrega";
+      reprogramarBtn.addEventListener("click", function(){ despachoReprogramarEntrega(p, fechaProd); });
+      actions.appendChild(reprogramarBtn);
+    }
     // "🖨️ Producción" (set-2026): manda el pedido directo a la impresora de Cocina y/o Jugos
     // (ver despachoEnviarProduccion). A propósito NO se limita a despachoEsVistaHoy() -- Jessica
     // quiere poder ir a un Masivo de mañana con el calendario y mandarlo a producción con
     // anticipación; esto no cambia estado, fecha ni ningún otro dato del pedido, solo dispara la
-    // impresión y guarda cuándo se envió (para no repetirla por accidente). Sí se bloquea si
-    // falta el pago -- imprimir la comanda de cocina también compromete producto.
-    var fechaProd = despachoFechaActual();
+    // impresión y guarda cuándo se envió (para no repetirla por accidente). Se bloquea si falta
+    // el pago O si la hora de entrega solicitada ya venció -- imprimir la comanda de cocina
+    // también compromete producto (ver motivoBloqueo arriba).
     var agrProd = produccionAgruparItemsParaPedido(p, itemsHoy);
     var puntosProd = Object.keys(agrProd.grupos);
-    if(!esTerminal && !readOnly && !faltaPago && puntosProd.length){
+    if(!esTerminal && !readOnly && !motivoBloqueo && puntosProd.length){
       var yaEnviadosProd = (p.produccionEnviada && p.produccionEnviada[fechaProd]) || {};
       var todosEnviados = puntosProd.every(function(k){ return !!yaEnviadosProd[k]; });
       var prodBtn = document.createElement("button");
@@ -11167,7 +11755,14 @@ var TRIPLES = [
       }
       html += "</div>";
     }
-    html += "<div style='margin-top:.4rem;'><strong>Pago:</strong> " + esc(p.tipoPago || "—") + " · " + (p.pagado ? "Pagado" : "Pendiente") + "</div>";
+    // set-2026, punto 8 del ajuste integral: estado comercial de 3 vías (misma fuente de verdad
+    // que el candado de producción y lo impreso), + Estado producción -- antes esto solo decía
+    // "Pago: ... · Pendiente", sin distinguir un cliente con crédito autorizado.
+    var estadoDetalle = pedidoEstadoComercialBadge(p);
+    html += "<div style='margin-top:.4rem;'><strong>Pago:</strong> " + esc(p.tipoPago || "—") + " · " + esc(estadoDetalle.texto) + "</div>";
+    if(pedidoNecesitaPagoPrevio(p)){
+      html += "<div style='margin-top:.2rem;'><strong>Estado producción:</strong> 🔒 NO PRODUCIR</div>";
+    }
     if(p.notas) html += "<div style='margin-top:.4rem;'><strong>Observaciones:</strong> " + esc(p.notas) + "</div>";
     if(p.atendidoPor) html += "<div><strong>Tomado por:</strong> " + esc(p.atendidoPor) + "</div>";
 
@@ -11194,6 +11789,29 @@ var TRIPLES = [
     if(verCompletoBtn) verCompletoBtn.addEventListener("click", function(){ showPedidoDespachoDetalle(p, { verCompleto: true }); });
     var verDiaBtn = body.querySelector(".despacho-detalle-ver-dia");
     if(verDiaBtn) verDiaBtn.addEventListener("click", function(){ showPedidoDespachoDetalle(p); });
+
+    // Crédito del cliente (set-2026, punto 2 del ajuste integral): único lugar de toda la app
+    // donde se autoriza/quita el crédito de la FICHA del cliente (ver clienteAutorizarCredito) --
+    // a propósito, nunca desde el formulario de Pedidos, para que nadie pueda saltarse el
+    // candado de producción con un clic al tomar un pedido. No se muestra en modo consulta de
+    // otra fecha ni en solo-lectura, igual que el resto de acciones de este detalle.
+    if(!readOnly && esVistaHoyDetalle){
+      var creditoWrap = document.createElement("div");
+      creditoWrap.style.marginTop = ".6rem";
+      var creditoBtn = document.createElement("button");
+      creditoBtn.type = "button";
+      creditoBtn.className = "btn btn-sm";
+      var fichaCred = clienteFichaDelPedido(p);
+      creditoBtn.textContent = (fichaCred && fichaCred.tieneCredito)
+        ? "💳 Crédito autorizado (" + num(fichaCred.plazoCredito) + " días) — quitar"
+        : "💳 Autorizar crédito de este cliente";
+      creditoBtn.addEventListener("click", function(){
+        clienteAutorizarCredito(p);
+        setTimeout(function(){ showPedidoDespachoDetalle(p, opts); }, 300);
+      });
+      creditoWrap.appendChild(creditoBtn);
+      body.appendChild(creditoWrap);
+    }
 
     // Repartidor: campo editable aparte, no frena el botón de avance de un solo toque. Consultar
     // una fecha distinta a HOY con el calendario es solo planificación (requisito 2: "No
@@ -11879,7 +12497,7 @@ var TRIPLES = [
     tableWrap.className = "table-wrap";
     var table = document.createElement("table");
     table.className = "data-table";
-    table.innerHTML = "<thead><tr><th>Cliente</th><th>Teléfono</th><th>Fecha entrega</th><th>Días crédito</th><th>Vencimiento</th><th>Estado</th><th>Total</th><th></th></tr></thead><tbody></tbody>";
+    table.innerHTML = "<thead><tr><th>Cliente</th><th>Teléfono</th><th>Fecha entrega</th><th>Días crédito</th><th>Vencimiento</th><th>Estado</th><th>Ficha</th><th>Total</th><th></th></tr></thead><tbody></tbody>";
     var tbody = table.querySelector("tbody");
     pendientes.forEach(function(r){
       var p = r.p;
@@ -11889,6 +12507,16 @@ var TRIPLES = [
       else if(r.dias < 0){ estadoHtml = '<span class="chip bad">Vencido hace ' + Math.abs(r.dias) + (Math.abs(r.dias) === 1 ? " día" : " días") + '</span>'; }
       else if(r.dias <= 2){ estadoHtml = '<span class="chip" style="background:#fff3cd; color:#8a6300;">Vence en ' + r.dias + (r.dias === 1 ? " día" : " días") + '</span>'; }
       else { estadoHtml = '<span class="chip good">Vence en ' + r.dias + " días</span>"; }
+      // set-2026, punto 9 del ajuste integral: "deben poder distinguirse de cualquier pedido
+      // irregular pendiente de pago" -- esta columna NO cambia quién aparece en la lista (se
+      // sigue mostrando todo lo que ya se mostraba, ningún pedido se oculta ni se borra), solo
+      // distingue si la ficha del cliente respalda HOY ese crédito (pedidoCreditoAutorizadoDias)
+      // o si es un pedido antiguo/irregular que quedó marcado a crédito sin que la ficha lo
+      // respalde todavía -- para que Jessica sepa cuáles vale la pena revisar o autorizar.
+      var fichaOk = pedidoCreditoAutorizadoDias(p) != null;
+      var fichaHtml = fichaOk
+        ? '<span class="chip good">✓ Autorizado</span>'
+        : '<span class="chip" style="background:#fff3cd; color:#8a6300;" title="Este pedido quedó marcado a crédito pero la ficha del cliente no lo respalda todavía.">⚠️ Sin autorizar en ficha</span>';
       tr.innerHTML =
         "<td>" + esc(tituloCase((p.cliente && p.cliente.nombre) || "") || "—") + "</td>" +
         "<td>" + esc((p.cliente && p.cliente.telefono) || "—") + "</td>" +
@@ -11896,6 +12524,7 @@ var TRIPLES = [
         "<td style='text-align:center;'>" + num(p.cliente && p.cliente.diasCredito) + "</td>" +
         "<td>" + esc(r.venc ? fmtFechaCorta(r.venc) : "—") + "</td>" +
         "<td>" + estadoHtml + "</td>" +
+        "<td>" + fichaHtml + "</td>" +
         "<td>S/ " + fmt(r.total) + "</td>" +
         "<td><button type='button' class='btn btn-sm cobrar-editar' data-id='" + p.id + "'>Ver / Editar</button></td>";
       tbody.appendChild(tr);
@@ -13228,14 +13857,61 @@ var TRIPLES = [
   // ---- Observaciones rápidas por categoría (set-2026, pedido de Jessica: "el campo Observación
   // se repite en cada producto y el mozo tiene que escribir muchas veces las mismas indicaciones")
   // ----
-  // A propósito SOLO para las 2 categorías que Jessica pidió explícitamente con ejemplos (Bebidas
-  // y Sándwiches) -- no se inventan opciones para Panes/Pastelería/Otros que ella no pidió. El
-  // campo de observación manual ("Otra observación...") sigue existiendo exactamente igual que
-  // antes: estos botones solo escriben/quitan texto ahí, nunca lo reemplazan por un sistema nuevo.
+  // A propósito SOLO para los 2 grupos que Jessica pidió explícitamente con ejemplos (café/
+  // infusión caliente y sándwiches) -- no se inventan opciones para el resto. El campo de
+  // observación manual ("Observación") sigue existiendo exactamente igual que antes: estos
+  // botones solo escriben/quitan texto ahí, nunca lo reemplazan por un sistema nuevo.
   var MOZOS_OBS_RAPIDAS = {
-    "Bebidas": ["Sin azúcar", "Poca azúcar", "Con azúcar", "Con Splenda", "Splenda aparte", "Azúcar aparte"],
-    "Sándwiches": ["Con cebolla", "Sin cebolla", "Con ají", "Sin ají", "Ají aparte", "Para llevar"]
+    "cafe": ["Sin azúcar", "Poca azúcar", "Con azúcar", "Con Splenda", "Splenda aparte", "Azúcar aparte"],
+    "sandwich": ["Con cebolla", "Sin cebolla", "Con ají", "Sin ají", "Ají aparte", "Para llevar"]
   };
+  // set-2026, FIX DE BUG URGENTE (reporte de Jessica con capturas): los chips de arriba se
+  // elegían con mozoCategoriaDe(nombre), la función que agrupa productos para los chips de
+  // categoría del BUSCADOR (Panes/Pastelería/Bebidas/Sándwiches/Otros) -- una función de otro
+  // propósito, que a propósito NO se toca acá (sigue igual para el buscador).
+  // El bug real: mozoCategoriaDe mete "CHICHA" (pensado solo para Chicha Morada) dentro de la
+  // palabra clave de "Bebidas", pero por ser un match de SUBSTRING esa misma palabra "CHICHA"
+  // también calza con "CHICHARRÓN" y con "SALCHICHA" -- y como "Bebidas" se revisa ANTES que
+  // "Sándwiches" en esa función, un producto como "Mega Sandwich Chicharrón" nunca llegaba a
+  // calzar con "SANDWICH": ya había caído en "Bebidas" antes de que le tocara el turno. Por eso
+  // Chicharrón (kg), Chicharrón Prensa (kg), Salchicha de Huacho, y cualquier sándwich con
+  // "Chicharrón" en el nombre (Mini/Sandwich/Mega Sandwich) terminaban mostrando por error los
+  // chips de azúcar/café en vez de los de sándwich o ninguno.
+  // Por eso esta es una función NUEVA y SEPARADA (mozosObsGrupoDe), con reglas angostas a
+  // propósito:
+  //   - "sandwich": se revisa PRIMERO, así "Chicharrón" dentro de un nombre de sándwich nunca
+  //     alcanza a desviarse a café. Usa las mismas palabras clave que ya usa mozoCategoriaDe
+  //     para "Sándwiches" (incluye Triples: "Tira de"/"Und T.") más una lista exacta de los
+  //     "Mini X" armados (Mini Asado/Chicharrón/Croissant/Glaseado/Pavo/Butifarra) que no
+  //     contienen la palabra "Sandwich" en su nombre pero sí son sándwiches armados.
+  //   - "cafe": SOLO café/infusión caliente -- lista EXACTA de los productos reales de esa
+  //     categoría (nada de un keyword ancho como "CHOCOLATE", que también aparece en "Croissant
+  //     de Chocolate" o "Muffins de Plátano y Chocolate" -- esos son pastelería, no bebidas; ni
+  //     "CAFE" suelto, que también aparece en "Café Molido 250g", una bolsa de café en grano
+  //     para llevar, no una taza).
+  //   - null (sin chips, solo observación manual): todo lo demás -- bebidas envasadas (aguas,
+  //     gaseosas, leches de caja), bebidas preparadas (jugos/batidos/frozen/chicha/limonada/
+  //     chocolatada), panes, pastelería, productos al peso, embutidos, especialidades, y
+  //     cualquier producto que no calce con nada de lo de arriba. A propósito NUNCA se usa
+  //     "cafe" como respuesta por defecto para un producto que no se reconoce -- la opción
+  //     segura ante la duda es cero chips.
+  var MOZOS_OBS_SANDWICH_EXTRA = {
+    "MINI ASADO": true, "MINI CHICHARRÓN": true, "MINI CROISSANT DE JAMÓN Y QUESO": true,
+    "MINI GLASEADO": true, "MINI PAVO": true, "MINI BUTIFARRA": true
+  };
+  var MOZOS_OBS_CAFE_CALIENTE = {
+    "CAFÉ AMERICANO CHICO": true, "CAFE AMERICANO GRANDE": true, "CAFÉ LECHE": true,
+    "CAFÉ TRADICIONAL CHICO": true, "CAFE TRADICIONAL GRANDE": true, "CAPUCCINO": true,
+    "CAPUCCINO GRANDE": true, "CHOCOLATE": true, "ESPRESSO": true,
+    "TE FRUTADO CALIENTE": true, "TE- MANZANILLA": true
+  };
+  function mozosObsGrupoDe(nombreProducto){
+    var n = String(nombreProducto || "").trim().toUpperCase();
+    if(MOZOS_OBS_SANDWICH_EXTRA.hasOwnProperty(n)) return "sandwich";
+    if(["SANDWICH","SÁNDWICH","MIXTO","TIRA DE","UND T.","CIABATTITAS CON POLLO"].some(function(w){ return n.indexOf(w) !== -1; })) return "sandwich";
+    if(MOZOS_OBS_CAFE_CALIENTE.hasOwnProperty(n)) return "cafe";
+    return null;
+  }
   // Combina/quita una opción rápida del texto de observación actual, sin perder lo que el mozo ya
   // haya escrito a mano -- cada opción es un "pedazo" separado por " + " (ej: "Sin azúcar + Con
   // Splenda"); tocar de nuevo la misma opción la quita. Si el mozo escribió algo a mano ("bien
@@ -15351,11 +16027,15 @@ var TRIPLES = [
         var obsWrap = document.createElement("div");
         obsWrap.className = "moz-drawer-obs";
         // Observaciones rápidas (set-2026, pedido de Jessica): SOLO aparecen si el producto es de
-        // una categoría con opciones definidas (Bebidas/Sándwiches, ver MOZOS_OBS_RAPIDAS arriba)
-        // -- para el resto de productos (Panes, Pastelería, Otros) no se dibuja nada acá, solo
-        // queda el campo de observación manual de siempre. Tocar una opción la agrega al texto de
-        // observación; tocarla de nuevo la quita -- se pueden combinar varias a la vez.
-        var opcionesRapidas = MOZOS_OBS_RAPIDAS[mozoCategoriaDe(nombre)];
+        // un grupo con opciones definidas (café/infusión caliente o sándwich -- ver
+        // mozosObsGrupoDe/MOZOS_OBS_RAPIDAS arriba, función dedicada y separada de
+        // mozoCategoriaDe a propósito, fix del bug de chips mal asignados) -- para el resto de
+        // productos (bebidas envasadas/preparadas, panes, pastelería, al peso, embutidos,
+        // especialidades, etc.) no se dibuja nada acá, solo queda el campo de observación manual
+        // de siempre. Tocar una opción la agrega al texto de observación; tocarla de nuevo la
+        // quita -- se pueden combinar varias a la vez.
+        var obsGrupo = mozosObsGrupoDe(nombre);
+        var opcionesRapidas = MOZOS_OBS_RAPIDAS[obsGrupo];
         if(opcionesRapidas && opcionesRapidas.length){
           var chipsRow = document.createElement("div");
           chipsRow.className = "moz-obs-chips";
@@ -15377,7 +16057,11 @@ var TRIPLES = [
         var obsLbl = document.createElement("label"); obsLbl.textContent = "Observación";
         var obsInput = document.createElement("input");
         obsInput.type = "text";
-        obsInput.placeholder = "Ej: con ají, sin cebolla, poca azúcar...";
+        // set-2026, pedido de Jessica: el placeholder de ejemplo ("con ají, sin cebolla, poca
+        // azúcar...") solo tiene sentido cuando el producto SÍ tiene chips (café o sándwich) --
+        // para cualquier otro producto (sin grupo definido) el placeholder debe ser genérico,
+        // nunca un ejemplo de café/sándwich que no aplica.
+        obsInput.placeholder = opcionesRapidas ? "Ej: con ají, sin cebolla, poca azúcar..." : "Escribe una observación…";
         obsInput.value = it.obs || "";
         // "change" (no "input"): se guarda al salir del campo, no en cada letra -- así no se
         // reconstruye el panel mientras el mozo todavía está escribiendo la observación.
