@@ -24,6 +24,11 @@
     --good-soft:rgba(47,143,82,.14);
     --bad:#b23a2e;
     --bad-soft:rgba(178,58,46,.14);
+    /* oct-2026, cabecera de tarjeta de Mesa (captura de referencia de Jessica): un verde/terracota
+       más profundo, solo para la banda de color sólido detrás del texto blanco -- --good/--bad de
+       arriba siguen siendo los de siempre (texto, punto, borde) en todos los demás usos. */
+    --good-deep:#2c5f3f;
+    --bad-deep:#7a2e26;
     --warn:#b8791a;
     --warn-soft:rgba(184,121,26,.14);
     /* set-2026, REORGANIZACIÓN VISUAL -- MÓDULO PEDIDOS: 2 tokens nuevos, solo para poder
@@ -61,6 +66,7 @@
       --ink:#F2ECDE; --ink-soft:#C3B79E; --ink-muted:#8C8069;
       --accent:#72B8CB; --accent-ink:#0E2A31; --accent-soft:#213A3F;
       --good:#71BE93; --good-soft:#1F3627; --bad:#E28369; --bad-soft:#3D2419;
+      --good-deep:#1F4A33; --bad-deep:#5C2420;
       --warn:#D9A75E; --warn-soft:#3A2C16;
       --info:#7EC1DE; --info-soft:#1D323C; --plum:#C7A6DE; --plum-soft:#33253C;
       color-scheme: dark;
@@ -71,6 +77,7 @@
     --ink:#F2ECDE; --ink-soft:#C3B79E; --ink-muted:#8C8069;
     --accent:#72B8CB; --accent-ink:#0E2A31; --accent-soft:#213A3F;
     --good:#71BE93; --good-soft:#1F3627; --bad:#E28369; --bad-soft:#3D2419;
+    --good-deep:#1F4A33; --bad-deep:#5C2420;
     --warn:#D9A75E; --warn-soft:#3A2C16;
     --info:#7EC1DE; --info-soft:#1D323C; --plum:#C7A6DE; --plum-soft:#33253C;
     color-scheme: dark;
@@ -813,14 +820,26 @@
   .moz-alerta-impresion-btn:active{ transform:scale(.97); }
   @keyframes mozAlertaPulso{ 0%,100%{ box-shadow:0 0 0 0 rgba(178,58,46,.55); } 50%{ box-shadow:0 0 0 .5rem rgba(178,58,46,0); } }
   .moz-mesa-tile-falla{ outline:3px solid var(--bad); outline-offset:2px; }
-  .moz-mesa-badge-falla{ background:var(--bad); color:#fff; font-size:.72rem; font-weight:800; border-radius:6px; padding:.2rem .45rem; display:inline-block; margin:.3rem 0; }
+  .moz-mesa-badge-falla{ background:var(--bad); color:#fff; font-size:.72rem; font-weight:800; border-radius:6px; padding:.2rem .45rem; display:inline-block; margin:.3rem 0; position:relative; z-index:1; }
   .moz-drawer-hist-falla{ color:var(--bad); font-weight:700; font-size:.78rem; margin-top:.2rem; }
 
   .moz-legend{ display:flex; gap:1.2rem; align-items:center; margin-bottom:1rem; font-size:.86rem; color:var(--ink-soft); }
   .moz-dot{ display:inline-block; width:.7rem; height:.7rem; border-radius:50%; margin-right:.35rem; vertical-align:middle; }
 
   /* ---------- Ítem 9: resumen compacto arriba de Mesas (set-2026) ---------- */
-  .moz-mesas-resumen{ background:var(--surface-2); border:1px solid var(--border); border-radius:999px; padding:.55rem 1.1rem; font-size:.88rem; font-weight:700; color:var(--ink-soft); margin-bottom:.9rem; display:inline-block; }
+  .moz-mesas-resumen{ background:var(--surface-2); border:1px solid var(--border); border-radius:999px; padding:.55rem 1.1rem .55rem .65rem; font-size:.88rem; font-weight:700; color:var(--ink-soft); margin-bottom:.9rem; display:inline-flex; flex-wrap:wrap; align-items:center; gap:.1rem 1.1rem; }
+  /* oct-2026, rediseño a pedido de Jessica (captura de referencia): cada dato del resumen lleva
+     su propia insignia circular con ícono, en vez del emoji suelto de antes. */
+  .moz-resumen-item{ display:inline-flex; align-items:center; gap:.45rem; white-space:nowrap; }
+  .moz-resumen-item strong{ color:var(--ink); font-weight:800; }
+  .moz-resumen-icon{ width:1.7rem; height:1.7rem; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; flex:none; }
+  .moz-resumen-icon svg{ width:1rem; height:1rem; }
+  .moz-resumen-icon-neutro{ background:var(--accent-soft); color:var(--accent); }
+  .moz-resumen-icon-libre{ background:var(--good-soft); }
+  .moz-resumen-icon-ocupada{ background:var(--bad-soft); }
+  .moz-resumen-dot{ width:.6rem; height:.6rem; border-radius:50%; }
+  .moz-resumen-icon-libre .moz-resumen-dot{ background:var(--good); }
+  .moz-resumen-icon-ocupada .moz-resumen-dot{ background:var(--bad); }
 
   /* ---------- 📊 Reporte de Mozos (set-2026 / retoque visual premium set-2026-v2) ---------- */
   /* Curvas propias (Emil Kowalski): ease-out fuerte para entradas, ease normal para hover/color.
@@ -901,19 +920,40 @@
     .moz-rep-card, .moz-rep-copa, .moz-rep-chip, .moz-rep-tabla-row, .moz-rep-mini-btn, .moz-rep-btn-accion{ transition:none; }
   }
   .moz-grid-mesas{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:.9rem; padding-bottom:1rem; }
-  .moz-mesa-tile{ border:none; border-radius:var(--radius); padding:1.1rem .9rem; cursor:pointer; text-align:left; box-shadow:var(--shadow); min-height:128px; display:flex; flex-direction:column; justify-content:space-between; transition:transform .08s ease; font-family:inherit; }
+  /* oct-2026, rediseño de tarjeta de mesa a pedido de Jessica (mandó una captura de referencia):
+     cabecera sólida de color (banda con el ícono de mesa + "Mesa N" en blanco) + cuerpo con tinte
+     suave debajo (mismo --good-soft/--bad-soft de siempre) -- la cabecera es lo que da la lectura
+     "a la distancia" de libre/ocupada, el cuerpo sigue mostrando el mismo detalle de antes. Sigue
+     siendo un solo <button>, mismo mozosAbrirMesa de siempre -- esto es solo estructura/CSS, la
+     lógica de abrir/liberar/mozo/tiempo/total no cambia en nada. */
+  .moz-mesa-tile{ border:none; border-radius:var(--radius); padding:0; cursor:pointer; text-align:left; box-shadow:var(--shadow); min-height:152px; display:flex; flex-direction:column; overflow:hidden; transition:transform .08s ease; font-family:inherit; background:none; }
   .moz-mesa-tile:active{ transform:scale(.97); }
-  .moz-mesa-tile.libre{ background:var(--good-soft); color:var(--good); border:2px solid var(--good); }
-  .moz-mesa-tile.ocupada{ background:var(--bad-soft); color:var(--bad); border:2px solid var(--bad); }
   .moz-mesa-tile:disabled{ opacity:.5; cursor:not-allowed; }
   .moz-mesa-tile:disabled:active{ transform:none; }
-  .moz-mesa-num{ font-family:"Fraunces",Georgia,serif; font-size:1.7rem; font-weight:700; line-height:1; color:var(--ink); }
-  .moz-mesa-estado{ font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; opacity:.9; margin-top:.15rem; }
+  .moz-mesa-head{ display:flex; align-items:center; gap:.5rem; padding:.6rem .85rem; color:#fff; }
+  .moz-mesa-tile.libre .moz-mesa-head{ background:var(--good-deep); }
+  .moz-mesa-tile.ocupada .moz-mesa-head{ background:var(--bad-deep); }
+  .moz-mesa-head-icon{ width:17px; height:17px; flex:none; opacity:.95; }
+  .moz-mesa-head-num{ font-family:"Fraunces",Georgia,serif; font-size:1.1rem; font-weight:700; line-height:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .moz-mesa-body{ position:relative; flex:1; padding:.8rem .85rem .9rem; display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; }
+  .moz-mesa-tile.libre .moz-mesa-body{ background:var(--good-soft); }
+  .moz-mesa-tile.ocupada .moz-mesa-body{ background:var(--bad-soft); }
+  .moz-mesa-deco-icon{ position:absolute; right:-.5rem; bottom:-.9rem; width:5.4rem; height:5.4rem; pointer-events:none; z-index:0; }
+  .moz-mesa-tile.libre .moz-mesa-deco-icon{ color:var(--good); opacity:.16; }
+  .moz-mesa-tile.ocupada .moz-mesa-deco-icon{ color:var(--bad); opacity:.16; }
+  .moz-mesa-estado-row{ display:flex; align-items:center; gap:.4rem; font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; position:relative; z-index:1; }
+  .moz-mesa-tile.libre .moz-mesa-estado-row{ color:var(--good); }
+  .moz-mesa-tile.ocupada .moz-mesa-estado-row{ color:var(--bad); }
   /* set-2026, pedido de Jessica ("mejorar únicamente la claridad", sin tocar la estructura ni el
      esquema de colores ya aprobado): mozo/tiempo un poco más grandes y en negrita, y el total un
      poco más grande, para que se lean de un vistazo rápido en horas de mucho movimiento. */
-  .moz-mesa-meta{ font-size:.85rem; font-weight:700; margin-top:.6rem; color:var(--ink); }
-  .moz-mesa-total{ font-size:1.15rem; font-weight:800; margin-top:.2rem; color:var(--ink); }
+  .moz-mesa-info-row{ display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; font-size:.8rem; font-weight:700; color:var(--ink); margin-top:.5rem; position:relative; z-index:1; }
+  .moz-mesa-info-row span{ display:inline-flex; align-items:center; gap:.28rem; }
+  .moz-mesa-info-row svg{ width:13px; height:13px; opacity:.7; flex:none; }
+  .moz-mesa-total{ font-size:1.2rem; font-weight:800; margin-top:.25rem; color:var(--ink); position:relative; z-index:1; }
+  .moz-mesa-toca{ display:inline-flex; align-items:center; gap:.4rem; font-size:.78rem; font-weight:700; color:var(--good); background:var(--surface); border-radius:999px; padding:.4rem .75rem; margin-top:.55rem; align-self:flex-start; position:relative; z-index:1; }
+  .moz-mesa-toca svg{ width:13px; height:13px; flex:none; }
+  .moz-mesa-ver-btn{ display:inline-block; font-size:.76rem; font-weight:700; color:var(--bad); background:var(--surface); border-radius:999px; padding:.4rem .85rem; margin-top:.55rem; align-self:flex-start; position:relative; z-index:1; }
 
   .moz-comanda-head{ display:flex; align-items:center; gap:.7rem; margin-bottom:.9rem; flex-wrap:wrap; }
   .moz-btn-back{ border:1px solid var(--border); background:var(--surface); border-radius:var(--radius-sm); padding:.6rem .9rem; font-size:.9rem; font-weight:700; cursor:pointer; font-family:inherit; color:var(--ink); }
@@ -960,7 +1000,7 @@
   .moz-qr-titulo{ font-size:.85rem; font-weight:700; color:var(--accent); margin-bottom:.5rem; }
   .moz-qr-box img{ max-width:220px; width:100%; border-radius:8px; background:#fff; padding:.4rem; }
   .moz-qr-pendiente{ font-size:.82rem; font-weight:700; color:var(--warn); }
-  .moz-mesa-pago{ font-size:.72rem; font-weight:700; margin-top:.15rem; opacity:.9; }
+  .moz-mesa-pago{ font-size:.72rem; font-weight:700; margin-top:.15rem; opacity:.9; position:relative; z-index:1; }
 
   /* Buscador + categorías SIEMPRE visibles (pedido de Jessica): quedan pegados justo debajo de
      la barra superior mientras se hace scroll de la grilla de productos -- el "top" real se
@@ -1079,15 +1119,10 @@
     --good-soft:rgba(47,143,82,.14);
     --bad:#b23a2e;
     --bad-soft:rgba(178,58,46,.14);
+    --good-deep:#2c5f3f;
+    --bad-deep:#7a2e26;
     --warn:#b8791a;
     --warn-soft:rgba(184,121,26,.14);
-    /* Colores fuertes/encendidos para el estado de la mesa (pedido explícito de Jessica,
-       YA APROBADO: OCUPADA en verde fuerte, LIBRE en rojo fuerte, letra blanca, todo el
-       cuadro sombreado -- esto NO cambia con la paleta cálida). Son colores propios, no los
-       tokens --good/--bad de arriba, para no afectar ningún otro uso de esos tokens
-       (etiquetas "nuevo", el banner de error, etc.) dentro de Mozos. */
-    --moz-verde-fuerte:#16a34a;
-    --moz-rojo-fuerte:#dc2626;
     background:var(--bg);
     color:var(--ink);
   }
@@ -1099,17 +1134,12 @@
   .moz-dark .moz-btn-enviar{ box-shadow:0 6px 18px -6px rgba(156,107,24,.45); }
   .moz-dark .moz-drawer-backdrop{ background:rgba(58,36,21,.45); }
   .moz-dark .moz-drawer{ box-shadow:-12px 0 32px -12px rgba(58,36,21,.25); }
-  .moz-dark .moz-mesa-tile.ocupada{ background:var(--moz-verde-fuerte); border-color:var(--moz-verde-fuerte); color:#fff; }
-  .moz-dark .moz-mesa-tile.libre{ background:var(--moz-rojo-fuerte); border-color:var(--moz-rojo-fuerte); color:#fff; }
-  /* moz-mesa-num/meta/total tienen su propio color:var(--ink) (para que se vean bien en el
-     resto de la app) -- eso GANA por sobre el color heredado del cuadro de la mesa, así que
-     sin esto quedarían en café espresso sobre el verde/rojo en vez de blanco. Se fuerza acá. */
-  .moz-dark .moz-mesa-tile.ocupada .moz-mesa-num,
-  .moz-dark .moz-mesa-tile.ocupada .moz-mesa-meta,
-  .moz-dark .moz-mesa-tile.ocupada .moz-mesa-total,
-  .moz-dark .moz-mesa-tile.libre .moz-mesa-num,
-  .moz-dark .moz-mesa-tile.libre .moz-mesa-meta,
-  .moz-dark .moz-mesa-tile.libre .moz-mesa-total{ color:#fff; }
+  /* oct-2026, AJUSTE OPERATIVO PRIORITARIO (Jessica): el bloque de "colores fuertes" que iba
+     acá (OCUPADA en verde, LIBRE en rojo -- invertido) quedó eliminado. Era justo la causa de
+     la semántica invertida que Jessica reportó. Las tarjetas ahora usan directamente
+     .moz-mesa-tile.libre/.ocupada (ver más arriba: libre=verde/--good, ocupada=terracota
+     elegante/--bad), que ya es la paleta cálida "premium Carmelitas" y nunca se desincroniza
+     de la leyenda ni del resumen porque los tres usan los mismos tokens --good/--bad. */
 </style>
 
 <div id="lockScreen" class="lock-screen" hidden>
@@ -1286,7 +1316,19 @@ var TRIPLES = [
     {n:"JAMÓN INGLES", p:78.7},
     {n:"JAMONADA DE POLLO", p:46.5},
     {n:"JAMONADA POLACA", p:53.9},
+    // oct-2026, CORRECCIÓN DEFINITIVA (confirmado por administración): "MANT. LAIVE 100 GR" ya
+    // NO se vende -- Carmelitas retiró esa presentación del catálogo (ver
+    // CATALOGO_SEED_OCULTO_MOZOS_PEDIDOS más abajo, que la oculta de Mozos/Pedidos para ventas
+    // nuevas). Esta fila de precio se CONSERVA tal cual -- nunca se borra ni se renombra -- para
+    // que getPrecioFor() siga resolviendo el precio correcto de cualquier pedido/venta histórica
+    // que ya la haya usado; solo deja de ofrecerse para pedidos NUEVOS.
     {n:"MANT. LAIVE 100 GR", p:7.5},
+    // oct-2026, CORRECCIÓN DEFINITIVA: "Mantequilla Laive 90g" es un producto real y vendible,
+    // distinto del de 100 g (ver nota de ronda 2 más abajo, junto a OTROS_PRECIO_ALIAS) -- antes
+    // no tenía precio oficial propio y quedaba en S/0.00 en Mozos/Pedidos. Administración
+    // confirmó su precio real: S/7.50. Se agrega como fila de precio oficial propia (igual
+    // patrón que "MANT. LAIVE 180 GR" de abajo) y se enlaza en OTROS_PRECIO_ALIAS.
+    {n:"MANT. LAIVE 90 GR", p:7.5},
     {n:"MANT. LAIVE 180 GR", p:13.3},
     {n:"MANTEQUILLA SERRANITA POR KILO", p:79.8},
     {n:"PATE", p:4.25},
@@ -1400,6 +1442,12 @@ var TRIPLES = [
     {n:"STRUDEL DE MANZANA", p:11.9},
     {n:"QUESO AHUMADO HOLANDÉS", p:124.8},
     {n:"QUESO ANDINO CARMELITAS ( AD)", p:75},
+    // oct-2026: "Queso Belpaese" no venía en la lista de precios original (Excel de Carmelitas
+    // Pan S.A.C.) -- quedó pendiente en la auditoría de ronda 2 (ver nota junto a
+    // OTROS_PRECIO_ALIAS más abajo). Administración confirmó el precio oficial: se vende por
+    // kilo a S/85.00. Fila nueva, agregada manualmente (no viene del Excel), mismo patrón que
+    // "QUESO DE CABRA KG" (línea de abajo).
+    {n:"QUESO BELPAESE KG", p:85},
     {n:"QUESO DE CABRA KG", p:94.9},
     {n:"QUESO EDAM CARMELITAS", p:75},
     {n:"QUESO FRESCO", p:41.9},
@@ -5379,14 +5427,38 @@ var TRIPLES = [
   // Pedidos (Mozzarella es insumo de producción; los otros tres, Jessica pidió quitarlos de la
   // lista) -- se excluyen del catálogo vendible con CATALOGO_EXCLUIDO_MOZOS_PEDIDOS, sin borrar
   // ni reordenar nada de su fila de conteo en Arqueo/Panes o Arqueo/Embutidos. Siguen sin precio,
-  // pendientes de que Jessica confirme código: "Mantequilla Laive 90g" (confirmó que SÍ es un
-  // producto real de 90g, distinto del "MANT. LAIVE 100 GR" de la lista -- no es el mismo
-  // producto mal rotulado, así que no se le puede prestar ese precio), "Pan Molido x Kg Milossi",
-  // "Queso Belpaese" (confirmó que sí se vende), "Manjar Blanco", "Tostada 7 Semillas al Ajo" y
+  // pendientes de que Jessica confirme código: "Mantequilla Laive 90g" [oct-2026: RESUELTO --
+  // administración confirmó precio oficial S/7.50, ver OTROS_PRECIO_ALIAS/PEDIDO_PRECIO_SEED más
+  // abajo; ya NO está pendiente] (confirmó que SÍ es un producto real de 90g, distinto del
+  // "MANT. LAIVE 100 GR" de la lista -- no es el mismo producto mal rotulado, así que no se le
+  // puede prestar ese precio), "Pan Molido x Kg Milossi" [oct-2026: excluido del catálogo
+  // vendible de Mozos/Pedidos por pedido de administración -- sigue en el conteo del Arqueo,
+  // ver CATALOGO_EXCLUIDO_MOZOS_PEDIDOS; sin precio oficial, ya no es un problema porque no se
+  // vende suelto],
+  // "Queso Belpaese" [oct-2026: RESUELTO -- administración confirmó precio oficial S/85.00 por
+  // kilo, ver OTROS_PRECIO_ALIAS/PEDIDO_PRECIO_SEED más arriba; ya NO está pendiente], "Manjar
+  // Blanco", "Tostada 7 Semillas al Ajo" [oct-2026: excluido del catálogo vendible de
+  // Mozos/Pedidos por pedido de administración ("ya no hay"), ver
+  // CATALOGO_EXCLUIDO_MOZOS_PEDIDOS] y
   // "Tostadas Dulces" (confirmó que sí se venden tostadas, pero ninguna de las dos coincide con
-  // los 5 códigos reales de la familia "Tostadas de Casa" de la lista de precios).
+  // los 5 códigos reales de la familia "Tostadas de Casa" de la lista de precios; administración
+  // pidió dejarla tal cual por ahora, sin precio, visible en Arqueo y Mozos). [oct-2026:
+  // "MANT. LAIVE 100 GR" en sí -- presentación distinta de 90g/180g -- se RETIRÓ del catálogo
+  // vendible por pedido explícito de administración, ver CATALOGO_SEED_OCULTO_MOZOS_PEDIDOS.
+  // "Molde 7 Semillas Chico" también se RETIRÓ por completo, ver CATALOGO_EXCLUIDO_MOZOS_PEDIDOS.]
   var OTROS_PRECIO_ALIAS = [
     { catalogo:"Aceituna", seed:"ACEITUNA ENTERA POR KILO" },
+    // oct-2026, CORRECCIÓN DEFINITIVA (confirmado por administración, resuelve la nota de ronda
+    // 2 de arriba): "Mantequilla Laive 90g" SÍ es un producto real y distinto del de 100 g (que
+    // se retiró del catálogo, ver CATALOGO_SEED_OCULTO_MOZOS_PEDIDOS). Se enlaza a su propia
+    // fila de precio oficial ("MANT. LAIVE 90 GR", S/7.50) -- mismo patrón que la línea de abajo
+    // para 180g. Nunca se presta el precio del de 100 g ni se mezcla con él.
+    { catalogo:"Mantequilla Laive 90g", seed:"MANT. LAIVE 90 GR" },
+    // oct-2026, CORRECCIÓN DEFINITIVA (confirmado por administración, resuelve la nota de ronda
+    // 2 de arriba): "Queso Belpaese" SÍ es un producto real que se vende por kilo. Se enlaza a
+    // su propia fila de precio oficial ("QUESO BELPAESE KG", S/85.00) -- mismo patrón que
+    // "Queso de Cabra (Kg)" más abajo.
+    { catalogo:"Queso Belpaese", seed:"QUESO BELPAESE KG" },
     { catalogo:"Jamón Inglés", seed:"JAMÓN INGLES" },
     { catalogo:"Jamón de Pierna Artesanal", seed:"JAMON DE PIERNA ARTESANAL" },
     { catalogo:"Queso Andino Carmelitas (AD)", seed:"QUESO ANDINO CARMELITAS ( AD)" },
@@ -5420,7 +5492,22 @@ var TRIPLES = [
   // Pedidos (ver aviso arriba de OTROS_PRECIO_ALIAS) -- comparación por nombre EXACTO tal como
   // está escrito en PANES/EMBUTIDOS (arriba, líneas ~1039-1070), nunca se borra ni reordena nada
   // de esos arreglos ni de su fila de conteo en Arqueo.
-  var CATALOGO_EXCLUIDO_MOZOS_PEDIDOS = ["Rústico 7 Semillas", "Multigranos", "Tostada Mickey", "Queso Mozzarella"];
+  // oct-2026, CORRECCIÓN DEFINITIVA (confirmado por administración, ronda de voz):
+  //   - "Molde 7 Semillas Chico": se retira DEFINITIVAMENTE -- ya estaba marcado descontinuado en
+  //     el conteo del Arqueo (ver DESCONTINUADOS más arriba) pero seguía apareciendo vendible en
+  //     Mozos/Pedidos en S/0.00; ahora también se oculta ahí. Su fila de conteo en Arqueo/Panes NO
+  //     se toca (sigue en el mismo lugar, oculta de "hoy" por DESCONTINUADOS como ya estaba).
+  //   - "Pan Molido x Kg Milossi": "déjalo para el Arqueo nada más, para mozos no" -- se queda tal
+  //     cual en su fila de conteo del Arqueo, pero se retira del catálogo vendible de Mozos y
+  //     Pedidos. (No confundir con "Pan Molido 500g", que SÍ tiene precio oficial y sigue
+  //     vendiéndose normal -- esa es una presentación distinta, no se toca.)
+  //   - "Tostada 7 Semillas al Ajo": "ya no hay, quítalo definitivamente" -- se retira del
+  //     catálogo vendible, misma fila de conteo del Arqueo intacta.
+  //   - "Tostadas Dulces" explícitamente NO entra en esta lista -- Jessica confirmó que se deja
+  //     tal cual, visible tanto en el Arqueo como en Mozos, aunque todavía no tenga precio oficial
+  //     propio (ver auditoría de productos sin precio).
+  var CATALOGO_EXCLUIDO_MOZOS_PEDIDOS = ["Rústico 7 Semillas", "Multigranos", "Tostada Mickey", "Queso Mozzarella",
+    "Molde 7 Semillas Chico", "Pan Molido x Kg Milossi", "Tostada 7 Semillas al Ajo"];
   // set-2026, ronda 2: "Huevos de Corral (Unid)" se sigue contando por unidad suelta en el
   // Arqueo (fila de conteo intacta), pero en el catálogo vendible de Mozos/Pedidos se muestra con
   // este otro nombre para que quede clarísimo que 1 = una caja de 8 (y no un huevo suelto) --
@@ -5430,7 +5517,17 @@ var TRIPLES = [
   // (ej. "HUEVOS DE CORRAL ( CAJA )") no debe aparecer TAMBIÉN por su cuenta en Mozos/Pedidos --
   // si no se ocultara, quedarían dos tarjetas para el mismo producto ("Huevos De Corral ( Caja )"
   // Y "Huevos de Corral (Caja x8)"), la misma clase de duplicado que Jessica pidió eliminar.
-  var CATALOGO_SEED_OCULTO_MOZOS_PEDIDOS = ["HUEVOS DE CORRAL ( CAJA )"];
+  // oct-2026, CORRECCIÓN DEFINITIVA (confirmado por administración): "MANT. LAIVE 100 GR" se
+  // retira DEFINITIVAMENTE del catálogo vendible -- esa presentación de 100 g ya no existe como
+  // producto de venta para Carmelitas. Se oculta con el mismo mecanismo que "Huevos de Corral
+  // (Caja)" de arriba: deja de aparecer en Mozos/Comanda, en el buscador de Pedidos, en las
+  // categorías y en "⭐ Frecuentes" (todos construidos sobre buildCatalogNameList/mozosCatalogo,
+  // que usan este mismo arreglo) -- pero su fila de precio en PEDIDO_PRECIO_SEED NO se borra, así
+  // que cualquier pedido o venta histórica que ya la haya usado conserva su nombre y precio
+  // originales intactos (getPrecioFor sigue resolviéndola igual para Despacho/Ver detalle/
+  // impresión). No afecta a "Mantequilla Laive 90g" ni "Mantequilla Laive 180g", que son
+  // productos distintos y siguen vendiéndose normalmente.
+  var CATALOGO_SEED_OCULTO_MOZOS_PEDIDOS = ["HUEVOS DE CORRAL ( CAJA )", "MANT. LAIVE 100 GR"];
   var pedidoPrecioAliasMap = null;
   function getPedidoPrecioAliasMap(){
     if(pedidoPrecioAliasMap) return pedidoPrecioAliasMap;
@@ -11339,7 +11436,10 @@ var TRIPLES = [
   // pedido puede avanzar a producción ahora mismo; ambas funciones reales la llaman, así que no
   // hay dos lugares con la regla que se puedan desincronizar.
   var PEDIDO_MSG_SIN_PAGO = "Pedido no pagado. No puede enviarse a producción.";
-  var PEDIDO_MSG_ENTREGA_VENCIDA = "⚠️ La hora de entrega solicitada ya venció. Reprograma la entrega antes de enviar a producción.";
+  // oct-2026, AJUSTE OPERATIVO PRIORITARIO (Jessica): este mensaje YA NO implica bloqueo -- la
+  // hora vencida nunca impide producir (ver despachoMotivoBloqueoProduccion más abajo). Queda
+  // solo como aviso informativo para quien quiera reprogramar el horario.
+  var PEDIDO_MSG_ENTREGA_VENCIDA = "⚠️ La hora de entrega solicitada ya venció. Puedes reprogramarla para actualizar el horario (esto no bloquea la producción).";
   // "Hora de entrega SOLICITADA" tal cual se escribió en el pedido (fecha de la línea + p.hora),
   // SIN el descuento de traslado que sí aplica despachoHoraAtencionMs para ordenar la cola de
   // Despacho -- acá interesa la hora que pidió el cliente, no cuándo debía salir de panadería.
@@ -11359,40 +11459,44 @@ var TRIPLES = [
     var ms = despachoHoraEntregaSolicitadaMs(p, fechaISO);
     return ms != null && ms < Date.now();
   }
-  // set-2026, CORRECCIÓN del candado por hora vencida (Jessica): el bloqueo por hora vencida
-  // solo tiene sentido ANTES de que el pedido quede autorizado para producción -- una vez que ya
-  // se imprimió el ticket (produccionEnviada) o ya avanzó de estado a EN_PREPARACION o más
-  // adelante, el pedido YA está comprometido/preparado y el atraso que venga después es de otra
-  // naturaleza (cliente que no llega a recoger, o reparto demorado), no un motivo para impedir
-  // nada. "Ya autorizado" se revisa con DOS señales porque "🖨️ Producción" y "Avanzar a En
-  // preparación" son caminos independientes -- cualquiera de los dos ya compromete el pedido.
+  // despachoProduccionYaAutorizada: se conserva como utilidad (indica si el pedido ya fue
+  // enviado a producción o ya avanzó de estado), pero oct-2026 DEJÓ DE USARSE para decidir
+  // bloqueo o atraso -- ver el comentario de despachoMotivoBloqueoProduccion más abajo, que
+  // explica el ajuste operativo prioritario de Jessica.
   var DESP_ESTADOS_YA_EN_PRODUCCION = { EN_PREPARACION:true, LISTO_DESPACHO:true, SALIO_TIENDA:true, EN_RUTA:true, ENTREGADO:true };
   function despachoProduccionYaAutorizada(p, fechaISO){
     var enviados = p.produccionEnviada && p.produccionEnviada[fechaISO];
     if(enviados && Object.keys(enviados).length) return true;
     return !!DESP_ESTADOS_YA_EN_PRODUCCION[p.estado];
   }
-  // Devuelve "" si el pedido SÍ puede enviarse a producción ahora mismo, o el mensaje exacto a
-  // mostrar si no. El pago se revisa primero (si falta pago, ese es el motivo que se muestra,
-  // aunque la hora también esté vencida -- un solo mensaje a la vez, el más urgente). El ESTADO
-  // real del pedido se revisa ANTES que la hora (Jessica: "no uses simplemente hora actual >
-  // hora entrega = bloquear") -- si ya está autorizado para producción, la hora vencida deja de
-  // ser un motivo de bloqueo (ver despachoAtrasoInfo, que la muestra como aviso, no candado).
+  // oct-2026, AJUSTE OPERATIVO PRIORITARIO (Jessica): la hora vencida dejó de ser, en cualquier
+  // circunstancia, motivo para bloquear un pedido -- "el tiempo/atraso es un estado operativo
+  // independiente del permiso comercial". La ÚNICA razón real para impedir producción es
+  // comercial: falta de pago y sin crédito autorizado (pedidoNecesitaPagoPrevio, única fuente de
+  // verdad). Antes esta función también bloqueaba por "BLOQUEADO — HORA VENCIDA" cuando el
+  // pedido todavía no había sido enviado a producción/avanzado de estado aunque ya estuviera
+  // pagado o con crédito -- ese era exactamente el bug reportado por Jessica. Ya no existe esa
+  // rama: un pedido pagado o con crédito autorizado SIEMPRE puede producirse, esté o no
+  // atrasado. El atraso se muestra aparte, solo como aviso informativo (ver despachoAtrasoInfo),
+  // nunca como candado.
   function despachoMotivoBloqueoProduccion(p, fechaISO){
     if(pedidoNecesitaPagoPrevio(p)) return PEDIDO_MSG_SIN_PAGO;
-    if(despachoProduccionYaAutorizada(p, fechaISO)) return "";
-    if(despachoEntregaSolicitadaVencida(p, fechaISO)) return PEDIDO_MSG_ENTREGA_VENCIDA;
     return "";
   }
-  // Aviso informativo (NUNCA bloquea nada) para un pedido que ya está autorizado para producción
-  // pero cuya hora solicitada ya pasó -- distingue de quién es el atraso, tal como pidió Jessica:
-  // si es recojo en tienda, el atraso es del cliente que no ha venido; si es delivery, el atraso
-  // es del reparto y hay que poder actuar. Se conserva la hora originalmente prometida -- esto
-  // nunca obliga a reprogramar para "esconder" el atraso. null si no aplica (a tiempo, terminal,
-  // o todavía no autorizado -- ese caso sigue siendo el candado normal).
+  // Aviso informativo (NUNCA bloquea nada) para un pedido YA AUTORIZADO COMERCIALMENTE (pagado o
+  // con crédito autorizado -- pedidoNecesitaPagoPrevio() es la única fuente de verdad, igual que
+  // en despachoMotivoBloqueoProduccion de arriba) cuya hora solicitada ya pasó -- distingue de
+  // quién es el atraso, tal como pidió Jessica: si es recojo en tienda, el atraso es del cliente
+  // que no ha venido; si es delivery, el atraso es del reparto y hay que poder actuar. oct-2026:
+  // ya NO exige que el pedido haya sido enviado a producción ni que haya avanzado de estado --
+  // un pedido recién pagado/autorizado y atrasado, que todavía no entró a producción, también
+  // debe verse como atraso operativo, nunca como bloqueo. Se conserva la hora originalmente
+  // prometida -- esto nunca obliga a reprogramar para "esconder" el atraso. null si no aplica (a
+  // tiempo, terminal, o todavía sin autorizar comercialmente -- ese caso sigue siendo el candado
+  // normal de falta de pago, mostrado aparte).
   function despachoAtrasoInfo(p, fechaISO){
     if(p.estado === "ENTREGADO" || p.estado === "CANCELADO") return null;
-    if(!despachoProduccionYaAutorizada(p, fechaISO)) return null;
+    if(pedidoNecesitaPagoPrevio(p)) return null;
     if(!despachoEntregaSolicitadaVencida(p, fechaISO)) return null;
     var ms = despachoHoraEntregaSolicitadaMs(p, fechaISO);
     var min = ms != null ? Math.max(0, Math.round((Date.now() - ms) / 60000)) : 0;
@@ -11461,8 +11565,13 @@ var TRIPLES = [
     // usan exactamente esta misma función para rechazar el intento aunque se llegue por otro
     // camino que no sea esta tarjeta).
     var motivoBloqueo = esTerminal ? "" : despachoMotivoBloqueoProduccion(p, fechaProd);
-    var faltaPago = !!motivoBloqueo && pedidoNecesitaPagoPrevio(p);
-    var entregaVencida = !!motivoBloqueo && !faltaPago;
+    // oct-2026: motivoBloqueo ahora SOLO existe por falta de pago (ver
+    // despachoMotivoBloqueoProduccion) -- faltaPago === !!motivoBloqueo siempre. Ya no existe un
+    // segundo motivo de bloqueo por hora vencida.
+    var faltaPago = !!motivoBloqueo;
+    // Puramente informativo (no bloquea nada): ¿la hora solicitada de este pedido ya pasó? Se usa
+    // para ofrecer "📅 Reprogramar entrega" como comodidad, nunca como candado.
+    var horaYaVencida = !esTerminal && despachoEntregaSolicitadaVencida(p, fechaProd);
 
     var card = document.createElement("div");
     card.className = "desp-card" + (esTerminal ? " terminal" : "");
@@ -11480,16 +11589,11 @@ var TRIPLES = [
       sinPagoTag.className = "desp-tag desp-sinpago-tag";
       sinPagoTag.innerHTML = "🔒 BLOQUEADO — FALTA PAGO";
       rowTop.appendChild(sinPagoTag);
-    } else if(entregaVencida){
-      var vencidaTag = document.createElement("span");
-      vencidaTag.className = "desp-tag desp-vencida-tag";
-      vencidaTag.innerHTML = "🔒 BLOQUEADO — HORA VENCIDA";
-      rowTop.appendChild(vencidaTag);
     } else if(!esTerminal){
-      // set-2026, corrección: pedido YA autorizado para producción (ticket enviado o ya en
-      // preparación/listo) cuya hora solicitada pasó -- esto ya NO es un candado (ver
-      // despachoMotivoBloqueoProduccion arriba), solo un aviso de a quién corresponde el atraso.
-      // Se mantiene la hora original prometida; no se pide reprogramar para "esconder" el atraso.
+      // oct-2026: ya NO existe un tag "BLOQUEADO — HORA VENCIDA" -- un pedido pagado o con
+      // crédito autorizado nunca se bloquea por hora (ver despachoMotivoBloqueoProduccion
+      // arriba), solo un aviso de a quién corresponde el atraso. Se mantiene la hora original
+      // prometida; no se pide reprogramar para "esconder" el atraso.
       var atrasoInfo = despachoAtrasoInfo(p, fechaProd);
       if(atrasoInfo){
         var atrasoTag = document.createElement("span");
@@ -11585,12 +11689,8 @@ var TRIPLES = [
           return;
         }
         db.collection("pedidos").doc(p.id).update({ pagado: true }).then(function(){
-          // set-2026, requisito 3: si al registrar el pago la hora de entrega solicitada ya
-          // venció, NO se habilita producción solo por marcar pagado -- se avisa de inmediato
-          // (no hay que esperar a que alguien intente "🖨️ Producción" para enterarse) y sigue
-          // bloqueado hasta reprogramar. despachoMotivoBloqueoProduccion ya revisa esto solo en
-          // cada render porque el pago ya quedó guardado -- acá solo se informa con el mensaje
-          // exacto pedido por Jessica.
+          // oct-2026: si al registrar el pago la hora de entrega solicitada ya venció, esto YA
+          // NO bloquea producción -- solo se informa, por si quieren reprogramar el horario.
           if(despachoEntregaSolicitadaVencida(p, fechaProd)){
             showToast(PEDIDO_MSG_ENTREGA_VENCIDA, 6000);
           }
@@ -11600,7 +11700,10 @@ var TRIPLES = [
       });
       actions.appendChild(pagarBtn);
     }
-    if(entregaVencida && !readOnly && despachoEsVistaHoy()){
+    // oct-2026: "Reprogramar entrega" ya NO es la salida obligatoria de un bloqueo (ya no existe
+    // ese bloqueo) -- queda disponible como comodidad informativa para cualquier pedido activo
+    // cuya hora ya venció, autorizado o no, así el horario mostrado se puede mantener al día.
+    if(horaYaVencida && !readOnly && despachoEsVistaHoy()){
       var bloqueoNotaVencida = document.createElement("div");
       bloqueoNotaVencida.className = "desp-bloqueo-nota";
       bloqueoNotaVencida.textContent = PEDIDO_MSG_ENTREGA_VENCIDA;
@@ -13828,23 +13931,69 @@ var TRIPLES = [
     mozosGuardarMesa(mesa);
   }
 
+  // oct-2026, AJUSTE OPERATIVO PRIORITARIO (Jessica): categorías de navegación nuevas (antes
+  // Panes/Pastelería/Bebidas/Sándwiches/Otros -- ver pedido: "Frecuentes, Sándwiches, Cafés e
+  // infusiones, Bebidas, Panadería, Empanadas, Dulces/Postres, Especialidades, Empaques, Todos").
+  // IMPORTANTE -- MISMO BUG HISTÓRICO QUE mozosObsGrupoDe YA TUVO QUE CORREGIR (ver el aviso
+  // justo abajo de esta función, antes de MOZOS_OBS_SANDWICH_EXTRA): la vieja versión de esta
+  // función metía "CHICHA" como palabra clave ancha de Bebidas, y por ser un match de
+  // SUBSTRING esa misma palabra también calzaba con "CHICHARRÓN" y "SALCHICHA" -- como Bebidas
+  // se revisaba ANTES que Sándwiches, "Mega Sandwich Chicharrón" caía en Bebidas sin llegar
+  // nunca a calzar con "SANDWICH". Esta versión corrige EXACTAMENTE ese error, igual que ya se
+  // corrigió en mozosObsGrupoDe:
+  //   1) Sándwiches (incluye Triples: "Tira de"/"Und T.") se revisa PRIMERO, con la MISMA lista
+  //      exacta de "Mini X" armados que ya usa mozosObsGrupoDe (MOZOS_OBS_SANDWICH_EXTRA) --
+  //      así "Mini Chicharrón"/"Sándwich Chicharrón"/"Mega Sándwich Chicharrón" SIEMPRE caen en
+  //      Sándwiches, y "Chicharrón" o "Chicharrón Prensa" solos (al peso, sin ningún calificador
+  //      de sándwich) NUNCA se confunden con un sándwich -- van a Especialidades.
+  //   2) NINGÚN keyword de otra categoría usa "CHICHA" como substring suelto -- se usan frases
+  //      completas ("Chicha Litro"/"Chicha Medio Litro"/"Chicha Vaso"), así "Salchicha de
+  //      Huacho" tampoco se confunde con una bebida ni se asume como sándwich.
+  //   3) Categorías más específicas (Empanadas, Cafés e infusiones, Dulces/Postres, Empaques)
+  //      se revisan ANTES que las más amplias (Especialidades, Panadería), para que por ejemplo
+  //      "Porción de Tarta de Queso y Vainilla" caiga en Dulces/Postres (por "Tarta") y no en
+  //      Especialidades solo por contener la palabra "Queso".
+  // Si un producto no calza con ninguna categoría de forma segura, esta función devuelve null a
+  // propósito -- JAMÁS se inventa una categoría -- y ese producto sigue disponible en "🔎 Todos".
   function mozoCategoriaDe(nombre){
-    var n = String(nombre || "").toUpperCase();
+    var n = String(nombre || "").trim().toUpperCase();
     function tieneAlguna(lista){
       return lista.some(function(w){ return n.indexOf(w) !== -1; });
     }
-    if(tieneAlguna(["JUGO","BATIDO","FROZEN","CAFÉ","CAFE","CHICHA","LIMONADA","AGUA ","COCA COLA",
-      "COCA ZERO","FANTA","INCA KOLA","INKA ZERO","CHOCOLATADA","LECHE","CAPUCCINO","ESPRESSO",
-      "CHOCOLATE","MORA POWER","MIX BI","MIX TRI","MIX FRESA","TE ","TE-","TÉ"])) return "Bebidas";
+    // 1) Sándwiches (y Triples) -- SIEMPRE primero, mismo patrón ya probado en mozosObsGrupoDe.
+    if(MOZOS_OBS_SANDWICH_EXTRA.hasOwnProperty(n)) return "Sándwiches";
     if(tieneAlguna(["SANDWICH","SÁNDWICH","MIXTO","TIRA DE","UND T.","CIABATTITAS CON POLLO"])) return "Sándwiches";
-    if(tieneAlguna(["MOLDE FONDANT","MOLDE TARTA","MUFFIN","ALFAJOR","MILHOJAS","ROSCA","GALLETA",
-      "CINNAMON","STRUDEL","MAZAMORRA","BUDIN","OREJAS","ROSQUITA","TURRÓN","TURRON","ENCIMADA",
-      "CHIRIMOYA","MIEL","CROISSANT DE CHOCOLATE","CROISANT DE MANJAR","EMPANADA","TARTA","PASTEL","TAMAL"])) return "Pastelería";
+    // 2) Empanadas.
+    if(n.indexOf("EMPANADA") !== -1) return "Empanadas";
+    // 3) Cafés e infusiones -- lista EXACTA (igual que MOZOS_OBS_CAFE_CALIENTE para los chips de
+    // azúcar), nunca un keyword ancho como "CAFE" suelto (que también aparece en "Café Molido
+    // 250g", una bolsa de grano para Especialidades, no una bebida preparada).
+    if(MOZOS_OBS_CAFE_CALIENTE.hasOwnProperty(n)) return "Cafés e infusiones";
+    // 4) Bebidas envasadas/preparadas frías -- frases completas, NUNCA "CHICHA" suelto (ver aviso
+    // arriba).
+    if(tieneAlguna(["JUGO","BATIDO","FROZEN","LIMONADA","AGUA CON GAS","AGUA SIN GAS","COCA COLA",
+      "COCA ZERO","FANTA","INCA KOLA","INKA ZERO","CHOCOLATADA","LECHE ENTERA","LECHE LIGTH",
+      "LECHE LIGHT","LECHE SIN LACTOSA","LECHE SOLA","MORA POWER","MIX BI","MIX TRI","MIX FRESA",
+      "CHICHA LITRO","CHICHA MEDIO LITRO","CHICHA VASO"])) return "Bebidas";
+    // 5) Dulces / Postres.
+    if(tieneAlguna(["FONDANT","MUFFIN","ALFAJOR","MILHOJAS","ROSCA","GALLETA","CINNAMON","STRUDEL",
+      "MAZAMORRA","BUDIN","TURRÓN","TURRON","ENCIMADA","CHIRIMOYA","CROISSANT DE CHOCOLATE",
+      "CROISANT DE MANJAR","TARTA","OREJAS"])) return "Dulces / Postres";
+    // 6) Empaques.
+    if(tieneAlguna(["BOLSA PLASTICA","BOLSA PLÁSTICA","CAJA 1","CAJA 4","CAJA ADICIONAL","CAJA GRANDE"])) return "Empaques";
+    // 7) Especialidades -- fiambres/quesos/mantequillas/carnes al peso, condimentos y afines
+    // (venta por peso/pieza o como producto de despensa, no un snack individual para llevar).
+    if(tieneAlguna(["CHICHARRÓN","CHICHARRON","JAMÓN","JAMON","JAMONADA","PATE","PATÉ","TOCINO",
+      "QUESO","MANTEQUILLA","MANT.","ACEITUNA ENTERA","SALCHICHA DE HUACHO","ASADO","PAVO",
+      "MANJAR BLANCO","MIEL","MERMELADA","HUEVOS","TAMAL","PASTEL DE ACELGA",
+      "PORCIÓN DE AJÍ CARMELITAS","PORCIÓN DE CAMOTE","PORCIÓN DE CEBOLLA","PORCIÓN DE MAYONESA",
+      "PORCIÓN HONEY MUSTARD","CAFE MOLIDO","CAFÉ MOLIDO"])) return "Especialidades";
+    // 8) Panadería -- la más amplia, se revisa al final.
     if(tieneAlguna(["PAN ","FRANCÉS","FRANCES","INTEGRAL","CIABATTA","BAGUET","CHANCAY","COLIZA",
       "HAMBURGUESA","YEMA","CARAMANDUCA","TOSTADA","MASA MADRE","MULTIGRANOS","PITA","CRUTONES",
       "MOLDE BLANCO","MOLDE INTEGRAL","MOLDE ESPECIAL","MOLDE 7 SEMILLAS","CROISSANT","BRIOCHE",
-      "PETIPAN","MIQUETITA"])) return "Panes";
-    return "Otros";
+      "PETIPAN","MIQUETITA"])) return "Panadería";
+    return null;
   }
   // Catálogo para Mozos: MISMOS nombres y precios que ya usa Pedidos (buildCatalogNameList +
   // getPrecioFor, ver más arriba) -- no se duplica ni un nombre ni un precio nuevo acá.
@@ -13867,9 +14016,14 @@ var TRIPLES = [
   };
   // set-2026, FIX DE BUG URGENTE (reporte de Jessica con capturas): los chips de arriba se
   // elegían con mozoCategoriaDe(nombre), la función que agrupa productos para los chips de
-  // categoría del BUSCADOR (Panes/Pastelería/Bebidas/Sándwiches/Otros) -- una función de otro
-  // propósito, que a propósito NO se toca acá (sigue igual para el buscador).
-  // El bug real: mozoCategoriaDe mete "CHICHA" (pensado solo para Chicha Morada) dentro de la
+  // categoría del BUSCADOR -- una función de otro propósito, que a propósito NO se tocó acá en
+  // ese momento (sigue igual para el buscador). [oct-2026, AJUSTE OPERATIVO PRIORITARIO: Jessica
+  // pidió explícitamente corregir ESE MISMO bug también en mozoCategoriaDe -- ver su definición
+  // más abajo, ya reescrita siguiendo este mismo patrón (Sándwiches primero, frases completas en
+  // vez de "CHICHA" suelto). Las dos funciones siguen siendo independientes a propósito -- esta
+  // (mozosObsGrupoDe) decide chips de observación rápida, mozoCategoriaDe decide la navegación
+  // por categorías del buscador -- pero ya NO tienen el bug, cada una por su cuenta.]
+  // El bug real (ya corregido en ambas): mozoCategoriaDe metía "CHICHA" (pensado solo para Chicha Morada) dentro de la
   // palabra clave de "Bebidas", pero por ser un match de SUBSTRING esa misma palabra "CHICHA"
   // también calza con "CHICHARRÓN" y con "SALCHICHA" -- y como "Bebidas" se revisa ANTES que
   // "Sándwiches" en esa función, un producto como "Mega Sandwich Chicharrón" nunca llegaba a
@@ -14841,6 +14995,22 @@ var TRIPLES = [
       mozosLiderHoyCache = { turno: turnoActual, mozo: ordenado[0].mozo };
     }).catch(function(){ /* silencioso: la copa es decorativa, nunca debe interrumpir Mesas */ });
   }
+  // oct-2026, rediseño de Mesas a pedido de Jessica (mandó una captura de referencia): íconos de
+  // línea simples (SVG inline, sin depender de ninguna librería ni de cómo cada celular dibuje un
+  // emoji) para la cabecera de cada tarjeta, el resumen de arriba y el detalle de mesa ocupada.
+  // Puramente decorativo/visual -- no reemplaza ningún emoji usado en el resto de la app (Despacho,
+  // Comanda, etc. siguen exactamente igual), solo se usa dentro de la pantalla de Mesas.
+  var MOZ_ICON_PATHS = {
+    mesa: '<ellipse cx="12" cy="7" rx="7" ry="3"/><line x1="12" y1="10" x2="12" y2="18"/><line x1="12" y1="18" x2="7" y2="20.5"/><line x1="12" y1="18" x2="17" y2="20.5"/>',
+    tap: '<circle cx="12" cy="12" r="2.6"/><path d="M12 3v3.2M12 17.8V21M21 12h-3.2M6.2 12H3M18.4 5.6l-2.3 2.3M7.9 16.1l-2.3 2.3M18.4 18.4l-2.3-2.3M7.9 7.9 5.6 5.6"/>',
+    persona: '<circle cx="12" cy="8.3" r="3.3"/><path d="M5.3 20c0-3.7 3-6.2 6.7-6.2s6.7 2.5 6.7 6.2"/>',
+    reloj: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.3V12l3.4 2"/>',
+    moneda: '<ellipse cx="12" cy="6.2" rx="6.8" ry="2.8"/><path d="M5.2 6.2v5.4c0 1.55 3.04 2.8 6.8 2.8s6.8-1.25 6.8-2.8V6.2"/><path d="M5.2 11.6V17c0 1.55 3.04 2.8 6.8 2.8s6.8-1.25 6.8-2.8v-5.4"/>'
+  };
+  function mozIcon(nombre, cls){
+    return '<svg class="' + cls + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + MOZ_ICON_PATHS[nombre] + '</svg>';
+  }
   function buildMozosMesasResumenCompacto(){
     var ocupadas = 0, totalAbierto = 0;
     for(var n = 1; n <= MOZOS_NUM_MESAS; n++){
@@ -14850,8 +15020,16 @@ var TRIPLES = [
     var libres = MOZOS_NUM_MESAS - ocupadas;
     var res = document.createElement("div");
     res.className = "moz-mesas-resumen";
-    res.innerHTML = MOZOS_NUM_MESAS + " mesas · 🟢 " + ocupadas + " ocupadas · 🔴 " + libres +
-      " libres · S/" + fmtMoney(totalAbierto) + " en mesas abiertas";
+    // oct-2026, ajuste operativo prioritario (Jessica): semántica correcta -- verde = libre,
+    // rojo = ocupada (antes estaba invertido). Ver también la leyenda y las tarjetas en
+    // buildMozosMesasView. oct-2026 (captura de referencia de Jessica): cada dato ahora lleva su
+    // propia insignia de ícono en vez del emoji suelto, mismos tokens --good/--bad/--accent de
+    // siempre -- el texto (número + etiqueta) es el mismo de antes, solo cambia el adorno.
+    res.innerHTML =
+      '<span class="moz-resumen-item"><span class="moz-resumen-icon moz-resumen-icon-neutro">' + mozIcon("mesa", "") + '</span><strong>' + MOZOS_NUM_MESAS + '</strong> mesas</span>' +
+      '<span class="moz-resumen-item"><span class="moz-resumen-icon moz-resumen-icon-libre"><span class="moz-resumen-dot"></span></span><strong>' + libres + '</strong> libres</span>' +
+      '<span class="moz-resumen-item"><span class="moz-resumen-icon moz-resumen-icon-ocupada"><span class="moz-resumen-dot"></span></span><strong>' + ocupadas + '</strong> ocupadas</span>' +
+      '<span class="moz-resumen-item"><span class="moz-resumen-icon moz-resumen-icon-neutro">' + mozIcon("moneda", "") + '</span><strong>S/' + fmtMoney(totalAbierto) + '</strong> en mesas abiertas</span>';
     return res;
   }
 
@@ -15429,8 +15607,11 @@ var TRIPLES = [
     box.appendChild(buildMozosMesasResumenCompacto());
     var legend = document.createElement("div");
     legend.className = "moz-legend";
-    legend.innerHTML = '<span><span class="moz-dot" style="background:var(--moz-rojo-fuerte,var(--bad))"></span>Mesa libre</span>' +
-      '<span><span class="moz-dot" style="background:var(--moz-verde-fuerte,var(--good))"></span>Mesa ocupada</span>';
+    // oct-2026, ajuste operativo prioritario (Jessica): corregido -- antes decía "libre" con el
+    // punto rojo y "ocupada" con el verde (invertido). Ahora: 🟢 verde = libre, 🔴 terracota =
+    // ocupada, consistente con el resumen de arriba y con las tarjetas de abajo.
+    legend.innerHTML = '<span><span class="moz-dot" style="background:var(--good)"></span>Mesa libre</span>' +
+      '<span><span class="moz-dot" style="background:var(--bad)"></span>Mesa ocupada</span>';
     box.appendChild(legend);
 
     var mesasSeguro = mesasCargadas && !mesasSyncError;
@@ -15453,10 +15634,19 @@ var TRIPLES = [
         // después del toque.
         tile.disabled = !mesasSeguro;
         tile.addEventListener("click", function(){ mozosAbrirMesa(numero); });
-        var html = '<div><div class="moz-mesa-num">Mesa ' + numero + '</div>' +
-          '<div class="moz-mesa-estado">' + (mesa.estado === "ocupada" ? "Ocupada" : "Libre") + '</div></div>';
+        // oct-2026, rediseño a pedido de Jessica (captura de referencia): cabecera sólida con
+        // ícono de mesa + "Mesa N", cuerpo con tinte suave debajo -- mismo contraste de siempre
+        // (--good-deep/--bad-deep solo para la banda de la cabecera, --good/--bad para el punto y
+        // el texto del estado, idénticos a la leyenda y al resumen de arriba, así nunca se pueden
+        // desincronizar). El ícono grande y tenue del fondo es puramente decorativo.
+        var esOcupada = mesa.estado === "ocupada";
+        var html = '<div class="moz-mesa-head">' + mozIcon("mesa", "moz-mesa-head-icon") +
+          '<span class="moz-mesa-head-num">Mesa ' + numero + '</span></div>' +
+          '<div class="moz-mesa-body">' + mozIcon("mesa", "moz-mesa-deco-icon") +
+          '<div class="moz-mesa-estado-row"><span class="moz-dot" style="background:' + (esOcupada ? "var(--bad)" : "var(--good)") + '"></span>' +
+          (esOcupada ? "Ocupada" : "Libre") + '</div>';
         if(mesasConFalla[numero]) html += '<div class="moz-mesa-badge-falla">⚠️ No se imprimió</div>';
-        if(mesa.estado === "ocupada"){
+        if(esOcupada){
           var minutos = mesa.horaApertura ? Math.max(0, Math.round((Date.now() - mesa.horaApertura) / 60000)) : 0;
           // Copa discreta (set-2026, ítem 9): solo si este mozo es HOY el líder del turno actual
           // (cache de mozosRefrescarLiderHoyCache, arriba) -- decorativo, nunca bloquea nada si
@@ -15467,11 +15657,14 @@ var TRIPLES = [
           // grilla -- así el mozo puede repasar todas sus mesas de un vistazo, sin entrar a cada
           // una, antes de ir a hablar con la caja.
           var pagoTxt = mesa.medioPago ? ('<div class="moz-mesa-pago">' + esc(mozosMedioPagoLabel(mesa.medioPago)) + '</div>') : "";
-          html += '<div><div class="moz-mesa-meta">👤 ' + esc(mesa.mozo || "-") + (esLiderAhora ? " 🏆" : "") + ' · ⏱ ' + minutos + ' min</div>' +
-            '<div class="moz-mesa-total">S/' + fmtMoney(mozosTotalMesa(mesa)) + '</div>' + pagoTxt + '</div>';
+          html += '<div class="moz-mesa-info-row"><span>' + mozIcon("persona", "") + esc(mesa.mozo || "-") + (esLiderAhora ? " 🏆" : "") + '</span>' +
+            '<span>' + mozIcon("reloj", "") + minutos + ' min</span></div>' +
+            '<div class="moz-mesa-total">S/' + fmtMoney(mozosTotalMesa(mesa)) + '</div>' + pagoTxt +
+            '<span class="moz-mesa-ver-btn">Ver pedido</span>';
         } else {
-          html += '<div class="moz-mesa-meta">Toca para abrir</div>';
+          html += '<span class="moz-mesa-toca">' + mozIcon("tap", "") + 'Toca para abrir</span>';
         }
+        html += '</div>';
         tile.innerHTML = html;
         grid.appendChild(tile);
       })(n);
@@ -15480,7 +15673,75 @@ var TRIPLES = [
     return box;
   }
 
-  var MOZOS_CATEGORIAS = ["Todos", "Panes", "Pastelería", "Bebidas", "Sándwiches", "Otros"];
+  // oct-2026, AJUSTE OPERATIVO PRIORITARIO (Jessica): categorías de navegación nuevas, en el orden
+  // exacto pedido. Cada entrada tiene "label" (lo que se ve en el chip, con emoji) y "cat" (el
+  // valor contra el que se compara p.categoria -- ver mozoCategoriaDe más arriba, que devuelve
+  // estos mismos strings sin emoji). "Todos" es un bypass (no filtra); "Frecuentes" es una
+  // categoría virtual que NO viene de mozoCategoriaDe sino del contador local (ver
+  // mozosFrecuentesTop más abajo) -- un producto nunca pierde su categoría real por aparecer
+  // también en Frecuentes.
+  var MOZOS_CATEGORIAS = [
+    { label: "⭐ Frecuentes", cat: "Frecuentes" },
+    { label: "🥪 Sándwiches", cat: "Sándwiches" },
+    { label: "☕ Cafés e infusiones", cat: "Cafés e infusiones" },
+    { label: "🧃 Bebidas", cat: "Bebidas" },
+    { label: "🥐 Panadería", cat: "Panadería" },
+    { label: "🥟 Empanadas", cat: "Empanadas" },
+    { label: "🍰 Dulces / Postres", cat: "Dulces / Postres" },
+    { label: "🧀 Especialidades", cat: "Especialidades" },
+    { label: "📦 Empaques", cat: "Empaques" },
+    { label: "🔎 Todos", cat: "Todos" }
+  ];
+
+  // "⭐ Frecuentes" -- el pedido fue explícito: "No inventar qué productos son frecuentes si el
+  // sistema todavía no dispone de datos fiables." No hay forma de leer el historial completo de
+  // ventas desde esta pantalla sin arriesgar rendimiento, así que se usa un contador INCREMENTAL
+  // simple en localStorage (por dispositivo, se va llenando solo con el uso real) en vez de
+  // inventar una lista fija o escanear historial. Mientras no haya datos suficientes, la grilla de
+  // "Frecuentes" muestra un aviso honesto (ver renderGrid) en vez de productos inventados. Los
+  // empaques/bolsas NUNCA entran aquí, sin importar cuántas veces se hayan agregado (pedido
+  // explícito de Jessica).
+  var MOZOS_FRECUENTES_KEY = "arqueo_mozos_frecuentes_v1";
+  function mozosFrecuentesLeer(){
+    try{
+      var raw = window.localStorage.getItem(MOZOS_FRECUENTES_KEY);
+      if(!raw) return {};
+      var obj = JSON.parse(raw);
+      return (obj && typeof obj === "object") ? obj : {};
+    }catch(e){ return {}; }
+  }
+  function mozosFrecuentesIncrementar(nombre){
+    try{
+      if(!nombre) return;
+      if(mozoCategoriaDe(nombre) === "Empaques") return;
+      var datos = mozosFrecuentesLeer();
+      datos[nombre] = (datos[nombre] || 0) + 1;
+      window.localStorage.setItem(MOZOS_FRECUENTES_KEY, JSON.stringify(datos));
+    }catch(e){ /* localStorage no disponible -- nunca debe bloquear el pedido */ }
+  }
+  function mozosFrecuentesTop(n){
+    var datos = mozosFrecuentesLeer();
+    var nombres = Object.keys(datos).filter(function(nombre){
+      return mozoCategoriaDe(nombre) !== "Empaques";
+    });
+    nombres.sort(function(a, b){ return (datos[b] || 0) - (datos[a] || 0); });
+    return nombres.slice(0, n);
+  }
+
+  // oct-2026, AJUSTE OPERATIVO PRIORITARIO (Jessica), ítem secundario del buscador ("si es posible
+  // mediante una modificación pequeña y segura"): normaliza SOLO para comparar en la búsqueda del
+  // buscador de Comanda -- nunca toca el nombre real del producto que se muestra, imprime o
+  // guarda, y nunca toca el reconocimiento de voz (Web Speech API, sigue igual arriba). Quita
+  // tildes (para que una búsqueda sin tilde encuentre nombres con tilde) y aplica un alias
+  // conocido (espresso/expreso) en ambas direcciones.
+  function mozosNormalizarBusqueda(s){
+    var t = String(s || "").toLowerCase();
+    try{
+      t = t.normalize("NFD").replace(/[̀-ͯ]/g, "");
+    }catch(e){ /* normalize no disponible en este navegador -- se sigue buscando igual, solo sin pelar tildes */ }
+    t = t.replace(/expreso/g, "espresso");
+    return t;
+  }
   function buildMozosComandaView(numero){
     var mesa = mozosGetMesa(numero);
     var box = document.createElement("div");
@@ -15782,26 +16043,40 @@ var TRIPLES = [
       MOZOS_CATEGORIAS.forEach(function(c){
         var chipBtn = document.createElement("button");
         chipBtn.type = "button";
-        chipBtn.className = "moz-cat-chip" + (c === catActivaLocal ? " active" : "");
-        chipBtn.textContent = c;
-        chipBtn.addEventListener("click", function(){ catActivaLocal = c; renderCats(); renderGrid(); });
+        chipBtn.className = "moz-cat-chip" + (c.cat === catActivaLocal ? " active" : "");
+        chipBtn.textContent = c.label;
+        chipBtn.addEventListener("click", function(){ catActivaLocal = c.cat; renderCats(); renderGrid(); });
         catRow.appendChild(chipBtn);
       });
     }
 
     function renderGrid(){
       var mesaLocal = mozosGetMesa(numero);
-      var q = (searchInput.value || "").toLowerCase().trim();
+      var q = mozosNormalizarBusqueda((searchInput.value || "").trim());
       grid.innerHTML = "";
+      var esFrecuentes = catActivaLocal === "Frecuentes";
+      var topFrecuentes = esFrecuentes ? mozosFrecuentesTop(12) : null;
       var lista = catalogo.filter(function(p){
-        if(catActivaLocal !== "Todos" && p.categoria !== catActivaLocal) return false;
-        if(q && p.nombre.toLowerCase().indexOf(q) === -1) return false;
+        if(esFrecuentes){
+          if(topFrecuentes.indexOf(p.nombre) === -1) return false;
+        } else if(catActivaLocal !== "Todos" && p.categoria !== catActivaLocal){
+          return false;
+        }
+        if(q && mozosNormalizarBusqueda(p.nombre).indexOf(q) === -1) return false;
         return true;
       });
+      if(esFrecuentes && topFrecuentes.length){
+        // Mantiene el orden por frecuencia real de uso (no el alfabético del catálogo).
+        lista.sort(function(a, b){ return topFrecuentes.indexOf(a.nombre) - topFrecuentes.indexOf(b.nombre); });
+      }
       if(!lista.length){
         var vacio = document.createElement("div");
         vacio.className = "moz-empty";
-        vacio.textContent = "Sin resultados.";
+        // "Frecuentes" sin datos todavía -- aviso honesto, nunca una lista inventada (pedido
+        // explícito de Jessica).
+        vacio.textContent = esFrecuentes
+          ? "Aún no hay suficientes datos de uso para mostrar productos frecuentes. Se irán agregando solos a medida que se usan en los pedidos."
+          : "Sin resultados.";
         grid.appendChild(vacio);
         return;
       }
@@ -15824,6 +16099,7 @@ var TRIPLES = [
           // Productos vendidos al peso (Especialidades de la Casa / Embutidos, pedido de
           // Jessica): en vez de -1+, se ingresa el peso en kg directamente.
           tile.appendChild(buildPesoCtrl(p, cantActual, function(){ refreshAfterQty(); }, function(){
+            mozosFrecuentesIncrementar(p.nombre);
             drawerAbierto = true; renderDrawer();
           }));
         } else if(cantActual > 0){
@@ -15832,7 +16108,7 @@ var TRIPLES = [
           minus.addEventListener("click", function(){ mozosCambiarCantidad(numero, p.nombre, -1); refreshAfterQty(); });
           var numEl = document.createElement("span"); numEl.className = "moz-qty-num"; numEl.textContent = cantActual;
           var plus = document.createElement("button"); plus.type = "button"; plus.textContent = "+";
-          plus.addEventListener("click", function(){ mozosCambiarCantidad(numero, p.nombre, 1); refreshAfterQty(); });
+          plus.addEventListener("click", function(){ mozosCambiarCantidad(numero, p.nombre, 1); mozosFrecuentesIncrementar(p.nombre); refreshAfterQty(); });
           ctrl.appendChild(minus); ctrl.appendChild(numEl); ctrl.appendChild(plus);
           tile.appendChild(ctrl);
         } else {
@@ -15840,8 +16116,11 @@ var TRIPLES = [
           // Al agregar un producto NUEVO (pedido de Jessica, con captura de referencia de su
           // propia página web): se abre el panel "Tu pedido" para que el mozo vea de una vez
           // qué quedó cargado -- no hace falta ir botón por botón en la grilla para revisar.
+          // set-2026/oct-2026: cada "+ Agregar" también alimenta el contador local de "⭐
+          // Frecuentes" (mozosFrecuentesIncrementar) -- nunca bloquea nada si localStorage falla.
           add.addEventListener("click", function(){
             mozosCambiarCantidad(numero, p.nombre, 1);
+            mozosFrecuentesIncrementar(p.nombre);
             drawerAbierto = true;
             renderDrawer();
             refreshAfterQty();
