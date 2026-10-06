@@ -2380,6 +2380,24 @@ var TRIPLES = [
     banners = banners.filter(function(b){ return b.kind !== kind; });
     if(banners.length !== before) renderBanners();
   }
+  // REGLA PERMANENTE (oct-2026, tras la pérdida del historial de Arqueos): ERROR = NO
+  // ESCRIBIR. Se usa desde attachRemoteSync() y doSave() cada vez que Firestore reporta
+  // que el documento "arqueo/state" no existe -- una condición que antes se trataba como
+  // "primera vez que se usa la base de datos" y disparaba una escritura automática
+  // (semilla o estado vacío) que terminó borrando el historial real. Ahora, ante esa
+  // misma condición, nunca se escribe nada solo: se pasa a solo lectura y se avisa.
+  // Si STATE todavía no se cargó (recién abriendo la app), se reemplaza la pantalla de
+  // "Cargando datos…" por el aviso -- si STATE ya estaba cargado y visible (pasó durante
+  // una sesión ya en uso), se deja el panel tal cual está para no ocultar de golpe lo que
+  // la persona ya tenía en pantalla; alcanza con el banner y con bloquear el guardado.
+  function stopArqueoWritesForUnverifiedState(msg){
+    readOnly = true;
+    if(STATE === null){
+      document.getElementById("panel").innerHTML = '<div class="empty-state">No se pudo verificar la información de Arqueos de forma segura.<br>Por seguridad, no se realizará ninguna escritura ni se modificará nada.<br>Avisa a soporte antes de continuar.</div>';
+    }
+    showBanner("bad", msg, []);
+    setSaveStatus();
+  }
   function renderBanners(){
     var host = document.getElementById("banners");
     host.innerHTML = "";
@@ -2601,6 +2619,52 @@ var TRIPLES = [
     });
     return merged;
   }
+  // OPCIÓN A -- escritura parcial por fecha (oct-2026, autorizado tras la pérdida del
+  // historial). ANTES, doSave() escribía el documento "arqueo/state" ENTERO con
+  // transaction.set(ref, merged) en cada guardado -- el cálculo de "merged" ya aislaba
+  // bien cada fecha (mergeDay más arriba), pero la ESCRITURA en sí reemplazaba todo el
+  // documento de una sola vez, así que cualquier error futuro en ese cálculo se habría
+  // escrito encima de TODO el historial, no solo del día que se estaba guardando.
+  //
+  // Esta función arma, en cambio, un payload con SOLO las rutas que de verdad cambiaron
+  // en ESTE guardado -- una ruta "days.<fecha>" por cada fecha que este dispositivo haya
+  // tocado de verdad (comparando "local" contra "base", el último punto que se sabe que
+  // coincide con la nube), más los campos sueltos (meta/precios/metasObjetivos/
+  // customCatalog) que hayan cambiado. doSave() escribe esto con transaction.update(),
+  // que en Firestore reemplaza ÚNICAMENTE esas rutas puntuales: "days.2026-10-05" no
+  // puede, a nivel de Firestore (no solo por buena lógica de JavaScript), tocar
+  // "days.2026-10-04" ni ninguna otra fecha. Una fecha que nadie editó en este
+  // dispositivo ni siquiera entra en el payload -- Firestore no la lee ni la escribe.
+  //
+  // El valor que se guarda para cada fecha SIGUE siendo el que calculó mergeDay() más
+  // arriba (sin cambios en esa lógica), así que la combinación AM/PM y la conciliación
+  // entre dos dispositivos editando la MISMA fecha funcionan exactamente igual que antes
+  // -- lo único que cambia es que, para fechas DISTINTAS, ahora es imposible que una
+  // escritura roce a la otra, en vez de "improbable si el cálculo está bien".
+  function buildPartialUpdatePayload(merged, freshRemote, local, base){
+    var payload = {};
+    var baseMeta = (base && base.meta) || {};
+    if(local.meta && local.meta.businessName !== baseMeta.businessName){ payload["meta.businessName"] = merged.meta.businessName; }
+    if(local.meta && local.meta.ntfyTopic !== baseMeta.ntfyTopic){ payload["meta.ntfyTopic"] = merged.meta.ntfyTopic; }
+    if(local.meta && local.meta.impresionBridgeUrl !== baseMeta.impresionBridgeUrl){ payload["meta.impresionBridgeUrl"] = merged.meta.impresionBridgeUrl; }
+    if(local.meta && local.meta.deliveryTrasladoMin !== baseMeta.deliveryTrasladoMin){ payload["meta.deliveryTrasladoMin"] = merged.meta.deliveryTrasladoMin; }
+    // "meta.lastSavedAt" se agrega SIEMPRE -- lo hace doSave() después de llamar a esta
+    // función, junto con el valor que ya fijó en merged.meta.lastSavedAt.
+    var remotePrecios = (freshRemote && freshRemote.precios) || {};
+    if(JSON.stringify(merged.precios || {}) !== JSON.stringify(remotePrecios)){ payload["precios"] = merged.precios || {}; }
+    var remoteMetas = (freshRemote && freshRemote.metasObjetivos) || {};
+    if(JSON.stringify(merged.metasObjetivos || {}) !== JSON.stringify(remoteMetas)){ payload["metasObjetivos"] = merged.metasObjetivos || {}; }
+    var baseCatalog = (base && base.customCatalog) || [];
+    if(JSON.stringify(local.customCatalog || []) !== JSON.stringify(baseCatalog)){ payload["customCatalog"] = merged.customCatalog || []; }
+    Object.keys(local.days || {}).forEach(function(date){
+      var localDay = local.days[date];
+      var baseDay = (base && base.days && base.days[date]) || null;
+      if(JSON.stringify(localDay) !== JSON.stringify(baseDay)){
+        payload["days." + date] = merged.days[date];
+      }
+    });
+    return payload;
+  }
   // Rellena TODOS los días de un STATE suelto (uno que todavía no es el STATE en uso)
   // con el mismo relleno que backfillDay ya hace normalmente -- para poder usarlo como
   // "baseline" (punto de comparación) sin que le falten filas que STATE sí tiene, lo
@@ -2633,12 +2697,29 @@ var TRIPLES = [
     // que ningún guardado de otro dispositivo se puede perder de esta forma.
     db.runTransaction(function(transaction){
       return transaction.get(ref).then(function(snap){
-        var freshRemote = normalizeState(snap.exists ? snap.data() : {});
+        if(!snap.exists){
+          // ANTES: acá se armaba el guardado partiendo de un estado vacío ({}) si la
+          // transacción veía el documento como inexistente -- y como el guardado reemplaza
+          // el documento ENTERO (transaction.set más abajo), eso podía borrar días que este
+          // dispositivo no tuviera cargados en memoria en ese momento. Ver REGLA PERMANENTE
+          // junto a stopArqueoWritesForUnverifiedState(): se aborta la transacción sin
+          // escribir nada; handleSaveError() se encarga de pasar a solo lectura y avisar.
+          var errNoExiste = new Error("No se pudo verificar la información existente antes de guardar (el documento de datos no aparece). No se escribió nada.");
+          errNoExiste.code = "arqueo-state-not-found";
+          throw errNoExiste;
+        }
+        var freshRemote = normalizeState(snap.data());
         remoteChangedElsewhere = JSON.stringify(freshRemote) !== JSON.stringify(baseSnapshot);
         var merged = mergeStateForSave(freshRemote, localSnapshot, baseSnapshot);
         merged.meta.lastSavedAt = Date.now();
         lastSavedBySelf = merged.meta.lastSavedAt;
-        transaction.set(ref, merged);
+        // OPCIÓN A: en vez de transaction.set(ref, merged) (documento entero), se escribe
+        // solo lo que cambió -- ver buildPartialUpdatePayload() más arriba. "merged" se
+        // sigue calculando completo (STATE/baseline en memoria lo siguen usando tal cual
+        // más abajo); lo único que cambia es qué tan angosto es lo que se manda a Firestore.
+        var updatePayload = buildPartialUpdatePayload(merged, freshRemote, localSnapshot, baseSnapshot);
+        updatePayload["meta.lastSavedAt"] = merged.meta.lastSavedAt;
+        transaction.update(ref, updatePayload);
         return merged;
       });
     }).then(function(merged){
@@ -2706,6 +2787,13 @@ var TRIPLES = [
   function handleSaveError(err){
     var code = err && err.code;
     clearTimeout(saveRetryTimer);
+    if(code === "arqueo-state-not-found"){
+      // Ver REGLA PERMANENTE junto a stopArqueoWritesForUnverifiedState(): esta condición
+      // nunca se reintenta sola ni dispara ninguna escritura -- hace falta revisión manual
+      // antes de seguir.
+      stopArqueoWritesForUnverifiedState("No se pudo verificar la información existente de Arqueos antes de guardar (el documento de datos no aparece). Por seguridad, no se guardó nada. Avisa a soporte antes de continuar.");
+      return;
+    }
     if(code === "permission-denied"){
       // Reintentar no sirve de nada acá -- es un problema de permisos, no de conexión --
       // así que no se programa un reintento automático, solo se avisa.
@@ -2859,6 +2947,38 @@ var TRIPLES = [
     });
     return items;
   }
+  // oct-2026, CORRECCIÓN DEFINITIVA (confirmado por administración, "ventas fantasma" en
+  // Baguette/Baguetino): antes, al reimportar un archivo de ventas para una fecha+turno que ya
+  // tenía una importación anterior, applyImport() solo SOBRESCRIBÍA "Ventas Caja" de los
+  // productos que SÍ aparecían en el archivo nuevo -- los que no aparecían (por ejemplo, un
+  // producto que ya no se vendió esta vez) se quedaban con el número de la importación vieja,
+  // como si siguiera vigente. Ahora, antes de procesar el archivo nuevo, se limpia a "—" (null)
+  // TODA la columna "Ventas Caja" de esa fecha+turno (nunca la de "Saldo Anterior/Ingresos/
+  // Otros/Merma/Saldo Final/Se agotó/Ventas físicas", nunca el otro turno, nunca otra fecha,
+  // nunca historial) -- así la nueva importación queda como la única fuente vigente de Ventas
+  // Caja de ese turno, y un producto que no aparece en el archivo nuevo queda en "—", no con un
+  // número viejo. Si ya había una importación previa con datos, se pide confirmación antes de
+  // reemplazarla (ver handleImportFile). Las reglas especiales (Triples UND+TIRA×3, Huevos de
+  // Corral caja→unidad) no se tocan -- siguen corriendo igual, solo que ahora sobre una columna
+  // recién limpiada en vez de una con restos de la importación anterior.
+  function ventasCajaYaImportadas(date, shift){
+    var day = ensureDay(date);
+    return PRODUCT_TABS.some(function(tabKey){
+      var sec = day[SECTIONS[tabKey].key];
+      if(!sec) return false;
+      var rows = shift === "am" ? sec.am : sec.pm;
+      return (rows || []).some(function(row){ return row && row.vc !== null; });
+    });
+  }
+  function limpiarVentasCajaTurno(date, shift){
+    var day = ensureDay(date);
+    PRODUCT_TABS.forEach(function(tabKey){
+      var sec = day[SECTIONS[tabKey].key];
+      if(!sec) return;
+      var rows = shift === "am" ? sec.am : sec.pm;
+      (rows || []).forEach(function(row){ if(row) row.vc = null; });
+    });
+  }
   function applyImport(items, date, shift){
     var catIndex = buildCatalogIndex();
     var day = ensureDay(date);
@@ -2999,6 +3119,16 @@ var TRIPLES = [
           showToast("No se reconocieron filas de productos en ese archivo. ¿Es el reporte de ventas del sistema?");
           return;
         }
+        // Si ya hay una importación previa con datos en este turno, confirmar antes de
+        // reemplazarla -- una vez confirmado (o si es la primera importación de este turno,
+        // que no reemplaza nada), se limpia Ventas Caja de ESTE turno+fecha nada más, para que
+        // la importación nueva quede como la única fuente vigente y no queden "ventas fantasma"
+        // de productos que ya no aparecen en el archivo nuevo. Ver nota junto a applyImport().
+        if(ventasCajaYaImportadas(date, shift)){
+          var reemplazar = confirm("Ya existen ventas de caja importadas para este turno. La nueva importación reemplazará las ventas de caja anteriores de este turno. ¿Continuar?");
+          if(!reemplazar) return;
+        }
+        limpiarVentasCajaTurno(date, shift);
         var result = applyImport(items, date, shift);
         result.updatedMetas = applyImportToMetas(items, date, shift).updatedMetas;
         // Guarda el reporte crudo (código + cantidad de cada línea) para poder recalcular
@@ -16489,9 +16619,13 @@ var TRIPLES = [
     var firstLoadDone = false;
     ref.onSnapshot(function(snap){
       if(!snap.exists){
-        // Primera vez que se usa esta base de datos: la sembramos con los datos que
-        // ya tenía la app (incluido lo migrado del Excel de setiembre).
-        ref.set(readEmbeddedSeed()).catch(function(){});
+        // ANTES: acá se asumía que "no existe" = "primera vez que se usa esta base de
+        // datos" y se sembraba sola con ref.set(readEmbeddedSeed()) -- eso fue EXACTAMENTE
+        // lo que borró el historial real de Arqueos (Firestore reportó el documento como
+        // inexistente, por el motivo que haya sido, y la app reemplazó todo con la semilla,
+        // que solo tenía el 01/09). Ver REGLA PERMANENTE junto a
+        // stopArqueoWritesForUnverifiedState() más arriba: ahora nunca se escribe nada solo.
+        stopArqueoWritesForUnverifiedState("No se pudo verificar la información existente de Arqueos (el documento de datos no aparece). Por seguridad, no se realizará ninguna escritura. Avisa a soporte antes de continuar.");
         return;
       }
       var data = normalizeState(snap.data());
