@@ -131,6 +131,17 @@
   .save-status{ font-size:.78rem; color:var(--ink-muted); white-space:nowrap; }
   .save-status.warn{ color:var(--warn); }
   .save-status.bad{ color:var(--bad); }
+  /* oct-2026, aviso grande de guardado (pedido explícito: "algo grande y visible", no el
+     texto chico de arriba nada más). Vive DENTRO de .topbar, que ya es sticky -- así queda
+     visible aunque se haga scroll en cualquier pestaña. El guardado automático sigue
+     funcionando solo por detrás (nunca depende de que alguien lo acepte) -- esto es solo
+     para que sea imposible no darse cuenta del estado. */
+  .save-status-big{ display:flex; align-items:center; justify-content:center; gap:.5rem; width:100%; box-sizing:border-box; margin:0 0 .7rem; padding:.7rem 1rem; border-radius:var(--radius-sm); font-size:1rem; font-weight:800; text-align:center; }
+  .save-status-big[hidden]{ display:none; }
+  .save-status-big.warn{ background:var(--warn-soft); color:var(--warn); }
+  .save-status-big.saving{ background:var(--accent-soft); color:var(--accent); }
+  .save-status-big.ok{ background:var(--good-soft); color:var(--good); }
+  .save-status-big.bad{ background:var(--bad-soft); color:var(--bad); }
   .btn{ border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:var(--radius-sm); padding:.55rem 1rem; font-size:.88rem; font-weight:600; cursor:pointer; transition:filter .12s ease; }
   .btn:hover{ filter:brightness(0.97); }
   @media (prefers-color-scheme:dark){ .btn:hover{ filter:brightness(1.12); } }
@@ -408,6 +419,13 @@
   .chip{ font-size:.74rem; font-weight:700; border-radius:999px; padding:.2rem .6rem; white-space:nowrap; }
   .chip.good{ background:var(--good-soft); color:var(--good); }
   .chip.bad{ background:var(--bad-soft); color:var(--bad); }
+  /* oct-2026, Pedido Masivo -- "Marcar recogido" por fecha (reemplaza el lapicero en la hoja
+     impresa, ver pedido-marcar-recogido-dia): input de PIN + botón angostos para que quepan en
+     la celda de la tabla de Pedidos sin romper el ancho de columna. Mismo PIN de 4 dígitos que
+     ya usa Mozos -- mismo look que .moz-mozo-pin-input (letter-spacing para que se lea como PIN,
+     no como texto normal). */
+  .recogido-dia-wrap{ display:flex; flex-direction:column; gap:.3rem; min-width:90px; }
+  .recogido-pin-input{ font-size:.8rem; padding:.25rem .3rem; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--ink); width:70px; text-align:center; letter-spacing:.15em; }
   /* set-2026, estado comercial de 3 vías (candado de pago/crédito): azul para "a crédito
      autorizado" -- no es ni un problema (bad/rojo) ni dinero ya cobrado (good/verde). */
   .chip.credito{ background:#dce8fb; color:#1a5fb4; }
@@ -629,6 +647,12 @@
   .desp-btn:hover{ filter:brightness(.96); }
   .desp-btn-primary{ flex:1.6; background:var(--accent); color:var(--accent-ink); }
   .desp-btn-outline{ flex:1; min-width:88px; background:var(--surface); border:1.3px solid var(--border); color:var(--ink); }
+  /* oct-2026, Pedido Masivo -- Recojo en tienda ("el PIN al costado del entregado", pedido de
+     Jessica): PIN + botón lado a lado dentro de .desp-actions, mismo PIN de Mozos que en "Todos
+     los pedidos" (ver .recogido-pin-input). */
+  .desp-recogido-wrap{ display:flex; gap:.35rem; flex:1 1 100%; }
+  .desp-recogido-wrap .recogido-pin-input{ width:54px; flex:none; }
+  .desp-recogido-wrap .desp-btn{ flex:1; min-width:0; }
   /* "✅ Producción" (set-2026, ver despachoEnviarProduccion): ya se envió a la impresora de
      producción -- se ve apagado a propósito para no competir con las acciones pendientes, pero
      sigue tocable por si hace falta reenviar (pide confirmación antes). */
@@ -1182,6 +1206,7 @@
 
   <div class="content-col">
     <header class="topbar">
+      <div class="save-status-big" id="saveStatusBig" hidden></div>
       <div class="topbar-inner">
         <div class="brand">
           <h1 class="brand-title">Arqueo Diario</h1>
@@ -1393,6 +1418,9 @@ var TRIPLES = [
     {n:"CARAMANDUCA", p:1.1},
     {n:"CHANCAY", p:7},
     {n:"CIABATTA", p:1.3},
+    // oct-2026, agregado por Jessica: producto nuevo, solo para elegir en Pedidos (no es parte
+    // del conteo diario del Arqueo de Panes, por eso no se agrega a la lista PANES de arriba).
+    {n:"CIABATTA XL", p:1.5},
     {n:"COLIZA", p:1.1},
     {n:"CROISSANT", p:4},
     {n:"FRANCÉS", p:0.8},
@@ -2329,23 +2357,38 @@ var TRIPLES = [
     return normalizeState(parsed);
   }
 
+  // oct-2026, REGLA PERMANENTE (tras la pérdida del historial de Arqueos): este respaldo
+  // ANTES vivía en sessionStorage y SOLO se guardaba al empezar un doSave(). Eso dejaba un
+  // hueco real: si el dispositivo se apagaba, se quedaba sin batería, Android mataba la
+  // pestaña en segundo plano, o se cerraba la app ANTES de que el guardado automático
+  // llegara a dispararse (1.5s después del último cambio), el cambio no quedaba respaldado
+  // en ningún lado -- solo existía en la memoria de esa pestaña, y se perdía. Ahora:
+  // (1) vive en localStorage, que sobrevive cerrar la pestaña/app o apagar el dispositivo
+  //     (sessionStorage se borra solo con cerrar la pestaña -- por eso no alcanzaba), y
+  // (2) se guarda en CADA cambio real (ver markDirty), no solo al empezar a guardar --
+  //     así nunca hay una edición sin respaldo local esperando a que el autoguardado la
+  //     alcance.
   function stashBackup(){
     try{
-      sessionStorage.setItem("arqueo_backup", JSON.stringify({
+      localStorage.setItem("arqueo_backup", JSON.stringify({
         date: currentDate, ts: Date.now(), day: STATE.days[currentDate] || null
       }));
     }catch(e){}
   }
-  function clearBackup(){ try{ sessionStorage.removeItem("arqueo_backup"); }catch(e){} }
+  function clearBackup(){ try{ localStorage.removeItem("arqueo_backup"); }catch(e){} }
 
   function restoreBackupBanner(){
     var raw;
-    try{ raw = sessionStorage.getItem("arqueo_backup"); }catch(e){ raw = null; }
+    try{ raw = localStorage.getItem("arqueo_backup"); }catch(e){ raw = null; }
     if(!raw) return;
     var backup;
     try{ backup = JSON.parse(raw); }catch(e){ return; }
     if(!backup || !backup.day) return;
-    if(Date.now() - backup.ts > 30*60*1000){ clearBackup(); return; }
+    // Antes 30 minutos (tenía sentido cuando el respaldo era de sessionStorage, de corta
+    // vida). Ahora que sobrevive cerrar la app o apagar el dispositivo, se extiende a 24
+    // horas -- para cubrir, por ejemplo, una tablet que se apagó en la noche y se vuelve a
+    // prender al día siguiente -- sin ofrecer para siempre un respaldo ya muy viejo.
+    if(Date.now() - backup.ts > 24*60*60*1000){ clearBackup(); return; }
     var current = STATE.days[backup.date];
     var same = current && JSON.stringify(current) === JSON.stringify(backup.day);
     if(same){ clearBackup(); return; }
@@ -2434,19 +2477,48 @@ var TRIPLES = [
     toastTimer = setTimeout(function(){ t.hidden = true; }, ms || 3200);
   }
 
-  function markDirty(){ dirty = true; editGen++; setSaveStatus(); }
+  // stashBackup() acá mismo (no solo al empezar doSave): así CADA cambio queda respaldado
+  // en localStorage al instante, sin depender de que el guardado automático llegue a
+  // dispararse antes de que el dispositivo se apague o se cierre la app.
+  function markDirty(){ dirty = true; editGen++; stashBackup(); setSaveStatus(); }
+  // oct-2026, pedido explícito ("algo grande y visible", no solo el texto chico de la
+  // esquina): refleja el mismo estado de siempre en un aviso grande dentro de .topbar
+  // (sticky, se ve en cualquier pestaña sin tener que hacer scroll hasta arriba). El
+  // guardado automático sigue disparándose solo (ver scheduleAutosave/markDirty) -- este
+  // aviso nunca requiere que nadie lo toque para que el guardado ocurra, es solo para que
+  // el estado sea imposible de pasar por alto.
+  function setSaveStatusBig(kind, text){
+    var big = document.getElementById("saveStatusBig");
+    if(!big) return;
+    big.hidden = false;
+    big.className = "save-status-big " + kind;
+    big.textContent = text;
+  }
   function setSaveStatus(){
     var el = document.getElementById("saveStatus");
     var btn = document.getElementById("saveBtn");
-    if(readOnly){ el.textContent = "No se pudo guardar — revisa tu conexión"; el.className = "save-status bad"; btn.disabled = true; return; }
+    if(readOnly){
+      el.textContent = "No se pudo guardar — revisa tu conexión"; el.className = "save-status bad"; btn.disabled = true;
+      setSaveStatusBig("bad", "✗ No se pudo guardar — revisa tu conexión y avisa a soporte");
+      return;
+    }
     btn.disabled = saving;
-    if(saving){ el.textContent = "Guardando…"; el.className = "save-status"; return; }
-    if(dirty){ el.textContent = "Cambios sin guardar"; el.className = "save-status warn"; return; }
+    if(saving){
+      el.textContent = "Guardando…"; el.className = "save-status";
+      setSaveStatusBig("saving", "Guardando…");
+      return;
+    }
+    if(dirty){
+      el.textContent = "Cambios sin guardar"; el.className = "save-status warn";
+      setSaveStatusBig("warn", "⚠ Cambios sin guardar — se están guardando solos");
+      return;
+    }
     if(STATE.meta.lastSavedAt){
       var mins = Math.round((Date.now() - STATE.meta.lastSavedAt)/60000);
       el.textContent = mins < 1 ? "Guardado justo ahora" : "Guardado hace " + mins + " min";
     } else { el.textContent = "Sin cambios"; }
     el.className = "save-status";
+    setSaveStatusBig("ok", "✓ Guardado");
   }
 
   function scheduleAutosave(){ clearTimeout(saveTimer); saveTimer = setTimeout(function(){ doSave(); }, 1500); }
@@ -5440,6 +5512,29 @@ var TRIPLES = [
   // nunca sobre lo que el personal esté mirando en la vista de consulta/planificación.
   function pedidoLineasDeHoy(p){ return pedidoLineasDeFecha(p, todayISO()); }
   function pedidoEsDelDiaOperativo(p){ return pedidoEsDeFechaOperativa(p, todayISO()); }
+
+  // oct-2026, Pedido Masivo -- Recojo en tienda (pedido explícito de Jessica, aclarado después
+  // de una primera versión que SÍ cerraba el pedido completo): "Recogido" y "Entregado" son
+  // prácticamente lo mismo para este canal en el DÍA, pero el pedido COMPLETO nunca se cierra
+  // solo -- un pedido Masivo puede tener 15 (o más) entregas, una por día, y cada día necesita
+  // quedar registrado de forma independiente (hora real + responsable) para el reporte que se
+  // imprime al cierre de ESE día ("¿Cómo fue ese pedido? ¿Qué se entregó? ¿A qué hora? ¿Quién lo
+  // entregó?" -- Jessica). Por eso esto es, a propósito, SOLO una escritura parcial de la fecha
+  // marcada (entregasPorFecha.<fecha>) -- nunca toca p.estado, entregadoEn/entregadoPor ni
+  // ningún otro campo del pedido, sin importar si es la primera entrega o la última.
+  function pedidoMarcarRecogidoPayload(p, fecha, responsable){
+    var payload = {};
+    payload["entregasPorFecha." + fecha] = { en: Date.now(), por: responsable };
+    return payload;
+  }
+  // "Quitar" el recojo de una fecha (por si se marcó por error): misma escritura parcial, a la
+  // inversa -- solo esa fecha vuelve a null, nunca se toca ninguna otra fecha ni ningún otro
+  // campo del pedido.
+  function pedidoQuitarRecogidoPayload(p, fecha){
+    var payload = {};
+    payload["entregasPorFecha." + fecha] = null;
+    return payload;
+  }
   // Motivo simple para "quién hizo el cambio" en cada botón de Despacho -- se pide una sola vez
   // por sesión de navegador (no en cada toque) para que sea rápido de usar desde el celular.
   var despachoEncargado = null;
@@ -9609,6 +9704,22 @@ var TRIPLES = [
     }
     html += '<div style="text-align:center; color:#cc0000; font-weight:700; font-size:11px; margin-top:14px;">40 años... Tradición en Evolución, a tu servicio</div>';
     html += '<div style="text-align:center; color:#111; font-size:11px; margin-top:2px;">¡Gracias por tu compra!</div>';
+    // oct-2026, pedido de Jessica ("todo necesito digital, no quiero que usen lapicero, es una
+    // forma de manipular"): esto YA NO se llena a mano en el papel. "Marcar recogido" en la
+    // pantalla de Pedidos (ver el nuevo control junto a "Imprimir día") guarda la hora real sola
+    // (el sistema la toma al momento de tocar el botón, nadie la escribe) y el responsable
+    // elegido de la lista guardada -- ver entregasPorFecha más arriba. Si para esta fecha ya se
+    // marcó, se imprime el dato real (de solo lectura, no editable a mano); si todavía no se
+    // marcó (lo normal, porque esta hoja se imprime en la mañana, ANTES de que alguien pase a
+    // recogerlo), no se imprime ninguna línea en blanco -- el registro real queda solo en la
+    // app, nunca en el papel.
+    var recogidoImpr = p.entregasPorFecha && p.entregasPorFecha[fechaISO];
+    if(recogidoImpr){
+      html += '<div style="margin-top:20px; font-size:13px;">' +
+        '<div>Hora de Recojo: <strong>' + esc(fmtFechaHoraMillis(recogidoImpr.en)) + '</strong></div>' +
+        '<div style="margin-top:6px;">Responsable: <strong>' + esc(recogidoImpr.por || "—") + '</strong></div>' +
+        '</div>';
+    }
     html += '</div>';
     return html;
   }
@@ -10675,9 +10786,38 @@ var TRIPLES = [
       // entregado, o entregado antes de recibir el pago (contraentrega) -- son dos cosas
       // independientes. Al marcar, se guarda la fecha/hora real y (opcional) quién entregó;
       // se ve en el PDF junto con "Creado el" (ver buildPedidoMetaHTML).
-      var entregadoBtnHtml = p.entregadoEn
-        ? ("<button type='button' class='chip good pedido-quitar-entrega' data-id='" + p.id + "' title='" + esc(fmtFechaHoraMillis(p.entregadoEn) + (p.entregadoPor ? " — " + p.entregadoPor : "")) + "'>✓ Entregado</button>")
-        : (readOnly ? "—" : "<button type='button' class='btn btn-sm pedido-entregar' data-id='" + p.id + "'>Marcar entregado</button>");
+      var entregadoBtnHtml;
+      if(esMasivo){
+        // oct-2026, pedido de Jessica ("todo necesito digital, no quiero que usen lapicero"):
+        // antes esto se anotaba a mano en el papel de "Imprimir día" (Hora de Recojo/
+        // Responsable). Un pedido Masivo puede tener entregas en VARIOS días distintos, así que
+        // esto se guarda POR FECHA (p.entregasPorFecha["AAAA-MM-DD"]), nunca en p.entregadoEn/
+        // p.entregadoPor (esos son del pedido completo, de los canales normales, y no se tocan
+        // acá -- cero cambios en esa lógica). La hora la toma el sistema sola (Date.now(), no se
+        // puede escribir a mano).
+        // oct-2026, segundo pedido de Jessica ("refuerzo -- que identifique quién recogió con su
+        // PIN, usando los mismos datos de Mozos"): el responsable YA NO se elige de una lista --
+        // ahora se identifica con el mismo PIN de 4 dígitos que cada mozo ya tiene (MOZOS_PINES/
+        // mozosNombrePorPin, ver más abajo en el archivo). Mismo principio que la Comanda y que
+        // "Anular" en Mozos: nadie escribe su nombre, el PIN lo resuelve solo, y un PIN mal
+        // escrito o inventado simplemente no identifica a nadie (no se guarda nada).
+        var fechaVistaDespacho = despachoFechaActual();
+        var recogidoDia = p.entregasPorFecha && p.entregasPorFecha[fechaVistaDespacho];
+        if(recogidoDia){
+          entregadoBtnHtml = "<button type='button' class='chip good pedido-quitar-recogido-dia' data-id='" + p.id + "' data-fecha='" + fechaVistaDespacho + "' title='" + esc(fmtFechaHoraMillis(recogidoDia.en) + (recogidoDia.por ? " — " + recogidoDia.por : "")) + "'>✓ Recogido " + esc(fmtFechaDiaMes(fechaVistaDespacho)) + "</button>";
+        } else if(readOnly){
+          entregadoBtnHtml = "—";
+        } else {
+          entregadoBtnHtml = "<div class='recogido-dia-wrap'>" +
+            "<input type='text' inputmode='numeric' pattern='[0-9]*' maxlength='4' autocomplete='off' class='recogido-pin-input' data-id='" + p.id + "' placeholder='PIN'>" +
+            "<button type='button' class='btn btn-sm pedido-marcar-recogido-dia' data-id='" + p.id + "' data-fecha='" + fechaVistaDespacho + "'>Marcar recogido</button>" +
+            "</div>";
+        }
+      } else {
+        entregadoBtnHtml = p.entregadoEn
+          ? ("<button type='button' class='chip good pedido-quitar-entrega' data-id='" + p.id + "' title='" + esc(fmtFechaHoraMillis(p.entregadoEn) + (p.entregadoPor ? " — " + p.entregadoPor : "")) + "'>✓ Entregado</button>")
+          : (readOnly ? "—" : "<button type='button' class='btn btn-sm pedido-entregar' data-id='" + p.id + "'>Marcar entregado</button>");
+      }
       tr.innerHTML =
         "<td>" + esc(p.numero || "—") + "</td>" +
         entregaCellHtml +
@@ -10811,6 +10951,59 @@ var TRIPLES = [
           if(!p || !db) return;
           if(!confirm('¿Quitar la marca de "entregado" de este pedido? (por si se marcó por error)')) return;
           db.collection("pedidos").doc(id).update({ entregadoEn: null, entregadoPor: "" }).catch(function(){
+            showToast("No se pudo actualizar. Intenta de nuevo.");
+          });
+        });
+      });
+      // oct-2026, Pedido Masivo -- "Marcar recogido" por fecha (reemplaza las líneas de lapicero
+      // de "Hora de Recojo"/"Responsable" en la hoja impresa, ver buildPedidoMasivoDiaHTML). La
+      // hora la pone el sistema sola (Date.now()). El responsable se identifica con el mismo PIN
+      // de 4 dígitos de Mozos (mozosNombrePorPin/MOZOS_PINES, pedido de Jessica: "refuerzo con
+      // PIN, usando los mismos datos de la categoría Mozos") -- nunca texto escrito a mano, y un
+      // PIN que no calza con ningún mozo simplemente no identifica a nadie (no se guarda nada).
+      // Escritura PARCIAL -- solo "entregasPorFecha.<esa fecha>" (ver pedidoMarcarRecogidoPayload)
+      // -- nunca toca otras fechas del mismo pedido, nunca cierra el pedido completo (p.estado
+      // no se toca -- Jessica: un Masivo puede tener 15 entregas, una por día, y cada día tiene
+      // que quedar registrado independiente para el reporte de cierre de ESE día), ni ningún
+      // otro campo (mismo principio que la escritura por fecha de Arqueos: nunca más de lo que
+      // cambió).
+      tbody.querySelectorAll(".pedido-marcar-recogido-dia").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var id = btn.getAttribute("data-id");
+          var fecha = btn.getAttribute("data-fecha");
+          if(!db || !fecha) return;
+          var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
+          if(!p) return;
+          var pinInput = tbody.querySelector(".recogido-pin-input[data-id='" + id + "']");
+          var pin = pinInput ? pinInput.value.trim() : "";
+          if(!pin){
+            showToast("Escribe tu PIN de 4 dígitos (el mismo de Mozos) para marcarlo.");
+            return;
+          }
+          var responsable = mozosNombrePorPin(pin);
+          if(!responsable){
+            showToast("PIN no reconocido -- no se marcó nada. Pídele a Jessica que te confirme tu PIN.");
+            if(pinInput){ pinInput.value = ""; pinInput.focus(); }
+            return;
+          }
+          var payload = pedidoMarcarRecogidoPayload(p, fecha, responsable);
+          db.collection("pedidos").doc(id).update(payload).then(function(){
+            showToast("Recojo del " + fmtFechaDiaMes(fecha) + " registrado -- " + responsable + ".");
+          }).catch(function(){
+            showToast("No se pudo registrar. Intenta de nuevo.");
+          });
+        });
+      });
+      tbody.querySelectorAll(".pedido-quitar-recogido-dia").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var id = btn.getAttribute("data-id");
+          var fecha = btn.getAttribute("data-fecha");
+          if(!db || !fecha) return;
+          var p = PEDIDOS.filter(function(x){ return x.id === id; })[0];
+          if(!p) return;
+          if(!confirm('¿Quitar la marca de "recogido" de la fecha ' + fmtFechaDiaMes(fecha) + '? (por si se marcó por error)')) return;
+          var payload = pedidoQuitarRecogidoPayload(p, fecha);
+          db.collection("pedidos").doc(id).update(payload).catch(function(){
             showToast("No se pudo actualizar. Intenta de nuevo.");
           });
         });
@@ -11690,6 +11883,13 @@ var TRIPLES = [
     // fechaProd se calcula UNA vez acá arriba y se reusa en todo el candado de esta tarjeta
     // (tag, nota, botones) -- antes "🖨️ Producción" la recalculaba aparte más abajo.
     var fechaProd = despachoFechaActual();
+    // oct-2026, pedido de Jessica ("el PIN no debería estar en la lista de pedidos, debería
+    // estar en la tarjeta de Despacho, al costado del entregado"): para Pedido Masivo -- Recojo
+    // en tienda, esta es la tarjeta donde en verdad se marca el recojo del día a día (no la
+    // tabla "Todos los pedidos", que es más bien administrativa). Delivery/Masivo-Delivery NO
+    // entra acá -- ese flujo (En ruta -> Entregado) sigue intacto, sin cambios.
+    var esMasivoRecojo = p.canal === "masivo" && !pedidoRequiereReparto(p);
+    var recogidoDiaDespacho = p.entregasPorFecha && p.entregasPorFecha[fechaProd];
     // Candado obligatorio de pago (ver despachoMotivoBloqueoProduccion arriba, única fuente de
     // verdad -- las mismas dos funciones reales, despachoEnviarProduccion y pedidoAvanzarEstado,
     // usan exactamente esta misma función para rechazar el intento aunque se llegue por otro
@@ -11793,8 +11993,68 @@ var TRIPLES = [
     // el candado real, que no se puede saltar aunque se llegue por otro camino (como "Corregir
     // estado manualmente" del detalle), vive DENTRO de pedidoAvanzarEstado.
     var bloqueaEsteAvance = !!motivoBloqueo && siguiente === "EN_PREPARACION";
+    // oct-2026, Pedido Masivo -- Recojo en tienda: el ÚLTIMO paso (LISTO_DESPACHO -> ENTREGADO,
+    // sin reparto de por medio) ya NO usa el botón genérico + prompt libre de "¿Quién lo
+    // entregó?" -- pide el PIN de Mozos y marca el recojo POR FECHA (entregasPorFecha), igual
+    // que en "Todos los pedidos" (ver pedido-marcar-recogido-dia ahí). A propósito esto NUNCA
+    // cierra el pedido completo (p.estado no se toca, ver pedidoMarcarRecogidoPayload) -- un
+    // Masivo puede tener 15 entregas, una por día, y Jessica necesita que CADA día quede
+    // registrado independiente (hora + responsable) para el reporte que se imprime al cierre de
+    // ESE día, sin importar si es la primera entrega o la última. Mientras no se corrija el
+    // estado a mano desde el detalle, la tarjeta se queda visible con el sello "✓ Recogido" en
+    // vez del botón, día tras día -- es la limitación ya conocida (el pedido no "se cierra"
+    // solo), y acá es DELIBERADA, no un descuido: si se cerrara, pedidosDespachoLista lo sacaría
+    // de la cola activa en TODAS sus fechas, no solo en la que se acaba de recoger.
+    var esUltimoPasoRecojoMasivo = esMasivoRecojo && siguiente === "ENTREGADO";
     if(!esTerminal && !readOnly && despachoEsVistaHoy() && !bloqueaEsteAvance){
-      if(siguiente){
+      if(esUltimoPasoRecojoMasivo){
+        if(recogidoDiaDespacho){
+          var recChip = document.createElement("span");
+          recChip.className = "chip good";
+          recChip.title = fmtFechaHoraMillis(recogidoDiaDespacho.en) + (recogidoDiaDespacho.por ? " — " + recogidoDiaDespacho.por : "");
+          recChip.textContent = "✓ Recogido";
+          actions.appendChild(recChip);
+        } else {
+          var pinWrap = document.createElement("div");
+          pinWrap.className = "desp-recogido-wrap";
+          var pinInput = document.createElement("input");
+          pinInput.type = "text";
+          pinInput.inputMode = "numeric";
+          pinInput.pattern = "[0-9]*";
+          pinInput.maxLength = 4;
+          pinInput.autocomplete = "off";
+          pinInput.className = "recogido-pin-input";
+          pinInput.placeholder = "PIN";
+          pinWrap.appendChild(pinInput);
+          var pinBtn = document.createElement("button");
+          pinBtn.type = "button";
+          pinBtn.className = "desp-btn desp-btn-primary";
+          pinBtn.textContent = "Marcar recogido";
+          pinBtn.addEventListener("click", function(){
+            if(!db) return;
+            var pin = pinInput.value.trim();
+            if(!pin){
+              showToast("Escribe tu PIN de 4 dígitos (el mismo de Mozos) para marcarlo.");
+              return;
+            }
+            var responsable = mozosNombrePorPin(pin);
+            if(!responsable){
+              showToast("PIN no reconocido -- no se marcó nada. Pídele a Jessica que te confirme tu PIN.");
+              pinInput.value = "";
+              pinInput.focus();
+              return;
+            }
+            var payload = pedidoMarcarRecogidoPayload(p, fechaProd, responsable);
+            db.collection("pedidos").doc(p.id).update(payload).then(function(){
+              showToast("Recojo del " + fmtFechaDiaMes(fechaProd) + " registrado -- " + responsable + ".");
+            }).catch(function(){
+              showToast("No se pudo registrar. Intenta de nuevo.");
+            });
+          });
+          pinWrap.appendChild(pinBtn);
+          actions.appendChild(pinWrap);
+        }
+      } else if(siguiente){
         var mainBtn = document.createElement("button");
         mainBtn.type = "button";
         mainBtn.className = "desp-btn desp-btn-primary";
