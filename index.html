@@ -503,6 +503,86 @@
   .table-scroll-top{ overflow-x:auto; overflow-y:hidden; }
   .table-scroll-top > div{ height:1px; }
 
+  /* oct-2026, Lista de Precios: igual idea que .table-scroll-top de arriba, pero con una franja
+     SIEMPRE VISIBLE (no depende de que el navegador/sistema operativo dibuje su propio
+     scrollbar, que en algunos equipos es invisible hasta que se toca) -- así en tablet queda
+     clarísimo, a simple vista, que hay más columnas al costado en vez de verse "cortada". Solo
+     se muestra cuando la tabla realmente no entra completa (ver listaPreciosWideTable). */
+  .lp-scrollbar{ overflow-x:auto; overflow-y:hidden; height:10px; background:var(--border); border-radius:6px; margin-bottom:.5rem; }
+  .lp-scrollbar > div{ height:10px; }
+  .lp-scrollbar::-webkit-scrollbar{ height:8px; }
+  .lp-scrollbar::-webkit-scrollbar-track{ background:transparent; }
+  .lp-scrollbar::-webkit-scrollbar-thumb{ background:var(--accent); border-radius:6px; }
+  .lp-scroll-hint{ font-size:.78rem; color:var(--ink-muted); margin:-.1rem 0 .4rem; }
+
+  /* oct-2026, Carta Digital (PASO 1 -- panel administrativo, entorno aislado): modal compacto
+     "Configurar carta", en vez de un bloque largo debajo de cada fila de la tabla. Mismo patrón
+     de overlay+caja+cabecera+cierre que ya usa la vista previa de pedido
+     (.pedido-preview-overlay/box/head/close, ver showPedidoVistaPrevia) -- se reutiliza la
+     estructura/interacción (click afuera para cerrar, tecla Escape, botón "✕"), pero con sus
+     propias clases porque esa vista previa usa colores fijos (#fff/#111, pensada para capturarse
+     de pantalla igual en cualquier tema) y este panel administrativo sí debe respetar el tema
+     claro/oscuro de toda la app, como el resto de Lista de Precios. */
+  .cd-modal-overlay{ position:fixed; inset:0; z-index:150; background:rgba(30,20,10,.5); display:flex; align-items:flex-start; justify-content:center; padding:1.2rem; overflow-y:auto; box-sizing:border-box; }
+  /* oct-2026, "ajustes finales": la caja ahora es un flex-column con altura máxima -- en celular
+     (poco alto de pantalla) la cabecera y la barra de guardar quedan siempre visibles y SOLO el
+     cuerpo del medio hace scroll, en vez de que el modal entero se salga de la pantalla. */
+  .cd-modal-box{ background:var(--surface); color:var(--ink); border:1px solid var(--border); border-radius:var(--radius); max-width:460px; width:100%; margin:1.4rem 0; box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column; max-height:calc(100vh - 2.8rem); }
+  .cd-modal-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:.6rem; padding:.9rem 1rem; background:var(--surface-2); border-bottom:1px solid var(--border); flex:none; }
+  .cd-modal-head strong{ font-size:.96rem; display:block; }
+  .cd-modal-head span{ font-size:.76rem; color:var(--ink-muted); }
+  .cd-modal-close{ background:var(--surface); color:var(--ink); border:1px solid var(--border); border-radius:999px; width:32px; height:32px; font-size:.9rem; font-weight:800; cursor:pointer; flex:none; line-height:1; }
+  .cd-modal-body{ padding:1rem; display:grid; gap:1rem; overflow-y:auto; }
+  .cd-modal-section{ display:grid; gap:.5rem; }
+  .cd-field-label{ font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; font-weight:700; color:var(--ink-muted); }
+
+  /* Badge de estado "Marcado para publicar" -- un vistazo rápido, sin tener que leer texto.
+     3 estados: "off" (gris, no marcado), "on" (verde, marcado y guardado), "pending" (ámbar,
+     el admin movió el switch pero todavía no presionó "Guardar cambios" -- nunca se muestra en
+     verde algo que no está guardado de verdad). */
+  .cd-badge{ display:inline-flex; align-items:center; gap:.4rem; font-size:.78rem; font-weight:700; padding:.3rem .6rem; border-radius:999px; width:fit-content; }
+  .cd-badge.on{ background:var(--good-soft); color:var(--good); }
+  .cd-badge.off{ background:var(--surface-2); color:var(--ink-muted); }
+  .cd-badge.pending{ background:var(--warn-soft); color:var(--warn); }
+  .cd-badge::before{ content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
+
+  /* Fila de toggle: TODA la fila es la etiqueta (<label> que envuelve el switch), no solo el
+     switch -- así el área táctil real es la fila completa (≈48px de alto), no un control de
+     40x23px, cómodo para tocar con el dedo en celular. */
+  .cd-toggle-row{ display:flex; align-items:center; justify-content:space-between; gap:.8rem; padding:.7rem .2rem; border-bottom:1px solid var(--border); cursor:pointer; }
+  .cd-toggle-row:last-child{ border-bottom:none; }
+  .cd-toggle-label{ font-size:.88rem; font-weight:600; }
+  .cd-toggle-label small{ display:block; font-weight:400; font-size:.74rem; color:var(--ink-muted); margin-top:.1rem; }
+  .cd-switch{ position:relative; display:inline-block; width:42px; height:25px; flex:none; pointer-events:none; }
+  .cd-switch input{ opacity:0; width:0; height:0; }
+  .cd-switch .cd-slider{ position:absolute; inset:0; background:var(--border); border-radius:999px; transition:background .15s ease; }
+  .cd-switch .cd-slider::before{ content:""; position:absolute; width:19px; height:19px; left:3px; top:3px; background:var(--surface); border-radius:50%; transition:transform .15s ease; box-shadow:0 1px 2px rgba(0,0,0,.25); }
+  .cd-switch input:checked + .cd-slider{ background:var(--good); }
+  .cd-switch input:checked + .cd-slider::before{ transform:translateX(17px); }
+  .cd-switch input:disabled + .cd-slider{ opacity:.6; }
+
+  .cd-textarea{ width:100%; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.55rem .65rem; font-size:.88rem; color:var(--ink); font-family:inherit; resize:vertical; box-sizing:border-box; }
+  .cd-row-inline{ display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+  .cd-row-inline input[type="text"]{ flex:1; min-width:160px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.5rem .65rem; font-size:.86rem; color:var(--ink); box-sizing:border-box; }
+  .cd-hint{ font-size:.74rem; color:var(--ink-muted); line-height:1.4; }
+  .cd-photo-preview{ max-width:120px; max-height:120px; border-radius:var(--radius-sm); object-fit:cover; border:1px solid var(--border); display:none; }
+  .cd-photo-local-row{ display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
+  .cd-save-note{ font-size:.72rem; color:var(--good); font-weight:600; height:1em; }
+
+  /* Barra de guardado UNIFICADA, siempre visible al pie del modal (flex:none, el body de arriba
+     es lo único que hace scroll): resume qué campos tienen cambios sin guardar y concentra el
+     ÚNICO botón "Guardar cambios" -- reemplaza los botones sueltos "Guardar descripción"/"Guardar
+     enlace" y los switches que guardaban solos al tocarlos. */
+  .cd-save-bar{ flex:none; border-top:1px solid var(--border); background:var(--surface-2); padding:.75rem 1rem; display:grid; gap:.5rem; }
+  .cd-pending-list{ font-size:.78rem; color:var(--warn); font-weight:600; line-height:1.4; }
+  .cd-pending-list.cd-hidden{ display:none; }
+  .cd-save-bar-row{ display:flex; align-items:center; justify-content:flex-end; gap:.6rem; }
+  .cd-save-bar-note{ font-size:.76rem; color:var(--ink-muted); margin-right:auto; }
+
+  /* Botón "Configurar carta" + indicador en la columna de la tabla -- reemplaza el bloque largo
+     que antes se abría debajo de cada fila. */
+  .cd-table-btn-wrap{ display:flex; flex-direction:column; align-items:flex-start; gap:.3rem; }
+
   .lock-screen{ position:fixed; inset:0; z-index:100; background:var(--bg); align-items:center; justify-content:center; padding:1.2rem; }
   .lock-screen:not([hidden]){ display:flex; }
   .lock-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:1.6rem 1.6rem 1.8rem; max-width:340px; width:100%; text-align:center; }
@@ -3971,9 +4051,26 @@ var TRIPLES = [
   }
 
   // ---------- rendering ----------
+  // oct-2026, pedido de Jessica (revisión de Lista de Precios): el encabezado grande ("Arqueo
+  // Diario" + la fecha) es el mismo en TODAS las pestañas -- al entrar a Lista de Precios tiene
+  // que decir "Lista de Precios", no seguir mostrando "Arqueo Diario". Esta función es el único
+  // lugar que escribe ese encabezado, para que renderAll() (cambio de pestaña) y renderPanel()
+  // (cambio de vista DENTRO de Pedidos, ej. su botón de navegación) lo mantengan sincronizado
+  // sin tener que duplicar esta lógica en los dos lugares.
+  function syncBrandHeader(){
+    var titleEl = document.querySelector(".brand-title");
+    var subEl = document.getElementById("brandSub");
+    if(!titleEl || !subEl) return;
+    if(currentTab === "pedidos" && pedidosView === "precios"){
+      titleEl.textContent = "Lista de Precios";
+      subEl.textContent = "Catálogo y precios administrados";
+      return;
+    }
+    titleEl.textContent = "Arqueo Diario";
+    subEl.textContent = (STATE && STATE.meta && STATE.meta.businessName ? STATE.meta.businessName + " · " : "") + fmtDateLabel(currentDate);
+  }
   function renderAll(){
-    document.getElementById("brandSub").textContent =
-      (STATE.meta.businessName ? STATE.meta.businessName + " · " : "") + fmtDateLabel(currentDate);
+    syncBrandHeader();
     renderTabs();
     renderPanel();
     setSaveStatus();
@@ -3995,6 +4092,7 @@ var TRIPLES = [
   }
 
   function renderPanel(){
+    syncBrandHeader();
     var panel = document.getElementById("panel");
     panel.innerHTML = "";
     if(currentTab === "turno"){ panel.appendChild(buildTurnoPanel()); }
@@ -5944,6 +6042,501 @@ var TRIPLES = [
     }
   }
 
+  // ======================================================================================
+  // LISTA DE PRECIOS -- Etapa A (Jessica, oct-2026: "APROBADA LA ETAPA A -- LISTA DE PRECIOS").
+  // Módulo de administración de catálogo/precios en una colección de Firestore COMPLETAMENTE
+  // APARTE (`catalogoProductos`), que no toca `arqueo/state` ni `pedidos` en ningún punto de
+  // este bloque. Mientras dure la Etapa A, Pedidos/Mozos/Arqueo siguen leyendo EXACTAMENTE de
+  // donde siempre leyeron (getPrecioFor/buildCatalogNameList, más arriba) -- nada de lo que hay
+  // acá abajo cambia su comportamiento todavía. Conectar este catálogo nuevo a la operación real
+  // de ventas es la Etapa B, que Jessica pidió explícitamente no activar todavía.
+  //
+  // Categorías/unidades: las listas exactas que Jessica aprobó. "Categorías configurables" (su
+  // palabra) además admite agregar categorías nuevas desde el propio módulo (ver
+  // CATALOGO_CATEGORIAS_EXTRA más abajo), sin tener que tocar este arreglo del código.
+  var LISTA_PRECIOS_CATEGORIAS = ["Panadería", "Sándwiches", "Empanadas", "Cafetería", "Bebidas",
+    "Embutidos", "Triples", "Empaques", "Especialidades", "Otros"];
+  var LISTA_PRECIOS_UNIDADES = ["unidad", "kg", "g", "litro", "ml", "caja", "paquete", "bolsa", "bandeja"];
+
+  // -------- Estado en memoria, llenado solo por los listeners de Firestore (ver init()) --------
+  var CATALOGO_PRODUCTOS = null;          // null = todavía no respondió el listener; luego siempre {}
+  var CATALOGO_CATEGORIAS_EXTRA = null;   // categorías agregadas a mano; null = aún no llega, luego []
+  var CATALOGO_MIGRACION_META = null;     // doc config/catalogoMigracion; null = aún no llega, false = no existe
+  var ADMIN_AUTH_EXISTE = null;           // null = aún no sabemos; false = nunca se configuró un PIN; true = sí
+  var ADMIN_AUTH = null;                  // { pines: { "<hash sha-256>": "Nombre" } }
+  // Nombre de quien ya validó su PIN administrativo en ESTA visita del navegador, solo para no
+  // volver a pedirlo en cada clic -- se pierde al recargar, no se guarda en ningún lado. La
+  // protección real sigue siendo el hash validado contra ADMIN_AUTH en cada escritura.
+  var listaPreciosSesionResponsable = "";
+  var listaPreciosBusqueda = "";
+  var listaPreciosMigracionAbierta = false;   // true mientras se muestra la sección de migración
+  var listaPreciosMigracionPreview = null;    // cache en memoria de la última "Revisar catálogo"
+  var listaPreciosMigracionRespaldoOk = false; // true recién después de descargar el respaldo
+  var listaPreciosAgregarAbierto = false;
+  var listaPreciosProductoAbiertoId = null;   // id de producto cuyo historial se está mostrando
+  var listaPreciosHistorialCache = {};        // id -> arreglo ya cargado (no se vuelve a pedir)
+  // Carta Digital (PASO 1, autorizado por Jessica en entorno aislado con datos simulados -- ver
+  // diseno_seguridad_y_sincronizacion.md): revisión oct-2026, Jessica pidió un panel compacto en
+  // vez de un bloque largo debajo de cada fila -- ahora es un modal ("Configurar carta", ver
+  // showCartaDigitalModal más abajo), igual patrón que la vista previa de pedido
+  // (showPedidoVistaPrevia), así que no necesita ningún estado de "qué fila está abierta" acá:
+  // el modal se agrega directo a document.body y se quita solo al cerrarse. Las 5 escrituras
+  // reales están más abajo (catalogoCambiarMostrarEnCarta y las otras 4) y SOLO tocan
+  // catalogoProductos -- todavía no existe "cartaPublica" ni ninguna sincronización hacia afuera
+  // (eso es Paso 2, pendiente de que Jessica elija el mecanismo de publicación segura y lo
+  // autorice aparte).
+
+  // -------- PIN administrativo: SHA-256 vía Web Crypto, nunca en texto plano ni en el código --------
+  // Jessica: "Validar el PIN de manera segura, sin dejar credenciales administrativas expuestas
+  // en el código del navegador". Por eso acá NO hay ningún PIN ni su hash escrito en el archivo
+  // -- lo único que existe es un documento de Firestore (config/adminAuth) leído en vivo, y lo
+  // que se guarda ahí es el resultado de este hash, nunca el PIN real. La primera vez que se usa
+  // el módulo, Jessica configura su propio PIN desde la app misma (ver buildAdminPinSetupCard) --
+  // su PIN real nunca se escribe en un mensaje de chat ni queda guardado en ningún lado que yo
+  // pueda leer.
+  function sha256Hex(texto){
+    var enc = new TextEncoder().encode(String(texto || ""));
+    return crypto.subtle.digest("SHA-256", enc).then(function(buf){
+      var bytes = new Uint8Array(buf);
+      var hex = "";
+      for(var i = 0; i < bytes.length; i++){ hex += bytes[i].toString(16).padStart(2, "0"); }
+      return hex;
+    });
+  }
+  function adminAuthDisponible(){
+    // crypto.subtle solo existe en contexto seguro (HTTPS) -- el sitio ya es HTTPS, así que en
+    // el uso normal esto siempre está disponible; es solo para no romper la pantalla si alguna
+    // vez se abre desde un contexto raro.
+    return !!(window.crypto && window.crypto.subtle);
+  }
+  // Valida un PIN tecleado contra el mapa de hashes ya cargado -- nunca contra un PIN en texto
+  // plano (ese no existe guardado en ningún lado). Devuelve una Promise que resuelve con el
+  // nombre del responsable si el PIN es correcto, o null si no lo es.
+  function adminAuthValidarPin(pin){
+    if(!ADMIN_AUTH || !ADMIN_AUTH.pines) return Promise.resolve(null);
+    return sha256Hex(String(pin || "").trim()).then(function(hash){
+      return ADMIN_AUTH.pines.hasOwnProperty(hash) ? ADMIN_AUTH.pines[hash] : null;
+    });
+  }
+  // Pide el PIN con el mismo prompt() nativo que ya usa el resto de la app (Mozos, anulaciones --
+  // ver mozosNombrePorPin) y lo valida antes de ejecutar nada. onOk(nombre) se llama solo si el
+  // PIN fue correcto; si ya se validó antes en esta misma visita, no vuelve a preguntar.
+  function pedirPinAdministrativoYEjecutar(onOk){
+    if(listaPreciosSesionResponsable){ onOk(listaPreciosSesionResponsable); return; }
+    if(!adminAuthDisponible()){ alert("Este navegador no admite la validación segura de PIN. Prueba desde Chrome o Safari actualizados."); return; }
+    var pin = prompt("Escribe el PIN administrativo para confirmar este cambio:", "");
+    if(pin === null) return; // canceló
+    pin = pin.trim();
+    if(!pin){ showToast("Escribe el PIN administrativo."); return; }
+    adminAuthValidarPin(pin).then(function(nombre){
+      if(!nombre){ alert("PIN administrativo incorrecto. No se guardó ningún cambio."); return; }
+      listaPreciosSesionResponsable = nombre;
+      onOk(nombre);
+    }).catch(function(){
+      alert("No se pudo validar el PIN (revisa tu conexión). No se guardó ningún cambio.");
+    });
+  }
+  // Primera vez que se usa el módulo en este negocio (config/adminAuth todavía no existe):
+  // Jessica configura su propio PIN desde la app -- nunca me lo dice a mí ni queda en el código.
+  // Se vuelve a comprobar, justo antes de escribir, que el documento siga sin existir (por si
+  // alguien más lo configuró en otro dispositivo un segundo antes), para no pisar un PIN que
+  // alguien ya haya terminado de configurar.
+  function adminAuthConfigurarPrimeraVez(pin, nombre){
+    nombre = (nombre || "").trim();
+    pin = String(pin || "").trim();
+    if(!/^\d{4,6}$/.test(pin)) return Promise.reject(new Error("El PIN debe ser de 4 a 6 números."));
+    if(!nombre) return Promise.reject(new Error("Escribe tu nombre."));
+    return sha256Hex(pin).then(function(hash){
+      var ref = db.collection("config").doc("adminAuth");
+      return ref.get().then(function(snap){
+        if(snap.exists) throw new Error("YA_EXISTE");
+        var pines = {}; pines[hash] = nombre;
+        return ref.set({ pines: pines, creadoEn: Date.now() });
+      });
+    });
+  }
+  // Agregar a alguien más a la lista de PINs administrativos (Jessica: "con posibilidad de
+  // agregar autorizados posteriormente") -- requiere ya saber el PIN administrativo actual (se
+  // pide con pedirPinAdministrativoYEjecutar antes de llamar a esto), y se agrega el hash nuevo
+  // SIN tocar los que ya existen (merge de un solo campo, nunca reemplaza el mapa completo).
+  function adminAuthAgregarPin(pinNuevo, nombreNuevo){
+    pinNuevo = String(pinNuevo || "").trim();
+    nombreNuevo = (nombreNuevo || "").trim();
+    if(!/^\d{4,6}$/.test(pinNuevo)) return Promise.reject(new Error("El PIN debe ser de 4 a 6 números."));
+    if(!nombreNuevo) return Promise.reject(new Error("Escribe el nombre de la persona."));
+    return sha256Hex(pinNuevo).then(function(hash){
+      var payload = {}; payload["pines." + hash] = nombreNuevo;
+      return db.collection("config").doc("adminAuth").update(payload);
+    });
+  }
+
+  // -------- Categorías adicionales ("administrar categorías") --------
+  function listaPreciosCategoriasDisponibles(){
+    return LISTA_PRECIOS_CATEGORIAS.concat(CATALOGO_CATEGORIAS_EXTRA || []);
+  }
+  function catalogoAgregarCategoria(nombreNueva){
+    nombreNueva = (nombreNueva || "").trim();
+    if(!nombreNueva) return Promise.reject(new Error("Escribe el nombre de la categoría."));
+    var yaExiste = listaPreciosCategoriasDisponibles().some(function(c){ return c.toLowerCase() === nombreNueva.toLowerCase(); });
+    if(yaExiste) return Promise.reject(new Error("Esa categoría ya existe."));
+    var ref = db.collection("config").doc("listaPreciosConfig");
+    return ref.get().then(function(snap){
+      var actuales = (snap.exists && snap.data().categoriasExtra) || [];
+      actuales = actuales.concat([nombreNueva]);
+      return ref.set({ categoriasExtra: actuales }, { merge: true });
+    });
+  }
+
+  // -------- Migración: vista previa de SOLO LECTURA (nunca escribe nada) --------
+  // Usa EXACTAMENTE las mismas funciones que ya usa Pedidos hoy (buildCatalogIndex,
+  // CATALOGO_EXCLUIDO_MOZOS_PEDIDOS, CATALOGO_RENOMBRE_MOZOS_PEDIDOS, getPedidoPrecioAliasMap,
+  // getPrecioFor, PEDIDO_PRECIO_SEED) para que la lista migrada sea el MISMO universo de
+  // productos que ya usan Pedidos/Mozos -- así nunca se duplica ni se inventa un nombre nuevo.
+  var LISTA_PRECIOS_TAB_CATEGORIA = { panes: "Panadería", bebidas: "Bebidas", embutidos: "Embutidos", triples: "Triples", otros: "Otros" };
+  function buildCatalogoMigracionPreview(){
+    var idx = buildCatalogIndex();
+    var aliasMap = getPedidoPrecioAliasMap();
+    var seen = {};
+    var items = [];
+    Object.keys(idx).forEach(function(k){
+      var entry = idx[k];
+      var nombreOriginal = entry.name;
+      var categoria = LISTA_PRECIOS_TAB_CATEGORIA[entry.tab] || "Otros";
+      var renombrado = CATALOGO_RENOMBRE_MOZOS_PEDIDOS.hasOwnProperty(nombreOriginal);
+      var nombreFinal = renombrado ? CATALOGO_RENOMBRE_MOZOS_PEDIDOS[nombreOriginal] : nombreOriginal;
+      var key = normalizePrecioKey(nombreFinal);
+      if(seen[key]) return;
+      // Si el nombre del Arqueo es un alias de un nombre oficial (ej. "Oreja" -> "OREJAS"), no
+      // se agrega acá -- aparece más abajo, una sola vez, con su nombre oficial de la lista de
+      // precios (igual que ya hace buildCatalogNameList, para no duplicar el mismo producto).
+      if(!renombrado && aliasMap.hasOwnProperty(key)) return;
+      seen[key] = true;
+      var precio = getPrecioFor(nombreFinal);
+      items.push({
+        nombre: productoDisplay(nombreFinal),
+        categoria: categoria,
+        unidad: "unidad",
+        precio: (precio === null || precio === undefined) ? null : precio,
+        // Los que Jessica ya pidió ocultar de Mozos/Pedidos quedan igual acá, pero marcados
+        // inactivos desde el principio -- siguen siendo productos reales, solo no se venden hoy.
+        activo: CATALOGO_EXCLUIDO_MOZOS_PEDIDOS.indexOf(nombreOriginal) === -1,
+        origen: "arqueo"
+      });
+    });
+    // Estos dos nombres "crudos" de la lista de precios son el MISMO producto que uno ya
+    // agregado arriba con su nombre renombrado (ver CATALOGO_SEED_OCULTO_MOZOS_PEDIDOS) -- se
+    // marcan como vistos ANTES del siguiente bucle para no crear un segundo producto duplicado.
+    CATALOGO_SEED_OCULTO_MOZOS_PEDIDOS.forEach(function(n){ seen[normalizePrecioKey(n)] = true; });
+    PEDIDO_PRECIO_SEED.forEach(function(item){
+      var key = normalizePrecioKey(item.n);
+      if(seen[key]) return;
+      seen[key] = true;
+      items.push({
+        nombre: productoDisplay(item.n),
+        // Solo está en la lista de precios, no en ninguno de los 4 catálogos de Arqueo -- no hay
+        // forma de saber su categoría sola, así que se marca para que Jessica la revise a mano
+        // (nunca se inventa una categoría al azar).
+        categoria: "Sin categoría — revisar",
+        unidad: "unidad",
+        precio: item.p,
+        activo: true,
+        origen: "lista_oficial"
+      });
+    });
+    items.sort(function(a, b){ return a.nombre.localeCompare(b.nombre, "es"); });
+    return items;
+  }
+  function catalogoMigracionResumen(items){
+    var out = { total: items.length, activos: 0, inactivos: 0, sinCategoria: 0, sinPrecio: 0 };
+    items.forEach(function(it){
+      if(it.activo) out.activos++; else out.inactivos++;
+      if(it.categoria === "Sin categoría — revisar") out.sinCategoria++;
+      if(it.precio === null) out.sinPrecio++;
+    });
+    return out;
+  }
+  // Respaldo en archivo, ANTES de escribir un solo documento en Firestore -- mismo patrón que ya
+  // usa "Descargar respaldo completo" (buildRespaldoCompletoCard, más arriba).
+  function descargarRespaldoCatalogoMigracion(items){
+    var respaldo = {
+      negocio: "Panadería Carmelitas - Lista de Precios (respaldo antes de migrar)",
+      generadoEl: new Date().toISOString(),
+      totalProductos: items.length,
+      productos: items
+    };
+    var blob = new Blob([JSON.stringify(respaldo, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "respaldo-catalogo-productos-carmelitas-" + todayISO() + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ---------- Exportar catálogo actual (oct-2026, pedido de Jessica: comparar Lista de Precios
+  // real contra el Excel del sistema de facturación, antes de aprobar la importación masiva) ----------
+  // DE SOLO LECTURA, a propósito: estas dos funciones no tienen ni una sola línea capaz de
+  // escribir en Firestore (ningún .set/.update/.delete/.batch en ningún lado de este bloque).
+  // Ni siquiera hacen una lectura nueva a Firestore -- arman el archivo a partir de
+  // CATALOGO_PRODUCTOS, que ya está sincronizado en memoria por el listener de
+  // attachCatalogoProductosSync() desde que se abrió la página (el mismo dato que ya se ve en la
+  // tabla de Lista de Precios). "Exportar" acá es, literalmente, solo leer y mostrar lo que ya
+  // hay en pantalla, empaquetado en un archivo.
+  function buildCatalogoExportRows(){
+    var productos = Object.keys(CATALOGO_PRODUCTOS || {}).map(function(id){
+      var d = CATALOGO_PRODUCTOS[id] || {};
+      return {
+        codigoOrigen: d.codigoOrigen || "",
+        nombre: d.nombre || "",
+        unidad: d.unidad || "",
+        precio: (d.precio === undefined || d.precio === null) ? "" : Number(d.precio),
+        categoria: d.categoria || "",
+        idInterno: id,
+        activo: d.activo === false ? "No" : "Sí"
+      };
+    });
+    productos.sort(function(a, b){ return (a.nombre || "").localeCompare(b.nombre || "", "es"); });
+    return productos;
+  }
+  // Arma el archivo .xlsx en el navegador (misma librería SheetJS que ya usa "Exportar historial
+  // (Excel)", doExport más arriba) y lo descarga directo a la computadora de quien presiona el
+  // botón -- nunca pasa por ningún servidor mío ni de nadie.
+  function descargarCatalogoExportXlsx(){
+    if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo."); return; }
+    var productos = buildCatalogoExportRows();
+    try{
+      var filas = [["Código original", "Nombre", "Unidad", "Precio actual", "Categoría", "ID interno (Firestore)", "Activo"]];
+      productos.forEach(function(p){
+        filas.push([p.codigoOrigen, p.nombre, p.unidad, p.precio, p.categoria, p.idInterno, p.activo]);
+      });
+      var ws = XLSX.utils.aoa_to_sheet(filas);
+      ws["!cols"] = [{ wch: 14 }, { wch: 32 }, { wch: 12 }, { wch: 12 }, { wch: 22 }, { wch: 30 }, { wch: 8 }];
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Catálogo actual");
+      var info = XLSX.utils.aoa_to_sheet([
+        ["Carmelitas -- Exportación de Lista de Precios (solo lectura)"],
+        ["Generado el", new Date().toISOString()],
+        ["Total de productos", productos.length],
+        ["Nota", "Este archivo es un espejo de solo lectura de lo que ya hay en Lista de Precios. Generarlo no modifica ningún dato."]
+      ]);
+      XLSX.utils.book_append_sheet(wb, info, "Info");
+      XLSX.writeFile(wb, "catalogo-actual-carmelitas-" + todayISO() + ".xlsx");
+      showToast("Catálogo exportado (" + productos.length + " productos).");
+    }catch(err){
+      showToast("No se pudo generar el archivo. Intenta de nuevo.");
+    }
+  }
+
+  // Migración: escribe SOLO en `catalogoProductos`, nunca en `arqueo/state` ni en `pedidos`. Es
+  // ADITIVA a propósito -- si un producto (por su normalizePrecioKey) ya existe como documento,
+  // no se vuelve a tocar, para no pisar un precio o categoría que Jessica ya haya editado a mano
+  // en el módulo. Por eso se puede volver a correr más adelante (por ejemplo después de agregar
+  // un producto nuevo al código, como se hizo con "Ciabatta XL") sin ningún riesgo: solo agrega
+  // lo que falte. Los productos sin precio resuelto NO se escriben (nunca se inventa un precio)
+  // -- quedan listados en omitidosSinPrecio para que Jessica los agregue a mano con su precio real.
+  function ejecutarMigracionCatalogo(items, responsable){
+    return db.collection("catalogoProductos").get().then(function(snap){
+      var existentes = {};
+      snap.forEach(function(doc){ existentes[doc.id] = true; });
+      var porEscribir = [];
+      var omitidosSinPrecio = [];
+      items.forEach(function(it){
+        var id = normalizePrecioKey(it.nombre);
+        if(!id || existentes[id]) return;
+        if(it.precio === null || it.precio === undefined){ omitidosSinPrecio.push(it.nombre); return; }
+        porEscribir.push({ id: id, data: it });
+      });
+      var ahora = Date.now();
+      if(porEscribir.length === 0){
+        return db.collection("config").doc("catalogoMigracion").set({
+          ultimaEjecucionEn: ahora, ultimaEjecucionPor: responsable, agregadosUltimaVez: 0
+        }, { merge: true }).then(function(){
+          return { agregados: 0, omitidosSinPrecio: omitidosSinPrecio };
+        });
+      }
+      var batch = db.batch();
+      porEscribir.forEach(function(p){
+        var ref = db.collection("catalogoProductos").doc(p.id);
+        batch.set(ref, {
+          nombre: p.data.nombre, categoria: p.data.categoria, unidad: p.data.unidad,
+          precio: p.data.precio, activo: p.data.activo, origen: p.data.origen,
+          creadoEn: ahora, actualizadoEn: ahora, actualizadoPor: responsable
+        });
+      });
+      return batch.commit().then(function(){
+        return db.collection("config").doc("catalogoMigracion").set({
+          ultimaEjecucionEn: ahora, ultimaEjecucionPor: responsable, agregadosUltimaVez: porEscribir.length
+        }, { merge: true }).then(function(){
+          return { agregados: porEscribir.length, omitidosSinPrecio: omitidosSinPrecio };
+        });
+      });
+    });
+  }
+
+  // -------- CRUD del catálogo administrado (toda escritura gatea con PIN administrativo) --------
+  function catalogoNombreYaExiste(nombre){
+    var key = normalizePrecioKey(nombre);
+    return !!(CATALOGO_PRODUCTOS && CATALOGO_PRODUCTOS.hasOwnProperty(key));
+  }
+  // "Validar precios y evitar duplicados" + "no inventar precios faltantes": precio tiene que
+  // ser un número mayor a 0; nombre no puede repetir uno que ya exista (comparado normalizado,
+  // igual que el resto del sistema).
+  function catalogoAgregarProducto(datos, responsable){
+    var nombre = (datos.nombre || "").trim();
+    var categoria = datos.categoria || "";
+    var unidad = datos.unidad || "unidad";
+    var precio = Number(datos.precio);
+    if(!nombre) return Promise.reject(new Error("Escribe el nombre del producto."));
+    if(!categoria) return Promise.reject(new Error("Elige una categoría."));
+    if(!(precio > 0)) return Promise.reject(new Error("El precio tiene que ser mayor a 0."));
+    var id = normalizePrecioKey(nombre);
+    var ref = db.collection("catalogoProductos").doc(id);
+    return ref.get().then(function(snap){
+      if(snap.exists) throw new Error('Ya existe un producto con ese nombre ("' + snap.data().nombre + '"). Si quieres cambiarle el precio, búscalo en la lista y edítalo ahí.');
+      var ahora = Date.now();
+      return ref.set({
+        nombre: productoDisplay(nombre), categoria: categoria, unidad: unidad, precio: precio,
+        activo: true, origen: "manual", creadoEn: ahora, actualizadoEn: ahora, actualizadoPor: responsable
+      });
+    });
+  }
+  // Editar precio: guarda precio anterior/nuevo/fecha/responsable en el historial (subcolección
+  // aparte, nunca se borra ni se reescribe un cambio anterior) y ADEMÁS actualiza el precio
+  // vigente en el documento del producto -- las dos escrituras van juntas en un batch, para que
+  // nunca quede una sin la otra.
+  function catalogoEditarPrecio(id, nuevoPrecio, responsable){
+    nuevoPrecio = Number(nuevoPrecio);
+    if(!(nuevoPrecio > 0)) return Promise.reject(new Error("El precio tiene que ser mayor a 0."));
+    var ref = db.collection("catalogoProductos").doc(id);
+    return ref.get().then(function(snap){
+      if(!snap.exists) throw new Error("Este producto ya no existe en el catálogo (puede que alguien lo haya borrado). Recarga la página.");
+      var actual = snap.data();
+      var precioAnterior = actual.precio;
+      if(precioAnterior === nuevoPrecio) return null; // nada que cambiar
+      var ahora = Date.now();
+      var batch = db.batch();
+      batch.update(ref, { precio: nuevoPrecio, actualizadoEn: ahora, actualizadoPor: responsable });
+      var histRef = ref.collection("historial").doc();
+      batch.set(histRef, { precioAnterior: precioAnterior, precioNuevo: nuevoPrecio, fecha: ahora, responsable: responsable });
+      return batch.commit();
+    });
+  }
+  function catalogoCambiarActivo(id, nuevoActivo, responsable){
+    var ref = db.collection("catalogoProductos").doc(id);
+    return ref.get().then(function(snap){
+      if(!snap.exists) throw new Error("Este producto ya no existe en el catálogo. Recarga la página.");
+      return ref.update({ activo: !!nuevoActivo, actualizadoEn: Date.now(), actualizadoPor: responsable });
+    });
+  }
+  function catalogoCambiarCategoria(id, nuevaCategoria, responsable){
+    if(!nuevaCategoria) return Promise.reject(new Error("Elige una categoría."));
+    return db.collection("catalogoProductos").doc(id).update({ categoria: nuevaCategoria, actualizadoEn: Date.now(), actualizadoPor: responsable });
+  }
+  function catalogoCambiarUnidad(id, nuevaUnidad, responsable){
+    if(!nuevaUnidad) return Promise.reject(new Error("Elige una unidad."));
+    return db.collection("catalogoProductos").doc(id).update({ unidad: nuevaUnidad, actualizadoEn: Date.now(), actualizadoPor: responsable });
+  }
+  function catalogoCargarHistorial(id){
+    if(listaPreciosHistorialCache.hasOwnProperty(id)) return Promise.resolve(listaPreciosHistorialCache[id]);
+    return db.collection("catalogoProductos").doc(id).collection("historial").orderBy("fecha", "desc").get().then(function(snap){
+      var arr = [];
+      snap.forEach(function(doc){ arr.push(doc.data()); });
+      listaPreciosHistorialCache[id] = arr;
+      return arr;
+    });
+  }
+
+  // -------- Carta Digital -- 5 campos nuevos, ADITIVOS, sobre el mismo documento de
+  // catalogoProductos (PASO 1, autorizado por Jessica: "La Lista de Precios existente será la
+  // ÚNICA MATRIZ MAESTRA... no crear otro catálogo administrativo"). Cada función actualiza un
+  // solo campo, igual que catalogoCambiarCategoria/catalogoCambiarUnidad más arriba, y pide el
+  // PIN administrativo desde la pantalla antes de llamarse (ver pedirPinAdministrativoYEjecutar).
+  // Nada de esto escribe en ninguna otra colección: todavía no existe "cartaPublica" ni ninguna
+  // sincronización hacia afuera -- eso es el Paso 2, que depende de que Jessica elija el
+  // mecanismo de publicación segura (ver diseno_seguridad_y_sincronizacion.md) y lo autorice.
+  // Todos los productos (los ya migrados y los nuevos) empiezan SIN estos campos, lo cual se lee
+  // como "No" en los dos booleanos que importan para publicar (mostrarEnCarta, y por lo tanto
+  // nunca aparecen en ninguna carta pública mientras eso no exista): nada se publica solo.
+  function catalogoCambiarMostrarEnCarta(id, nuevoValor, responsable){
+    var ref = db.collection("catalogoProductos").doc(id);
+    return ref.get().then(function(snap){
+      if(!snap.exists) throw new Error("Este producto ya no existe en el catálogo. Recarga la página.");
+      return ref.update({ mostrarEnCarta: !!nuevoValor, actualizadoEn: Date.now(), actualizadoPor: responsable });
+    });
+  }
+  function catalogoCambiarDescripcion(id, nuevaDescripcion, responsable){
+    nuevaDescripcion = String(nuevaDescripcion || "").trim();
+    if(nuevaDescripcion.length > 240) return Promise.reject(new Error("La descripción es muy larga (máximo 240 caracteres)."));
+    var ref = db.collection("catalogoProductos").doc(id);
+    return ref.get().then(function(snap){
+      if(!snap.exists) throw new Error("Este producto ya no existe en el catálogo. Recarga la página.");
+      return ref.update({ descripcion: nuevaDescripcion, actualizadoEn: Date.now(), actualizadoPor: responsable });
+    });
+  }
+  // Por ahora solo guarda una URL (todavía no hay un lugar en Firebase Storage para subir fotos
+  // de verdad -- eso es infraestructura nueva, igual que la Cloud Function del Paso 2). La vista
+  // previa de "elegir una foto del celular" que se ve en pantalla es SOLO local al navegador
+  // (URL.createObjectURL) -- nunca llama a esta función ni se guarda en ningún lado.
+  function catalogoCambiarFoto(id, nuevaFotoUrl, responsable){
+    nuevaFotoUrl = String(nuevaFotoUrl || "").trim();
+    if(nuevaFotoUrl && !/^https:\/\//i.test(nuevaFotoUrl)) return Promise.reject(new Error("La URL de la foto debe empezar con https://"));
+    var ref = db.collection("catalogoProductos").doc(id);
+    return ref.get().then(function(snap){
+      if(!snap.exists) throw new Error("Este producto ya no existe en el catálogo. Recarga la página.");
+      return ref.update({ foto: nuevaFotoUrl, actualizadoEn: Date.now(), actualizadoPor: responsable });
+    });
+  }
+  function catalogoCambiarDestacado(id, nuevoValor, responsable){
+    var ref = db.collection("catalogoProductos").doc(id);
+    return ref.get().then(function(snap){
+      if(!snap.exists) throw new Error("Este producto ya no existe en el catálogo. Recarga la página.");
+      return ref.update({ destacado: !!nuevoValor, actualizadoEn: Date.now(), actualizadoPor: responsable });
+    });
+  }
+  function catalogoCambiarAgotadoHoy(id, nuevoValor, responsable){
+    var ref = db.collection("catalogoProductos").doc(id);
+    return ref.get().then(function(snap){
+      if(!snap.exists) throw new Error("Este producto ya no existe en el catálogo. Recarga la página.");
+      return ref.update({ agotadoHoy: !!nuevoValor, actualizadoEn: Date.now(), actualizadoPor: responsable });
+    });
+  }
+  // Guardado UNIFICADO del modal "Configurar carta" (ajuste oct-2026 a pedido de Jessica:
+  // "Unificar la edición con un botón «Guardar cambios», evitando guardar cada campo por
+  // separado"). En vez de 5 escrituras sueltas (una por campo, cada una con su propio PIN), el
+  // modal junta en memoria solo los campos que de verdad cambiaron y llama UNA sola vez a esto,
+  // que valida todo y hace UNA sola escritura a Firestore. `cambios` es un objeto que solo trae
+  // las llaves que cambiaron (mostrarEnCarta/destacado/agotadoHoy/descripcion/foto) -- las que no
+  // vienen, no se tocan (ni se sobrescriben con vacío). Mismas validaciones que las funciones
+  // sueltas de arriba (se mantienen esas funciones intactas, ya probadas, por si se necesitan
+  // sueltas más adelante -- ej. el Paso 2).
+  function catalogoGuardarCambiosCarta(id, cambios, responsable){
+    cambios = cambios || {};
+    var payload = {};
+    if(cambios.hasOwnProperty("mostrarEnCarta")) payload.mostrarEnCarta = !!cambios.mostrarEnCarta;
+    if(cambios.hasOwnProperty("destacado")) payload.destacado = !!cambios.destacado;
+    if(cambios.hasOwnProperty("agotadoHoy")) payload.agotadoHoy = !!cambios.agotadoHoy;
+    if(cambios.hasOwnProperty("descripcion")){
+      var desc = String(cambios.descripcion || "").trim();
+      if(desc.length > 240) return Promise.reject(new Error("La descripción es muy larga (máximo 240 caracteres)."));
+      payload.descripcion = desc;
+    }
+    if(cambios.hasOwnProperty("foto")){
+      var foto = String(cambios.foto || "").trim();
+      if(foto && !/^https:\/\//i.test(foto)) return Promise.reject(new Error("La URL de la foto debe empezar con https://"));
+      payload.foto = foto;
+    }
+    if(Object.keys(payload).length === 0) return Promise.resolve(null); // nada pendiente -- no escribe nada
+    var ref = db.collection("catalogoProductos").doc(id);
+    return ref.get().then(function(snap){
+      if(!snap.exists) throw new Error("Este producto ya no existe en el catálogo. Recarga la página.");
+      payload.actualizadoEn = Date.now();
+      payload.actualizadoPor = responsable;
+      return ref.update(payload);
+    });
+  }
+
   function findClienteByNombre(nombre){
     var target = normalizeClienteName(nombre);
     if(!target) return null;
@@ -6201,7 +6794,10 @@ var TRIPLES = [
     produccion: { color:"almendra", svg:"<path d='M4 8 12 4l8 4-8 4-8-4Z'/><path d='M4 8v8l8 4 8-4V8'/><path d='M12 12v8'/>" },
     lista:      { color:"mocca",    svg:"<rect x='5' y='4' width='14' height='17' rx='2'/><path d='M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1'/><path d='M9 11h6M9 15h6'/>" },
     tomados:    { color:"vainilla", svg:"<circle cx='9' cy='8' r='3'/><path d='M3 20c0-3 2.6-5 6-5s6 2 6 5'/><circle cx='17' cy='9' r='2.3'/><path d='M15.3 13.3c2.2.5 3.6 2 4.1 3.9'/>" },
-    cobrar:     { color:"espresso", svg:"<ellipse cx='12' cy='7' rx='7' ry='3'/><path d='M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7'/><path d='M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5'/>" }
+    cobrar:     { color:"espresso", svg:"<ellipse cx='12' cy='7' rx='7' ry='3'/><path d='M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7'/><path d='M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5'/>" },
+    // oct-2026, Lista de Precios (Etapa A): ícono de etiqueta de precio, reusando el color
+    // "mocca" (igual que "Todos los pedidos") -- no hace falta un color nuevo para esto.
+    precios:    { color:"mocca",    svg:"<path d='M12.5 3H7a2 2 0 0 0-2 2v5.5a2 2 0 0 0 .6 1.4l8 8a2 2 0 0 0 2.8 0l5-5a2 2 0 0 0 0-2.8l-8-8a2 2 0 0 0-1.4-.6Z'/><circle cx='8.2' cy='8.2' r='1.4'/>" }
   };
   function pedidosIconSvgHtml(key){
     var def = PEDIDOS_SEC_ICONOS[key];
@@ -6238,6 +6834,989 @@ var TRIPLES = [
     return head;
   }
 
+  // Tabla ancha con scroll horizontal Y una barra de desplazamiento visible ARRIBA, para que en
+  // tablet/pantallas angostas se note enseguida que hay más columnas al costado (nombre,
+  // categoría, unidad, precio, estado, historial) en vez de verse "cortada" -- mismo patrón ya
+  // usado y aprobado en "Todos los pedidos" (pedidosSecHead/buildPedidosLista, más abajo), con
+  // una diferencia: acá el ancho de la barra de arriba se mide con requestAnimationFrame, DESPUÉS
+  // de que el navegador ya pegó la tabla al documento -- medirlo antes (como a veces pasa si se
+  // mide apenas se arma la tabla, todavía sin insertar) siempre da 0 y la barra queda inútil.
+  function listaPreciosWideTable(theadHtml){
+    var hint = document.createElement("div");
+    hint.className = "lp-scroll-hint";
+    hint.textContent = "Desliza hacia la derecha para ver categoría, unidad, precio, estado e historial →";
+    hint.hidden = true; // se muestra solo si la tabla de verdad no entra completa (ver abajo)
+
+    var topBar = document.createElement("div");
+    topBar.className = "lp-scrollbar";
+    topBar.hidden = true;
+    var topBarInner = document.createElement("div");
+    topBar.appendChild(topBarInner);
+
+    var tableWrap = document.createElement("div");
+    tableWrap.className = "table-wrap";
+    var table = document.createElement("table");
+    table.className = "data-table";
+    table.innerHTML = theadHtml + "<tbody></tbody>";
+    tableWrap.appendChild(table);
+
+    var syncing = false;
+    topBar.addEventListener("scroll", function(){
+      if(syncing) return; syncing = true; tableWrap.scrollLeft = topBar.scrollLeft; syncing = false;
+    });
+    tableWrap.addEventListener("scroll", function(){
+      if(syncing) return; syncing = true; topBar.scrollLeft = tableWrap.scrollLeft; syncing = false;
+    });
+    // Medir DESPUÉS de que el navegador ya pegó la tabla al documento -- medirlo apenas se arma
+    // (todavía desconectada) siempre da 0 y la barra/el aviso quedarían inútiles. Si la tabla en
+    // los hechos SÍ entra completa (pantalla ancha, pocas columnas con texto corto), ni la barra
+    // ni el aviso de "desliza" se muestran -- no tiene sentido mostrar un scroll que no hace falta.
+    requestAnimationFrame(function(){
+      var haceFaltaScroll = table.scrollWidth > tableWrap.clientWidth + 1;
+      topBarInner.style.width = table.scrollWidth + "px";
+      topBar.hidden = !haceFaltaScroll;
+      hint.hidden = !haceFaltaScroll;
+    });
+
+    return { hint: hint, topBar: topBar, tableWrap: tableWrap, table: table, tbody: table.querySelector("tbody") };
+  }
+
+  // ======================================================================================
+  // LISTA DE PRECIOS -- Etapa A, pantalla (UI). La lógica/datos están más arriba (buscar
+  // "LISTA DE PRECIOS -- Etapa A" cerca de setPrecioFor). Cualquiera que entre a Pedidos puede
+  // ABRIR esta pantalla y buscar/ver precios (Jessica, punto 3: "podrá consultar, pero no
+  // modificarlas") -- cualquier botón que vaya a escribir algo pide el PIN administrativo antes
+  // de guardar (pedirPinAdministrativoYEjecutar).
+  function buildListaPreciosPanel(){
+    var wrap = document.createElement("div");
+    var card = document.createElement("div");
+    card.className = "card";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .8rem";
+    h2.textContent = "Lista de Precios";
+    card.appendChild(pedidosSecHead("precios", h2));
+
+    var intro = document.createElement("div");
+    intro.className = "hint";
+    intro.style.marginBottom = "1rem";
+    intro.textContent = "Cualquiera puede ver y buscar precios acá. Para agregar, editar o activar/desactivar un producto se pide el PIN administrativo -- cada cambio de precio queda guardado con quién, cuándo y el precio anterior. Por ahora Pedidos y Mozos siguen usando los precios de siempre (Etapa B, todavía no activada) -- este catálogo es solo para revisarlo y prepararlo con calma.";
+    card.appendChild(intro);
+
+    if(ADMIN_AUTH_EXISTE === null || CATALOGO_PRODUCTOS === null){
+      var loading = document.createElement("div");
+      loading.className = "empty-state";
+      loading.textContent = "Cargando catálogo de precios…";
+      card.appendChild(loading);
+      wrap.appendChild(card);
+      return wrap;
+    }
+
+    if(ADMIN_AUTH_EXISTE === false){ card.appendChild(buildAdminPinSetupCard()); }
+    else { card.appendChild(buildAdminPinAgregarRow()); }
+
+    card.appendChild(buildCatalogoMigracionSection());
+    card.appendChild(buildCatalogoListaSection());
+
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  // Primera vez que se usa el módulo (config/adminAuth todavía no existe): Jessica configura su
+  // propio PIN desde acá mismo -- nunca me lo escribe a mí ni queda en el código (ver
+  // adminAuthConfigurarPrimeraVez, más arriba).
+  function buildAdminPinSetupCard(){
+    var box = document.createElement("div");
+    box.style.border = "1px solid var(--border)";
+    box.style.borderRadius = "var(--radius-sm)";
+    box.style.padding = "1rem";
+    box.style.marginBottom = "1.2rem";
+    box.style.background = "rgba(0,0,0,.03)";
+
+    var title = document.createElement("div");
+    title.style.fontWeight = "700";
+    title.style.marginBottom = ".4rem";
+    title.textContent = "Configura tu PIN administrativo";
+    box.appendChild(title);
+
+    var desc = document.createElement("div");
+    desc.className = "hint";
+    desc.style.marginBottom = ".8rem";
+    desc.textContent = "Todavía no hay ningún PIN administrativo configurado para este módulo. Elige un PIN de 4 a 6 números y escribe tu nombre -- de ahora en adelante, ese PIN es el que se va a pedir para agregar o editar precios. Tu PIN no se guarda en texto plano, ni queda escrito en ningún lado que se pueda ver desde afuera.";
+    box.appendChild(desc);
+
+    var row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.flexWrap = "wrap";
+    row.style.gap = ".6rem";
+    function campo(labelTxt, inputType, idSuffix, placeholder){
+      var col = document.createElement("div");
+      col.className = "field";
+      col.style.minWidth = "160px";
+      var lbl = document.createElement("div");
+      lbl.className = "field-group-label";
+      lbl.textContent = labelTxt;
+      col.appendChild(lbl);
+      var inp = document.createElement("input");
+      inp.type = inputType;
+      inp.id = "adminPinSetup_" + idSuffix;
+      if(placeholder) inp.placeholder = placeholder;
+      col.appendChild(inp);
+      return col;
+    }
+    row.appendChild(campo("Tu nombre", "text", "nombre", "Ej. Jessica"));
+    row.appendChild(campo("Nuevo PIN", "password", "pin", "4 a 6 números"));
+    row.appendChild(campo("Repite el PIN", "password", "pin2", ""));
+    box.appendChild(row);
+
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-primary btn-sm";
+    btn.style.marginTop = ".8rem";
+    btn.textContent = "Configurar PIN administrativo";
+    btn.addEventListener("click", function(){
+      var nombre = document.getElementById("adminPinSetup_nombre").value;
+      var pin = document.getElementById("adminPinSetup_pin").value;
+      var pin2 = document.getElementById("adminPinSetup_pin2").value;
+      if(pin !== pin2){ alert("Los dos PIN que escribiste no coinciden."); return; }
+      btn.disabled = true;
+      adminAuthConfigurarPrimeraVez(pin, nombre).then(function(){
+        showToast("PIN administrativo configurado. Ya puedes usarlo para editar precios.");
+      }).catch(function(err){
+        btn.disabled = false;
+        if(err && err.message === "YA_EXISTE"){
+          alert("Alguien más acaba de configurar el PIN administrativo justo ahora. Pídele ese PIN, o recarga la página para ver el estado actual.");
+        } else {
+          alert((err && err.message) || "No se pudo configurar el PIN. Intenta de nuevo.");
+        }
+      });
+    });
+    box.appendChild(btn);
+    return box;
+  }
+
+  // Ya hay PIN configurado: fila chica para agregar a otra persona autorizada (Jessica: "con
+  // posibilidad de agregar autorizados posteriormente") -- requiere ya saber el PIN actual.
+  function buildAdminPinAgregarRow(){
+    var row = document.createElement("div");
+    row.style.marginBottom = "1rem";
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-sm";
+    btn.textContent = "+ Agregar otro PIN administrativo";
+    btn.addEventListener("click", function(){
+      pedirPinAdministrativoYEjecutar(function(){
+        var nombreNuevo = prompt("Nombre de la persona nueva:", "");
+        if(nombreNuevo === null) return;
+        var pinNuevo = prompt("PIN nuevo (4 a 6 números) para " + nombreNuevo + ":", "");
+        if(pinNuevo === null) return;
+        adminAuthAgregarPin(pinNuevo, nombreNuevo).then(function(){
+          showToast("PIN agregado para " + nombreNuevo + ".");
+        }).catch(function(err){ alert((err && err.message) || "No se pudo agregar el PIN."); });
+      });
+    });
+    row.appendChild(btn);
+    return row;
+  }
+
+  // Sección de migración: "Revisar catálogo actual" calcula la vista previa de SOLO LECTURA
+  // (buildCatalogoMigracionPreview, más arriba) -- recién después de descargar el respaldo se
+  // habilita "Migrar", que además pide escribir la palabra MIGRAR y el PIN administrativo antes
+  // de escribir un solo documento. Es aditiva: se puede volver a usar más adelante (ej. cuando
+  // se agregue un producto nuevo al código) para traer solo lo que falte, sin pisar nada editado.
+  function buildCatalogoMigracionSection(){
+    var box = document.createElement("div");
+    box.style.marginBottom = "1.4rem";
+
+    var headRow = document.createElement("div");
+    headRow.style.display = "flex";
+    headRow.style.alignItems = "center";
+    headRow.style.gap = ".6rem";
+    headRow.style.flexWrap = "wrap";
+
+    var totalActual = Object.keys(CATALOGO_PRODUCTOS || {}).length;
+    var tituloMigracion = document.createElement("div");
+    tituloMigracion.style.fontWeight = "700";
+    tituloMigracion.textContent = totalActual === 0
+      ? "Primera vez: revisa el catálogo antes de migrarlo"
+      : "Catálogo administrado (" + totalActual + " producto" + (totalActual === 1 ? "" : "s") + ") -- revisar si hay productos nuevos para agregar";
+    headRow.appendChild(tituloMigracion);
+
+    var toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.className = "btn btn-sm";
+    toggleBtn.textContent = listaPreciosMigracionAbierta ? "Ocultar" : "Revisar catálogo actual";
+    toggleBtn.addEventListener("click", function(){
+      listaPreciosMigracionAbierta = !listaPreciosMigracionAbierta;
+      if(listaPreciosMigracionAbierta && !listaPreciosMigracionPreview){
+        listaPreciosMigracionPreview = buildCatalogoMigracionPreview();
+        listaPreciosMigracionRespaldoOk = false;
+      }
+      renderPanel();
+    });
+    headRow.appendChild(toggleBtn);
+    box.appendChild(headRow);
+
+    if(!listaPreciosMigracionAbierta) return box;
+
+    var items = listaPreciosMigracionPreview || [];
+    var resumen = catalogoMigracionResumen(items);
+    var resumenLine = document.createElement("div");
+    resumenLine.className = "hint";
+    resumenLine.style.margin = ".5rem 0";
+    resumenLine.textContent = resumen.total + " productos encontrados -- " + resumen.activos + " activos, " + resumen.inactivos + " inactivos, " +
+      resumen.sinCategoria + " sin categoría (revisar), " + resumen.sinPrecio + " sin precio (no se migran todavía, hay que agregarles el precio a mano).";
+    box.appendChild(resumenLine);
+
+    var accionesRow = document.createElement("div");
+    accionesRow.style.display = "flex";
+    accionesRow.style.gap = ".6rem";
+    accionesRow.style.flexWrap = "wrap";
+    accionesRow.style.marginBottom = ".8rem";
+
+    var respaldoBtn = document.createElement("button");
+    respaldoBtn.type = "button";
+    respaldoBtn.className = "btn btn-sm";
+    respaldoBtn.textContent = "Descargar respaldo";
+    respaldoBtn.addEventListener("click", function(){
+      descargarRespaldoCatalogoMigracion(items);
+      listaPreciosMigracionRespaldoOk = true;
+      showToast("Respaldo descargado. Ahora ya puedes migrar.");
+      renderPanel();
+    });
+    accionesRow.appendChild(respaldoBtn);
+
+    var migrarBtn = document.createElement("button");
+    migrarBtn.type = "button";
+    migrarBtn.className = "btn btn-primary btn-sm";
+    migrarBtn.textContent = totalActual === 0 ? "Migrar ahora" : "Agregar los productos nuevos";
+    migrarBtn.disabled = !listaPreciosMigracionRespaldoOk;
+    migrarBtn.title = listaPreciosMigracionRespaldoOk ? "" : "Primero descarga el respaldo";
+    migrarBtn.addEventListener("click", function(){
+      var texto = prompt('Para migrar, escribe la palabra MIGRAR (en mayúsculas) para confirmar:');
+      if(texto !== "MIGRAR"){ if(texto !== null) alert('No se escribió exactamente "MIGRAR". No se migró nada.'); return; }
+      pedirPinAdministrativoYEjecutar(function(responsable){
+        migrarBtn.disabled = true;
+        ejecutarMigracionCatalogo(items, responsable).then(function(res){
+          migrarBtn.disabled = false;
+          listaPreciosMigracionAbierta = false;
+          listaPreciosMigracionPreview = null;
+          var msg = res.agregados + " producto(s) agregado(s) al catálogo.";
+          if(res.omitidosSinPrecio.length){
+            msg += " " + res.omitidosSinPrecio.length + " sin precio todavía (agrégalos a mano): " +
+              res.omitidosSinPrecio.slice(0, 10).join(", ") + (res.omitidosSinPrecio.length > 10 ? "…" : "");
+          }
+          showToast(msg, 6000);
+          renderPanel();
+        }).catch(function(err){
+          migrarBtn.disabled = false;
+          alert((err && err.message) || "No se pudo migrar. Intenta de nuevo.");
+        });
+      });
+    });
+    accionesRow.appendChild(migrarBtn);
+    box.appendChild(accionesRow);
+
+    var wt = listaPreciosWideTable("<thead><tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Estado</th><th>Origen</th></tr></thead>");
+    items.forEach(function(it){
+      var tr = document.createElement("tr");
+      var tdN = document.createElement("td"); tdN.textContent = it.nombre; tr.appendChild(tdN);
+      var tdC = document.createElement("td"); tdC.textContent = it.categoria; tr.appendChild(tdC);
+      var tdP = document.createElement("td"); tdP.textContent = it.precio === null ? "Sin precio" : ("S/ " + it.precio.toFixed(2)); tr.appendChild(tdP);
+      var tdE = document.createElement("td"); tdE.textContent = it.activo ? "Activo" : "Inactivo"; tr.appendChild(tdE);
+      var tdO = document.createElement("td"); tdO.textContent = it.origen === "lista_oficial" ? "Lista de precios" : "Arqueo"; tr.appendChild(tdO);
+      wt.tbody.appendChild(tr);
+    });
+    box.appendChild(wt.hint);
+    box.appendChild(wt.topBar);
+    box.appendChild(wt.tableWrap);
+    return box;
+  }
+
+  // Lista administrada (lo que ya está migrado), con buscador, agregar producto, y por fila:
+  // cambiar categoría/unidad, editar precio (con confirmación), activar/desactivar, ver
+  // historial -- todo lo que escribe pide antes el PIN administrativo.
+  function buildCatalogoListaSection(){
+    var box = document.createElement("div");
+
+    var topRow = document.createElement("div");
+    topRow.className = "pedidos-filtros";
+    var buscarCol = document.createElement("div");
+    buscarCol.className = "pedidos-filtros-col";
+    buscarCol.style.minWidth = "260px";
+    var buscarLbl = document.createElement("div");
+    buscarLbl.className = "field-group-label";
+    buscarLbl.textContent = "Buscar producto";
+    buscarCol.appendChild(buscarLbl);
+    var busquedaField = document.createElement("div");
+    busquedaField.className = "field";
+    var busquedaInput = document.createElement("input");
+    busquedaInput.type = "search";
+    busquedaInput.id = "listaPreciosBusquedaInput";
+    busquedaInput.placeholder = "Nombre del producto…";
+    busquedaInput.value = listaPreciosBusqueda;
+    busquedaInput.addEventListener("input", function(){
+      listaPreciosBusqueda = busquedaInput.value;
+      var selStart = busquedaInput.selectionStart;
+      renderPanel();
+      var again = document.getElementById("listaPreciosBusquedaInput");
+      if(again){ again.focus(); try{ again.setSelectionRange(selStart, selStart); }catch(e){} }
+    });
+    busquedaField.appendChild(busquedaInput);
+    buscarCol.appendChild(busquedaField);
+    topRow.appendChild(buscarCol);
+    box.appendChild(topRow);
+
+    var botonesRow = document.createElement("div");
+    botonesRow.style.display = "flex";
+    botonesRow.style.flexWrap = "wrap";
+    botonesRow.style.gap = ".6rem";
+    botonesRow.style.margin = ".6rem 0";
+
+    var addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "btn btn-primary btn-sm";
+    addBtn.textContent = listaPreciosAgregarAbierto ? "Cancelar" : "+ Agregar producto";
+    addBtn.addEventListener("click", function(){
+      listaPreciosAgregarAbierto = !listaPreciosAgregarAbierto;
+      renderPanel();
+    });
+    botonesRow.appendChild(addBtn);
+
+    var categoriaExtraBtn = document.createElement("button");
+    categoriaExtraBtn.type = "button";
+    categoriaExtraBtn.className = "btn btn-sm";
+    categoriaExtraBtn.textContent = "+ Agregar categoría nueva";
+    categoriaExtraBtn.addEventListener("click", function(){
+      var nombreNueva = prompt("Nombre de la categoría nueva:", "");
+      if(nombreNueva === null) return;
+      pedirPinAdministrativoYEjecutar(function(){
+        catalogoAgregarCategoria(nombreNueva).then(function(){
+          showToast("Categoría agregada.");
+        }).catch(function(err){ alert((err && err.message) || "No se pudo agregar la categoría."); });
+      });
+    });
+    botonesRow.appendChild(categoriaExtraBtn);
+
+    // Solo lectura -- no pide PIN a propósito, porque no escribe nada (ver descargarCatalogoExportXlsx).
+    var exportCatalogoBtn = document.createElement("button");
+    exportCatalogoBtn.type = "button";
+    exportCatalogoBtn.className = "btn btn-sm";
+    exportCatalogoBtn.textContent = "Exportar catálogo actual (Excel)";
+    exportCatalogoBtn.title = "Descarga un archivo de solo lectura con el catálogo tal como está ahora mismo -- no modifica nada.";
+    exportCatalogoBtn.addEventListener("click", function(){ descargarCatalogoExportXlsx(); });
+    botonesRow.appendChild(exportCatalogoBtn);
+
+    box.appendChild(botonesRow);
+
+    if(listaPreciosAgregarAbierto){ box.appendChild(buildCatalogoAgregarForm()); }
+
+    var productos = Object.keys(CATALOGO_PRODUCTOS || {}).map(function(id){
+      var d = CATALOGO_PRODUCTOS[id]; d._id = id; return d;
+    });
+    var filtro = listaPreciosBusqueda.trim().toLowerCase();
+    if(filtro){ productos = productos.filter(function(p){ return (p.nombre || "").toLowerCase().indexOf(filtro) !== -1; }); }
+    productos.sort(function(a, b){ return (a.nombre || "").localeCompare(b.nombre || "", "es"); });
+
+    if(productos.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = (CATALOGO_PRODUCTOS && Object.keys(CATALOGO_PRODUCTOS).length === 0)
+        ? 'Todavía no hay productos migrados. Usa "Revisar catálogo actual" arriba para empezar.'
+        : "No se encontró ningún producto con ese nombre.";
+      box.appendChild(empty);
+      return box;
+    }
+
+    var wt = listaPreciosWideTable("<thead><tr><th>Nombre</th><th>Categoría</th><th>Unidad</th><th>Precio</th><th>Estado</th><th>Historial</th><th>Carta digital</th></tr></thead>");
+    var tbody = wt.tbody;
+
+    productos.forEach(function(p){
+      var tr = document.createElement("tr");
+
+      var tdN = document.createElement("td"); tdN.textContent = p.nombre; tr.appendChild(tdN);
+
+      var tdC = document.createElement("td");
+      var selCat = document.createElement("select");
+      var categoriasParaEstaFila = listaPreciosCategoriasDisponibles();
+      // "Sin categoría — revisar" es la marca que deja la migración para un producto que solo
+      // estaba en la lista de precios (no en ningún catálogo de Arqueo) -- no es una categoría
+      // elegible de las 10 aprobadas, pero si un producto la tiene puesta se agrega acá nada más
+      // para que el selector la MUESTRE tal cual es hoy (nunca se cambia sola a "Panadería" por
+      // default del navegador solo por abrir la pantalla).
+      if(p.categoria && categoriasParaEstaFila.indexOf(p.categoria) === -1){ categoriasParaEstaFila = [p.categoria].concat(categoriasParaEstaFila); }
+      categoriasParaEstaFila.forEach(function(c){
+        var op = document.createElement("option"); op.value = c; op.textContent = c;
+        if(c === p.categoria) op.selected = true;
+        selCat.appendChild(op);
+      });
+      selCat.addEventListener("change", function(){
+        var nueva = selCat.value;
+        pedirPinAdministrativoYEjecutar(function(responsable){
+          catalogoCambiarCategoria(p._id, nueva, responsable).then(function(){
+            showToast("Categoría actualizada.");
+          }).catch(function(err){ alert((err && err.message) || "No se pudo guardar."); renderPanel(); });
+        });
+      });
+      tdC.appendChild(selCat);
+      tr.appendChild(tdC);
+
+      var tdU = document.createElement("td");
+      var selUni = document.createElement("select");
+      LISTA_PRECIOS_UNIDADES.forEach(function(u){
+        var op = document.createElement("option"); op.value = u; op.textContent = u;
+        if(u === p.unidad) op.selected = true;
+        selUni.appendChild(op);
+      });
+      selUni.addEventListener("change", function(){
+        var nueva = selUni.value;
+        pedirPinAdministrativoYEjecutar(function(responsable){
+          catalogoCambiarUnidad(p._id, nueva, responsable).then(function(){
+            showToast("Unidad actualizada.");
+          }).catch(function(err){ alert((err && err.message) || "No se pudo guardar."); renderPanel(); });
+        });
+      });
+      tdU.appendChild(selUni);
+      tr.appendChild(tdU);
+
+      var tdP = document.createElement("td");
+      var precioSpan = document.createElement("span");
+      precioSpan.textContent = "S/ " + Number(p.precio || 0).toFixed(2) + " ";
+      tdP.appendChild(precioSpan);
+      var editPrecioBtn = document.createElement("button");
+      editPrecioBtn.type = "button";
+      editPrecioBtn.className = "btn btn-sm";
+      editPrecioBtn.textContent = "Editar";
+      editPrecioBtn.addEventListener("click", function(){
+        var nuevoStr = prompt('Precio actual de "' + p.nombre + '": S/ ' + Number(p.precio || 0).toFixed(2) + ".\n\nNuevo precio:", Number(p.precio || 0).toFixed(2));
+        if(nuevoStr === null) return;
+        var nuevo = parseFloat(String(nuevoStr).replace(",", "."));
+        if(!(nuevo > 0)){ alert("Escribe un precio válido, mayor a 0."); return; }
+        if(!confirm('Confirma: cambiar el precio de "' + p.nombre + '" de S/ ' + Number(p.precio || 0).toFixed(2) + " a S/ " + nuevo.toFixed(2) + ".")) return;
+        pedirPinAdministrativoYEjecutar(function(responsable){
+          catalogoEditarPrecio(p._id, nuevo, responsable).then(function(){
+            showToast("Precio actualizado.");
+          }).catch(function(err){ alert((err && err.message) || "No se pudo guardar el precio."); });
+        });
+      });
+      tdP.appendChild(editPrecioBtn);
+      tr.appendChild(tdP);
+
+      var tdE = document.createElement("td");
+      var estadoBtn = document.createElement("button");
+      estadoBtn.type = "button";
+      estadoBtn.className = "btn btn-sm";
+      estadoBtn.textContent = p.activo ? "Activo (desactivar)" : "Inactivo (activar)";
+      estadoBtn.addEventListener("click", function(){
+        var nuevoEstado = !p.activo;
+        if(!confirm((nuevoEstado ? "¿Activar " : "¿Desactivar ") + '"' + p.nombre + '"?')) return;
+        pedirPinAdministrativoYEjecutar(function(responsable){
+          catalogoCambiarActivo(p._id, nuevoEstado, responsable).then(function(){
+            showToast(nuevoEstado ? "Producto activado." : "Producto desactivado.");
+          }).catch(function(err){ alert((err && err.message) || "No se pudo guardar."); });
+        });
+      });
+      tdE.appendChild(estadoBtn);
+      tr.appendChild(tdE);
+
+      var tdH = document.createElement("td");
+      var histBtn = document.createElement("button");
+      histBtn.type = "button";
+      histBtn.className = "btn btn-sm";
+      histBtn.textContent = listaPreciosProductoAbiertoId === p._id ? "Ocultar" : "Ver historial";
+      histBtn.addEventListener("click", function(){
+        if(listaPreciosProductoAbiertoId === p._id){ listaPreciosProductoAbiertoId = null; renderPanel(); return; }
+        listaPreciosProductoAbiertoId = p._id;
+        renderPanel();
+        if(!listaPreciosHistorialCache.hasOwnProperty(p._id)){
+          catalogoCargarHistorial(p._id).then(function(){ renderPanel(); });
+        }
+      });
+      tdH.appendChild(histBtn);
+      tr.appendChild(tdH);
+
+      // Carta digital (PASO 1, rediseño oct-2026 a pedido de Jessica: "no quiero que los
+      // controles... ocupen tanto espacio debajo de cada producto"): un solo botón compacto
+      // "Configurar carta" que abre un modal (showCartaDigitalModal), en vez del bloque largo
+      // que antes se desplegaba debajo de la fila. Una pastilla "Marcado" junto al botón deja
+      // ver de un vistazo qué productos ya están marcados para publicarse, sin tener que abrir
+      // cada uno. (Texto alineado con el ajuste #3 de Jessica: "Marcado para publicar".)
+      var tdCarta = document.createElement("td");
+      var cartaWrap = document.createElement("div");
+      cartaWrap.className = "cd-table-btn-wrap";
+      var cartaBtn = document.createElement("button");
+      cartaBtn.type = "button";
+      cartaBtn.className = "btn btn-sm";
+      cartaBtn.textContent = "Configurar carta";
+      cartaBtn.addEventListener("click", function(){ showCartaDigitalModal(p); });
+      cartaWrap.appendChild(cartaBtn);
+      var yaVisibleHoy = !!(p.activo && p.mostrarEnCarta);
+      if(yaVisibleHoy){
+        var miniBadge = document.createElement("span");
+        miniBadge.className = "cd-badge on";
+        miniBadge.textContent = "Marcado";
+        cartaWrap.appendChild(miniBadge);
+      }
+      tdCarta.appendChild(cartaWrap);
+      tr.appendChild(tdCarta);
+
+      tbody.appendChild(tr);
+
+      if(listaPreciosProductoAbiertoId === p._id){
+        var trHist = document.createElement("tr");
+        var tdHist = document.createElement("td");
+        tdHist.colSpan = 7;
+        tdHist.appendChild(buildHistorialInline(p._id));
+        trHist.appendChild(tdHist);
+        tbody.appendChild(trHist);
+      }
+    });
+
+    box.appendChild(wt.hint);
+    box.appendChild(wt.topBar);
+    box.appendChild(wt.tableWrap);
+    return box;
+  }
+
+  function buildHistorialInline(id){
+    var box = document.createElement("div");
+    box.style.padding = ".6rem 0";
+    var arr = listaPreciosHistorialCache[id];
+    if(!arr){ box.textContent = "Cargando historial…"; return box; }
+    if(arr.length === 0){ box.textContent = "Este producto todavía no tiene cambios de precio registrados."; return box; }
+    arr.forEach(function(h){
+      var line = document.createElement("div");
+      line.className = "hint";
+      line.textContent = "S/ " + Number(h.precioAnterior || 0).toFixed(2) + " → S/ " + Number(h.precioNuevo || 0).toFixed(2) +
+        "  ·  " + new Date(h.fecha).toLocaleString("es-PE") + "  ·  " + (h.responsable || "—");
+      box.appendChild(line);
+    });
+    return box;
+  }
+
+  // Modal "Configurar carta" (PASO 1, entorno aislado con datos simulados -- ver
+  // diseno_seguridad_y_sincronizacion.md). Rediseño oct-2026 #1 a pedido de Jessica: de un bloque
+  // largo debajo de cada fila a un modal compacto, con el MISMO patrón de
+  // overlay+caja+cabecera+cierre que ya usa la vista previa de pedido
+  // (showPedidoVistaPrevia/closePedidoVistaPrevia, más arriba) -- clic afuera para cerrar, tecla
+  // Escape, botón "✕". Rediseño oct-2026 #2 ("AJUSTES FINALES"): edición UNIFICADA con un solo
+  // botón "Guardar cambios" (ver catalogoGuardarCambiosCarta, más arriba) en vez de que cada
+  // campo se guarde solo -- y cerrar con cambios sin guardar pide confirmación.
+  //
+  // `cartaDigitalModalTienePendientes` es la única pieza de estado que vive FUERA del closure de
+  // buildCartaDigitalModalBox: closeCartaDigitalModal() (compartida con el click en el overlay y
+  // la tecla Escape) necesita poder preguntar "¿el modal que está abierto ahora mismo tiene
+  // cambios sin guardar?" sin conocer los detalles de cómo ese modal los guarda internamente.
+  var cartaDigitalModalTienePendientes = null; // function(): boolean, o null si no hay modal abierto
+  function closeCartaDigitalModal(forzar){
+    if(!forzar && typeof cartaDigitalModalTienePendientes === "function" && cartaDigitalModalTienePendientes()){
+      if(!confirm('Tienes cambios sin guardar en "Configurar carta". ¿Deseas salir sin guardarlos?')) return false;
+    }
+    var ov = document.getElementById("cartaDigitalModalOverlay");
+    if(ov) ov.remove();
+    document.removeEventListener("keydown", cartaDigitalModalEscHandler);
+    cartaDigitalModalTienePendientes = null;
+    // El botón "Configurar carta" de la tabla muestra una pastilla "Marcado" -- si algo se
+    // guardó mientras el modal estaba abierto, esto refresca esa pastilla al cerrar.
+    renderPanel();
+    return true;
+  }
+  function cartaDigitalModalEscHandler(ev){
+    if(ev.key === "Escape") closeCartaDigitalModal();
+  }
+  function showCartaDigitalModal(p){
+    closeCartaDigitalModal(true); // por si quedó uno abierto de antes -- nunca debería pasar en la UI real (el overlay cubre toda la pantalla), pero no tiene sentido preguntar por cambios de OTRO producto al abrir uno nuevo.
+    var overlay = document.createElement("div");
+    overlay.className = "cd-modal-overlay";
+    overlay.id = "cartaDigitalModalOverlay";
+    overlay.addEventListener("click", function(ev){ if(ev.target === overlay) closeCartaDigitalModal(); });
+    overlay.appendChild(buildCartaDigitalModalBox(p));
+    document.body.appendChild(overlay);
+    document.addEventListener("keydown", cartaDigitalModalEscHandler);
+  }
+  // Arma el contenido del modal. Se mantiene como función aparte (en vez de inline en
+  // showCartaDigitalModal) para poder probarlo sin tener que simular clics de verdad -- igual
+  // patrón que el resto del módulo expone sus "builders" al __qaDebug de pruebas.
+  //
+  // Edición unificada: "original" es lo último guardado de verdad (lo que hay en Firestore);
+  // "form" es lo que se ve en pantalla ahora mismo; "pendiente" son SOLO las llaves donde
+  // form !== original -- eso es lo que manda "Guardar cambios" en una sola escritura. Nada de
+  // esto llama a pedirPinAdministrativoYEjecutar hasta que se presiona ese botón.
+  function buildCartaDigitalModalBox(p){
+    var FIELD_LABELS = {
+      mostrarEnCarta: "Mostrar en carta digital",
+      destacado: "Producto destacado",
+      agotadoHoy: "Agotado hoy",
+      descripcion: "Descripción",
+      foto: "Fotografía"
+    };
+    var original = {
+      mostrarEnCarta: !!p.mostrarEnCarta,
+      destacado: !!p.destacado,
+      agotadoHoy: !!p.agotadoHoy,
+      descripcion: p.descripcion || "",
+      foto: p.foto || ""
+    };
+    var form = Object.assign({}, original);
+    var pendiente = {};
+
+    var box = document.createElement("div");
+    box.className = "cd-modal-box";
+
+    var head = document.createElement("div");
+    head.className = "cd-modal-head";
+    var headText = document.createElement("div");
+    var headTitle = document.createElement("strong"); headTitle.textContent = "Configurar carta digital";
+    var headSub = document.createElement("span"); headSub.textContent = p.nombre || "";
+    headText.appendChild(headTitle); headText.appendChild(headSub);
+    head.appendChild(headText);
+    var closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "cd-modal-close";
+    closeBtn.textContent = "✕";
+    closeBtn.title = "Cerrar";
+    closeBtn.addEventListener("click", function(){ closeCartaDigitalModal(); });
+    head.appendChild(closeBtn);
+    box.appendChild(head);
+
+    var body = document.createElement("div");
+    body.className = "cd-modal-body";
+
+    // --- Pastilla "Marcado para publicar" (antes "Visible en carta pública" -- Jessica: el
+    // nombre anterior sonaba a que el cliente ya lo vería, cuando en realidad es solo la marca
+    // que decide el admin para cuando la carta pública exista). Mientras "mostrarEnCarta" tenga
+    // un cambio sin guardar, la pastilla queda en ámbar y dice "(sin guardar)" -- nunca se
+    // muestra en verde algo que todavía no está guardado de verdad. ---
+    var badge = document.createElement("div");
+    function refreshBadge(){
+      if(pendiente.hasOwnProperty("mostrarEnCarta")){
+        badge.className = "cd-badge pending";
+        badge.textContent = "Marcado para publicar: " + (form.mostrarEnCarta ? "Sí" : "No") + " (sin guardar)";
+        return;
+      }
+      var marcado = !!(p.activo && p.mostrarEnCarta);
+      badge.className = "cd-badge " + (marcado ? "on" : "off");
+      badge.textContent = "Marcado para publicar: " + (marcado ? "Sí" : "No") +
+        (!p.activo && p.mostrarEnCarta ? " (producto inactivo)" : "");
+    }
+    refreshBadge();
+    body.appendChild(badge);
+
+    var avisoPaso2 = document.createElement("div");
+    avisoPaso2.className = "cd-hint";
+    avisoPaso2.textContent = "La carta pública (carta.html) todavía no existe -- esto solo guarda la información acá, en Lista de Precios.";
+    body.appendChild(avisoPaso2);
+
+    // --- Barra de guardado (declarada acá arriba porque refreshPendingBar() la usan los
+    // controles de abajo; se agrega al DOM al final, fuera del body que hace scroll). ---
+    var saveBar = document.createElement("div");
+    saveBar.className = "cd-save-bar";
+    var pendingList = document.createElement("div");
+    pendingList.className = "cd-pending-list cd-hidden";
+    saveBar.appendChild(pendingList);
+    var saveBarRow = document.createElement("div");
+    saveBarRow.className = "cd-save-bar-row";
+    var saveNote = document.createElement("span");
+    saveNote.className = "cd-save-bar-note";
+    saveBarRow.appendChild(saveNote);
+    var btnGuardarCambios = document.createElement("button");
+    btnGuardarCambios.type = "button";
+    btnGuardarCambios.className = "btn btn-primary btn-sm";
+    btnGuardarCambios.textContent = "Guardar cambios";
+    btnGuardarCambios.disabled = true;
+    saveBarRow.appendChild(btnGuardarCambios);
+    saveBar.appendChild(saveBarRow);
+
+    function refreshPendingBar(){
+      var keys = Object.keys(pendiente);
+      if(keys.length === 0){
+        pendingList.textContent = "";
+        pendingList.classList.add("cd-hidden");
+        btnGuardarCambios.disabled = true;
+      } else {
+        pendingList.textContent = "Cambios sin guardar: " + keys.map(function(k){ return FIELD_LABELS[k]; }).join(", ") + ".";
+        pendingList.classList.remove("cd-hidden");
+        btnGuardarCambios.disabled = false;
+      }
+    }
+    cartaDigitalModalTienePendientes = function(){ return Object.keys(pendiente).length > 0; };
+
+    // Marca un campo como cambiado (o lo "des-marca" si volvió a su valor original) y refresca
+    // todo lo que depende de eso -- único punto de entrada que usan los 5 controles de abajo.
+    function marcarCampo(key, valor){
+      form[key] = valor;
+      if(valor === original[key]) delete pendiente[key]; else pendiente[key] = valor;
+      refreshBadge();
+      if(typeof refreshFotoStatus === "function") refreshFotoStatus();
+      refreshPendingBar();
+    }
+
+    // --- 3 controles booleanos, como switches en vez de botones de texto largo. TODA la fila es
+    // un <label> -- el área táctil es la fila completa (~48px), no solo el switch de 42x25px. ---
+    var toggles = document.createElement("div");
+    toggles.className = "cd-modal-section";
+    function filaToggle(id, labelTxt, sublabelTxt, key){
+      var row = document.createElement("label");
+      row.className = "cd-toggle-row";
+      row.htmlFor = id;
+      var lbl = document.createElement("div");
+      lbl.className = "cd-toggle-label";
+      lbl.appendChild(document.createTextNode(labelTxt));
+      if(sublabelTxt){
+        var sm = document.createElement("small");
+        sm.textContent = sublabelTxt;
+        lbl.appendChild(sm);
+      }
+      row.appendChild(lbl);
+
+      var sw = document.createElement("span");
+      sw.className = "cd-switch";
+      var input = document.createElement("input");
+      input.type = "checkbox";
+      input.id = id;
+      input.checked = !!original[key];
+      var slider = document.createElement("span");
+      slider.className = "cd-slider";
+      sw.appendChild(input);
+      sw.appendChild(slider);
+      row.appendChild(sw);
+
+      input.addEventListener("change", function(){ marcarCampo(key, input.checked); });
+      return row;
+    }
+    toggles.appendChild(filaToggle("cdSwMostrar", "Mostrar en carta digital", "", "mostrarEnCarta"));
+    toggles.appendChild(filaToggle("cdSwDestacado", "Producto destacado", "Aparece en la sección “Lo nuestro” de la carta pública", "destacado"));
+    toggles.appendChild(filaToggle("cdSwAgotado", "Agotado hoy", "Temporal -- no cambia el estado activo/inactivo", "agotadoHoy"));
+    body.appendChild(toggles);
+
+    // --- Descripción: ya no tiene su propio botón de guardar -- cada tecla actualiza el estado
+    // local (marcarCampo) y el guardado de verdad pasa por "Guardar cambios", abajo. ---
+    var secDesc = document.createElement("div");
+    secDesc.className = "cd-modal-section";
+    var lblDesc = document.createElement("div");
+    lblDesc.className = "cd-field-label";
+    lblDesc.textContent = "Descripción (máx. 240 caracteres)";
+    secDesc.appendChild(lblDesc);
+    var taDescripcion = document.createElement("textarea");
+    taDescripcion.className = "cd-textarea";
+    taDescripcion.value = original.descripcion;
+    taDescripcion.maxLength = 240;
+    taDescripcion.rows = 2;
+    taDescripcion.placeholder = "Ej. Pan artesanal de masa madre, horneado todos los días por la mañana.";
+    taDescripcion.addEventListener("input", function(){ marcarCampo("descripcion", taDescripcion.value); });
+    secDesc.appendChild(taDescripcion);
+    body.appendChild(secDesc);
+
+    // --- Fotografía: preparado para fotos reales (celular o computadora), con vista previa y un
+    // estado de almacenamiento explícito -- nunca se dice "Guardada" de algo que solo se
+    // previsualizó. Dos caminos, cada uno con su estado:
+    //   1) Pegar un enlace https:// -- participa en "Guardar cambios", como los demás campos.
+    //   2) Elegir una foto del celular/computadora -- SOLO vista previa local (URL.createObjectURL),
+    //      nunca se envía a ningún lado ni se incluye en lo que guarda "Guardar cambios": todavía
+    //      no existe un lugar en Firebase (Storage) para subirla de verdad (eso es Paso 2). ---
+    var secFoto = document.createElement("div");
+    secFoto.className = "cd-modal-section";
+    var lblFoto = document.createElement("div");
+    lblFoto.className = "cd-field-label";
+    lblFoto.textContent = "Fotografía";
+    secFoto.appendChild(lblFoto);
+
+    var fotoStatus = document.createElement("div");
+    secFoto.appendChild(fotoStatus);
+    function refreshFotoStatus(){
+      if(pendiente.hasOwnProperty("foto")){
+        fotoStatus.className = "cd-badge pending";
+        fotoStatus.textContent = form.foto ? "Enlace sin guardar" : "Se quitará la foto guardada (sin guardar)";
+      } else if(original.foto){
+        fotoStatus.className = "cd-badge on";
+        fotoStatus.textContent = "Guardada como enlace";
+      } else {
+        fotoStatus.className = "cd-badge off";
+        fotoStatus.textContent = "Sin fotografía guardada";
+      }
+    }
+    refreshFotoStatus();
+
+    var lblFotoUrl = document.createElement("div");
+    lblFotoUrl.className = "cd-field-label";
+    lblFotoUrl.style.marginTop = ".3rem";
+    lblFotoUrl.textContent = "Enlace https:// a una foto ya alojada en algún sitio";
+    secFoto.appendChild(lblFotoUrl);
+    var rowFotoInput = document.createElement("div");
+    rowFotoInput.className = "cd-row-inline";
+    var inpFotoUrl = document.createElement("input");
+    inpFotoUrl.type = "text";
+    inpFotoUrl.value = original.foto;
+    inpFotoUrl.placeholder = "https://…";
+    rowFotoInput.appendChild(inpFotoUrl);
+    secFoto.appendChild(rowFotoInput);
+
+    var imgPreview = document.createElement("img");
+    imgPreview.alt = "Vista previa de la fotografía";
+    imgPreview.className = "cd-photo-preview";
+    if(original.foto){ imgPreview.src = original.foto; imgPreview.style.display = "block"; }
+    imgPreview.onerror = function(){ imgPreview.style.display = "none"; };
+    secFoto.appendChild(imgPreview);
+
+    inpFotoUrl.addEventListener("input", function(){
+      marcarCampo("foto", inpFotoUrl.value);
+      imgPreview.onerror = function(){ imgPreview.style.display = "none"; };
+      if(inpFotoUrl.value){ imgPreview.src = inpFotoUrl.value; imgPreview.style.display = "block"; }
+      else { imgPreview.removeAttribute("src"); imgPreview.style.display = "none"; }
+    });
+
+    var fotoHint = document.createElement("div");
+    fotoHint.className = "cd-hint";
+    fotoHint.style.marginTop = ".2rem";
+    fotoHint.textContent = "Todavía no hay almacenamiento de fotos en Firebase (eso es parte del Paso 2) -- por ahora la única forma de GUARDAR una foto de verdad es pegar su enlace https:// arriba.";
+    secFoto.appendChild(fotoHint);
+
+    var lblFotoLocal = document.createElement("div");
+    lblFotoLocal.className = "cd-field-label";
+    lblFotoLocal.style.marginTop = ".5rem";
+    lblFotoLocal.textContent = "O probar cómo se vería con una foto del celular o la computadora";
+    secFoto.appendChild(lblFotoLocal);
+    var localRow = document.createElement("div");
+    localRow.className = "cd-photo-local-row";
+    var inpFotoLocal = document.createElement("input");
+    inpFotoLocal.type = "file";
+    inpFotoLocal.accept = "image/*";
+    localRow.appendChild(inpFotoLocal);
+    secFoto.appendChild(localRow);
+
+    var localPreviewNote = document.createElement("div");
+    localPreviewNote.className = "cd-hint";
+    localPreviewNote.style.cssText = "margin-top:.3rem; color:var(--warn); display:none;";
+    localPreviewNote.textContent = "Esto es SOLO una vista previa, en esta pantalla -- no se guardó ni se subió a ningún lado. Para guardar una foto de verdad, pega su enlace https:// arriba y presiona \"Guardar cambios\".";
+    secFoto.appendChild(localPreviewNote);
+
+    inpFotoLocal.addEventListener("change", function(){
+      var file = inpFotoLocal.files && inpFotoLocal.files[0];
+      if(!file) return;
+      var objUrl = URL.createObjectURL(file);
+      imgPreview.onerror = null;
+      imgPreview.src = objUrl;
+      imgPreview.style.display = "block";
+      localPreviewNote.style.display = "block";
+      // A propósito, esto NUNCA llama a marcarCampo("foto", ...) ni a catalogoCambiarFoto/
+      // catalogoGuardarCambiosCarta -- no hay dónde guardar esta foto todavía (ver fotoHint). Si
+      // lo hiciera, "Guardar cambios" terminaría escribiendo una URL "blob:..." que solo existe
+      // en ESTE navegador, en ESTA pestaña -- nadie más la vería nunca, ni tú al recargar.
+    });
+
+    body.appendChild(secFoto);
+    box.appendChild(body);
+
+    // --- Botón único "Guardar cambios": UN SOLO PIN para todo lo que cambió, UNA sola escritura
+    // a Firestore (catalogoGuardarCambiosCarta). Valida localmente antes de pedir el PIN, para
+    // no pedirlo y recién ahí fallar. ---
+    btnGuardarCambios.addEventListener("click", function(){
+      var keys = Object.keys(pendiente);
+      if(keys.length === 0) return;
+      if(pendiente.hasOwnProperty("descripcion") && String(pendiente.descripcion || "").length > 240){
+        alert("La descripción es muy larga (máximo 240 caracteres)."); return;
+      }
+      if(pendiente.hasOwnProperty("foto") && pendiente.foto && !/^https:\/\//i.test(pendiente.foto)){
+        alert("La URL de la foto debe empezar con https://"); return;
+      }
+      pedirPinAdministrativoYEjecutar(function(responsable){
+        btnGuardarCambios.disabled = true;
+        var aEnviar = Object.assign({}, pendiente);
+        catalogoGuardarCambiosCarta(p._id, aEnviar, responsable).then(function(){
+          Object.keys(aEnviar).forEach(function(k){
+            original[k] = aEnviar[k];
+            p[k] = aEnviar[k];
+            delete pendiente[k];
+          });
+          refreshBadge();
+          refreshFotoStatus();
+          refreshPendingBar();
+          saveNote.textContent = "Guardado ✓";
+          setTimeout(function(){ saveNote.textContent = ""; }, 2500);
+        }).catch(function(err){
+          btnGuardarCambios.disabled = Object.keys(pendiente).length === 0;
+          alert((err && err.message) || "No se pudieron guardar los cambios.");
+        });
+      });
+    });
+
+    box.appendChild(saveBar);
+    return box;
+  }
+
+  // Formulario "+ Agregar producto": valida en catalogoAgregarProducto (nombre no vacío,
+  // categoría elegida, precio > 0, sin duplicados) -- acá solo se juntan los valores de pantalla.
+  function buildCatalogoAgregarForm(){
+    var box = document.createElement("div");
+    box.style.border = "1px solid var(--border)";
+    box.style.borderRadius = "var(--radius-sm)";
+    box.style.padding = ".8rem";
+    box.style.margin = ".4rem 0 1rem";
+
+    var row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.flexWrap = "wrap";
+    row.style.gap = ".6rem";
+
+    var nombreCol = document.createElement("div");
+    nombreCol.className = "field";
+    nombreCol.style.minWidth = "200px";
+    var nombreLbl = document.createElement("div"); nombreLbl.className = "field-group-label"; nombreLbl.textContent = "Nombre"; nombreCol.appendChild(nombreLbl);
+    var nombreInput = document.createElement("input"); nombreInput.type = "text"; nombreInput.id = "catalogoNuevoNombre"; nombreInput.placeholder = "Ej. Ciabatta XL"; nombreCol.appendChild(nombreInput);
+    row.appendChild(nombreCol);
+
+    var catCol = document.createElement("div");
+    catCol.className = "field";
+    catCol.style.minWidth = "160px";
+    var catLbl = document.createElement("div"); catLbl.className = "field-group-label"; catLbl.textContent = "Categoría"; catCol.appendChild(catLbl);
+    var catSel = document.createElement("select"); catSel.id = "catalogoNuevoCategoria";
+    listaPreciosCategoriasDisponibles().forEach(function(c){ var op = document.createElement("option"); op.value = c; op.textContent = c; catSel.appendChild(op); });
+    catCol.appendChild(catSel);
+    row.appendChild(catCol);
+
+    var uniCol = document.createElement("div");
+    uniCol.className = "field";
+    uniCol.style.minWidth = "140px";
+    var uniLbl = document.createElement("div"); uniLbl.className = "field-group-label"; uniLbl.textContent = "Unidad"; uniCol.appendChild(uniLbl);
+    var uniSel = document.createElement("select"); uniSel.id = "catalogoNuevoUnidad";
+    LISTA_PRECIOS_UNIDADES.forEach(function(u){ var op = document.createElement("option"); op.value = u; op.textContent = u; uniSel.appendChild(op); });
+    uniCol.appendChild(uniSel);
+    row.appendChild(uniCol);
+
+    var precioCol = document.createElement("div");
+    precioCol.className = "field";
+    precioCol.style.minWidth = "120px";
+    var precioLbl = document.createElement("div"); precioLbl.className = "field-group-label"; precioLbl.textContent = "Precio (S/)"; precioCol.appendChild(precioLbl);
+    var precioInput = document.createElement("input"); precioInput.type = "number"; precioInput.step = "0.1"; precioInput.min = "0"; precioInput.id = "catalogoNuevoPrecio"; precioCol.appendChild(precioInput);
+    row.appendChild(precioCol);
+
+    box.appendChild(row);
+
+    var saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "btn btn-primary btn-sm";
+    saveBtn.style.marginTop = ".7rem";
+    saveBtn.textContent = "Guardar producto nuevo";
+    saveBtn.addEventListener("click", function(){
+      var datos = {
+        nombre: document.getElementById("catalogoNuevoNombre").value,
+        categoria: document.getElementById("catalogoNuevoCategoria").value,
+        unidad: document.getElementById("catalogoNuevoUnidad").value,
+        precio: document.getElementById("catalogoNuevoPrecio").value
+      };
+      pedirPinAdministrativoYEjecutar(function(responsable){
+        catalogoAgregarProducto(datos, responsable).then(function(){
+          listaPreciosAgregarAbierto = false;
+          showToast('Producto "' + productoDisplay(datos.nombre) + '" agregado.');
+          renderPanel();
+        }).catch(function(err){
+          alert((err && err.message) || "No se pudo agregar el producto.");
+        });
+      });
+    });
+    box.appendChild(saveBtn);
+    return box;
+  }
+
   // Agrupación visual de los 6 procesos de Pedidos en 3 categorías (set-2026, pedido de
   // Jessica, "REORGANIZACIÓN VISUAL -- MÓDULO PEDIDOS"): OPERACIÓN (el día a día: tomar,
   // despachar, producir) / CONTROL (consultar y revisar lo ya tomado) / COBRANZA (crédito
@@ -6246,7 +7825,11 @@ var TRIPLES = [
   var PEDIDOS_NAV_GRUPOS = [
     { label:"Operación", items:[["nuevo","+ Nuevo pedido"], ["despacho","Despacho"], ["produccion","Producción por día"]] },
     { label:"Control", items:[["lista","Todos los pedidos"], ["tomados","Pedidos tomados"]] },
-    { label:"Cobranza", items:[["cobrar","Cuentas por Cobrar"]] }
+    { label:"Cobranza", items:[["cobrar","Cuentas por Cobrar"]] },
+    // oct-2026, Lista de Precios (Etapa A, "APROBADA LA ETAPA A" de Jessica): grupo nuevo,
+    // aparte, para que se encuentre fácil -- Pedidos -> Catálogo -> Lista de Precios. No cambia
+    // ningún grupo ni botón de los que ya existían arriba.
+    { label:"Catálogo", items:[["precios","Lista de Precios"]] }
   ];
   function buildPedidosPanel(){
     if(!isPedidosUnlocked()){ return buildPedidosLockGate(); }
@@ -6290,6 +7873,7 @@ var TRIPLES = [
     else if(pedidosView === "lista"){ wrap.appendChild(buildPedidosLista()); }
     else if(pedidosView === "tomados"){ wrap.appendChild(buildPedidosTomadosView()); }
     else if(pedidosView === "cobrar"){ wrap.appendChild(buildCuentasPorCobrarView()); }
+    else if(pedidosView === "precios"){ wrap.appendChild(buildListaPreciosPanel()); }
     // "Nuevo pedido" (crear uno de cero) usa el asistente paso a paso (Jessica, set-2026:
     // "quedamos en este" formato) -- "Editar pedido" (pedidoEditingId puesto) sigue exactamente
     // igual que siempre, con el formulario rápido de una sola pantalla (buildPedidoForm). El modo
@@ -17124,6 +18708,43 @@ var TRIPLES = [
     });
   }
 
+  // Lista de Precios (Etapa A) -- tres listeners de SOLO LECTURA EN VIVO, cada uno en su propia
+  // colección/documento, ninguno toca `arqueo/state` ni `pedidos`:
+  //  - catalogoProductos: el catálogo administrado en sí.
+  //  - config/adminAuth: el mapa hash de PIN administrativo -> nombre (nunca el PIN real).
+  //  - config/listaPreciosConfig: categorías agregadas a mano, además de las 10 ya aprobadas.
+  function attachCatalogoProductosSync(){
+    db.collection("catalogoProductos").onSnapshot(function(snap){
+      var map = {};
+      snap.forEach(function(doc){ map[doc.id] = doc.data(); });
+      CATALOGO_PRODUCTOS = map;
+      if(currentTab === "pedidos" && pedidosView === "precios") renderPanel();
+    }, function(){
+      if(currentTab === "pedidos" && pedidosView === "precios" && CATALOGO_PRODUCTOS === null){
+        showToast("No se pudo cargar el catálogo de precios.");
+      }
+    });
+  }
+  function attachAdminAuthSync(){
+    db.collection("config").doc("adminAuth").onSnapshot(function(snap){
+      ADMIN_AUTH_EXISTE = !!snap.exists;
+      ADMIN_AUTH = snap.exists ? (snap.data() || { pines: {} }) : { pines: {} };
+      if(currentTab === "pedidos" && pedidosView === "precios") renderPanel();
+    }, function(){
+      if(currentTab === "pedidos" && pedidosView === "precios" && ADMIN_AUTH_EXISTE === null){
+        showToast("No se pudo verificar el PIN administrativo (revisa tu conexión).");
+      }
+    });
+  }
+  function attachListaPreciosConfigSync(){
+    db.collection("config").doc("listaPreciosConfig").onSnapshot(function(snap){
+      CATALOGO_CATEGORIAS_EXTRA = (snap.exists && snap.data().categoriasExtra) || [];
+      if(currentTab === "pedidos" && pedidosView === "precios") renderPanel();
+    }, function(){
+      if(CATALOGO_CATEGORIAS_EXTRA === null) CATALOGO_CATEGORIAS_EXTRA = [];
+    });
+  }
+
   function initFirebase(){
     var firebaseConfig = {
       apiKey: "AIzaSyApjo00nK0Vc_5cESnAPvjEg1-hIuv2zCE",
@@ -17166,6 +18787,9 @@ var TRIPLES = [
     attachClientesSync();
     attachCajerosSync();
     attachMesasSync();
+    attachCatalogoProductosSync();
+    attachAdminAuthSync();
+    attachListaPreciosConfigSync();
     // Avisa ANTES de cerrar o recargar la página si todavía hay cambios del arqueo sin
     // guardar -- así nadie pierde lo que avanzó por cerrar la pestaña justo cuando un
     // guardado está fallando o todavía está en camino (ver saveRetryCount más arriba).
