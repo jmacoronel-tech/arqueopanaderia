@@ -1440,10 +1440,10 @@ var TRIPLES = [
     {n:"PATE FINAS HIERBAS", p:10.1},
     {n:"SALCHICHA DE HUACHO", p:10.4},
     {n:"TOCINO POR KILO", p:88},
-    {n:"EMPANADA AJÍ DE GALLINA", p:10.9},
+    {n:"EMPANADA AJÍ DE GALLINA", p:11.9},
     {n:"EMPANADA DE CARNE", p:11.9},
-    {n:"EMPANADA MIXTA", p:10.9},
-    {n:"EMPANADA DE QUESO", p:10.9},
+    {n:"EMPANADA MIXTA", p:11.9},
+    {n:"EMPANADA DE QUESO", p:11.9},
     {n:"MINI EMPANADA DE CARNE", p:5},
     {n:"MOLDE PASTEL DE ACELGA 3 QUESOS", p:65.4},
     {n:"PORCIÓN PASTEL DE ACELGA CON 3 QUESOS", p:10.9},
@@ -1533,7 +1533,7 @@ var TRIPLES = [
     {n:"MIEL FRASCO 200 GR", p:15},
     {n:"MIEL FRASCO 250 GR", p:19.9},
     {n:"MIEL FRASCO 500 GR", p:34.9},
-    {n:"MILHOJAS", p:9.9},
+    {n:"MILHOJAS", p:12.5},
     {n:"MINI ALFAJOR", p:4.2},
     {n:"MOLDE FONDANT DE CHOCOLATE", p:100},
     {n:"MOLDE TARTA DE QUESO Y VAINILLA", p:90},
@@ -6064,6 +6064,14 @@ var TRIPLES = [
   var CATALOGO_MIGRACION_META = null;     // doc config/catalogoMigracion; null = aún no llega, false = no existe
   var ADMIN_AUTH_EXISTE = null;           // null = aún no sabemos; false = nunca se configuró un PIN; true = sí
   var ADMIN_AUTH = null;                  // { pines: { "<hash sha-256>": "Nombre" } }
+  // oct-2026, Jessica: "Lista de Precios sigue bloqueada en Cargando catálogo de precios..." --
+  // errores reales de transporte de Firestore (ERR_QUIC_PROTOCOL_ERROR, HTTP 400/404,
+  // WebChannel 'Listen' transport errored). Antes no existía ninguna bandera de error acá, así
+  // que si el listener nunca respondía (ni con datos ni con error) la pantalla se quedaba
+  // "Cargando..." para siempre. Ver attachCatalogoProductosSync/attachAdminAuthSync más abajo
+  // (tienen su propio tiempo límite, además del callback de error) y buildListaPreciosErrorBox.
+  var CATALOGO_PRODUCTOS_ERROR = false;   // true = la última lectura de catalogoProductos falló o no respondió a tiempo
+  var ADMIN_AUTH_ERROR = false;           // true = la última lectura de config/adminAuth falló o no respondió a tiempo
   // Nombre de quien ya validó su PIN administrativo en ESTA visita del navegador, solo para no
   // volver a pedirlo en cada clic -- se pierde al recargar, no se guarda en ningún lado. La
   // protección real sigue siendo el hash validado contra ADMIN_AUTH en cada escritura.
@@ -6902,6 +6910,16 @@ var TRIPLES = [
     intro.textContent = "Cualquiera puede ver y buscar precios acá. Para agregar, editar o activar/desactivar un producto se pide el PIN administrativo -- cada cambio de precio queda guardado con quién, cuándo y el precio anterior. Por ahora Pedidos y Mozos siguen usando los precios de siempre (Etapa B, todavía no activada) -- este catálogo es solo para revisarlo y prepararlo con calma.";
     card.appendChild(intro);
 
+    // Primero el error real (si lo hay) -- nunca se queda atascado en "Cargando..." sin que la
+    // persona pueda enterarse de qué pasa ni reintentar ella misma (ver attachCatalogoProductosSync/
+    // attachAdminAuthSync: ambos tienen tiempo límite propio además del callback de error, así
+    // que esta bandera SIEMPRE termina llegando, aunque Firestore nunca llame a su error()).
+    if(CATALOGO_PRODUCTOS_ERROR || ADMIN_AUTH_ERROR){
+      card.appendChild(buildListaPreciosErrorBox());
+      wrap.appendChild(card);
+      return wrap;
+    }
+
     if(ADMIN_AUTH_EXISTE === null || CATALOGO_PRODUCTOS === null){
       var loading = document.createElement("div");
       loading.className = "empty-state";
@@ -6919,6 +6937,30 @@ var TRIPLES = [
 
     wrap.appendChild(card);
     return wrap;
+  }
+
+  // Caja de error visible de Lista de Precios, con botón para reintentar a mano -- mismo patrón
+  // ya probado y aprobado para Mozos/Salón (ver mesasSyncError / "Reintentar ahora" en
+  // buildMozosPanel). No pide recargar toda la página: solo vuelve a intentar los listeners que
+  // fallaron (catalogoProductos y/o config/adminAuth) y repinta.
+  function buildListaPreciosErrorBox(){
+    var err = document.createElement("div");
+    err.className = "moz-error";
+    var errTxt = document.createElement("span");
+    errTxt.textContent = "No se pudo cargar la Lista de Precios en este momento (falla de conexión con Firestore). Ningún dato se perdió -- el catálogo real sigue intacto. Revisa tu conexión a internet e intenta de nuevo.";
+    err.appendChild(errTxt);
+    var btnReintentar = document.createElement("button");
+    btnReintentar.type = "button";
+    btnReintentar.className = "moz-error-retry";
+    btnReintentar.textContent = "🔄 Reintentar ahora";
+    btnReintentar.addEventListener("click", function(){
+      if(!db) return;
+      if(CATALOGO_PRODUCTOS_ERROR) attachCatalogoProductosSync();
+      if(ADMIN_AUTH_ERROR) attachAdminAuthSync();
+      renderPanel();
+    });
+    err.appendChild(btnReintentar);
+    return err;
   }
 
   // Primera vez que se usa el módulo (config/adminAuth todavía no existe): Jessica configura su
@@ -18713,26 +18755,103 @@ var TRIPLES = [
   //  - catalogoProductos: el catálogo administrado en sí.
   //  - config/adminAuth: el mapa hash de PIN administrativo -> nombre (nunca el PIN real).
   //  - config/listaPreciosConfig: categorías agregadas a mano, además de las 10 ya aprobadas.
+  // oct-2026, Jessica (consola real de Chrome): ERR_QUIC_PROTOCOL_ERROR, HTTP 400/404 y
+  // "WebChannelConnection RPC 'Listen' transport errored" en catalogoProductos/config/adminAuth.
+  // Ese tipo de error de TRANSPORTE del SDK de Firestore suele reintentarse solo, EN SILENCIO,
+  // sin llamar nunca al callback de error de onSnapshot -- por eso antes la pantalla se podía
+  // quedar en "Cargando..." para siempre, sin aviso y sin forma de reintentar a mano. Por eso
+  // cada uno de estos dos listeners ahora tiene, ADEMÁS del callback de error: (1) un tiempo
+  // límite propio (ver *TimeoutTimer) que declara el error aunque Firestore nunca avise nada, y
+  // (2) reintento automático cada 6s mientras siga en error (mismo patrón ya probado y aprobado
+  // en attachMesasSync), y (3) una referencia guardada para desconectar limpio antes de volver a
+  // intentar (evita listeners duplicados si se reintenta a mano con el botón).
+  var catalogoProductosUnsub = null;
+  var catalogoProductosRetryTimer = null;
+  var catalogoProductosTimeoutTimer = null;
+  var adminAuthUnsub = null;
+  var adminAuthRetryTimer = null;
+  var adminAuthTimeoutTimer = null;
+
   function attachCatalogoProductosSync(){
-    db.collection("catalogoProductos").onSnapshot(function(snap){
+    if(catalogoProductosRetryTimer){ clearTimeout(catalogoProductosRetryTimer); catalogoProductosRetryTimer = null; }
+    if(catalogoProductosTimeoutTimer){ clearTimeout(catalogoProductosTimeoutTimer); catalogoProductosTimeoutTimer = null; }
+    if(catalogoProductosUnsub){ try{ catalogoProductosUnsub(); }catch(e){} catalogoProductosUnsub = null; }
+    CATALOGO_PRODUCTOS_ERROR = false;
+    catalogoProductosTimeoutTimer = setTimeout(function(){
+      catalogoProductosTimeoutTimer = null;
+      if(CATALOGO_PRODUCTOS === null){
+        CATALOGO_PRODUCTOS_ERROR = true;
+        try{ console.error("Lista de Precios -- 'catalogoProductos' no respondió a tiempo (posible falla de transporte de Firestore: QUIC/WebChannel)."); }catch(e){}
+        if(currentTab === "pedidos" && pedidosView === "precios") renderPanel();
+      }
+    }, 15000);
+    catalogoProductosUnsub = db.collection("catalogoProductos").onSnapshot(function(snap){
+      // Jessica, oct-2026: "un error de conexión nunca debe mostrar un catálogo vacío como si
+      // fuera correcto". Firestore puede entregar un snapshot "exitoso" armado solo con lo que
+      // tiene en caché local, SIN haber confirmado nada con el servidor
+      // (snap.metadata.fromCache === true) -- si ese caché está vacío (recién se abrió la
+      // página, con mala conexión, nunca se sincronizó de verdad), se vería IDÉNTICO a "de
+      // verdad no hay productos". Por eso una respuesta vacía que viene solo del caché NUNCA se
+      // acepta como dato real: se descarta y se sigue esperando -- el tiempo límite de arriba
+      // igual va a avisar del error si la confirmación real nunca llega.
+      if(snap.empty && snap.metadata && snap.metadata.fromCache){
+        try{ console.warn("Lista de Precios -- se descartó un snapshot vacío de 'catalogoProductos' que vino solo del caché local (sin confirmar con el servidor); se sigue esperando confirmación real."); }catch(e){}
+        return;
+      }
+      if(catalogoProductosTimeoutTimer){ clearTimeout(catalogoProductosTimeoutTimer); catalogoProductosTimeoutTimer = null; }
+      if(catalogoProductosRetryTimer){ clearTimeout(catalogoProductosRetryTimer); catalogoProductosRetryTimer = null; }
+      CATALOGO_PRODUCTOS_ERROR = false;
       var map = {};
       snap.forEach(function(doc){ map[doc.id] = doc.data(); });
       CATALOGO_PRODUCTOS = map;
       if(currentTab === "pedidos" && pedidosView === "precios") renderPanel();
-    }, function(){
-      if(currentTab === "pedidos" && pedidosView === "precios" && CATALOGO_PRODUCTOS === null){
-        showToast("No se pudo cargar el catálogo de precios.");
+    }, function(err){
+      if(catalogoProductosTimeoutTimer){ clearTimeout(catalogoProductosTimeoutTimer); catalogoProductosTimeoutTimer = null; }
+      CATALOGO_PRODUCTOS_ERROR = true;
+      try{ console.error("Lista de Precios -- error al conectar con 'catalogoProductos':", err); }catch(e){}
+      if(currentTab === "pedidos" && pedidosView === "precios") renderPanel();
+      if(!catalogoProductosRetryTimer){
+        catalogoProductosRetryTimer = setTimeout(function(){ catalogoProductosRetryTimer = null; attachCatalogoProductosSync(); }, 6000);
       }
     });
   }
   function attachAdminAuthSync(){
-    db.collection("config").doc("adminAuth").onSnapshot(function(snap){
+    if(adminAuthRetryTimer){ clearTimeout(adminAuthRetryTimer); adminAuthRetryTimer = null; }
+    if(adminAuthTimeoutTimer){ clearTimeout(adminAuthTimeoutTimer); adminAuthTimeoutTimer = null; }
+    if(adminAuthUnsub){ try{ adminAuthUnsub(); }catch(e){} adminAuthUnsub = null; }
+    ADMIN_AUTH_ERROR = false;
+    adminAuthTimeoutTimer = setTimeout(function(){
+      adminAuthTimeoutTimer = null;
+      if(ADMIN_AUTH_EXISTE === null){
+        ADMIN_AUTH_ERROR = true;
+        try{ console.error("Lista de Precios -- 'config/adminAuth' no respondió a tiempo (posible falla de transporte de Firestore: QUIC/WebChannel)."); }catch(e){}
+        if(currentTab === "pedidos" && pedidosView === "precios") renderPanel();
+      }
+    }, 15000);
+    adminAuthUnsub = db.collection("config").doc("adminAuth").onSnapshot(function(snap){
+      // Mismo resguardo que catalogoProductos arriba, y acá es todavía más delicado: si una
+      // respuesta de SOLO CACHÉ (sin confirmar con el servidor) dice "no existe" cuando en
+      // realidad sí hay un PIN configurado, la pantalla mostraría por error la tarjeta de
+      // "configurar PIN por primera vez" -- arriesgando que alguien cree un PIN nuevo pensando
+      // que no había ninguno. Por eso un "no existe" que venga solo del caché tampoco se acepta
+      // sin confirmar: se descarta y se sigue esperando.
+      if(!snap.exists && snap.metadata && snap.metadata.fromCache){
+        try{ console.warn("Lista de Precios -- se descartó una respuesta de 'config/adminAuth' (\"no existe\") que vino solo del caché local (sin confirmar con el servidor); se sigue esperando confirmación real."); }catch(e){}
+        return;
+      }
+      if(adminAuthTimeoutTimer){ clearTimeout(adminAuthTimeoutTimer); adminAuthTimeoutTimer = null; }
+      if(adminAuthRetryTimer){ clearTimeout(adminAuthRetryTimer); adminAuthRetryTimer = null; }
+      ADMIN_AUTH_ERROR = false;
       ADMIN_AUTH_EXISTE = !!snap.exists;
       ADMIN_AUTH = snap.exists ? (snap.data() || { pines: {} }) : { pines: {} };
       if(currentTab === "pedidos" && pedidosView === "precios") renderPanel();
-    }, function(){
-      if(currentTab === "pedidos" && pedidosView === "precios" && ADMIN_AUTH_EXISTE === null){
-        showToast("No se pudo verificar el PIN administrativo (revisa tu conexión).");
+    }, function(err){
+      if(adminAuthTimeoutTimer){ clearTimeout(adminAuthTimeoutTimer); adminAuthTimeoutTimer = null; }
+      ADMIN_AUTH_ERROR = true;
+      try{ console.error("Lista de Precios -- error al conectar con 'config/adminAuth':", err); }catch(e){}
+      if(currentTab === "pedidos" && pedidosView === "precios") renderPanel();
+      if(!adminAuthRetryTimer){
+        adminAuthRetryTimer = setTimeout(function(){ adminAuthRetryTimer = null; attachAdminAuthSync(); }, 6000);
       }
     });
   }
