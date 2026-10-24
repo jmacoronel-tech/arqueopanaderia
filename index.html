@@ -6022,6 +6022,17 @@ var TRIPLES = [
   function normalizePrecioKey(s){
     return (s || "").trim().toLowerCase().replace(/\s+/g, " ");
   }
+  // Bug real reportado por Jessica (oct-2026), al migrar: "Invalid document reference. Document
+  // references must have an even number of segments, but catalogoProductos/frozen fresa c/
+  // arandanos has 3." -- Firestore interpreta CUALQUIER "/" dentro de un id de documento como
+  // separador de ruta, y "Frozen Fresa C/ Arandanos" / "Mix Fresa / Aran /Mango" traen una "/" en
+  // su propio nombre. normalizePrecioKey() NO se toca (se usa en TODO Pedidos/Mozos para buscar
+  // precios -- cambiar eso es un riesgo que no hace falta correr). Esta función aparte es SOLO
+  // para el id del documento en catalogoProductos: mismo normalizePrecioKey, pero además
+  // reemplaza cada "/" por "-" para que Firestore nunca lo lea como una ruta.
+  function catalogoDocId(nombre){
+    return normalizePrecioKey(nombre).replace(/\//g, "-");
+  }
   function getPrecioFor(producto){
     var key = normalizePrecioKey(producto);
     if(!key) return null;
@@ -6378,7 +6389,7 @@ var TRIPLES = [
       var porEscribir = [];
       var omitidosSinPrecio = [];
       items.forEach(function(it){
-        var id = normalizePrecioKey(it.nombre);
+        var id = catalogoDocId(it.nombre);
         if(!id || existentes[id]) return;
         if(it.precio === null || it.precio === undefined){ omitidosSinPrecio.push(it.nombre); return; }
         porEscribir.push({ id: id, data: it });
@@ -6418,8 +6429,10 @@ var TRIPLES = [
   // no se puede armar un menú por secciones para la Carta Digital. Revisé cada uno de los 139
   // nombres a mano (no hay ningún listado previo del que copiar esto) y les asigné una de las 10
   // categorías ya aprobadas por Jessica (LISTA_PRECIOS_CATEGORIAS). Las claves son exactamente
-  // normalizePrecioKey(nombre) -- el mismo id que ya tienen los documentos de catalogoProductos --
+  // catalogoDocId(nombre) -- el mismo id que ya tienen los documentos de catalogoProductos --
   // así que esto solo puede coincidir con un producto que ya existe tal cual, nunca crea uno nuevo.
+  // (Dos nombres traen una "/" propia -- "Frozen Fresa C/ Arandanos", "Mix Fresa / Aran /Mango" --
+  // por eso sus claves abajo ya tienen esa "/" cambiada por "-", igual que hace catalogoDocId.)
   var CATALOGO_CATEGORIAS_SUGERIDAS = {
     "aceituna entera por kilo": "Embutidos",
     "asado": "Embutidos",
@@ -6459,7 +6472,7 @@ var TRIPLES = [
     "frozen de melon": "Bebidas",
     "frozen de naranja": "Bebidas",
     "frozen de piña": "Bebidas",
-    "frozen fresa c/ arandanos": "Bebidas",
+    "frozen fresa c- arandanos": "Bebidas",
     "jamón de país": "Embutidos",
     "jamon de pierna artesanal": "Embutidos",
     "jamón glaseado": "Embutidos",
@@ -6504,7 +6517,7 @@ var TRIPLES = [
     "mini orejas": "Panadería",
     "mini pavo": "Sándwiches",
     "mix bi con naranja": "Bebidas",
-    "mix fresa / aran /mango": "Bebidas",
+    "mix fresa - aran -mango": "Bebidas",
     "mix tri con naranja": "Bebidas",
     "molde pastel de acelga 3 quesos": "Panadería",
     "mora power": "Bebidas",
@@ -6607,7 +6620,7 @@ var TRIPLES = [
 
   // -------- CRUD del catálogo administrado (toda escritura gatea con PIN administrativo) --------
   function catalogoNombreYaExiste(nombre){
-    var key = normalizePrecioKey(nombre);
+    var key = catalogoDocId(nombre);
     return !!(CATALOGO_PRODUCTOS && CATALOGO_PRODUCTOS.hasOwnProperty(key));
   }
   // "Validar precios y evitar duplicados" + "no inventar precios faltantes": precio tiene que
@@ -6621,7 +6634,7 @@ var TRIPLES = [
     if(!nombre) return Promise.reject(new Error("Escribe el nombre del producto."));
     if(!categoria) return Promise.reject(new Error("Elige una categoría."));
     if(!(precio > 0)) return Promise.reject(new Error("El precio tiene que ser mayor a 0."));
-    var id = normalizePrecioKey(nombre);
+    var id = catalogoDocId(nombre);
     var ref = db.collection("catalogoProductos").doc(id);
     return ref.get().then(function(snap){
       if(snap.exists) throw new Error('Ya existe un producto con ese nombre ("' + snap.data().nombre + '"). Si quieres cambiarle el precio, búscalo en la lista y edítalo ahí.');
