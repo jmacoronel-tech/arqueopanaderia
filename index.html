@@ -1743,8 +1743,9 @@ var TRIPLES = [
   //    ya llenadas -- son estables, los mismos en las tres hojas.
   //  - "cat": el producto SÍ existe en el catálogo de Panes (Dulces y Panes saludables) -- se
   //    copia el mismo dato de venta que ya se calcula ahí (ventasAm/ventasPm), en vez de
-  //    depender de un código aparte. Así la Miel en sus 4 tamaños queda bien, sin tener que
-  //    adivinar a qué tamaño corresponde cada código de su reporte.
+  //    depender de un código aparte. Pensado originalmente para cuando no se tenía un código
+  //    real confirmado de algún tamaño/variante -- ver más abajo: oct-2026 ya no queda ningún
+  //    producto en "cat", todos tienen código real confirmado.
   //
   //    OJO (set-2026, Jessica): Empanadas NO usa "cat" aunque el producto exista en el catálogo
   //    de Panes -- esa venta calculada depende de que se cuente físicamente el "Saldo Final"
@@ -1753,10 +1754,29 @@ var TRIPLES = [
   //    el dato directo de su reporte de ventas por código, que sí es confiable para estos.
   //
   //    Mismo caso en Dulces (set-2026): Galletas Full Omega, Porción Fondant de Chocolate y
-  //    Porción Tarta de Queso ya se pasaron a "cod" (4017/4010/4012) por el mismo motivo. Los
-  //    demás de Dulces (Muffins x3, Molde Fondant, Molde Tarta, 40 Mini Galletas, Miel x4) TODAVÍA
-  //    quedan en "cat" -- pendiente de que Jessica pase sus códigos del reporte para pasarlos
-  //    también, si igual no se les lleva Saldo Final físico.
+  //    Porción Tarta de Queso ya se pasaron a "cod" (4017/4010/4012) por el mismo motivo.
+  //
+  //    oct-2026, Jessica (URGENTE -- "Masa Madre Centeno vendí 6 y no figura en las Metas"):
+  //    confirmado que "Panes saludables" completo tenía el mismo problema que Empanadas -- Metas
+  //    dependía de que alguien contara el Saldo Final físico de esos panes cada turno, y por eso
+  //    aunque se volviera a subir el reporte de ventas, nunca se actualizaba. Jessica pidió que
+  //    obedezca al reporte de ventas -- los 4 productos de "Panes saludables" se pasaron a "cod",
+  //    con los códigos reales confirmados contra un reporte de ventas suyo ya subido a esta
+  //    conversación (CDARTICULO 1033/1034/1024/1032): 1024 "MASA MADRE CON FRUTOS ENTERO".
+  //    De Dulces, "Muffin de manzana" también se confirmó (4013) y se pasó a "cod" por el mismo
+  //    motivo.
+  //
+  //    oct-2026, Jessica ("TIENE QUE OBEDECER AL REPORTE DE VENTAS"): terminó de pasar los 9
+  //    productos de Dulces que seguían en "cat" (Muffin de Arándanos, Muffin de Plátano y
+  //    Chocolate, Molde Fondant de Chocolate, Molde Tarta de Queso y Vainilla, 40 Mini Galletas,
+  //    Miel x4), con sus códigos reales confirmados contra el catálogo del sistema de
+  //    facturación que Jessica compartió para la importación masiva ("Carmelitas_Catalogo_
+  //    Ordenado_Para_Claude.xlsx", hoja "Catálogo completo"/"Otros - revisión"): 4014/4015/4009/
+  //    4011/4016/4042/4043/4041/4040 -- los mismos códigos 1033/1034/1024/1032 de "Panes
+  //    saludables" y 4013 de Muffin de Manzana quedaron confirmados dos veces, contra dos
+  //    archivos distintos, sin ninguna diferencia. Con esto ya NO queda ningún producto de Metas
+  //    en "cat" -- los 61 productos enlazados en METAS_ITEM_LINKS (Frutas, Sánguches, Cafés,
+  //    Dulces, Panes saludables, Empanadas) obedecen al reporte de ventas por código.
   //
   // OJO: esto solo LEE lo que ya está en Panes/Bebidas/Embutidos/Triples para copiarlo a Metas
   // -- nunca escribe ni cambia nada en esas pestañas ni en cómo se ven o se llenan.
@@ -1807,25 +1827,25 @@ var TRIPLES = [
       "Té manzanilla": { src:"cod", codes:[4111] }
     },
     dulces: {
-      "Muffin de arándanos": { src:"cat", name:"Muffins de Arándanos" },
-      "Muffin de manzana": { src:"cat", name:"Muffins de Manzana" },
-      "Muffin de plátano y chocolate": { src:"cat", name:"Muffins de Plátano y Chocolate" },
+      "Muffin de arándanos": { src:"cod", codes:[4014] },
+      "Muffin de manzana": { src:"cod", codes:[4013] },
+      "Muffin de plátano y chocolate": { src:"cod", codes:[4015] },
       "Galletas full omega": { src:"cod", codes:[4017] },
       "Porción fondant de chocolate": { src:"cod", codes:[4010] },
       "Porción tarta de queso": { src:"cod", codes:[4012] },
-      "Molde fondant de chocolate": { src:"cat", name:"Molde Fondant de Chocolate" },
-      "Molde tarta de queso y vainilla": { src:"cat", name:"Molde Tarta de Queso y Vainilla" },
-      "40 mini galletas": { src:"cat", name:"40 Mini Galletas" },
-      "Miel frasco 200gr": { src:"cat", name:"Miel Frasco 200g" },
-      "Miel frasco 500gr": { src:"cat", name:"Miel Frasco 500g" },
-      "Miel frasco 1.1kg": { src:"cat", name:"Miel Frasco 1.1 Kg" },
-      "Miel frasco 250gr": { src:"cat", name:"Miel Frasco 250g" }
+      "Molde fondant de chocolate": { src:"cod", codes:[4009] },
+      "Molde tarta de queso y vainilla": { src:"cod", codes:[4011] },
+      "40 mini galletas": { src:"cod", codes:[4016] },
+      "Miel frasco 200gr": { src:"cod", codes:[4042] },
+      "Miel frasco 500gr": { src:"cod", codes:[4043] },
+      "Miel frasco 1.1kg": { src:"cod", codes:[4041] },
+      "Miel frasco 250gr": { src:"cod", codes:[4040] }
     },
     saludables: {
-      "Masa madre campesino": { src:"cat", name:"Pan Masa Madre Campesino" },
-      "Masa madre centeno": { src:"cat", name:"Pan de Centeno Masa Madre" },
-      "Masa madre con frutos secos": { src:"cat", name:"Masa Madre con Frutos" },
-      "Molde especial de semillas": { src:"cat", name:"Molde Especial Semillas Chico" }
+      "Masa madre campesino": { src:"cod", codes:[1033] },
+      "Masa madre centeno": { src:"cod", codes:[1034] },
+      "Masa madre con frutos secos": { src:"cod", codes:[1024] },
+      "Molde especial de semillas": { src:"cod", codes:[1032] }
     },
     empanadas: {
       "Empanada de carne": { src:"cod", codes:[4001] },
@@ -6080,6 +6100,13 @@ var TRIPLES = [
   var listaPreciosMigracionAbierta = false;   // true mientras se muestra la sección de migración
   var listaPreciosMigracionPreview = null;    // cache en memoria de la última "Revisar catálogo"
   var listaPreciosMigracionRespaldoOk = false; // true recién después de descargar el respaldo
+  // oct-2026, Jessica: "Lista de Precios necesito definir de una vez para armar la Carta Digital" --
+  // 139 de los 237 productos llegaron de la migración marcados "Sin categoría — revisar" (venían
+  // solo de la lista de precios vieja, sin ningún catálogo de Arqueo que dijera su categoría). Sin
+  // categoría real, la Carta Digital no puede agrupar el menú por secciones. Ver
+  // CATALOGO_CATEGORIAS_SUGERIDAS / buildCategoriasSugeridasSection más abajo.
+  var listaPreciosCategoriasSugeridasAbierta = false;
+  var listaPreciosCategoriasSugeridasRespaldoOk = false;
   var listaPreciosAgregarAbierto = false;
   var listaPreciosProductoAbiertoId = null;   // id de producto cuyo historial se está mostrando
   var listaPreciosHistorialCache = {};        // id -> arreglo ya cargado (no se vuelve a pedir)
@@ -6381,6 +6408,201 @@ var TRIPLES = [
         });
       });
     });
+  }
+
+  // -------- Categorías sugeridas (oct-2026, Jessica: "Lista de Precios necesito definir de una
+  // vez para armar la Carta Digital") --------
+  // 139 de los 237 productos quedaron con categoria:"Sin categoría — revisar" tras la migración,
+  // porque solo existían en la lista de precios vieja y ningún catálogo de Arqueo decía su
+  // categoría (ver el comentario en buildCatalogoMigracionPreview más arriba). Sin categoría real
+  // no se puede armar un menú por secciones para la Carta Digital. Revisé cada uno de los 139
+  // nombres a mano (no hay ningún listado previo del que copiar esto) y les asigné una de las 10
+  // categorías ya aprobadas por Jessica (LISTA_PRECIOS_CATEGORIAS). Las claves son exactamente
+  // normalizePrecioKey(nombre) -- el mismo id que ya tienen los documentos de catalogoProductos --
+  // así que esto solo puede coincidir con un producto que ya existe tal cual, nunca crea uno nuevo.
+  var CATALOGO_CATEGORIAS_SUGERIDAS = {
+    "aceituna entera por kilo": "Embutidos",
+    "asado": "Embutidos",
+    "batido de fresa": "Bebidas",
+    "batido de fresa con aranadanos": "Bebidas",
+    "batido de guanabana": "Bebidas",
+    "batido de lúcuma": "Bebidas",
+    "batido de mango": "Bebidas",
+    "batido de papaya": "Bebidas",
+    "batido de piña": "Bebidas",
+    "bolsa plastica": "Empaques",
+    "café americano chico": "Cafetería",
+    "cafe americano grande": "Cafetería",
+    "café leche": "Cafetería",
+    "cafe molido 250g": "Cafetería",
+    "café tradicional chico": "Cafetería",
+    "cafe tradicional grande": "Cafetería",
+    "caja 1": "Empaques",
+    "caja 4": "Empaques",
+    "caja adicional": "Empaques",
+    "caja grande": "Empaques",
+    "capuccino": "Cafetería",
+    "capuccino grande": "Cafetería",
+    "chicharrón": "Embutidos",
+    "chocolate": "Cafetería",
+    "ciabatta xl": "Panadería",
+    "croisant de manjar": "Panadería",
+    "empanada de queso": "Empanadas",
+    "espresso": "Cafetería",
+    "frances aer": "Panadería",
+    "frozen de fresa": "Bebidas",
+    "frozen de guanabana": "Bebidas",
+    "frozen de limonada": "Bebidas",
+    "frozen de lucuma": "Bebidas",
+    "frozen de mango": "Bebidas",
+    "frozen de maracuya": "Bebidas",
+    "frozen de melon": "Bebidas",
+    "frozen de naranja": "Bebidas",
+    "frozen de piña": "Bebidas",
+    "frozen fresa c/ arandanos": "Bebidas",
+    "jamón de país": "Embutidos",
+    "jamon de pierna artesanal": "Embutidos",
+    "jamón glaseado": "Embutidos",
+    "jamón ingles": "Embutidos",
+    "jugo de fresa": "Bebidas",
+    "jugo de guanábana": "Bebidas",
+    "jugo de lucuma": "Bebidas",
+    "jugo de mandarina": "Bebidas",
+    "jugo de mango": "Bebidas",
+    "jugo de melon": "Bebidas",
+    "jugo de naranja": "Bebidas",
+    "jugo de papaya": "Bebidas",
+    "jugo de piña": "Bebidas",
+    "jugo fresa con arandanos": "Bebidas",
+    "jugo maracuya": "Bebidas",
+    "jugo mix bi": "Bebidas",
+    "jugo mix tri": "Bebidas",
+    "jugo moracuya": "Bebidas",
+    "jugo moranjada": "Bebidas",
+    "leche ligth caja lt - semi": "Bebidas",
+    "leche sola": "Bebidas",
+    "limonada": "Bebidas",
+    "mant. laive 180 gr": "Otros",
+    "mant. laive 90 gr": "Otros",
+    "masa madre con frutos entero": "Panadería",
+    "masa madre con frutos x mitad": "Panadería",
+    "mega sandwich asado": "Sándwiches",
+    "mega sandwich butifarra": "Sándwiches",
+    "mega sandwich chicharrón": "Sándwiches",
+    "mega sandwich glaseado": "Sándwiches",
+    "mega sandwich huachano": "Sándwiches",
+    "mega sandwich pavo": "Sándwiches",
+    "mermelada de rocoto": "Otros",
+    "miel de naranja": "Panadería",
+    "miel frasco 200 gr": "Panadería",
+    "miel frasco 250 gr": "Panadería",
+    "miel frasco 500 gr": "Panadería",
+    "mini asado": "Sándwiches",
+    "mini chicharrón": "Sándwiches",
+    "mini empanada de carne": "Empanadas",
+    "mini glaseado": "Sándwiches",
+    "mini orejas": "Panadería",
+    "mini pavo": "Sándwiches",
+    "mix bi con naranja": "Bebidas",
+    "mix fresa / aran /mango": "Bebidas",
+    "mix tri con naranja": "Bebidas",
+    "molde pastel de acelga 3 quesos": "Panadería",
+    "mora power": "Bebidas",
+    "muffins de arandanos": "Panadería",
+    "muffins de platano y chocolate": "Panadería",
+    "orejas": "Panadería",
+    "pan hot dog": "Panadería",
+    "pan mini arabe": "Panadería",
+    "pan mini frances": "Panadería",
+    "pate": "Embutidos",
+    "pate finas hierbas": "Embutidos",
+    "pavo entero x kg": "Embutidos",
+    "pechuga pavo x kg": "Embutidos",
+    "petipan": "Panadería",
+    "porción de ají carmelitas": "Otros",
+    "porcion de budin": "Panadería",
+    "porción de camote": "Otros",
+    "porción de cebolla": "Otros",
+    "porción de mayonesa": "Otros",
+    "porcion de tarta de queso y vainilla": "Panadería",
+    "porcion fondant chocolate": "Panadería",
+    "porción honey mustard": "Otros",
+    "queso andino carmelitas ( ad)": "Embutidos",
+    "queso belpaese kg": "Embutidos",
+    "queso de cabra kg": "Embutidos",
+    "rosca reyes": "Panadería",
+    "sandwich asado": "Sándwiches",
+    "sandwich butifarra": "Sándwiches",
+    "sandwich chicharrón": "Sándwiches",
+    "sandwich glaseado": "Sándwiches",
+    "sandwich huachano": "Sándwiches",
+    "sandwich pavo": "Sándwiches",
+    "tamal familiar": "Panadería",
+    "te frutado caliente": "Cafetería",
+    "te- manzanilla": "Cafetería",
+    "tira de aceituna": "Triples",
+    "tira de asado": "Triples",
+    "tira de champiñón y tocino": "Triples",
+    "tira de clásicos": "Triples",
+    "tira de glaseado piña": "Triples",
+    "tira de pavo": "Triples",
+    "tira de pollo con jamón y queso": "Triples",
+    "tira de pollo durazno": "Triples",
+    "tostada al ajo x 0.130g": "Panadería",
+    "tostada clasica x 180g": "Panadería",
+    "tostada integral x 0.120g": "Panadería",
+    "tostadas masa madre x 0.120gr": "Panadería",
+    "und t. aceituna": "Triples",
+    "und t. asado": "Triples",
+    "und t. champiñón y tocino": "Triples",
+    "und t. clásico": "Triples",
+    "und t. glaseado piña": "Triples",
+    "und t. pavo": "Triples",
+    "und t. pollo con jamón y queso": "Triples",
+    "und t. pollo durazno": "Triples"
+  };
+  // Solo lectura: arma la lista de productos que HOY siguen en "Sin categoría — revisar" Y que
+  // reconocemos en el mapa de arriba. Si Jessica ya le puso una categoría a mano a alguno (desde
+  // el selector de cada fila), ese producto deja de salir acá solo -- nunca se vuelve a tocar.
+  function buildCategoriasSugeridasPendientes(){
+    var out = [];
+    Object.keys(CATALOGO_PRODUCTOS || {}).forEach(function(id){
+      var d = CATALOGO_PRODUCTOS[id];
+      if(!d || d.categoria !== "Sin categoría — revisar") return;
+      if(!CATALOGO_CATEGORIAS_SUGERIDAS.hasOwnProperty(id)) return;
+      out.push({ id: id, nombre: d.nombre, categoriaSugerida: CATALOGO_CATEGORIAS_SUGERIDAS[id] });
+    });
+    out.sort(function(a, b){ return (a.nombre || "").localeCompare(b.nombre || "", "es"); });
+    return out;
+  }
+  // Escribe SOLO el campo categoria de cada producto (igual que catalogoCambiarCategoria, pero en
+  // lote) -- nunca toca precio, activo, ni ningún otro campo. Vuelve a comprobar, justo antes de
+  // escribir, que cada producto SIGA en "Sin categoría — revisar" (por si Jessica le puso una
+  // categoría a mano justo mientras esta pantalla estaba abierta) para no pisar nunca una edición
+  // suya. En lotes de 450 por si algún día esto crece más allá del límite de 500 de un batch.
+  function aplicarCategoriasSugeridas(items, responsable){
+    var aAplicar = (items || []).filter(function(it){
+      var actual = CATALOGO_PRODUCTOS && CATALOGO_PRODUCTOS[it.id];
+      return actual && actual.categoria === "Sin categoría — revisar";
+    });
+    var omitidos = (items || []).length - aAplicar.length;
+    if(!aAplicar.length) return Promise.resolve({ actualizados: 0, omitidos: omitidos });
+    var ahora = Date.now();
+    var chunks = [];
+    for(var i = 0; i < aAplicar.length; i += 450){ chunks.push(aAplicar.slice(i, i + 450)); }
+    var cadena = Promise.resolve();
+    var totalActualizados = 0;
+    chunks.forEach(function(chunk){
+      cadena = cadena.then(function(){
+        var batch = db.batch();
+        chunk.forEach(function(it){
+          var ref = db.collection("catalogoProductos").doc(it.id);
+          batch.update(ref, { categoria: it.categoriaSugerida, actualizadoEn: ahora, actualizadoPor: responsable });
+        });
+        return batch.commit().then(function(){ totalActualizados += chunk.length; });
+      });
+    });
+    return cadena.then(function(){ return { actualizados: totalActualizados, omitidos: omitidos }; });
   }
 
   // -------- CRUD del catálogo administrado (toda escritura gatea con PIN administrativo) --------
@@ -6933,6 +7155,7 @@ var TRIPLES = [
     else { card.appendChild(buildAdminPinAgregarRow()); }
 
     card.appendChild(buildCatalogoMigracionSection());
+    card.appendChild(buildCategoriasSugeridasSection());
     card.appendChild(buildCatalogoListaSection());
 
     wrap.appendChild(card);
@@ -7166,6 +7389,107 @@ var TRIPLES = [
       var tdP = document.createElement("td"); tdP.textContent = it.precio === null ? "Sin precio" : ("S/ " + it.precio.toFixed(2)); tr.appendChild(tdP);
       var tdE = document.createElement("td"); tdE.textContent = it.activo ? "Activo" : "Inactivo"; tr.appendChild(tdE);
       var tdO = document.createElement("td"); tdO.textContent = it.origen === "lista_oficial" ? "Lista de precios" : "Arqueo"; tr.appendChild(tdO);
+      wt.tbody.appendChild(tr);
+    });
+    box.appendChild(wt.hint);
+    box.appendChild(wt.topBar);
+    box.appendChild(wt.tableWrap);
+    return box;
+  }
+
+  // Categorías sugeridas: mismo patrón de seguridad que la migración de arriba (respaldo
+  // obligatorio antes de escribir, PIN administrativo, y solo toca lo que sigue "Sin categoría —
+  // revisar" al momento de escribir). Se oculta sola en cuanto ya no queda ningún pendiente.
+  function buildCategoriasSugeridasSection(){
+    var box = document.createElement("div");
+    box.style.marginBottom = "1.4rem";
+
+    var pendientes = buildCategoriasSugeridasPendientes();
+    if(pendientes.length === 0) return box;
+
+    var headRow = document.createElement("div");
+    headRow.style.display = "flex";
+    headRow.style.alignItems = "center";
+    headRow.style.gap = ".6rem";
+    headRow.style.flexWrap = "wrap";
+
+    var titulo = document.createElement("div");
+    titulo.style.fontWeight = "700";
+    titulo.textContent = "Categorías sugeridas (" + pendientes.length + " producto" + (pendientes.length === 1 ? "" : "s") + " sin categoría)";
+    headRow.appendChild(titulo);
+
+    var toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.className = "btn btn-sm";
+    toggleBtn.textContent = listaPreciosCategoriasSugeridasAbierta ? "Ocultar" : "Ver sugerencias";
+    toggleBtn.addEventListener("click", function(){
+      listaPreciosCategoriasSugeridasAbierta = !listaPreciosCategoriasSugeridasAbierta;
+      renderPanel();
+    });
+    headRow.appendChild(toggleBtn);
+    box.appendChild(headRow);
+
+    var nota = document.createElement("div");
+    nota.className = "hint";
+    nota.style.margin = ".3rem 0 .5rem";
+    nota.textContent = "Propuesta de categoría para los productos que llegaron de la lista de precios vieja sin ningún catálogo de Arqueo asociado. Esto SOLO cambia el campo categoría -- nunca toca precio, estado activo, ni ningún otro dato. Cualquiera lo puedes editar a mano después, igual que siempre.";
+    box.appendChild(nota);
+
+    if(!listaPreciosCategoriasSugeridasAbierta) return box;
+
+    var accionesRow = document.createElement("div");
+    accionesRow.style.display = "flex";
+    accionesRow.style.gap = ".6rem";
+    accionesRow.style.flexWrap = "wrap";
+    accionesRow.style.marginBottom = ".8rem";
+
+    var respaldoBtn = document.createElement("button");
+    respaldoBtn.type = "button";
+    respaldoBtn.className = "btn btn-sm";
+    respaldoBtn.textContent = "Descargar respaldo";
+    respaldoBtn.addEventListener("click", function(){
+      var todos = Object.keys(CATALOGO_PRODUCTOS || {}).map(function(id){
+        var d = CATALOGO_PRODUCTOS[id];
+        return { nombre: d.nombre, categoria: d.categoria, unidad: d.unidad, precio: d.precio, activo: d.activo, origen: d.origen };
+      });
+      descargarRespaldoCatalogoMigracion(todos);
+      listaPreciosCategoriasSugeridasRespaldoOk = true;
+      showToast("Respaldo descargado. Ahora ya puedes aplicar las categorías.");
+      renderPanel();
+    });
+    accionesRow.appendChild(respaldoBtn);
+
+    var aplicarBtn = document.createElement("button");
+    aplicarBtn.type = "button";
+    aplicarBtn.className = "btn btn-primary btn-sm";
+    aplicarBtn.textContent = "Aplicar categorías sugeridas";
+    aplicarBtn.disabled = !listaPreciosCategoriasSugeridasRespaldoOk;
+    aplicarBtn.title = listaPreciosCategoriasSugeridasRespaldoOk ? "" : "Primero descarga el respaldo";
+    aplicarBtn.addEventListener("click", function(){
+      pedirPinAdministrativoYEjecutar(function(responsable){
+        aplicarBtn.disabled = true;
+        aplicarCategoriasSugeridas(pendientes, responsable).then(function(res){
+          aplicarBtn.disabled = false;
+          listaPreciosCategoriasSugeridasAbierta = false;
+          var msg = res.actualizados + " producto(s) actualizados con su categoría.";
+          if(res.omitidos){ msg += " " + res.omitidos + " se omitieron porque ya tenían una categoría puesta a mano."; }
+          showToast(msg, 6000);
+          renderPanel();
+        }).catch(function(err){
+          aplicarBtn.disabled = false;
+          alert((err && err.message) || "No se pudo aplicar. Intenta de nuevo.");
+        });
+      });
+    });
+    accionesRow.appendChild(aplicarBtn);
+    box.appendChild(accionesRow);
+
+    var wt = listaPreciosWideTable("<thead><tr><th>Nombre</th><th>Categoría actual</th><th>Categoría sugerida</th></tr></thead>");
+    pendientes.forEach(function(it){
+      var tr = document.createElement("tr");
+      var tdN = document.createElement("td"); tdN.textContent = it.nombre; tr.appendChild(tdN);
+      var tdA = document.createElement("td"); tdA.textContent = "Sin categoría — revisar"; tr.appendChild(tdA);
+      var tdS = document.createElement("td"); tdS.textContent = it.categoriaSugerida; tr.appendChild(tdS);
       wt.tbody.appendChild(tr);
     });
     box.appendChild(wt.hint);
@@ -8956,7 +9280,11 @@ var TRIPLES = [
       if(entrega) draft.masivoModo = entrega;
     } else if(entrega){
       draft.canal = entrega === "delivery" ? "delivery" : "tienda";
-      if(draft.canal === "tienda" && !draft.cliente.direccion) draft.cliente.direccion = "Recojo en tienda";
+      // oct-2026, Jessica: si ya había una dirección de delivery cargada (p. ej. se había
+      // elegido antes un cliente guardado, o se volvió atrás en el formulario y se cambió de
+      // delivery a recojo), no debe quedar pegada en un pedido que ahora es Recojo en Tienda --
+      // por eso esto ya NO se condiciona a que la dirección estuviera vacía.
+      if(draft.canal === "tienda"){ draft.cliente.direccion = "Recojo en tienda"; draft.cliente.referencia = ""; }
     }
   }
 
@@ -9090,6 +9418,21 @@ var TRIPLES = [
     html += '<div class="pw-divider-or">o</div><button type="button" class="btn btn-sm pw-buscar-existente-btn" style="width:100%;">← Buscar un cliente existente</button>';
     return html;
   }
+  // oct-2026, Jessica ("En recojo en tienda no debería salirme dirección por más que el cliente
+  // siempre pida delivery"): al elegir un cliente YA GUARDADO (que tiene su dirección de
+  // delivery de pedidos anteriores) para un pedido de Recojo en Tienda, antes se copiaba esa
+  // dirección igual, pisando el "Recojo en tienda" que ya se había puesto por defecto al elegir
+  // el tipo de entrega (ver paso "entrega" más abajo) -- y esa dirección vieja terminaba impresa
+  // en la orden, aunque el pedido fuera a recogerse en tienda. Ahora, si el pedido NO necesita
+  // reparto (Recojo en Tienda, o Masivo — Recojo en Tienda: mismo criterio que ya usa
+  // pedidoRequiereReparto en toda la app), la dirección/referencia guardadas del cliente NO se
+  // copian -- se deja "Recojo en tienda", sin referencia. El resto de los datos del cliente
+  // (nombre, DNI, RUC, teléfono, correo, crédito) sí se copian igual que siempre; esto no borra
+  // ni cambia la dirección guardada en la ficha del cliente, solo no la trae a ESTE pedido.
+  function pedidoWizDireccionClienteParaDraft(draft, c){
+    if(!pedidoRequiereReparto(draft)) return { direccion:"Recojo en tienda", referencia:"" };
+    return { direccion: c.direccion || "", referencia: c.referencia || "" };
+  }
   var PEDIDO_WIZ_STEP_WIRE = {
     origen: function(body){
       body.querySelectorAll("[data-origen]").forEach(function(btn){
@@ -9117,7 +9460,10 @@ var TRIPLES = [
           if(pedidoWizTipo === "masivo"){ draft.canal = "masivo"; draft.masivoModo = entrega; }
           else {
             draft.canal = entrega === "delivery" ? "delivery" : "tienda";
-            if(draft.canal === "tienda" && !draft.cliente.direccion) draft.cliente.direccion = "Recojo en tienda";
+            // Mismo motivo que en pedidoWizElegirTipoEntrega() más arriba: no condicionar a que
+            // la dirección estuviera vacía, para que un cambio de delivery a recojo no deje la
+            // dirección vieja pegada en el pedido.
+            if(draft.canal === "tienda"){ draft.cliente.direccion = "Recojo en tienda"; draft.cliente.referencia = ""; }
           }
           pedidoWizNext();
         });
@@ -9155,9 +9501,10 @@ var TRIPLES = [
         card.addEventListener("click", function(){
           var id = card.getAttribute("data-id");
           var c = CLIENTES[id];
+          var dir = pedidoWizDireccionClienteParaDraft(draft, c);
           draft.cliente = {
             nombre: c.nombre || "", dni: c.dni || "", ruc: c.ruc || "",
-            direccion: c.direccion || "", referencia: c.referencia || "",
+            direccion: dir.direccion, referencia: dir.referencia,
             telefono: c.telefono || "", correo: c.correo || "", diasCredito: num(c.diasCredito)
           };
           pedidoWizClienteId = id;
@@ -9192,9 +9539,10 @@ var TRIPLES = [
       if(usarExistenteBtn) usarExistenteBtn.addEventListener("click", function(){
         var id = usarExistenteBtn.getAttribute("data-id");
         var c = CLIENTES[id];
+        var dir = pedidoWizDireccionClienteParaDraft(draft, c);
         draft.cliente = {
           nombre: c.nombre || "", dni: c.dni || "", ruc: c.ruc || "",
-          direccion: c.direccion || "", referencia: c.referencia || "",
+          direccion: dir.direccion, referencia: dir.referencia,
           telefono: c.telefono || "", correo: c.correo || "", diasCredito: num(c.diasCredito)
         };
         pedidoWizClienteId = id;
