@@ -169,6 +169,7 @@
   .tab-btn[data-tab="cajeros"]::before{ background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23e4d2ae" stroke-width="1.6"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M8 15h3"/></svg>'); }
   .tab-btn[data-tab="turno"]::before{ background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23e4d2ae" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3.5 2"/></svg>'); }
   .tab-btn[data-tab="historial"]::before{ background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23e4d2ae" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5M12 8v4l3 2"/></svg>'); }
+  .tab-btn[data-tab="controlprod"]::before{ background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23e4d2ae" stroke-width="1.6"><path d="M4 19V10M10 19V5M16 19v-8M20 19H3"/></svg>'); }
 
   /* Pantallas angostas (tablet vertical / celular): la barra lateral vuelve a comportarse
      como la barra horizontal de siempre (mismo criterio que ya usaba .tabs antes de este
@@ -419,6 +420,13 @@
   .chip{ font-size:.74rem; font-weight:700; border-radius:999px; padding:.2rem .6rem; white-space:nowrap; }
   .chip.good{ background:var(--good-soft); color:var(--good); }
   .chip.bad{ background:var(--bad-soft); color:var(--bad); }
+  /* oct-2026, Dashboard Gerencial (Control Producción): 2 variantes nuevas de .chip, mismo
+     patrón que good/warn/bad de arriba, para distinguir de dónde sale cada venta -- Arqueo
+     (conteo físico, ya existía el token --info) vs. Metas (ya existía --plum). Nunca es solo
+     color: el texto del chip siempre dice "Arqueo" o "Metas" en palabras. */
+  .chip.info{ background:var(--info-soft); color:var(--info); }
+  .chip.plum{ background:var(--plum-soft); color:var(--plum); }
+  .chip.muted{ background:var(--surface-2); color:var(--ink-muted); border:1px solid var(--border); }
   /* oct-2026, Pedido Masivo -- "Marcar recogido" por fecha (reemplaza el lapicero en la hoja
      impresa, ver pedido-marcar-recogido-dia): input de PIN + botón angostos para que quepan en
      la celda de la tabla de Pedidos sin romper el ancho de columna. Mismo PIN de 4 dígitos que
@@ -565,6 +573,15 @@
   .cd-row-inline{ display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
   .cd-row-inline input[type="text"]{ flex:1; min-width:160px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.5rem .65rem; font-size:.86rem; color:var(--ink); box-sizing:border-box; }
   .cd-hint{ font-size:.74rem; color:var(--ink-muted); line-height:1.4; }
+  /* -------- "Personal" (nov-2026) -------- */
+  .cd-field-group{ display:grid; gap:.5rem; padding-bottom:.9rem; border-bottom:1px solid var(--border); }
+  .cd-field-group:last-child{ border-bottom:none; padding-bottom:0; }
+  .cd-input{ width:100%; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.5rem .65rem; font-size:.86rem; color:var(--ink); box-sizing:border-box; font-family:inherit; }
+  .cd-check-label{ display:flex; align-items:center; gap:.4rem; font-size:.84rem; }
+  .cd-tabla-personal{ width:100%; border-collapse:collapse; font-size:.84rem; }
+  .cd-tabla-personal td{ padding:.4rem .3rem; border-bottom:1px solid var(--border); vertical-align:middle; }
+  .btn-good{ background:var(--good-soft); color:var(--good); border-color:var(--good); }
+  .btn-bad{ background:var(--bad-soft); color:var(--bad); border-color:var(--bad); }
   .cd-photo-preview{ max-width:120px; max-height:120px; border-radius:var(--radius-sm); object-fit:cover; border:1px solid var(--border); display:none; }
   .cd-photo-local-row{ display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
   .cd-save-note{ font-size:.72rem; color:var(--good); font-weight:600; height:1em; }
@@ -593,6 +610,10 @@
   .lock-toggle{ position:absolute; right:.35rem; top:50%; transform:translateY(-50%); border:none; background:transparent; color:var(--accent); font-size:.78rem; font-weight:700; padding:.3rem .5rem; cursor:pointer; }
   .lock-btn{ width:100%; }
   .lock-error{ color:var(--bad); font-size:.82rem; margin:.8rem 0 0; }
+  .lock-input-wrap.no-toggle .lock-input{ padding-right:.8rem; }
+  .lock-btn[disabled]{ opacity:.6; cursor:default; }
+  .session-chip{ display:flex; align-items:center; gap:.5rem; font-size:.78rem; color:var(--ink-soft); margin-right:.6rem; }
+  .session-chip-salir{ border:1px solid var(--border); background:transparent; color:var(--accent); font-size:.74rem; font-weight:700; padding:.25rem .55rem; border-radius:999px; cursor:pointer; }
 
   #printArea{ display:none; }
   @media print{
@@ -1246,16 +1267,26 @@
      de la leyenda ni del resumen porque los tres usan los mismos tokens --good/--bad. */
 </style>
 
+<!-- Pantalla de acceso (nov-2026, a pedido de Jessica: "implementa autenticación real para el
+     personal administrativo"). Reemplaza la contraseña compartida de todo el equipo por una
+     cuenta real de Firebase Authentication (correo + contraseña) por persona -- la seguridad de
+     verdad ahora vive en las reglas de Firestore (ver firestore.rules), que exigen haber iniciado
+     sesión Y tener un documento en `staff/{uid}` con activo=true. Ver
+     diseno_seguridad_y_sincronizacion.md para el detalle completo. -->
 <div id="lockScreen" class="lock-screen" hidden>
   <form id="lockForm" class="lock-card">
     <h1 class="lock-title">Arqueo Diario</h1>
-    <p class="lock-sub">Ingresa la contraseña del equipo para continuar.</p>
+    <p class="lock-sub">Ingresa con tu cuenta del equipo para continuar.</p>
+    <div class="lock-input-wrap no-toggle">
+      <input id="lockEmail" class="lock-input" type="email" inputmode="email" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Correo" />
+    </div>
     <div class="lock-input-wrap">
-      <input id="lockInput" class="lock-input" type="password" inputmode="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Contraseña" />
+      <input id="lockInput" class="lock-input" type="password" inputmode="text" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Contraseña" />
       <button class="lock-toggle" id="lockToggle" type="button" aria-label="Mostrar contraseña">Mostrar</button>
     </div>
-    <button class="btn btn-primary lock-btn" type="submit">Entrar</button>
-    <p id="lockError" class="lock-error" hidden>Contraseña incorrecta. Intenta de nuevo.</p>
+    <button class="btn btn-primary lock-btn" type="submit" id="lockSubmitBtn">Entrar</button>
+    <p id="lockError" class="lock-error" hidden>No se pudo entrar. Revisa tu correo y contraseña.</p>
+    <p class="lock-sub" style="margin-top:.9rem;font-size:.78rem;">¿No tienes cuenta todavía? Pídele a Jessica (o a un administrador) que te cree una.</p>
   </form>
 </div>
 
@@ -1281,6 +1312,7 @@
       <button class="tab-btn" data-tab="cajeros" type="button">Caja Cajeros</button>
       <button class="tab-btn" data-tab="turno" type="button">Turno</button>
       <button class="tab-btn" data-tab="historial" type="button">Historial</button>
+      <button class="tab-btn" data-tab="controlprod" type="button">Dashboard Gerencial</button>
     </nav>
   </aside>
 
@@ -1293,6 +1325,11 @@
           <div class="brand-sub" id="brandSub">Registro diario</div>
         </div>
         <div class="topbar-controls">
+          <div class="session-chip" id="sessionChip" hidden>
+            <span id="sessionChipNombre"></span>
+            <button type="button" id="sessionChipPersonal" class="session-chip-salir" hidden>Personal</button>
+            <button type="button" id="sessionChipSalir" class="session-chip-salir">Cerrar sesión</button>
+          </div>
           <label class="date-field">
             <span class="visually-hidden">Fecha</span>
             <input type="date" id="datePicker" />
@@ -1318,6 +1355,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script>
 (function(){
   "use strict";
@@ -1934,6 +1972,14 @@ var TRIPLES = [
   var STATE = null;
   var readOnly = false, dirty = false;
   var db = null;
+  // Sesión real de Firebase Authentication (nov-2026) -- reemplaza la contraseña compartida.
+  // CURRENT_STAFF solo se llena DESPUÉS de validar que la cuenta tiene un documento en
+  // `staff/{uid}` con activo=true (ver verificarStaffYEntrar); nunca se confía solo en que
+  // auth.currentUser exista, porque cualquiera puede crearse una cuenta si el alta de usuarios
+  // estuviera abierta -- lo que de verdad autoriza es el documento staff, igual que lo exige
+  // firestore.rules del lado del servidor.
+  var auth = null;
+  var CURRENT_STAFF = null; // { uid, email, nombre, rol }
   var lastSavedBySelf = null;
   var saveTimer = null, saving = false;
   // Reintento automático del guardado -- Jessica reportó (17/09/2026) que a veces avanzaba
@@ -4106,7 +4152,7 @@ var TRIPLES = [
       var n = alerts[tab];
       var countHtml = n ? '<span class="count">' + n + "</span>" : "";
       var label = SECTIONS[tab] ? SECTIONS[tab].label + countHtml
-        : (tab === "turno" ? "Turno" : (tab === "historial" ? "Historial" : (tab === "pedidos" ? "Pedidos" : (tab === "cajeros" ? "Caja Cajeros" : (tab === "metas" ? "Metas" : (tab === "mozos" ? "Mozos" : ""))))));
+        : (tab === "turno" ? "Turno" : (tab === "historial" ? "Historial" : (tab === "pedidos" ? "Pedidos" : (tab === "cajeros" ? "Caja Cajeros" : (tab === "metas" ? "Metas" : (tab === "mozos" ? "Mozos" : (tab === "controlprod" ? "Dashboard Gerencial" : "")))))));
       btn.innerHTML = label;
     });
   }
@@ -4121,6 +4167,7 @@ var TRIPLES = [
     else if(currentTab === "mozos"){ panel.appendChild(buildMozosPanel()); }
     else if(currentTab === "cajeros"){ panel.appendChild(buildCajerosPanel()); }
     else if(currentTab === "metas"){ panel.appendChild(buildMetasPanel()); }
+    else if(currentTab === "controlprod"){ panel.appendChild(buildProduccionPanel()); }
     else if(currentTab === "otros"){ panel.appendChild(buildMovimientosPanel()); }
     else { panel.appendChild(buildProductPanel(currentTab)); }
   }
@@ -6216,6 +6263,57 @@ var TRIPLES = [
     });
   }
 
+  // -------- Personal (staff/{uid}) -- nov-2026, autenticación real por persona --------
+  // Esta colección es lo que de verdad autoriza a alguien a usar la app (ver verificarStaffYEntrar
+  // y firestore.rules): tener sesión real de Firebase Auth NO alcanza, hace falta además un
+  // documento acá con activo=true. Solo un "admin" puede leer la lista completa o escribir en
+  // esta colección (cualquier otra persona autenticada solo puede leer SU PROPIO documento, para
+  // poder mostrar su nombre/rol en pantalla). Crear la CUENTA de Firebase Auth en sí (correo +
+  // contraseña) sigue siendo un paso aparte que Jessica hace desde la consola de Firebase -- acá
+  // solo se administra el documento de autorización + rol una vez que esa cuenta ya existe (ver
+  // instrucciones_publicar_carta_digital.md / diseno_seguridad_y_sincronizacion.md para el
+  // procedimiento completo paso a paso).
+  var STAFF_ROLES = ["staff", "admin"];
+  function staffValidarUid(uid){
+    uid = String(uid || "").trim();
+    // El UID de Firebase Auth es siempre alfanumérico (28 caracteres típicamente, pero no se fija
+    // una longitud exacta por si el proveedor cambia el formato) -- esto es solo una validación
+    // básica de "no está vacío ni tiene espacios/símbolos raros", nunca una garantía de que la
+    // cuenta exista de verdad en Firebase Auth (eso Firestore no lo puede comprobar desde acá).
+    if(!uid) throw new Error("Pega el UID de la cuenta (lo copias desde Firebase Console → Authentication, columna \"UID de usuario\").");
+    if(!/^[A-Za-z0-9_-]{6,128}$/.test(uid)) throw new Error("Ese UID no parece válido. Cópialo tal cual lo muestra Firebase Console, sin espacios.");
+    return uid;
+  }
+  function staffCargarTodos(){
+    return db.collection("staff").get().then(function(snap){
+      var out = [];
+      snap.forEach(function(doc){ out.push(Object.assign({ uid: doc.id }, doc.data())); });
+      out.sort(function(a, b){ return (a.nombre || "").localeCompare(b.nombre || "", "es"); });
+      return out;
+    });
+  }
+  // Crea o reemplaza por completo el documento de una persona (alta nueva, o edición desde el
+  // formulario -- siempre manda el objeto completo, nunca un parche parcial, porque el formulario
+  // de "Personal" siempre muestra y entrega los 4 campos juntos).
+  function staffGuardarPersona(uid, datos, responsable){
+    uid = staffValidarUid(uid);
+    var nombre = String((datos && datos.nombre) || "").trim();
+    var correo = String((datos && datos.correo) || "").trim();
+    var rol = (datos && datos.rol) || "staff";
+    if(!nombre) return Promise.reject(new Error("Escribe el nombre de la persona."));
+    if(STAFF_ROLES.indexOf(rol) === -1) return Promise.reject(new Error("Rol inválido."));
+    var activo = !!(datos && datos.activo);
+    return db.collection("staff").doc(uid).set({
+      nombre: nombre, correo: correo, rol: rol, activo: activo,
+      actualizadoEn: Date.now(), actualizadoPor: responsable
+    }).then(function(){
+      return { uid: uid, nombre: nombre, correo: correo, rol: rol, activo: activo };
+    });
+  }
+  function staffCambiarActivo(uid, nuevoValor, responsable){
+    return db.collection("staff").doc(uid).update({ activo: !!nuevoValor, actualizadoEn: Date.now(), actualizadoPor: responsable });
+  }
+
   // -------- Categorías adicionales ("administrar categorías") --------
   function listaPreciosCategoriasDisponibles(){
     return LISTA_PRECIOS_CATEGORIAS.concat(CATALOGO_CATEGORIAS_EXTRA || []);
@@ -6415,7 +6513,12 @@ var TRIPLES = [
         return db.collection("config").doc("catalogoMigracion").set({
           ultimaEjecucionEn: ahora, ultimaEjecucionPor: responsable, agregadosUltimaVez: porEscribir.length
         }, { merge: true }).then(function(){
-          return { agregados: porEscribir.length, omitidosSinPrecio: omitidosSinPrecio };
+          // Best-effort: ningún producto recién migrado tiene mostrarEnCarta=true todavía (nunca
+          // se publica nada solo), así que esto normalmente no escribe nada en cartaPublica -- se
+          // deja igual por si algún día la migración trae productos ya marcados.
+          return sincronizarCartaPublicaVarios(porEscribir.map(function(p){ return p.id; })).then(function(){
+            return { agregados: porEscribir.length, omitidosSinPrecio: omitidosSinPrecio };
+          });
         });
       });
     });
@@ -6615,7 +6718,13 @@ var TRIPLES = [
         return batch.commit().then(function(){ totalActualizados += chunk.length; });
       });
     });
-    return cadena.then(function(){ return { actualizados: totalActualizados, omitidos: omitidos }; });
+    return cadena.then(function(){
+      // Si alguno de estos productos ya estaba publicado en la carta, su categoría visible
+      // también tiene que actualizarse -- nunca dejar la copia pública con la categoría vieja.
+      return sincronizarCartaPublicaVarios(aAplicar.map(function(it){ return it.id; })).then(function(){
+        return { actualizados: totalActualizados, omitidos: omitidos };
+      });
+    });
   }
 
   // -------- CRUD del catálogo administrado (toda escritura gatea con PIN administrativo) --------
@@ -6643,7 +6752,7 @@ var TRIPLES = [
         nombre: productoDisplay(nombre), categoria: categoria, unidad: unidad, precio: precio,
         activo: true, origen: "manual", creadoEn: ahora, actualizadoEn: ahora, actualizadoPor: responsable
       });
-    });
+    }).then(function(resultado){ return sincronizarCartaPublica(id).then(function(){ return resultado; }); });
   }
   // Editar precio: guarda precio anterior/nuevo/fecha/responsable en el historial (subcolección
   // aparte, nunca se borra ni se reescribe un cambio anterior) y ADEMÁS actualiza el precio
@@ -6664,18 +6773,19 @@ var TRIPLES = [
       var histRef = ref.collection("historial").doc();
       batch.set(histRef, { precioAnterior: precioAnterior, precioNuevo: nuevoPrecio, fecha: ahora, responsable: responsable });
       return batch.commit();
-    });
+    }).then(function(resultado){ return sincronizarCartaPublica(id).then(function(){ return resultado; }); });
   }
   function catalogoCambiarActivo(id, nuevoActivo, responsable){
     var ref = db.collection("catalogoProductos").doc(id);
     return ref.get().then(function(snap){
       if(!snap.exists) throw new Error("Este producto ya no existe en el catálogo. Recarga la página.");
       return ref.update({ activo: !!nuevoActivo, actualizadoEn: Date.now(), actualizadoPor: responsable });
-    });
+    }).then(function(resultado){ return sincronizarCartaPublica(id).then(function(){ return resultado; }); });
   }
   function catalogoCambiarCategoria(id, nuevaCategoria, responsable){
     if(!nuevaCategoria) return Promise.reject(new Error("Elige una categoría."));
-    return db.collection("catalogoProductos").doc(id).update({ categoria: nuevaCategoria, actualizadoEn: Date.now(), actualizadoPor: responsable });
+    return db.collection("catalogoProductos").doc(id).update({ categoria: nuevaCategoria, actualizadoEn: Date.now(), actualizadoPor: responsable })
+      .then(function(resultado){ return sincronizarCartaPublica(id).then(function(){ return resultado; }); });
   }
   function catalogoCambiarUnidad(id, nuevaUnidad, responsable){
     if(!nuevaUnidad) return Promise.reject(new Error("Elige una unidad."));
@@ -6707,7 +6817,7 @@ var TRIPLES = [
     return ref.get().then(function(snap){
       if(!snap.exists) throw new Error("Este producto ya no existe en el catálogo. Recarga la página.");
       return ref.update({ mostrarEnCarta: !!nuevoValor, actualizadoEn: Date.now(), actualizadoPor: responsable });
-    });
+    }).then(function(resultado){ return sincronizarCartaPublica(id).then(function(){ return resultado; }); });
   }
   function catalogoCambiarDescripcion(id, nuevaDescripcion, responsable){
     nuevaDescripcion = String(nuevaDescripcion || "").trim();
@@ -6716,7 +6826,7 @@ var TRIPLES = [
     return ref.get().then(function(snap){
       if(!snap.exists) throw new Error("Este producto ya no existe en el catálogo. Recarga la página.");
       return ref.update({ descripcion: nuevaDescripcion, actualizadoEn: Date.now(), actualizadoPor: responsable });
-    });
+    }).then(function(resultado){ return sincronizarCartaPublica(id).then(function(){ return resultado; }); });
   }
   // Por ahora solo guarda una URL (todavía no hay un lugar en Firebase Storage para subir fotos
   // de verdad -- eso es infraestructura nueva, igual que la Cloud Function del Paso 2). La vista
@@ -6729,21 +6839,21 @@ var TRIPLES = [
     return ref.get().then(function(snap){
       if(!snap.exists) throw new Error("Este producto ya no existe en el catálogo. Recarga la página.");
       return ref.update({ foto: nuevaFotoUrl, actualizadoEn: Date.now(), actualizadoPor: responsable });
-    });
+    }).then(function(resultado){ return sincronizarCartaPublica(id).then(function(){ return resultado; }); });
   }
   function catalogoCambiarDestacado(id, nuevoValor, responsable){
     var ref = db.collection("catalogoProductos").doc(id);
     return ref.get().then(function(snap){
       if(!snap.exists) throw new Error("Este producto ya no existe en el catálogo. Recarga la página.");
       return ref.update({ destacado: !!nuevoValor, actualizadoEn: Date.now(), actualizadoPor: responsable });
-    });
+    }).then(function(resultado){ return sincronizarCartaPublica(id).then(function(){ return resultado; }); });
   }
   function catalogoCambiarAgotadoHoy(id, nuevoValor, responsable){
     var ref = db.collection("catalogoProductos").doc(id);
     return ref.get().then(function(snap){
       if(!snap.exists) throw new Error("Este producto ya no existe en el catálogo. Recarga la página.");
       return ref.update({ agotadoHoy: !!nuevoValor, actualizadoEn: Date.now(), actualizadoPor: responsable });
-    });
+    }).then(function(resultado){ return sincronizarCartaPublica(id).then(function(){ return resultado; }); });
   }
   // Guardado UNIFICADO del modal "Configurar carta" (ajuste oct-2026 a pedido de Jessica:
   // "Unificar la edición con un botón «Guardar cambios», evitando guardar cada campo por
@@ -6777,7 +6887,78 @@ var TRIPLES = [
       payload.actualizadoEn = Date.now();
       payload.actualizadoPor = responsable;
       return ref.update(payload);
-    });
+    }).then(function(resultado){ return sincronizarCartaPublica(id).then(function(){ return resultado; }); });
+  }
+
+  // -------- Sincronización hacia la carta pública (Paso 2, autorizado por Jessica nov-2026: usar
+  // una colección `cartaPublica` aparte, nunca que la carta lea `catalogoProductos` directo). --------
+  // cartaPublica es de solo lectura para cualquiera sin login (ver firestore.rules) -- nunca el
+  // catálogo completo. Cada vez que algo en catalogoProductos cambia algo que afecta lo que se ve
+  // en la carta, este helper relee el documento COMPLETO (nunca confía en el payload parcial que
+  // acaba de escribir cada función de arriba, para que cartaPublica nunca quede desincronizada) y:
+  //   - si el producto califica (activo==true Y mostrarEnCarta==true), escribe/actualiza su copia
+  //     pública con SOLO los campos que un cliente debe ver (nunca costos, nunca historial, nunca
+  //     "origen" ni "unidad" interna);
+  //   - si no califica (se desactivó, se quitó de la carta, o ya no existe), borra su copia
+  //     pública si la tenía -- así un producto nunca queda "fantasma" visible en la carta.
+  // Si esto falla por cualquier motivo, NUNCA debe romper la operación principal del admin (guardar
+  // un precio, activar un producto, etc.) -- por eso atrapa su propio error y solo avisa por
+  // consola; la próxima vez que se guarde cualquier cambio en ese producto, se vuelve a intentar.
+  function cartaPublicaBorrarSiExiste(refPub){
+    // Evita un delete() "al aire" cuando nunca hubo nada que borrar -- además de ser más barato,
+    // así un producto que nunca se publicó jamás genera ninguna escritura en cartaPublica.
+    return refPub.get().then(function(snap){
+      if(snap && snap.exists) return refPub.delete();
+    }).catch(function(){});
+  }
+  function sincronizarCartaPublica(id){
+    // Envuelto en try/catch de verdad (no solo .catch() encadenado) porque esto puede llamarse
+    // desde contextos de prueba u otros entornos donde el SDK de Firestore no está completo --
+    // un fallo ACÁ (por el motivo que sea) nunca debe tumbar la operación principal del admin.
+    try{
+      var refPub = db.collection("cartaPublica").doc(id);
+      return db.collection("catalogoProductos").doc(id).get().then(function(snap){
+        if(!snap.exists) return cartaPublicaBorrarSiExiste(refPub);
+        var p = snap.data() || {};
+        var califica = !!(p.activo && p.mostrarEnCarta);
+        if(!califica) return cartaPublicaBorrarSiExiste(refPub);
+        return refPub.set({
+          nombre: p.nombre || "",
+          categoria: p.categoria || "Otros",
+          precio: (typeof p.precio === "number") ? p.precio : (Number(p.precio) || 0),
+          descripcion: p.descripcion || "",
+          foto: p.foto || "",
+          destacado: !!p.destacado,
+          agotadoHoy: !!p.agotadoHoy,
+          activo: true,
+          mostrarEnCarta: true,
+          actualizadoEn: Date.now()
+        });
+      }).catch(function(err){
+        console.warn("No se pudo sincronizar cartaPublica para " + id + ":", err);
+      });
+    }catch(err){
+      console.warn("No se pudo sincronizar cartaPublica para " + id + ":", err);
+      return Promise.resolve();
+    }
+  }
+  // Variante para operaciones en lote (migración, categorías sugeridas): sincroniza varios ids uno
+  // tras otro (nunca en paralelo sin control, para no saturar Firestore con cientos de escrituras
+  // simultáneas). Nunca bloquea ni rompe la operación principal si algo falla (ver arriba) --
+  // tampoco esta función deja escapar ningún error hacia quien la llama.
+  function sincronizarCartaPublicaVarios(ids){
+    try{
+      var unicos = [];
+      (ids || []).forEach(function(id){ if(unicos.indexOf(id) === -1) unicos.push(id); });
+      return unicos.reduce(function(cadena, id){
+        return cadena.then(function(){ return sincronizarCartaPublica(id); });
+      }, Promise.resolve()).catch(function(err){
+        console.warn("No se pudo sincronizar cartaPublica (lote):", err);
+      });
+    }catch(err){
+      console.warn("No se pudo sincronizar cartaPublica (lote):", err);
+      return Promise.resolve();
+    }
   }
 
   function findClienteByNombre(nombre){
@@ -7882,7 +8063,7 @@ var TRIPLES = [
 
     var avisoPaso2 = document.createElement("div");
     avisoPaso2.className = "cd-hint";
-    avisoPaso2.textContent = "La carta pública (carta.html) todavía no existe -- esto solo guarda la información acá, en Lista de Precios.";
+    avisoPaso2.textContent = "Esto solo guarda la información acá, en Lista de Precios. La carta pública (carta.html, Etapa 1) ya existe como prototipo -- falta que la publiques siguiendo instrucciones_publicar_carta_digital.md para que se vea de verdad.";
     body.appendChild(avisoPaso2);
 
     // --- Barra de guardado (declarada acá arriba porque refreshPendingBar() la usan los
@@ -8122,6 +8303,166 @@ var TRIPLES = [
     return box;
   }
 
+  // -------- Modal "Personal" (nov-2026) -- solo visible/abrible para rol admin (ver botón en el
+  // chip de sesión, wireSessionChip). Mismo patrón overlay+caja+cierre que el resto de modales. --
+  var personalModalEscHandlerRef = null;
+  function closePersonalModal(){
+    var ov = document.getElementById("personalModalOverlay");
+    if(ov) ov.remove();
+    if(personalModalEscHandlerRef){ document.removeEventListener("keydown", personalModalEscHandlerRef); personalModalEscHandlerRef = null; }
+  }
+  function showPersonalModal(){
+    closePersonalModal();
+    var overlay = document.createElement("div");
+    overlay.className = "cd-modal-overlay";
+    overlay.id = "personalModalOverlay";
+    overlay.addEventListener("click", function(ev){ if(ev.target === overlay) closePersonalModal(); });
+    var box = document.createElement("div");
+    box.className = "cd-modal-box";
+    box.appendChild(buildPersonalModalHead());
+    var body = document.createElement("div");
+    body.className = "cd-modal-body";
+    body.appendChild(buildPersonalModalCargando());
+    box.appendChild(body);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    personalModalEscHandlerRef = function(ev){ if(ev.key === "Escape") closePersonalModal(); };
+    document.addEventListener("keydown", personalModalEscHandlerRef);
+    refreshPersonalModalBody();
+  }
+  function buildPersonalModalHead(){
+    var head = document.createElement("div");
+    head.className = "cd-modal-head";
+    var headText = document.createElement("div");
+    var headTitle = document.createElement("strong"); headTitle.textContent = "Personal";
+    var headSub = document.createElement("span"); headSub.textContent = "Quién puede entrar a la app y con qué rol";
+    headText.appendChild(headTitle); headText.appendChild(headSub);
+    head.appendChild(headText);
+    var closeBtn = document.createElement("button");
+    closeBtn.type = "button"; closeBtn.className = "cd-modal-close"; closeBtn.textContent = "✕"; closeBtn.title = "Cerrar";
+    closeBtn.addEventListener("click", function(){ closePersonalModal(); });
+    head.appendChild(closeBtn);
+    return head;
+  }
+  function buildPersonalModalCargando(){
+    var p = document.createElement("div");
+    p.className = "cd-hint";
+    p.textContent = "Cargando...";
+    p.id = "personalModalCargando";
+    return p;
+  }
+  // Vuelve a pedir la lista completa a Firestore y redibuja el cuerpo del modal -- se llama al
+  // abrir, y después de cada alta/edición exitosa (nunca se confía en editar el DOM a mano para
+  // que la lista en pantalla coincida siempre con lo que de verdad quedó guardado).
+  function refreshPersonalModalBody(){
+    var overlay = document.getElementById("personalModalOverlay");
+    if(!overlay) return;
+    var body = overlay.querySelector(".cd-modal-body");
+    staffCargarTodos().then(function(personas){
+      body.innerHTML = "";
+      body.appendChild(buildPersonalAgregarForm());
+      body.appendChild(buildPersonalLista(personas));
+    }).catch(function(err){
+      body.innerHTML = "";
+      var errBox = document.createElement("div");
+      errBox.className = "cd-hint";
+      errBox.textContent = "No se pudo cargar la lista de personal (revisa tu conexión). Intenta cerrar y abrir de nuevo.";
+      body.appendChild(errBox);
+      try{ console.error("Personal -- error al cargar staff:", err); }catch(e){}
+    });
+  }
+  function buildPersonalAgregarForm(){
+    var wrap = document.createElement("div");
+    wrap.className = "cd-field-group";
+    var titulo = document.createElement("strong"); titulo.textContent = "Agregar / editar por UID";
+    wrap.appendChild(titulo);
+    var hint = document.createElement("div");
+    hint.className = "cd-hint";
+    hint.textContent = "Primero crea la cuenta (correo + contraseña) en Firebase Console → Authentication → Add user. Copia el UID que te muestra ahí y pégalo acá.";
+    wrap.appendChild(hint);
+
+    var uidInput = document.createElement("input");
+    uidInput.type = "text"; uidInput.placeholder = "UID de Firebase Auth"; uidInput.className = "cd-input";
+    var nombreInput = document.createElement("input");
+    nombreInput.type = "text"; nombreInput.placeholder = "Nombre"; nombreInput.className = "cd-input";
+    var correoInput = document.createElement("input");
+    correoInput.type = "email"; correoInput.placeholder = "Correo (informativo)"; correoInput.className = "cd-input";
+    var rolSelect = document.createElement("select");
+    rolSelect.className = "cd-input";
+    STAFF_ROLES.forEach(function(r){
+      var opt = document.createElement("option"); opt.value = r; opt.textContent = r === "admin" ? "admin" : "staff"; rolSelect.appendChild(opt);
+    });
+    var activoLabel = document.createElement("label");
+    activoLabel.className = "cd-check-label";
+    var activoInput = document.createElement("input");
+    activoInput.type = "checkbox"; activoInput.checked = true;
+    activoLabel.appendChild(activoInput);
+    activoLabel.appendChild(document.createTextNode(" Activo (puede entrar)"));
+
+    [uidInput, nombreInput, correoInput, rolSelect, activoLabel].forEach(function(el){ wrap.appendChild(el); });
+
+    var btn = document.createElement("button");
+    btn.type = "button"; btn.className = "btn btn-primary btn-sm"; btn.textContent = "Guardar persona";
+    var msg = document.createElement("div"); msg.className = "cd-hint";
+    btn.addEventListener("click", function(){
+      pedirPinAdministrativoYEjecutar(function(responsable){
+        btn.disabled = true;
+        staffGuardarPersona(uidInput.value, {
+          nombre: nombreInput.value, correo: correoInput.value, rol: rolSelect.value, activo: activoInput.checked
+        }, responsable).then(function(){
+          showToast("Persona guardada.");
+          refreshPersonalModalBody();
+        }).catch(function(err){
+          msg.textContent = (err && err.message) || "No se pudo guardar.";
+          btn.disabled = false;
+        });
+      });
+    });
+    wrap.appendChild(btn);
+    wrap.appendChild(msg);
+    return wrap;
+  }
+  function buildPersonalLista(personas){
+    var wrap = document.createElement("div");
+    wrap.className = "cd-field-group";
+    var titulo = document.createElement("strong"); titulo.textContent = "Personal actual (" + personas.length + ")";
+    wrap.appendChild(titulo);
+    if(personas.length === 0){
+      var vacio = document.createElement("div"); vacio.className = "cd-hint"; vacio.textContent = "Todavía no hay nadie en esta lista.";
+      wrap.appendChild(vacio);
+      return wrap;
+    }
+    var tabla = document.createElement("table");
+    tabla.className = "cd-tabla-personal";
+    personas.forEach(function(persona){
+      var fila = document.createElement("tr");
+      var tdNombre = document.createElement("td");
+      tdNombre.textContent = persona.nombre + (persona.correo ? " (" + persona.correo + ")" : "");
+      var tdRol = document.createElement("td"); tdRol.textContent = persona.rol;
+      var tdEstado = document.createElement("td");
+      var toggleBtn = document.createElement("button");
+      toggleBtn.type = "button"; toggleBtn.className = "btn btn-sm " + (persona.activo ? "btn-good" : "btn-bad");
+      toggleBtn.textContent = persona.activo ? "Activo" : "Inactivo";
+      toggleBtn.title = "Clic para " + (persona.activo ? "desactivar" : "activar");
+      toggleBtn.addEventListener("click", function(){
+        pedirPinAdministrativoYEjecutar(function(responsable){
+          toggleBtn.disabled = true;
+          staffCambiarActivo(persona.uid, !persona.activo, responsable).then(function(){
+            refreshPersonalModalBody();
+          }).catch(function(){
+            toggleBtn.disabled = false;
+            showToast("No se pudo cambiar el estado.");
+          });
+        });
+      });
+      tdEstado.appendChild(toggleBtn);
+      fila.appendChild(tdNombre); fila.appendChild(tdRol); fila.appendChild(tdEstado);
+      tabla.appendChild(fila);
+    });
+    wrap.appendChild(tabla);
+    return wrap;
+  }
+
   // Formulario "+ Agregar producto": valida en catalogoAgregarProducto (nombre no vacío,
   // categoría elegida, precio > 0, sin duplicados) -- acá solo se juntan los valores de pantalla.
   function buildCatalogoAgregarForm(){
@@ -8194,6 +8535,1131 @@ var TRIPLES = [
     });
     box.appendChild(saveBtn);
     return box;
+  }
+
+
+  // ---------- Control de Producción vs. Ventas (oct-2026, pedido de gerencia de Carmelitas)
+  // ----------
+  // Gerencia pidió DOS datos por producto: cuánto se vendió y cuánto se produjo, con mermas,
+  // devoluciones, ajustes y saldo, para panes/empanadas/embutidos/jugos/sándwiches/pastelería
+  // y demás categorías. Diagnóstico, antes de escribir una sola línea de este módulo:
+  //   - VENTAS: hoy la app ya sabe "cuánto se vendió" para los productos vinculados a Metas
+  //     (METAS_ITEM_LINKS, src:"cod" -- 61 productos de Frutas/Sánguches/Cafés/Dulces/Panes
+  //     saludables/Empanadas) y para los productos de las 5 pestañas clásicas (Panes, Bebidas,
+  //     Embutidos, Triples, Otros) vía el conteo físico diario (ventasAm/ventasPm). Para
+  //     CUALQUIER OTRO producto del catálogo (por ejemplo la mayoría de Pastelería y muchos
+  //     Embutidos sueltos) HOY NO HAY ninguna fuente de venta conectada -- no se inventa un
+  //     número: sale "Sin dato" hasta que se vincule o se registre a mano.
+  //   - PRODUCCIÓN: no existe en ningún lugar del sistema un registro histórico de "cuánto se
+  //     produjo" -- ni por tanda, ni por turno, ni por área. Por eso la captura empieza desde
+  //     HOY, con el formulario de abajo; nada de atrás se completa ni se calcula hacia atrás.
+  // Reglas no negociables de Jessica/gerencia, aplicadas tal cual en el código de abajo:
+  //   - "No inventes cifras ni consideres automáticamente que producción menos ventas equivale
+  //     a sobrante" -> el "saldo" de un día sale explícitamente null ("Sin dato suficiente")
+  //     salvo que ESE día tenga al menos un movimiento "producido" registrado Y la venta de
+  //     ese día se conozca (de Metas o del conteo físico, completa o parcial). Nunca se asume 0.
+  //   - "Evitando contar dos veces los movimientos internos" -> "entrega a tienda" es un
+  //     movimiento aparte, puramente informativo (cuánto salió del área de producción hacia el
+  //     punto de venta): NUNCA se resta ni se suma en la fórmula del saldo, para no restarlo dos
+  //     veces (una como "salida de producción" y otra como parte de la venta real en caja).
+  //   - Merma y devolución quedan SEPARADAS (a diferencia de la pestaña vieja de Panes, que
+  //     junta todo en un solo campo "Merma") porque gerencia pidió verlas aparte.
+  //   - "Ajuste manual" existe para correcciones puntuales (conteo mal hecho, etc.) y SIEMPRE
+  //     exige una nota explicando el motivo -- nunca se guarda un ajuste sin justificar.
+  // Colección NUEVA y separada, "produccionMovimientos" (nunca dentro de arqueo/state, que ya
+  // guarda todos los días del arqueo en un solo documento y no debe acercarse más al límite de
+  // 1MB de Firestore) -- cada movimiento es un documento propio, de solo-agregar (no hay función
+  // de editar ni de borrar en este prototipo: si algo se registró mal, se corrige con un
+  // "ajuste" nuevo y una nota, nunca pisando lo ya guardado). No toca ninguna otra colección ni
+  // ningún dato existente (Pedidos, Mozos, Metas, Caja, Arqueo, Lista de Precios siguen exactamente
+  // igual). PROTOTIPO: Jessica autorizó desarrollarlo aislado y probado, sin desplegar a producción
+  // sin su aprobación -- esta pantalla ya queda disponible en el sistema que se le entrega, pero
+  // ella decide cuándo empezar a usarla de verdad.
+  var PRODUCCION_CATEGORIAS = ["Panadería", "Empanadas", "Pastelería", "Embutidos", "Jugos", "Sándwiches", "Cafetería", "Otros"];
+  // Áreas de producción: lista simple y editable a mano en cada registro (NO se reutiliza
+  // PRODUCCION_MAPA/PRODUCCION_PUNTOS de más arriba -- esos existen solo para decidir a qué
+  // impresora de cocina mandar un ticket de Pedidos y están, a propósito, incompletos para casi
+  // todo el catálogo; usarlos aquí como si fueran el área real de cada producto sería inventar
+  // datos que gerencia no ha confirmado).
+  var PRODUCCION_AREAS = ["Cocina/Horno", "Pastelería", "Jugos y Cafetería", "Embutidos", "Empaque/Despacho", "Otro"];
+  var PRODUCCION_TIPOS = [
+    { key: "producido", label: "Producido (tanda/turno)" },
+    { key: "entrega_tienda", label: "Entrega a tienda (informativo, no afecta el saldo)" },
+    { key: "merma", label: "Merma" },
+    { key: "devolucion", label: "Devolución" },
+    { key: "ajuste", label: "Ajuste manual (requiere nota)" }
+  ];
+
+  // null = todavía no se cargó desde Firestore; [] = ya se cargó y está vacía.
+  var PRODUCCION_MOVIMIENTOS = null;
+  var PRODUCCION_MOVIMIENTOS_ERROR = false;
+  var produccionCargando = false;
+  var produccionFormAbierto = false;
+  var produccionFiltro = { producto: "", desde: todayISO(), hasta: todayISO(), categoria: "", area: "" };
+
+  // Carga única (.get(), no realtime) -- simplificación de alcance deliberada para este
+  // prototipo: es un historial de solo-agregar que no necesita reflejar en vivo lo que registra
+  // otro dispositivo en el mismo segundo. Si Jessica adopta el módulo en serio, se puede pasar a
+  // onSnapshot() más adelante, igual que catalogoProductos.
+  function produccionCargarMovimientos(){
+    if(PRODUCCION_MOVIMIENTOS !== null || produccionCargando) return Promise.resolve(PRODUCCION_MOVIMIENTOS || []);
+    produccionCargando = true;
+    PRODUCCION_MOVIMIENTOS_ERROR = false;
+    return db.collection("produccionMovimientos").orderBy("fecha", "asc").get().then(function(snap){
+      var arr = [];
+      snap.forEach(function(doc){ var d = doc.data(); d._id = doc.id; arr.push(d); });
+      PRODUCCION_MOVIMIENTOS = arr;
+      produccionCargando = false;
+      return arr;
+    }).catch(function(err){
+      produccionCargando = false;
+      PRODUCCION_MOVIMIENTOS_ERROR = true;
+      throw err;
+    });
+  }
+
+  function produccionValidarMovimiento(mov){
+    var fecha = String(mov.fecha || "").trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return "Elige una fecha válida.";
+    var producto = String(mov.producto || "").trim();
+    if(!producto) return "Escribe o elige el producto.";
+    var tipoDef = PRODUCCION_TIPOS.filter(function(t){ return t.key === mov.tipo; })[0];
+    if(!tipoDef) return "Elige un tipo de movimiento válido.";
+    var cantidad = Number(mov.cantidad);
+    if(!isFinite(cantidad)) return "La cantidad no es un número válido.";
+    if(mov.tipo === "ajuste"){
+      if(cantidad === 0) return "El ajuste no puede ser 0.";
+      if(!String(mov.nota || "").trim()) return "Todo ajuste manual necesita una nota explicando el motivo.";
+    } else if(!(cantidad > 0)){
+      return "La cantidad tiene que ser mayor a 0.";
+    }
+    if(!String(mov.area || "").trim()) return "Elige el área de producción.";
+    return null;
+  }
+
+  // Append-only: siempre .add() con id autogenerado, nunca .set()/.update() sobre un movimiento
+  // ya guardado -- así ningún registro anterior se puede pisar ni perder.
+  function produccionRegistrarMovimiento(mov, responsable){
+    var error = produccionValidarMovimiento(mov);
+    if(error) return Promise.reject(new Error(error));
+    var doc = {
+      fecha: mov.fecha,
+      producto: productoDisplay(String(mov.producto).trim()),
+      categoria: mov.categoria || "",
+      area: mov.area,
+      tanda: String(mov.tanda || "").trim(),
+      tipo: mov.tipo,
+      cantidad: Number(mov.cantidad),
+      nota: String(mov.nota || "").trim(),
+      registradoEn: Date.now(),
+      registradoPor: responsable
+    };
+    return db.collection("produccionMovimientos").add(doc).then(function(ref){
+      doc._id = ref.id;
+      if(PRODUCCION_MOVIMIENTOS === null) PRODUCCION_MOVIMIENTOS = [];
+      PRODUCCION_MOVIMIENTOS.push(doc);
+      return doc;
+    });
+  }
+
+  // ---- Resolución de ventas en 3 niveles (nunca se inventa, se dice explícitamente de dónde
+  // sale cada número y si está completo o parcial) ----
+  function produccionBuscarEnlaceMetas(producto){
+    var norm = normName(producto);
+    var found = null;
+    METAS_CATEGORIAS.forEach(function(cat){
+      if(found) return;
+      var linkMap = METAS_ITEM_LINKS[cat.key];
+      if(!linkMap) return;
+      cat.items.forEach(function(itemName, idx){
+        if(found) return;
+        if(normName(itemName) === norm){
+          found = { cat: cat, idx: idx, link: linkMap[itemName], itemName: itemName };
+        }
+      });
+    });
+    return found;
+  }
+  // Nivel 1: producto vinculado a Metas (src:"cod"). Suma mañana+tarde SOLO con lo que de
+  // verdad se importó ese día (day.ventasCrudas) -- si falta un turno, se marca "parcial" y
+  // nunca se completa con un supuesto.
+  function produccionVentaDesdeMetas(date, enlace){
+    var day = getDay(date);
+    var sec = day.metas && day.metas[enlace.cat.key];
+    var amImportado = !!(day.ventasCrudas && day.ventasCrudas.am && day.ventasCrudas.am.length);
+    var pmImportado = !!(day.ventasCrudas && day.ventasCrudas.pm && day.ventasCrudas.pm.length);
+    if(!sec || (!amImportado && !pmImportado)){
+      return { valor: null, fuente: "metas", completo: false, detalle: "No se importó ningún reporte de ventas este día (Metas)." };
+    }
+    var amRow = sec.am[enlace.idx] || {};
+    var pmRow = sec.pm[enlace.idx] || {};
+    var total = 0;
+    enlace.cat.subcols.forEach(function(sc){ total += num(amRow[sc.key]) + num(pmRow[sc.key]); });
+    // El reporte de la tarde (cierre, ~10pm) trae SIEMPRE el total del día completo --
+    // mañana + tarde juntas -- tal como confirmó Jessica (ver el mismo criterio en
+    // applyImport, "El reporte de cierre de la tarde... trae el total del día completo"). Por
+    // eso basta con que se haya importado el reporte de la tarde para tener el día COMPLETO,
+    // así no se haya importado por separado el de la mañana -- applyImportToMetas ya resta lo
+    // de la mañana (si existe) del total de la tarde, y si no hay mañana importada, el total
+    // completo queda enteramente en la casilla de la tarde (amVal se asume 0, nunca se pierde
+    // ni se duplica nada). Solo queda "parcial" cuando NO se importó el reporte de la tarde --
+    // ahí lo que hay (si acaso un reporte de la mañana) es nada más que un corte a media
+    // jornada, no el total real del día.
+    var completo = pmImportado;
+    return {
+      valor: total, fuente: "metas", completo: completo,
+      detalle: completo ? "Venta completa del día (el reporte de la tarde trae el total del día completo)."
+        : "Venta PARCIAL -- solo se importó el reporte de la mañana (un corte a media jornada, no el total del día)."
+    };
+  }
+  // Nivel 2: producto de las 5 pestañas clásicas (Panes/Bebidas/Embutidos/Triples/Otros), vía el
+  // conteo físico diario de siempre (ventasAm/ventasPm) -- null mientras no se cuente el Saldo
+  // Final, nunca 0.
+  function produccionVentaDesdeConteoFisico(date, producto){
+    var catIndex = buildCatalogIndex();
+    var hit = catIndex[normName(producto)];
+    if(!hit) return null;
+    var day = getDay(date);
+    var sec = day[SECTIONS[hit.tab].key];
+    var amRow = sec.am[hit.idx];
+    var pmRow = sec.pm[hit.idx];
+    var vAm = ventasAm(amRow);
+    var vPm = ventasPm(pmRow, amRow);
+    if(vAm === null && vPm === null){
+      return { valor: null, fuente: "conteo_fisico", completo: false, detalle: "Todavía no se contó el Saldo Final de este producto ese día." };
+    }
+    var completo = (vAm !== null) && (vPm !== null);
+    return {
+      valor: (vAm || 0) + (vPm || 0), fuente: "conteo_fisico", completo: completo,
+      detalle: completo ? "Venta física del día (mañana + tarde, con conteo en ambos turnos)."
+        : "Venta PARCIAL -- falta contar el Saldo Final de un turno."
+    };
+  }
+  // Nivel 3: sin ninguna fuente conectada todavía -- se dice así, explícitamente, en vez de
+  // mostrar un 0 que parecería "no se vendió nada".
+  function produccionVentaDelDia(date, producto){
+    var enlace = produccionBuscarEnlaceMetas(producto);
+    if(enlace && enlace.link && enlace.link.src === "cod") return produccionVentaDesdeMetas(date, enlace);
+    var fisico = produccionVentaDesdeConteoFisico(date, producto);
+    if(fisico) return fisico;
+    return { valor: null, fuente: "sin_fuente", completo: false, detalle: "Este producto no está vinculado a Metas ni a las pestañas de conteo físico -- todavía no hay ninguna fuente de venta conectada." };
+  }
+
+  // ---- Producción automática desde Arqueo + excepción de lote (oct-2026, Jessica explicó cómo
+  // funciona de verdad el taller) ----
+  // REGLA GENERAL: todo lo que se elabora en el taller se manda COMPLETO a tienda según lo
+  // pedido (10 croissants pedidos -> 10 producidos -> 10 entregados). Por eso, para un producto
+  // de las 5 pestañas clásicas de Arqueo (Panes/Bebidas/Embutidos/Triples/Otros), el ingreso
+  // (i1+i2+i3) que YA se registra ahí de todos modos ES la producción recibida en tienda -- no
+  // hace falta pedir un registro manual aparte de "Producido" para estos productos (evita el
+  // doble registro que Jessica no quiere).
+  // ÚNICA EXCEPCIÓN HOY: Empanada de carne. El taller puede hacer un lote grande (ej. 100) y
+  // mandarlo a tienda por tandas que no siempre llegan completas el mismo día (30 + 30 hoy, 40
+  // mañana). Para este producto SÍ hace falta el registro manual: "Producido" = el lote total el
+  // día que se hizo, y "Entrega a tienda" = cada entrega parcial, el día que de verdad salió del
+  // taller (así sea al día siguiente). Como "Entrega a tienda" nunca se cuenta como "Producido"
+  // (son tipos de movimiento distintos, ver produccionBuildReporteProducto), una entrega del día
+  // siguiente JAMÁS se cuenta como producción nueva -- ya se cumple solo con el modelo de datos
+  // que ya existía, sin tocar nada ahí.
+  var PRODUCCION_PRODUCTOS_LOTE = ["Empanada de carne"];
+  function produccionEsLote(producto){
+    var norm = produccionNormProducto(producto);
+    return PRODUCCION_PRODUCTOS_LOTE.some(function(p){ return produccionNormProducto(p) === norm; });
+  }
+  // Ingreso de Arqueo (i1+i2+i3, mañana + tarde) para un producto de las 5 pestañas clásicas --
+  // null si el producto no está en ninguna de esas pestañas (ahí no hay "ingreso" que reusar).
+  function produccionProducidoArqueo(date, producto){
+    var catIndex = buildCatalogIndex();
+    var hit = catIndex[normName(producto)];
+    if(!hit) return null;
+    var day = getDay(date);
+    var sec = day[SECTIONS[hit.tab].key];
+    var amRow = sec.am[hit.idx] || {};
+    var pmRow = sec.pm[hit.idx] || {};
+    return num(amRow.i1) + num(amRow.i2) + num(amRow.i3) + num(pmRow.i1) + num(pmRow.i2) + num(pmRow.i3);
+  }
+  // "Pendiente en taller" de un producto de lote (hoy, solo Empanada de carne): cuánto se ha
+  // producido en TODA la historia (sin importar el rango de fechas que se esté consultando) menos
+  // lo ya entregado, mermado, devuelto, más ajustes -- un saldo acumulado simple. Estas unidades
+  // NO son merma ni faltante: están físicamente en el taller, esperando su próxima entrega (que
+  // puede ser mañana). Se calcula hasta una fecha de corte (normalmente el "hasta" del filtro que
+  // se esté viendo), para que un reporte de un período pasado no mezcle entregas que todavía no
+  // habían pasado en ese momento.
+  function produccionPendienteTallerAcumulado(producto, hastaFecha){
+    var norm = produccionNormProducto(producto);
+    var producido = 0, entregado = 0, merma = 0, devolucion = 0, ajuste = 0;
+    (PRODUCCION_MOVIMIENTOS || []).forEach(function(m){
+      if(produccionNormProducto(m.producto || "") !== norm) return;
+      if(hastaFecha && m.fecha > hastaFecha) return;
+      if(m.tipo === "producido") producido += m.cantidad;
+      else if(m.tipo === "entrega_tienda") entregado += m.cantidad;
+      else if(m.tipo === "merma") merma += m.cantidad;
+      else if(m.tipo === "devolucion") devolucion += m.cantidad;
+      else if(m.tipo === "ajuste") ajuste += m.cantidad;
+    });
+    return producido - entregado - merma - devolucion + ajuste;
+  }
+  function produccionFechasEnRango(desde, hasta){
+    var out = [];
+    var d = new Date(desde + "T12:00:00");
+    var fin = new Date(hasta + "T12:00:00");
+    if(isNaN(d) || isNaN(fin) || d > fin) return out;
+    while(d <= fin){ out.push(d.toISOString().slice(0, 10)); d.setDate(d.getDate() + 1); }
+    return out;
+  }
+  // Suma (o resta, con delta negativo) días a una fecha "YYYY-MM-DD" -- se usa para ubicar "el
+  // día antes del Desde del filtro" al calcular la existencia acumulada (ver más abajo).
+  function produccionFechaSumarDias(fecha, delta){
+    var d = new Date(fecha + "T12:00:00");
+    if(isNaN(d)) return fecha;
+    d.setDate(d.getDate() + delta);
+    return d.toISOString().slice(0, 10);
+  }
+  // Primera fecha con algún dato en todo el sistema (el día guardado más antiguo en Arqueo, o el
+  // movimiento de producción más antiguo si fuera anterior) -- el punto de partida para arrastrar
+  // la existencia acumulada. Antes de esa fecha no hay ningún registro, así que no se inventa
+  // nada: la existencia simplemente empieza a contarse desde ahí (se documenta en la UI).
+  function produccionPrimeraFechaHistoria(){
+    var fechas = Object.keys(STATE.days || {});
+    (PRODUCCION_MOVIMIENTOS || []).forEach(function(m){ if(m && m.fecha) fechas.push(m.fecha); });
+    if(!fechas.length) return null;
+    fechas.sort();
+    return fechas[0];
+  }
+  // Compara productos ignorando mayúsculas/acentos/espacios (mismo criterio que normName, ya
+  // usado en toda la app para resolver catálogo) -- evita que "Empanada de carne", "Empanada
+  // De Carne" y "EMPANADA DE CARNE" aparezcan como si fueran 3 productos distintos solo porque
+  // cada fuente (Metas, catálogo clásico, lo que haya escrito quien registró el movimiento) los
+  // guarda con una capitalización distinta.
+  function produccionNormProducto(s){ return normName(s); }
+  function produccionMovimientosDe(producto, fecha){
+    var norm = produccionNormProducto(producto);
+    return (PRODUCCION_MOVIMIENTOS || []).filter(function(m){ return m.fecha === fecha && produccionNormProducto(m.producto || "") === norm; });
+  }
+  // Movimiento de UN día para un producto: producido, entrega a tienda, merma, devolución,
+  // ajuste y venta, más "movimientoDia" (= lo que entró menos lo que salió ESE día puntual --
+  // producido/entregado − merma − devolución + ajuste − vendido). Se extrajo de
+  // produccionBuildReporteProducto para poder reusarlo tal cual al calcular la existencia
+  // acumulada (ver produccionExistenciaSerieHasta) sin repetir ninguna regla de negocio en dos
+  // lugares -- un solo lugar donde viven las reglas de Arqueo/lote/Metas.
+  //
+  // Base que se compara contra la venta: para un producto normal, el ingreso de Arqueo YA ES lo
+  // que llegó a tienda (regla general de Jessica), así que ahí "producido" y "recibido en
+  // tienda" son el mismo número. Para un producto de lote (Empanada de carne), el lote
+  // registrado puede ser mucho más grande que lo que de verdad llegó a tienda ESE día --
+  // comparar el lote completo contra la venta del día inventaría un "faltante" que en realidad
+  // son unidades todavía esperando su turno en el taller. Por eso, SOLO para productos de lote,
+  // el movimiento diario se compara contra "entregaTienda" (lo que de verdad salió del taller
+  // ese día), nunca contra el lote completo.
+  function produccionMovimientoDia(fecha, producto){
+    var esLote = produccionEsLote(producto);
+    var movs = produccionMovimientosDe(producto, fecha);
+    var producidoManual = 0, entregaTienda = 0, merma = 0, devolucion = 0, ajuste = 0, hayProducidoManualDia = false;
+    movs.forEach(function(m){
+      if(m.tipo === "producido"){ producidoManual += m.cantidad; hayProducidoManualDia = true; }
+      else if(m.tipo === "entrega_tienda") entregaTienda += m.cantidad;
+      else if(m.tipo === "merma") merma += m.cantidad;
+      else if(m.tipo === "devolucion") devolucion += m.cantidad;
+      else if(m.tipo === "ajuste") ajuste += m.cantidad;
+    });
+    var producido, hayProducidoDia, producidoFuente;
+    if(esLote){
+      // Empanada de carne: el "Producido" del día es el lote que de verdad se registró a mano
+      // ese día (si lo hay) -- nunca se infiere de Arqueo, porque este producto no tiene
+      // ingreso en ninguna pestaña clásica.
+      producido = producidoManual; hayProducidoDia = hayProducidoManualDia; producidoFuente = hayProducidoManualDia ? "lote" : null;
+    } else {
+      var arqueoIngreso = produccionProducidoArqueo(fecha, producto);
+      if(arqueoIngreso !== null){
+        // Producto de Arqueo: el ingreso YA es la producción recibida en tienda -- se usa
+        // directo, sin pedir (ni sumar) un registro manual de "Producido" aparte, para no
+        // duplicar lo que Jessica pidió explícitamente evitar.
+        producido = arqueoIngreso; hayProducidoDia = true; producidoFuente = "arqueo_ingreso";
+      } else {
+        // Producto sin ingreso de Arqueo y sin ser de lote (ej. algo de Metas sin excepción
+        // conocida): sigue dependiendo del registro manual, como antes.
+        producido = producidoManual; hayProducidoDia = hayProducidoManualDia; producidoFuente = hayProducidoManualDia ? "manual" : null;
+      }
+    }
+    var venta = produccionVentaDelDia(fecha, producto);
+    var baseSaldo = esLote ? entregaTienda : producido;
+    var hayBaseSaldo = esLote ? (entregaTienda > 0) : hayProducidoDia;
+    var movimientoDia = (hayBaseSaldo && venta.valor !== null) ? (baseSaldo - merma - devolucion + ajuste - venta.valor) : null;
+    return {
+      fecha: fecha, esLote: esLote,
+      producido: hayProducidoDia ? producido : null, producidoFuente: producidoFuente, hayProducidoDia: hayProducidoDia,
+      entregaTienda: entregaTienda, merma: merma, devolucion: devolucion, ajuste: ajuste,
+      vendido: venta.valor, vendidoFuente: venta.fuente, vendidoCompleto: venta.completo, vendidoDetalle: venta.detalle,
+      baseSaldo: baseSaldo, hayBaseSaldo: hayBaseSaldo, movimientoDia: movimientoDia
+    };
+  }
+  // Existencia acumulada: a diferencia del "movimiento del día" (lo que entró/salió ESE día
+  // puntual), esto es el saldo que se va ARRASTRANDO de un día al siguiente -- saldo inicial +
+  // ingresos − ventas − mermas ± ajustes, acumulado desde el primer día con algún dato en el
+  // sistema (produccionPrimeraFechaHistoria) hasta la fecha de corte. Un día sin ningún "Producido"
+  // nuevo (ej. un producto de Arqueo sin ingreso ese día) sigue restando su venta del arrastre
+  // de días anteriores -- así es como una existencia de verdad se agota con el tiempo. Cuando un
+  // día no tiene venta conocida, ese día no suma ni resta nada al arrastre (se marca
+  // "incompleto" en vez de inventar un movimiento), y el acumulado sigue desde donde estaba.
+  // Se calcula UNA sola vez por reporte (no por fila) para no recorrer el histórico completo una
+  // vez por cada día mostrado.
+  function produccionExistenciaSerieHasta(producto, hastaFecha){
+    var mapa = {};
+    var inicio = produccionPrimeraFechaHistoria();
+    if(!inicio || inicio > hastaFecha) return mapa;
+    var fechas = produccionFechasEnRango(inicio, hastaFecha);
+    var acumulado = 0, incompleto = false;
+    fechas.forEach(function(fecha){
+      var mv = produccionMovimientoDia(fecha, producto);
+      if(mv.movimientoDia !== null){ acumulado += mv.movimientoDia; } else { incompleto = true; }
+      mapa[fecha] = { acumulado: acumulado, incompleto: incompleto };
+    });
+    return mapa;
+  }
+  // Reporte diario de un producto en un rango -- este es el corazón del pedido de gerencia
+  // ("consultar EMPANADA DE CARNE del 01 al 24 de octubre..."). "Saldo" (movimiento del día)
+  // solo se calcula el día en que SÍ hay al menos un "producido" registrado Y la venta de ese
+  // día se conoce (sea completa o parcial); si falta cualquiera de las dos cosas, sale null
+  // ("Sin dato suficiente"), nunca 0 ni una resta con un término inventado. "existenciaAcumulada"
+  // es distinto: es el arrastre acumulado desde el inicio del histórico (ver
+  // produccionExistenciaSerieHasta) -- nunca se duplica con "Saldo" ni con el ingreso de Arqueo,
+  // es solo la suma corrida de los mismos movimientos diarios ya calculados arriba.
+  function produccionBuildReporteProducto(producto, desde, hasta){
+    var esLote = produccionEsLote(producto);
+    var fechas = produccionFechasEnRango(desde, hasta);
+    var filas = [];
+    var totales = {
+      producido: 0, entregaTienda: 0, merma: 0, devolucion: 0, ajuste: 0, vendido: 0,
+      hayProducido: false, vendidoCompleto: true, vendidoConocido: true, saldo: null,
+      fuentesUsadas: [], producidoFuentesUsadas: [], esLote: esLote,
+      pendienteTaller: esLote ? produccionPendienteTallerAcumulado(producto, hasta) : null,
+      existenciaInicial: 0, existenciaFinal: 0, existenciaIncompleta: false
+    };
+    var serieExistencia = produccionExistenciaSerieHasta(producto, hasta);
+    var fechaAntesDesde = produccionFechaSumarDias(desde, -1);
+    totales.existenciaInicial = serieExistencia[fechaAntesDesde] ? serieExistencia[fechaAntesDesde].acumulado : 0;
+    fechas.forEach(function(fecha){
+      var mv = produccionMovimientoDia(fecha, producto);
+      var ex = serieExistencia[fecha];
+      filas.push({
+        fecha: fecha, producido: mv.producido, producidoFuente: mv.producidoFuente,
+        entregaTienda: mv.entregaTienda, merma: mv.merma, devolucion: mv.devolucion, ajuste: mv.ajuste,
+        vendido: mv.vendido, vendidoFuente: mv.vendidoFuente, vendidoCompleto: mv.vendidoCompleto, vendidoDetalle: mv.vendidoDetalle,
+        saldo: mv.movimientoDia,
+        existenciaAcumulada: ex ? ex.acumulado : null, existenciaIncompleta: ex ? ex.incompleto : true
+      });
+      if(mv.hayProducidoDia){ totales.producido += mv.producido; totales.hayProducido = true; }
+      if(mv.producidoFuente && totales.producidoFuentesUsadas.indexOf(mv.producidoFuente) === -1) totales.producidoFuentesUsadas.push(mv.producidoFuente);
+      totales.entregaTienda += mv.entregaTienda; totales.merma += mv.merma; totales.devolucion += mv.devolucion; totales.ajuste += mv.ajuste;
+      if(mv.vendido !== null) totales.vendido += mv.vendido; else totales.vendidoConocido = false;
+      if(!mv.vendidoCompleto) totales.vendidoCompleto = false;
+      // "fuentesUsadas": de dónde salió la venta en este período -- "metas", "conteo_fisico" o
+      // "sin_fuente". Un producto Metas-linked SIEMPRE resuelve por Metas (nunca por el conteo
+      // físico), y uno de las 5 pestañas clásicas SIEMPRE por el conteo físico -- nunca los dos
+      // a la vez para el mismo producto/día, así nunca se duplica una venta entre Arqueo y
+      // Metas (ver produccionVentaDelDia, que elige UNA sola fuente por producto, en orden fijo).
+      if(totales.fuentesUsadas.indexOf(mv.vendidoFuente) === -1) totales.fuentesUsadas.push(mv.vendidoFuente);
+      if(ex && ex.incompleto) totales.existenciaIncompleta = true;
+    });
+    var totalBaseSaldo = esLote ? totales.entregaTienda : totales.producido;
+    var hayTotalBaseSaldo = esLote ? (totales.entregaTienda > 0) : totales.hayProducido;
+    totales.saldo = (hayTotalBaseSaldo && totales.vendidoConocido) ? (totalBaseSaldo - totales.merma - totales.devolucion + totales.ajuste - totales.vendido) : null;
+    totales.existenciaFinal = filas.length ? filas[filas.length - 1].existenciaAcumulada : totales.existenciaInicial;
+    return { producto: producto, desde: desde, hasta: hasta, filas: filas, totales: totales };
+  }
+  // Etiqueta/clase de chip para la FUENTE DE PRODUCCIÓN (de dónde sale el número de "Producido"),
+  // en paralelo al mismo patrón que ya existe para la fuente de venta -- mismo componente .chip.
+  function produccionProducidoFuenteLabel(fuente){
+    if(fuente === "arqueo_ingreso") return "Arqueo (ingreso)";
+    if(fuente === "lote") return "Lote (taller)";
+    if(fuente === "manual") return "Manual";
+    return "Sin captura";
+  }
+  function produccionProducidoFuenteChipClass(fuente){
+    if(fuente === "arqueo_ingreso") return "info";
+    if(fuente === "lote") return "warn";
+    if(fuente === "manual") return "muted";
+    return "muted";
+  }
+  // Etiqueta humana de una fuente de venta, para chips/leyendas -- un solo lugar para no repetir
+  // los 3 textos por toda la UI.
+  function produccionFuenteLabel(fuente){
+    if(fuente === "metas") return "Metas";
+    if(fuente === "conteo_fisico") return "Arqueo";
+    return "Sin fuente";
+  }
+  function produccionFuenteChipClass(fuente){
+    if(fuente === "metas") return "plum";
+    if(fuente === "conteo_fisico") return "info";
+    return "muted";
+  }
+  // Universo de productos para el buscador: todo lo que ya existe en Metas + las 5 pestañas
+  // clásicas, más cualquier producto que ya tenga movimientos registrados en este módulo (por
+  // si es un producto nuevo, como Pastelería, que no está en ninguna de las dos fuentes de
+  // venta todavía).
+  // Un solo nombre "canónico" por producto, aunque Metas/catálogo clásico/un movimiento lo hayan
+  // guardado con distinta capitalización -- se prioriza el nombre tal como aparece en Metas y
+  // luego en el catálogo clásico (las fuentes "oficiales") antes que como lo haya tecleado quien
+  // registró un movimiento.
+  function buildProduccionUniversoProductos(){
+    var map = {}; // normName(nombre) -> nombre canónico a mostrar
+    METAS_CATEGORIAS.forEach(function(cat){ cat.items.forEach(function(nombre){
+      var k = produccionNormProducto(nombre); if(!map[k]) map[k] = nombre;
+    }); });
+    PRODUCT_TABS.forEach(function(tabKey){ catalogFor(tabKey).forEach(function(nombre){
+      var k = produccionNormProducto(nombre); if(!map[k]) map[k] = nombre;
+    }); });
+    (PRODUCCION_MOVIMIENTOS || []).forEach(function(m){
+      if(!m.producto) return;
+      var k = produccionNormProducto(m.producto); if(!map[k]) map[k] = m.producto;
+    });
+    return Object.keys(map).map(function(k){ return map[k]; }).sort(function(a, b){ return a.localeCompare(b, "es"); });
+  }
+  // Categoría "humana" de un producto para mostrar en el ranking/resumen -- no es la categoría
+  // que se escribe a mano al registrar un movimiento (eso solo existe para lote/manual), sino
+  // una derivada de dónde vive el producto de verdad: la categoría de Metas si está ahí (fuente
+  // "oficial" para preparados), si no el nombre de su pestaña clásica de Arqueo, y si tampoco
+  // está en ninguna de las dos, la categoría del movimiento manual más reciente (ej. "Empanadas"
+  // para Empanada de carne). Nunca inventa una categoría nueva: si no se encuentra en ningún
+  // lado, se muestra "Sin categoría".
+  function produccionCategoriaDeProducto(nombre){
+    var norm = produccionNormProducto(nombre);
+    for(var i = 0; i < METAS_CATEGORIAS.length; i++){
+      var cat = METAS_CATEGORIAS[i];
+      if((cat.items || []).some(function(it){ return produccionNormProducto(it) === norm; })) return cat.label || cat.key;
+    }
+    var hit = buildCatalogIndex()[normName(nombre)];
+    if(hit) return SECTIONS[hit.tab].label;
+    var movs = (PRODUCCION_MOVIMIENTOS || []).filter(function(m){ return produccionNormProducto(m.producto || "") === norm && m.categoria; });
+    if(movs.length) return movs[movs.length - 1].categoria;
+    return "Sin categoría";
+  }
+  function produccionBuildRanking(desde, hasta, categoriaFiltro, areaFiltro){
+    var universo = buildProduccionUniversoProductos();
+    var out = [];
+    universo.forEach(function(nombre){
+      var norm = produccionNormProducto(nombre);
+      var movs = (PRODUCCION_MOVIMIENTOS || []).filter(function(m){ return produccionNormProducto(m.producto || "") === norm; });
+      if(categoriaFiltro && !movs.some(function(m){ return m.categoria === categoriaFiltro; })) return;
+      if(areaFiltro && !movs.some(function(m){ return m.area === areaFiltro; })) return;
+      var rep = produccionBuildReporteProducto(nombre, desde, hasta);
+      // Antes esto exigía al menos un movimiento MANUAL registrado para entrar al ranking --
+      // pero un producto de Arqueo (la regla general: el ingreso YA es la producción) nunca
+      // tiene un movimiento manual, así que quedaba afuera siempre, por diseño, aunque tuviera
+      // ingresos y ventas reales todos los días. Ahora entra si hay CUALQUIER actividad REAL
+      // (un número distinto de cero) en el período, o algún movimiento en todo su histórico.
+      // OJO: no basta con "hayProducido" -- para un producto de Arqueo que SÍ está en el
+      // catálogo pero nunca tuvo un ingreso real, produccionProducidoArqueo igual devuelve 0
+      // (no null, porque el producto existe en la pestaña), así que "hayProducido" saldría
+      // true con producido=0 para CASI TODO el catálogo por defecto. Por eso se exige
+      // "producido > 0" (un número real, no solo "se pudo calcular"), para que el ranking no
+      // se llene con el catálogo completo de productos que nunca tuvieron movimiento alguno.
+      var tieneActividad = rep.totales.producido > 0 || rep.totales.entregaTienda > 0 ||
+        (rep.totales.vendidoConocido && rep.totales.vendido !== 0) || movs.length > 0;
+      if(!tieneActividad) return;
+      out.push({ producto: nombre, categoria: produccionCategoriaDeProducto(nombre), totales: rep.totales });
+    });
+    out.sort(function(a, b){ return (b.totales.vendido || 0) - (a.totales.vendido || 0); });
+    return out;
+  }
+  // Umbrales simples de alerta (ajustables a futuro si gerencia pide otro criterio) -- documentados
+  // acá, en un solo lugar, para no esconder un "número mágico" dentro de la función.
+  var PRODUCCION_ALERTA_MERMA_PCT = 0.10; // Merma > 10% de lo producido/entregado en el período
+  var PRODUCCION_ALERTA_PENDIENTE_TALLER = 20; // Unidades pendientes de entregar, para lote (Empanada de carne)
+  // Alertas de diferencias: no son una regla de negocio nueva, son una lectura de los mismos
+  // números que ya calcula produccionBuildReporteProducto/produccionBuildRanking, buscando 3
+  // señales simples que gerencia pediría revisar a mano: (1) existencia acumulada negativa --
+  // se vendió/mermó más de lo que hay registrado como producido o entregado, lo que casi
+  // siempre significa que falta un registro, no que haya un robo o un error de conteo; (2)
+  // merma alta en proporción a lo producido/entregado; (3) para el producto de lote, unidades
+  // pendientes en el taller que ya se acumularon bastante (puede ser normal, pero conviene
+  // confirmarlo). Nunca se afirma "faltante" como hecho -- siempre se pide "revisar".
+  function produccionBuildAlertas(ranking){
+    var alertas = [];
+    (ranking || []).forEach(function(r){
+      var t = r.totales;
+      if(t.existenciaFinal !== null && t.existenciaFinal < 0){
+        alertas.push({ producto: r.producto, nivel: "bad",
+          mensaje: "Existencia acumulada negativa (" + fmt(t.existenciaFinal) + "): se vendió, mermó o devolvió más de lo que hay registrado como producido/entregado hasta " + "la fecha -- revisar si falta un registro." });
+      }
+      var baseMerma = t.esLote ? t.entregaTienda : t.producido;
+      if(baseMerma > 0 && (t.merma / baseMerma) > PRODUCCION_ALERTA_MERMA_PCT){
+        alertas.push({ producto: r.producto, nivel: "warn",
+          mensaje: "Merma alta: " + Math.round((t.merma / baseMerma) * 100) + "% de lo " + (t.esLote ? "entregado a tienda" : "producido") + " en el período." });
+      }
+      if(t.esLote && t.pendienteTaller !== null && t.pendienteTaller >= PRODUCCION_ALERTA_PENDIENTE_TALLER){
+        alertas.push({ producto: r.producto, nivel: "warn",
+          mensaje: "Pendiente en taller alto (" + fmt(t.pendienteTaller) + " unidades): confirmar que de verdad están esperando su próxima entrega." });
+      }
+    });
+    return alertas;
+  }
+
+  function produccionBuildExportRows(reporte){
+    return reporte.filas.map(function(f){
+      return [f.fecha, f.producido === null ? "Sin captura" : f.producido, produccionProducidoFuenteLabel(f.producidoFuente),
+        f.vendido === null ? "Sin dato" : f.vendido, produccionFuenteLabel(f.vendidoFuente), f.entregaTienda || 0, f.merma || 0, f.devolucion || 0, f.ajuste || 0,
+        f.saldo === null ? "Sin dato suficiente" : f.saldo,
+        f.existenciaAcumulada === null ? "Sin dato" : f.existenciaAcumulada + (f.existenciaIncompleta ? " (parcial)" : ""),
+        f.vendidoCompleto ? "Completo" : "Parcial/sin confirmar"];
+    });
+  }
+  function descargarProduccionReporteXlsx(reporte){
+    if(typeof XLSX === "undefined"){ showToast("No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo."); return; }
+    try{
+      var filas = [["Fecha", "Producido", "Fuente de producción", "Vendido", "Fuente de la venta (Arqueo/Metas)", "Entrega a tienda", "Merma", "Devolución", "Ajuste", "Saldo (movimiento del día)", "Existencia acumulada", "Estado del dato de venta"]];
+      produccionBuildExportRows(reporte).forEach(function(r){ filas.push(r); });
+      filas.push([]);
+      var t = reporte.totales;
+      var fuentesTxt = t.fuentesUsadas.filter(function(x){ return x !== "sin_fuente"; }).map(produccionFuenteLabel).join(" + ") || "—";
+      var producidoFuentesTxt = t.producidoFuentesUsadas.map(produccionProducidoFuenteLabel).join(" + ") || "—";
+      filas.push(["TOTALES", t.hayProducido ? t.producido : "Sin captura", producidoFuentesTxt, t.vendidoConocido ? t.vendido : "Sin dato",
+        fuentesTxt, t.entregaTienda, t.merma, t.devolucion, t.ajuste, t.saldo === null ? "Sin dato suficiente" : t.saldo,
+        t.existenciaFinal === null ? "Sin dato" : t.existenciaFinal + (t.existenciaIncompleta ? " (parcial)" : ""),
+        t.vendidoCompleto ? "Completo" : "Parcial/sin confirmar"]);
+      var ws = XLSX.utils.aoa_to_sheet(filas);
+      ws["!cols"] = [{ wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 22 }, { wch: 16 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 18 }, { wch: 24 }];
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Reporte diario");
+      var infoRows = [
+        ["Carmelitas -- Dashboard Gerencial: Producción vs. Ventas (PROTOTIPO)"],
+        ["Producto", reporte.producto], ["Período", reporte.desde + " a " + reporte.hasta],
+        ["Fuente(s) de venta usada(s)", fuentesTxt],
+        ["Fuente(s) de producción usada(s)", producidoFuentesTxt],
+        ["Existencia al inicio del período", t.existenciaInicial],
+        ["Existencia acumulada al final del período (" + reporte.hasta + ")", t.existenciaFinal === null ? "Sin dato" : t.existenciaFinal],
+        ["Nota sobre la existencia acumulada", "Es el arrastre real (saldo inicial + ingresos − ventas − mermas ± ajustes) desde el primer día con datos en el sistema, no solo el movimiento de este período -- distinto del 'Saldo' de cada fila, que es SOLO el movimiento de ese día puntual."],
+        ["Generado el", new Date().toISOString()]
+      ];
+      if(t.esLote){
+        infoRows.push(["Pendiente en taller (acumulado hasta " + reporte.hasta + ")", t.pendienteTaller]);
+        infoRows.push(["Nota sobre el lote", "Este producto se entrega por tandas -- lo pendiente en taller NO es merma ni faltante, son unidades que todavía no salieron del taller."]);
+      }
+      infoRows.push(["Nota", "Prototipo en pruebas. 'Sin captura'/'Sin dato' significa que esa cifra todavía no existe en el sistema -- nunca se calculó ni se supuso, para no inventar números. Arqueo y Metas nunca se suman para el mismo producto/día -- cada producto usa una sola fuente."]);
+      var info = XLSX.utils.aoa_to_sheet(infoRows);
+      XLSX.utils.book_append_sheet(wb, info, "Info");
+      XLSX.writeFile(wb, "produccion-vs-ventas-" + reporte.producto.replace(/[^a-z0-9]+/gi, "_") + "-" + todayISO() + ".xlsx");
+      showToast("Reporte exportado.");
+    }catch(err){
+      showToast("No se pudo generar el archivo. Intenta de nuevo.");
+    }
+  }
+  // Imprimir el reporte -- mismo mecanismo que ya usa toda la app (#printArea +
+  // doWindowPrint/setPrintOrientation, ver doPrintMovimientos/doPrintMetas más arriba), así
+  // sale igual de prolijo y en A4 vertical como pide Jessica para TODAS las impresiones.
+  function buildPrintProduccionHTML(reporte){
+    var t = reporte.totales;
+    var html = "";
+    html += "<h1>" + esc(STATE.meta.businessName || "Arqueo Diario") + "</h1>";
+    html += '<div class="print-sub">Dashboard Gerencial -- Producción vs. Ventas &middot; ' + esc(productoDisplay(reporte.producto)) +
+      " &middot; " + esc(reporte.desde) + " a " + esc(reporte.hasta) + "</div>";
+    var fuentesTxt = t.fuentesUsadas.filter(function(x){ return x !== "sin_fuente"; }).map(produccionFuenteLabel).join(" + ") || "Sin fuente";
+    var producidoFuentesTxt = t.esLote ? "Lote (taller)" : (t.producidoFuentesUsadas.map(produccionProducidoFuenteLabel).join(" + ") || "Sin captura");
+    html += '<div class="print-summary">';
+    html += (t.esLote ? "Producido (lote): " : "Producido: ") + (t.hayProducido ? fmt(t.producido) : "Sin captura") + " (" + esc(producidoFuentesTxt) + ")";
+    if(t.esLote) html += " &nbsp;&middot;&nbsp; Pendiente en taller: " + fmt(t.pendienteTaller) + " (acumulado hasta " + esc(reporte.hasta) + ")";
+    html += " &nbsp;&middot;&nbsp; Vendido: " + (t.vendidoConocido ? fmt(t.vendido) : "Sin dato") + " (" + esc(fuentesTxt) + (t.vendidoCompleto ? "" : ", parcial") + ")";
+    html += " &nbsp;&middot;&nbsp; Merma: " + fmt(t.merma) + " &nbsp;&middot;&nbsp; Devolución: " + fmt(t.devolucion);
+    html += " &nbsp;&middot;&nbsp; Saldo (movimiento del período): " + (t.saldo === null ? "Sin dato suficiente" : fmt(t.saldo));
+    html += " &nbsp;&middot;&nbsp; Existencia acumulada al " + esc(reporte.hasta) + ": " + (t.existenciaFinal === null ? "Sin dato" : fmt(t.existenciaFinal) + (t.existenciaIncompleta ? " (parcial)" : "")) +
+      " (inicio del período: " + fmt(t.existenciaInicial) + ")";
+    html += "</div>";
+    html += '<table style="font-size:9.5px"><thead><tr><th>Fecha</th><th>Producido</th><th>Fuente prod.</th><th>Vendido</th><th>Fuente venta</th><th>Entrega a tienda</th><th>Merma</th><th>Devol.</th><th>Ajuste</th><th>Movim. día</th><th>Existencia acum.</th></tr></thead><tbody>';
+    reporte.filas.forEach(function(f){
+      html += "<tr><td>" + esc(f.fecha) + "</td><td>" + (f.producido === null ? "Sin captura" : fmt(f.producido)) + "</td><td>" +
+        esc(produccionProducidoFuenteLabel(f.producidoFuente)) + "</td><td>" + (f.vendido === null ? "Sin dato" : fmt(f.vendido) + (f.vendidoCompleto ? "" : " (parcial)")) + "</td><td>" +
+        esc(produccionFuenteLabel(f.vendidoFuente)) + "</td><td>" + (f.entregaTienda ? fmt(f.entregaTienda) : "—") + "</td><td>" +
+        (f.merma ? fmt(f.merma) : "—") + "</td><td>" + (f.devolucion ? fmt(f.devolucion) : "—") + "</td><td>" + (f.ajuste ? fmt(f.ajuste) : "—") + "</td><td>" +
+        (f.saldo === null ? "Sin dato" : fmt(f.saldo)) + "</td><td>" + (f.existenciaAcumulada === null ? "Sin dato" : fmt(f.existenciaAcumulada) + (f.existenciaIncompleta ? " (parcial)" : "")) + "</td></tr>";
+    });
+    html += '</tbody><tfoot><tr class="metas-total-row"><td>TOTAL</td><td>' + (t.hayProducido ? fmt(t.producido) : "Sin captura") + "</td><td>" + esc(producidoFuentesTxt) +
+      "</td><td>" + (t.vendidoConocido ? fmt(t.vendido) : "Sin dato") + "</td><td>" + esc(fuentesTxt) + "</td><td>" + fmt(t.entregaTienda) + "</td><td>" +
+      fmt(t.merma) + "</td><td>" + fmt(t.devolucion) + "</td><td>" + fmt(t.ajuste) + "</td><td>" + (t.saldo === null ? "Sin dato" : fmt(t.saldo)) + "</td><td>" +
+      (t.existenciaFinal === null ? "Sin dato" : fmt(t.existenciaFinal)) + "</td></tr></tfoot></table>";
+    html += '<div class="meta-line">"Movim. día" es SOLO lo que entró/salió ese día puntual. "Existencia acum." es el arrastre real desde el primer día con datos en el sistema (saldo inicial + ingresos − ventas − mermas ± ajustes) -- son dos cosas distintas, nunca se suman entre sí ni se duplican.</div>';
+    if(t.esLote){
+      html += '<div class="meta-line">Este producto se entrega por tandas: lo "Pendiente en taller" NO es merma ni faltante -- son unidades que todavía no salieron del taller. El saldo diario se compara contra lo entregado a tienda ese día, nunca contra el lote completo.</div>';
+    }
+    html += '<div class="meta-line">"Parcial" = falta un turno (reporte de la tarde en Metas, o conteo físico de Saldo Final en Arqueo). "Fuente venta"/"Fuente prod." dicen de dónde sale cada número -- Arqueo y Metas nunca se suman para el mismo producto/día.</div>';
+    html += '<div class="print-footer">PROTOTIPO -- Generado ' + esc(new Date().toLocaleString("es-PE",{ timeZone:"America/Lima" })) + "</div>";
+    return html;
+  }
+  function doPrintProduccionReporte(reporte){
+    setPrintOrientation(false);
+    var area = document.getElementById("printArea");
+    area.innerHTML = buildPrintProduccionHTML(reporte);
+    doWindowPrint("Produccion " + productoDisplay(reporte.producto) + " " + reporte.desde + "_" + reporte.hasta);
+  }
+
+  // ---- UI ----
+  function buildProduccionPanel(){
+    var wrap = document.createElement("div");
+    var card = document.createElement("div");
+    card.className = "card";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .4rem";
+    h2.textContent = "Dashboard Gerencial -- Producción vs. Ventas (prototipo)";
+    card.appendChild(h2);
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.innerHTML = "Integra <strong>Arqueo</strong> (<span class=\"chip info\" style=\"vertical-align:middle\">Arqueo</span> -- productos con ingresos físicos, saldos y conteo por turno: Panes/Bebidas/Embutidos/Triples/Otros) y <strong>Metas</strong> (<span class=\"chip plum\" style=\"vertical-align:middle\">Metas</span> -- sánguches, cafés, jugos, batidos, frozen, dulces y demás productos preparados que ya se registran ahí) en un solo lugar. " +
+      "Cada producto toma su venta de UNA sola fuente, nunca de las dos a la vez -- nunca se duplica. " +
+      "Si un producto no está en ninguna de las dos, la venta sale como <span class=\"chip muted\">Sin dato</span>, nunca inventada. " +
+      "<strong>Producción:</strong> para los productos de Arqueo, todo lo que se elabora en el taller se manda completo a tienda según lo pedido, así que el ingreso que ya se registra ahí <span class=\"chip info\" style=\"vertical-align:middle\">Arqueo (ingreso)</span> SE USA DIRECTO como producción -- no hace falta registrarla a mano. " +
+      "<strong>Única excepción: Empanada de carne</strong> <span class=\"chip warn\" style=\"vertical-align:middle\">Lote (taller)</span> -- el taller la entrega por tandas que pueden quedar pendientes hasta el día siguiente, así que para esta sí se registra el lote y cada entrega a mano abajo; lo que falta entregar se ve como \"Pendiente en taller\", nunca como merma ni faltante.";
+    card.appendChild(hint);
+    if(PRODUCCION_MOVIMIENTOS === null){
+      produccionCargarMovimientos().then(function(){ renderPanel(); }).catch(function(){ renderPanel(); });
+      var loading = document.createElement("div");
+      loading.className = "empty-state";
+      loading.textContent = PRODUCCION_MOVIMIENTOS_ERROR ? "No se pudo cargar el historial de producción. Revisa tu conexión." : "Cargando historial de producción...";
+      card.appendChild(loading);
+      wrap.appendChild(card);
+      return wrap;
+    }
+    card.appendChild(buildProduccionRegistrarForm());
+    wrap.appendChild(card);
+    var card2 = document.createElement("div");
+    card2.className = "card";
+    card2.appendChild(buildProduccionReporteSection());
+    wrap.appendChild(card2);
+    return wrap;
+  }
+  function buildProduccionRegistrarForm(){
+    var box = document.createElement("div");
+    var toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.className = "btn btn-sm";
+    toggleBtn.textContent = produccionFormAbierto ? "Ocultar registro" : "+ Registrar movimiento de producción";
+    toggleBtn.addEventListener("click", function(){ produccionFormAbierto = !produccionFormAbierto; renderPanel(); });
+    box.appendChild(toggleBtn);
+    if(!produccionFormAbierto) return box;
+
+    function campo(labelTxt, el, minWidth){
+      var col = document.createElement("div");
+      col.className = "field";
+      if(minWidth) col.style.minWidth = minWidth;
+      var lbl = document.createElement("div"); lbl.className = "field-group-label"; lbl.textContent = labelTxt;
+      col.appendChild(lbl); col.appendChild(el);
+      return col;
+    }
+
+    var form = document.createElement("div");
+    form.style.marginTop = ".7rem";
+
+    var datalist = document.createElement("datalist");
+    datalist.id = "produccionProductosList";
+    buildProduccionUniversoProductos().forEach(function(n){ var op = document.createElement("option"); op.value = n; datalist.appendChild(op); });
+    form.appendChild(datalist);
+
+    var row1 = document.createElement("div");
+    row1.style.display = "flex"; row1.style.flexWrap = "wrap"; row1.style.gap = ".6rem";
+
+    var fechaInput = document.createElement("input");
+    fechaInput.type = "date"; fechaInput.id = "produccionFecha"; fechaInput.value = todayISO();
+    row1.appendChild(campo("Fecha", fechaInput, "140px"));
+
+    var productoInput = document.createElement("input");
+    productoInput.type = "text"; productoInput.id = "produccionProducto"; productoInput.setAttribute("list", "produccionProductosList"); productoInput.placeholder = "Ej: Empanada de carne";
+    row1.appendChild(campo("Producto", productoInput, "220px"));
+
+    var catSel = document.createElement("select"); catSel.id = "produccionCategoria";
+    var opVacio = document.createElement("option"); opVacio.value = ""; opVacio.textContent = "(sin categoría)"; catSel.appendChild(opVacio);
+    PRODUCCION_CATEGORIAS.forEach(function(c){ var op = document.createElement("option"); op.value = c; op.textContent = c; catSel.appendChild(op); });
+    row1.appendChild(campo("Categoría", catSel, "160px"));
+
+    var areaSel = document.createElement("select"); areaSel.id = "produccionArea";
+    PRODUCCION_AREAS.forEach(function(a){ var op = document.createElement("option"); op.value = a; op.textContent = a; areaSel.appendChild(op); });
+    row1.appendChild(campo("Área de producción", areaSel, "180px"));
+    form.appendChild(row1);
+
+    var row2 = document.createElement("div");
+    row2.style.display = "flex"; row2.style.flexWrap = "wrap"; row2.style.gap = ".6rem"; row2.style.marginTop = ".5rem";
+
+    var tandaInput = document.createElement("input");
+    tandaInput.type = "text"; tandaInput.id = "produccionTanda"; tandaInput.placeholder = "Ej: Turno mañana / Tanda 1";
+    row2.appendChild(campo("Tanda / turno", tandaInput, "180px"));
+
+    var tipoSel = document.createElement("select"); tipoSel.id = "produccionTipo";
+    PRODUCCION_TIPOS.forEach(function(t){ var op = document.createElement("option"); op.value = t.key; op.textContent = t.label; tipoSel.appendChild(op); });
+    row2.appendChild(campo("Tipo de movimiento", tipoSel, "240px"));
+
+    var cantidadInput = document.createElement("input");
+    cantidadInput.type = "number"; cantidadInput.step = "1"; cantidadInput.id = "produccionCantidad";
+    row2.appendChild(campo("Cantidad", cantidadInput, "110px"));
+    form.appendChild(row2);
+
+    var notaInput = document.createElement("input");
+    notaInput.type = "text"; notaInput.id = "produccionNota"; notaInput.placeholder = "Obligatoria para ajustes; opcional para el resto"; notaInput.style.width = "100%";
+    var notaCol = campo("Nota", notaInput); notaCol.style.marginTop = ".5rem";
+    form.appendChild(notaCol);
+
+    var saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "btn btn-primary btn-sm";
+    saveBtn.style.marginTop = ".7rem";
+    saveBtn.textContent = "Guardar movimiento";
+    saveBtn.addEventListener("click", function(){
+      var mov = {
+        fecha: fechaInput.value, producto: productoInput.value, categoria: catSel.value, area: areaSel.value,
+        tanda: tandaInput.value, tipo: tipoSel.value, cantidad: cantidadInput.value, nota: notaInput.value
+      };
+      pedirPinAdministrativoYEjecutar(function(responsable){
+        produccionRegistrarMovimiento(mov, responsable).then(function(){
+          showToast('Movimiento de "' + productoDisplay(mov.producto) + '" guardado.');
+          produccionFormAbierto = false;
+          renderPanel();
+        }).catch(function(err){
+          alert((err && err.message) || "No se pudo guardar el movimiento.");
+        });
+      });
+    });
+    form.appendChild(saveBtn);
+    box.appendChild(form);
+    return box;
+  }
+  function buildProduccionReporteSection(){
+    var box = document.createElement("div");
+    var h3 = document.createElement("h3");
+    h3.textContent = "Dashboard Gerencial";
+    box.appendChild(h3);
+
+    var datalist = document.createElement("datalist");
+    datalist.id = "produccionProductosListReporte";
+    buildProduccionUniversoProductos().forEach(function(n){ var op = document.createElement("option"); op.value = n; datalist.appendChild(op); });
+    box.appendChild(datalist);
+
+    function campo(labelTxt, el, minWidth){
+      var col = document.createElement("div");
+      col.className = "field";
+      if(minWidth) col.style.minWidth = minWidth;
+      var lbl = document.createElement("div"); lbl.className = "field-group-label"; lbl.textContent = labelTxt;
+      col.appendChild(lbl); col.appendChild(el);
+      return col;
+    }
+
+    var row = document.createElement("div");
+    row.style.display = "flex"; row.style.flexWrap = "wrap"; row.style.gap = ".6rem"; row.style.alignItems = "flex-end";
+
+    var productoInput = document.createElement("input");
+    productoInput.type = "text"; productoInput.value = produccionFiltro.producto; productoInput.setAttribute("list", "produccionProductosListReporte"); productoInput.placeholder = "Ej: Empanada de carne";
+    row.appendChild(campo("Producto", productoInput, "220px"));
+
+    var desdeInput = document.createElement("input");
+    desdeInput.type = "date"; desdeInput.value = produccionFiltro.desde;
+    row.appendChild(campo("Desde", desdeInput, "140px"));
+
+    var hastaInput = document.createElement("input");
+    hastaInput.type = "date"; hastaInput.value = produccionFiltro.hasta;
+    row.appendChild(campo("Hasta", hastaInput, "140px"));
+
+    // Filtros de categoría y área (pedido original de gerencia: "filtros por producto, fecha,
+    // categoría y área de producción") -- aplican al RANKING de abajo (que cubre todo el
+    // universo de productos); el detalle diario de arriba ya está acotado a 1 producto, así que
+    // estos dos no le hacen falta ahí.
+    var catFiltroSel = document.createElement("select");
+    var opCatVacio = document.createElement("option"); opCatVacio.value = ""; opCatVacio.textContent = "Todas"; catFiltroSel.appendChild(opCatVacio);
+    PRODUCCION_CATEGORIAS.forEach(function(c){ var op = document.createElement("option"); op.value = c; op.textContent = c; if(c === produccionFiltro.categoria) op.selected = true; catFiltroSel.appendChild(op); });
+    row.appendChild(campo("Categoría (ranking)", catFiltroSel, "170px"));
+
+    var areaFiltroSel = document.createElement("select");
+    var opAreaVacio = document.createElement("option"); opAreaVacio.value = ""; opAreaVacio.textContent = "Todas"; areaFiltroSel.appendChild(opAreaVacio);
+    PRODUCCION_AREAS.forEach(function(a){ var op = document.createElement("option"); op.value = a; op.textContent = a; if(a === produccionFiltro.area) op.selected = true; areaFiltroSel.appendChild(op); });
+    row.appendChild(campo("Área (ranking)", areaFiltroSel, "170px"));
+
+    var buscarBtn = document.createElement("button");
+    buscarBtn.type = "button"; buscarBtn.className = "btn btn-sm"; buscarBtn.textContent = "Buscar";
+    buscarBtn.addEventListener("click", function(){
+      produccionFiltro.producto = productoInput.value.trim();
+      produccionFiltro.desde = desdeInput.value || todayISO();
+      produccionFiltro.hasta = hastaInput.value || todayISO();
+      produccionFiltro.categoria = catFiltroSel.value;
+      produccionFiltro.area = areaFiltroSel.value;
+      renderPanel();
+    });
+    row.appendChild(buscarBtn);
+    box.appendChild(row);
+
+    // Todo lo de abajo (resumen, gráfico, ranking, alertas) cubre TODO el universo de productos
+    // -- Arqueo + Metas, todas las categorías -- filtrado solo por categoría/área si se eligió
+    // una; el producto del buscador de arriba NO lo acota (eso es justamente la diferencia con
+    // la "Consulta detallada por producto" del final, que sí es de un solo producto).
+    var ranking = produccionBuildRanking(produccionFiltro.desde, produccionFiltro.hasta, produccionFiltro.categoria, produccionFiltro.area);
+    var filtroTxt = (produccionFiltro.categoria ? ", categoría " + produccionFiltro.categoria : "") + (produccionFiltro.area ? ", área " + produccionFiltro.area : "");
+
+    var hResumen = document.createElement("h3");
+    hResumen.textContent = "Resumen general" + (filtroTxt ? " (" + filtroTxt.replace(/^, /, "") + ")" : " (todas las categorías de Arqueo y Metas)");
+    box.appendChild(hResumen);
+    var resumen = buildProduccionResumenGeneral(ranking);
+    box.appendChild(resumen.node);
+
+    var hGraf = document.createElement("h3");
+    hGraf.textContent = "Producción vs. ventas (gráfico)";
+    box.appendChild(hGraf);
+    box.appendChild(buildProduccionGraficoBarras(ranking));
+
+    var hr1 = document.createElement("hr"); hr1.style.margin = "1.2rem 0"; box.appendChild(hr1);
+
+    var h4 = document.createElement("h3");
+    h4.textContent = "Ranking de productos (mismo período" + filtroTxt + ")";
+    box.appendChild(h4);
+    box.appendChild(buildProduccionRankingTabla(ranking));
+
+    var hr2 = document.createElement("hr"); hr2.style.margin = "1.2rem 0"; box.appendChild(hr2);
+
+    var hAlert = document.createElement("h3");
+    hAlert.textContent = "Alertas de diferencias";
+    box.appendChild(hAlert);
+    box.appendChild(buildProduccionAlertasPanel(resumen.alertas));
+
+    var hr3 = document.createElement("hr"); hr3.style.margin = "1.2rem 0"; box.appendChild(hr3);
+
+    var h5 = document.createElement("h3");
+    h5.textContent = "Consulta detallada por producto";
+    box.appendChild(h5);
+    if(produccionFiltro.producto){
+      var reporte = produccionBuildReporteProducto(produccionFiltro.producto, produccionFiltro.desde, produccionFiltro.hasta);
+      box.appendChild(buildProduccionIndicadores(reporte));
+      box.appendChild(buildProduccionReporteTabla(reporte));
+    } else {
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "Escribe o elige un producto arriba para ver su detalle diario e indicadores.";
+      box.appendChild(empty);
+    }
+
+    return box;
+  }
+  // ---- Dashboard Gerencial: resumen general, gráfico y alertas (oct-2026, pedido de gerencia:
+  // "quiero un resumen general de todas las categorías, gráficos de producción vs. ventas,
+  // ranking de productos, alertas de diferencias y consulta detallada por producto"). Las 3
+  // funciones de abajo NO calculan ninguna regla de negocio nueva -- son lecturas distintas de
+  // los mismos totales que ya arma produccionBuildRanking/produccionBuildReporteProducto, para
+  // no duplicar ningún cálculo de saldo ni de ingreso.
+  function buildProduccionResumenGeneral(ranking){
+    var totalProducido = 0, hayProducido = false, totalVendido = 0, vendidoConocidoTotal = true, totalMerma = 0, totalDevolucion = 0;
+    ranking.forEach(function(r){
+      var t = r.totales;
+      if(t.hayProducido){ totalProducido += t.producido; hayProducido = true; }
+      if(t.vendidoConocido){ totalVendido += t.vendido; } else { vendidoConocidoTotal = false; }
+      totalMerma += t.merma; totalDevolucion += t.devolucion;
+    });
+    var alertas = produccionBuildAlertas(ranking);
+    var statRow = document.createElement("div");
+    statRow.className = "stat-row";
+    statRow.style.margin = ".8rem 0";
+    function stat(label, value, sub, cls){
+      var tile = document.createElement("div");
+      tile.className = "stat-tile";
+      var body = document.createElement("div");
+      body.className = "stat-tile-body";
+      body.innerHTML = "<div class='stat-tile-label'>" + esc(label) + "</div><div class='stat-tile-value" + (cls ? " " + cls : "") + "'>" + esc(value) + "</div>" +
+        (sub ? "<div class='stat-tile-sub'>" + sub + "</div>" : "");
+      tile.appendChild(body);
+      return tile;
+    }
+    statRow.appendChild(stat("Productos con actividad", String(ranking.length), "En el período y filtros elegidos (Arqueo + Metas, todas las categorías)"));
+    statRow.appendChild(stat("Producido / recibido (total)", hayProducido ? fmt(totalProducido) : "Sin captura", "Suma de todos los productos del ranking -- Arqueo (ingreso) + lote + manual, sin duplicar"));
+    statRow.appendChild(stat("Vendido (total)", fmt(totalVendido), vendidoConocidoTotal ? "Arqueo + Metas, sin duplicar" : "Parcial -- algún producto tiene días sin venta confirmada", vendidoConocidoTotal ? "" : "warn"));
+    statRow.appendChild(stat("Merma + Devolución (total)", fmt(totalMerma + totalDevolucion), "Merma " + fmt(totalMerma) + " · Devolución " + fmt(totalDevolucion)));
+    statRow.appendChild(stat("Alertas activas", String(alertas.length), alertas.length ? "Ver detalle en \"Alertas de diferencias\" abajo" : "Sin diferencias fuera de lo esperado", alertas.length ? "bad" : "good"));
+    return { node: statRow, alertas: alertas };
+  }
+  // Gráfico simple de barras (producido/recibido vs. vendido) de los productos con más venta del
+  // período -- se dibuja con divs, no con una librería externa, para no depender de internet ni
+  // agregar peso a "SOLO INDEX" (mismo criterio que ya usa el ranking con su barra de magnitud).
+  function buildProduccionGraficoBarras(ranking){
+    var wrap = document.createElement("div");
+    wrap.style.margin = ".4rem 0 1.2rem";
+    if(!ranking.length){
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "Sin datos suficientes para graficar en este período.";
+      wrap.appendChild(empty);
+      return wrap;
+    }
+    var top = ranking.slice(0, 8); // los 8 con más venta -- un gráfico legible, el detalle completo ya está en el ranking de abajo
+    var max = top.reduce(function(m, r){
+      var p = r.totales.hayProducido ? r.totales.producido : 0;
+      var v = r.totales.vendidoConocido ? r.totales.vendido : 0;
+      return Math.max(m, p, v, r.totales.entregaTienda || 0);
+    }, 0);
+    var leyenda = document.createElement("div");
+    leyenda.className = "hint";
+    leyenda.innerHTML = "<span class=\"chip info\">Producido / recibido</span> &nbsp; <span class=\"chip\" style=\"background:var(--accent);color:#1b1206\">Vendido</span> &nbsp; -- los " + top.length + " productos con más venta en el período elegido.";
+    wrap.appendChild(leyenda);
+    function barra(valor, color, sufijo){
+      var pct = (max > 0 && valor !== null) ? Math.max(valor > 0 ? 3 : 0, Math.round((valor / max) * 100)) : 0;
+      var linea = document.createElement("div");
+      linea.style.display = "flex"; linea.style.alignItems = "center"; linea.style.gap = ".5rem"; linea.style.margin = ".15rem 0";
+      var track = document.createElement("div");
+      track.style.flex = "1 1 auto"; track.style.height = "9px"; track.style.borderRadius = "5px"; track.style.background = "var(--surface-2)"; track.style.overflow = "hidden";
+      var fillEl = document.createElement("div");
+      fillEl.style.height = "100%"; fillEl.style.width = pct + "%"; fillEl.style.background = color; fillEl.style.borderRadius = "5px";
+      track.appendChild(fillEl);
+      linea.appendChild(track);
+      var val = document.createElement("div");
+      val.style.minWidth = "100px"; val.style.fontSize = ".78rem"; val.style.fontWeight = "700"; val.style.textAlign = "right";
+      val.textContent = (valor === null ? "Sin dato" : fmt(valor)) + sufijo;
+      linea.appendChild(val);
+      return linea;
+    }
+    top.forEach(function(r){
+      var t = r.totales;
+      var row = document.createElement("div");
+      row.style.margin = ".55rem 0";
+      var label = document.createElement("div");
+      label.style.fontWeight = "700"; label.style.fontSize = ".82rem"; label.textContent = r.producto;
+      row.appendChild(label);
+      row.appendChild(barra(t.hayProducido ? t.producido : null, "var(--info)", " prod."));
+      row.appendChild(barra(t.vendidoConocido ? t.vendido : null, "var(--accent)", " vend."));
+      wrap.appendChild(row);
+    });
+    return wrap;
+  }
+  // Panel de alertas -- misma data que produccionBuildAlertas, solo presentada con el mismo
+  // componente .chip que el resto de la app ("Atención" = bad, "Revisar" = warn).
+  function buildProduccionAlertasPanel(alertas){
+    var box = document.createElement("div");
+    box.style.margin = ".4rem 0 1.2rem";
+    if(!alertas.length){
+      var ok = document.createElement("div");
+      ok.innerHTML = "<span class=\"chip good\">Sin alertas</span> No se detectaron diferencias fuera de lo esperado en este período y filtros.";
+      box.appendChild(ok);
+      return box;
+    }
+    alertas.forEach(function(a){
+      var line = document.createElement("div");
+      line.style.margin = ".4rem 0";
+      line.innerHTML = "<span class=\"chip " + (a.nivel === "bad" ? "bad" : "warn") + "\">" + (a.nivel === "bad" ? "Atención" : "Revisar") + "</span> <strong>" + esc(a.producto) + "</strong> -- " + esc(a.mensaje);
+      box.appendChild(line);
+    });
+    return box;
+  }
+  // Fila de indicadores (KPIs) del producto/período consultado -- mismo componente .stat-tile
+  // que ya usa el resto de la app (Pedidos, Caja), para que el Dashboard Gerencial se sienta
+  // parte de la misma aplicación y no un agregado aparte.
+  function buildProduccionIndicadores(reporte){
+    var t = reporte.totales;
+    var statRow = document.createElement("div");
+    statRow.className = "stat-row";
+    statRow.style.margin = ".8rem 0";
+    function stat(label, value, sub, cls){
+      var tile = document.createElement("div");
+      tile.className = "stat-tile";
+      var body = document.createElement("div");
+      body.className = "stat-tile-body";
+      body.innerHTML = "<div class='stat-tile-label'>" + esc(label) + "</div><div class='stat-tile-value" + (cls ? " " + cls : "") + "'>" + esc(value) + "</div>" +
+        (sub ? "<div class='stat-tile-sub'>" + sub + "</div>" : "");
+      tile.appendChild(body);
+      return tile;
+    }
+    var fuentesTxt = t.fuentesUsadas.filter(function(f){ return f !== "sin_fuente"; }).map(produccionFuenteLabel);
+    var fuenteSub = fuentesTxt.length ? "Fuente: " + fuentesTxt.join(" + ") : "Sin fuente de venta conectada";
+    var producidoFuentesTxt = t.producidoFuentesUsadas.map(produccionProducidoFuenteLabel);
+    var producidoSub = t.esLote ? "Lotes registrados a mano (producto de entrega por tandas)"
+      : (producidoFuentesTxt.length ? "Fuente: " + producidoFuentesTxt.join(" + ") : "Sin registro de producción en este período");
+    statRow.appendChild(stat(t.esLote ? "Producido (lote)" : "Producido", t.hayProducido ? fmt(t.producido) : "Sin captura", producidoSub));
+    if(t.esLote){
+      statRow.appendChild(stat("Pendiente en taller", fmt(t.pendienteTaller), "Acumulado hasta " + reporte.hasta + " -- no es merma ni faltante, son unidades esperando su próxima entrega", t.pendienteTaller > 0 ? "" : "good"));
+    }
+    statRow.appendChild(stat("Vendido", t.vendidoConocido ? fmt(t.vendido) : "Sin dato", fuenteSub + (t.vendidoCompleto ? "" : " · parcial"), t.vendidoConocido ? "" : "bad"));
+    statRow.appendChild(stat("Merma + Devolución", fmt(t.merma + t.devolucion), "Merma " + fmt(t.merma) + " · Devolución " + fmt(t.devolucion)));
+    statRow.appendChild(stat("Movimiento del período", t.saldo === null ? "Sin dato suficiente" : fmt(t.saldo),
+      (t.esLote ? "Entregado a tienda" : "Producido") + " − merma − devolución + ajuste − vendido, SOLO de este período", t.saldo === null ? "" : (t.saldo < 0 ? "bad" : "good")));
+    // Existencia acumulada: a diferencia del tile anterior (que es solo el movimiento DE ESTE
+    // período), esta arrastra saldo inicial + ingresos − ventas − mermas ± ajustes desde el
+    // primer día con datos en el sistema -- es la existencia real a la fecha de corte.
+    statRow.appendChild(stat("Existencia acumulada", t.existenciaFinal === null ? "Sin dato" : fmt(t.existenciaFinal),
+      "Inicio del período: " + fmt(t.existenciaInicial) + (t.existenciaIncompleta ? " · hay días sin venta confirmada en el histórico (parcial)" : "") + " · saldo inicial + ingresos − ventas − mermas ± ajustes",
+      t.existenciaFinal === null ? "" : (t.existenciaFinal < 0 ? "bad" : "good")));
+    return statRow;
+  }
+  function buildProduccionReporteTabla(reporte){
+    var wrap = document.createElement("div");
+    var excelBtn = document.createElement("button");
+    excelBtn.type = "button"; excelBtn.className = "btn btn-sm"; excelBtn.style.margin = ".6rem .5rem .6rem 0";
+    excelBtn.textContent = "📊 Exportar a Excel";
+    excelBtn.addEventListener("click", function(){ descargarProduccionReporteXlsx(reporte); });
+    wrap.appendChild(excelBtn);
+
+    var printBtn = document.createElement("button");
+    printBtn.type = "button"; printBtn.className = "btn btn-sm"; printBtn.style.margin = ".6rem 0";
+    printBtn.textContent = "🖨️ Imprimir";
+    printBtn.addEventListener("click", function(){ doPrintProduccionReporte(reporte); });
+    wrap.appendChild(printBtn);
+
+    var tableWrap = document.createElement("div");
+    tableWrap.className = "table-wrap";
+    var table = document.createElement("table");
+    table.className = "data-table";
+    var html = "<thead><tr><th>Fecha</th><th>Producido</th><th>Fuente prod.</th><th>Vendido</th><th>Fuente venta</th><th>Entrega a tienda</th><th>Merma</th><th>Devolución</th><th>Ajuste</th><th>Movim. día</th><th>Existencia acum.</th></tr></thead><tbody>";
+    reporte.filas.forEach(function(f){
+      var ventaCell = f.vendido === null ? "Sin dato" : fmt(f.vendido);
+      var estadoChip = f.vendido === null ? "" : (f.vendidoCompleto ? "<span class=\"chip good\">Completo</span>" : "<span class=\"chip warn\">Parcial</span>");
+      var fuenteChip = "<span class=\"chip " + produccionFuenteChipClass(f.vendidoFuente) + "\" title=\"" + esc(f.vendidoDetalle || "") + "\">" + produccionFuenteLabel(f.vendidoFuente) + "</span>";
+      var producidoFuenteChip = f.producidoFuente ? "<span class=\"chip " + produccionProducidoFuenteChipClass(f.producidoFuente) + "\">" + produccionProducidoFuenteLabel(f.producidoFuente) + "</span>" : "—";
+      var existenciaCell = f.existenciaAcumulada === null ? "Sin dato" : fmt(f.existenciaAcumulada) + (f.existenciaIncompleta ? " <span class=\"chip warn\">parcial</span>" : "");
+      html += "<tr><td>" + esc(f.fecha) + "</td><td>" + (f.producido === null ? "Sin captura" : fmt(f.producido)) +
+        "</td><td>" + producidoFuenteChip + "</td><td title=\"" + esc(f.vendidoDetalle || "") + "\">" + ventaCell + " " + estadoChip + "</td><td>" + fuenteChip + "</td><td>" +
+        (f.entregaTienda ? fmt(f.entregaTienda) : "—") + "</td><td>" + (f.merma ? fmt(f.merma) : "—") + "</td><td>" +
+        (f.devolucion ? fmt(f.devolucion) : "—") + "</td><td>" + (f.ajuste ? fmt(f.ajuste) : "—") + "</td><td>" +
+        (f.saldo === null ? "Sin dato suficiente" : fmt(f.saldo)) + "</td><td>" + existenciaCell + "</td></tr>";
+    });
+    var t = reporte.totales;
+    var fuentesTotalTxt = t.fuentesUsadas.filter(function(x){ return x !== "sin_fuente"; }).map(produccionFuenteLabel).join(" + ") || "—";
+    var producidoFuentesTotalTxt = t.producidoFuentesUsadas.map(produccionProducidoFuenteLabel).join(" + ") || "—";
+    html += "<tr><td><strong>Total</strong></td><td><strong>" + (t.hayProducido ? fmt(t.producido) : "Sin captura") + "</strong></td><td>" + esc(producidoFuentesTotalTxt) + "</td><td><strong>" +
+      (t.vendidoConocido ? fmt(t.vendido) : "Sin dato") + (t.vendidoCompleto ? "" : " <span class=\"chip warn\">Parcial</span>") + "</strong></td><td>" + esc(fuentesTotalTxt) + "</td><td><strong>" + fmt(t.entregaTienda) +
+      "</strong></td><td><strong>" + fmt(t.merma) + "</strong></td><td><strong>" + fmt(t.devolucion) + "</strong></td><td><strong>" + fmt(t.ajuste) +
+      "</strong></td><td><strong>" + (t.saldo === null ? "Sin dato suficiente" : fmt(t.saldo)) + "</strong></td><td><strong>" +
+      (t.existenciaFinal === null ? "Sin dato" : fmt(t.existenciaFinal)) + "</strong></td></tr>";
+    html += "</tbody>";
+    table.innerHTML = html;
+    tableWrap.appendChild(table);
+    wrap.appendChild(tableWrap);
+    var nota = document.createElement("div");
+    nota.className = "hint";
+    nota.textContent = "\"Parcial\" significa que falta un turno (reporte de la tarde en Metas, o conteo físico de Saldo Final en Arqueo) -- el total del período puede subir cuando se complete. \"Fuente venta\" dice de dónde sale la venta de ese día: Arqueo o Metas, nunca las dos juntas. \"Movim. día\" es SOLO lo que entró/salió ese día puntual; \"Existencia acum.\" es el arrastre real (saldo inicial + ingresos − ventas − mermas ± ajustes) desde el primer día con datos en el sistema -- las dos nunca se duplican ni se suman entre sí." +
+      (reporte.totales.esLote ? " \"Fuente prod.\" = Lote (taller): este producto se entrega por tandas, así que el movimiento del día se compara contra lo ENTREGADO a tienda ese día, no contra el lote completo -- lo que queda sin entregar aparece arriba como \"Pendiente en taller\", y no se cuenta como merma ni faltante."
+        : " \"Fuente prod.\" = Arqueo (ingreso): para este producto, el ingreso que ya se registra en su pestaña de Arqueo ES la producción recibida en tienda -- no hace falta registrarla aparte.");
+    wrap.appendChild(nota);
+    return wrap;
+  }
+  function buildProduccionRankingTabla(ranking){
+    var tableWrap = document.createElement("div");
+    tableWrap.className = "table-wrap";
+    var table = document.createElement("table");
+    table.className = "data-table";
+    var html = "<thead><tr><th>Producto</th><th>Categoría</th><th>Fuente</th><th>Vendido</th><th>Producido</th><th>Merma</th><th>Devolución</th><th>Movim. período</th><th>Existencia acum.</th></tr></thead><tbody>";
+    if(ranking.length === 0){
+      html += "<tr><td colspan=\"9\">Sin movimientos ni ventas registradas en este período.</td></tr>";
+    }
+    // Barra de magnitud (venta relativa al producto con más venta del ranking) -- un solo color
+    // (dorado de marca), nunca reemplaza el número, solo lo acompaña -- mismo criterio que el
+    // resto de la app: el texto siempre dice la cifra exacta, el color es un apoyo visual.
+    // La barra de magnitud solo se dibuja cuando la venta del período es CONOCIDA de verdad
+    // (vendidoConocido) -- si falta un día dentro del rango, el total ya sale "Sin dato" en
+    // texto, y dibujar una barra con la suma parcial de todos modos daría una pista visual de
+    // una magnitud que en realidad no está confirmada. Mismo criterio para calcular el máximo.
+    var maxVendido = ranking.reduce(function(m, r){ return r.totales.vendidoConocido ? Math.max(m, r.totales.vendido || 0) : m; }, 0);
+    ranking.forEach(function(r){
+      var t = r.totales;
+      var fuentesTxt = t.fuentesUsadas.filter(function(x){ return x !== "sin_fuente"; }).map(produccionFuenteLabel);
+      var fuenteCell = fuentesTxt.length
+        ? fuentesTxt.map(function(f){ return "<span class=\"chip " + (f === "Metas" ? "plum" : "info") + "\">" + f + "</span>"; }).join(" ")
+        : "<span class=\"chip muted\">Sin fuente</span>";
+      var pct = (t.vendidoConocido && maxVendido > 0 && t.vendido) ? Math.max(4, Math.round((t.vendido / maxVendido) * 100)) : 0;
+      var ventaCell = "<div>" + (t.vendidoConocido ? fmt(t.vendido) : "Sin dato") + (t.vendidoCompleto ? "" : " <span class=\"chip warn\">Parcial</span>") + "</div>" +
+        (pct > 0 ? "<div style=\"height:5px;border-radius:3px;background:var(--surface-2);margin-top:.25rem;overflow:hidden;\"><div style=\"height:100%;width:" + pct + "%;background:var(--accent);border-radius:3px;\"></div></div>" : "");
+      var existenciaCell = t.existenciaFinal === null ? "Sin dato" : fmt(t.existenciaFinal) + (t.existenciaIncompleta ? " <span class=\"chip warn\">parcial</span>" : "");
+      html += "<tr><td>" + esc(r.producto) + "</td><td>" + esc(r.categoria || "Sin categoría") + "</td><td>" + fuenteCell + "</td><td>" + ventaCell + "</td><td>" + (t.hayProducido ? fmt(t.producido) : "Sin captura") + "</td><td>" + fmt(t.merma) + "</td><td>" + fmt(t.devolucion) + "</td><td>" +
+        (t.saldo === null ? "—" : fmt(t.saldo)) + "</td><td style=\"" + (t.existenciaFinal !== null && t.existenciaFinal < 0 ? "color:var(--bad);font-weight:700" : "") + "\">" + existenciaCell + "</td></tr>";
+    });
+    html += "</tbody>";
+    table.innerHTML = html;
+    tableWrap.appendChild(table);
+    return tableWrap;
   }
 
   // Agrupación visual de los 6 procesos de Pedidos en 3 categorías (set-2026, pedido de
@@ -19236,6 +20702,7 @@ var TRIPLES = [
     };
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
+    auth = firebase.auth();
   }
 
   // Al tocar la notificación de un pedido nuevo (push de ntfy.sh, ver pedidoNotificarDespacho)
@@ -19254,7 +20721,6 @@ var TRIPLES = [
 
   function init(){
     checkPedidoHashInicial();
-    initFirebase();
     wireStatic();
     document.getElementById("panel").innerHTML = '<div class="empty-state">Cargando datos…</div>';
     attachRemoteSync(function(data){
@@ -19282,29 +20748,65 @@ var TRIPLES = [
     });
   }
 
-  // ---------- lock screen (contraseña compartida del equipo) ----------
-  var APP_PASSWORD = "Carmelitas2026";
-  function isUnlocked(){
-    try{ return sessionStorage.getItem("arqueo_unlocked") === "1"; }catch(e){ return false; }
+  // ---------- acceso real (Firebase Authentication, nov-2026) ----------
+  // Reemplaza la contraseña compartida de todo el equipo ("Carmelitas2026", visible para
+  // cualquiera que viera el código fuente) por una cuenta real por persona. Entrar con Firebase
+  // Auth SOLO prueba quién eres -- lo que de verdad autoriza a usar la app es tener, además, un
+  // documento en `staff/{uid}` con activo=true (ver verificarStaffYEntrar). Firestore exige
+  // exactamente lo mismo del lado servidor (ver firestore.rules), así que aunque alguien se las
+  // arreglara para saltarse esta pantalla, Firestore igual le negaría cualquier lectura/escritura.
+  var errEl = null; // cache perezoso del <p id="lockError">, se asigna la primera vez que se usa
+  function mostrarErrorLock(mensaje){
+    errEl = errEl || document.getElementById("lockError");
+    errEl.textContent = mensaje || "No se pudo entrar. Revisa tu correo y contraseña.";
+    errEl.hidden = false;
   }
-  function setUnlocked(){
-    try{ sessionStorage.setItem("arqueo_unlocked", "1"); }catch(e){}
+  function ocultarErrorLock(){
+    errEl = errEl || document.getElementById("lockError");
+    errEl.hidden = true;
   }
-  function showLock(){
+  function showLock(mensajeError){
     document.getElementById("lockScreen").hidden = false;
     document.getElementById("appRoot").hidden = true;
-    var input = document.getElementById("lockInput");
-    setTimeout(function(){ input.focus(); }, 30);
+    if(mensajeError) mostrarErrorLock(mensajeError);
+    var input = document.getElementById("lockEmail");
+    setTimeout(function(){ if(input) input.focus(); }, 30);
   }
   function hideLock(){
     document.getElementById("lockScreen").hidden = true;
     document.getElementById("appRoot").hidden = false;
   }
+  function mostrarSesionChip(){
+    var chip = document.getElementById("sessionChip");
+    var nombreEl = document.getElementById("sessionChipNombre");
+    var personalBtn = document.getElementById("sessionChipPersonal");
+    if(!chip || !nombreEl || !CURRENT_STAFF) return;
+    nombreEl.textContent = CURRENT_STAFF.nombre + (CURRENT_STAFF.rol === "admin" ? " · admin" : "");
+    if(personalBtn) personalBtn.hidden = CURRENT_STAFF.rol !== "admin";
+    chip.hidden = false;
+  }
+  // Verifica que la cuenta recién autenticada tenga un documento staff/{uid} activo -- NUNCA basta
+  // con haber iniciado sesión en Firebase Auth para entrar a la app (ver comentario de arriba).
+  function verificarStaffYEntrar(user){
+    return db.collection("staff").doc(user.uid).get().then(function(snap){
+      if(!snap.exists || !snap.data().activo){
+        return auth.signOut().then(function(){
+          throw new Error("Tu cuenta no está habilitada todavía. Pídele a Jessica (o a un administrador) que te active en \"Personal\".");
+        });
+      }
+      var d = snap.data();
+      CURRENT_STAFF = { uid: user.uid, email: user.email, nombre: d.nombre || user.email, rol: d.rol || "staff" };
+      hideLock();
+      mostrarSesionChip();
+      init();
+    });
+  }
   function wireLock(){
     var form = document.getElementById("lockForm");
     var input = document.getElementById("lockInput");
-    var err = document.getElementById("lockError");
+    var emailInput = document.getElementById("lockEmail");
     var toggle = document.getElementById("lockToggle");
+    var submitBtn = document.getElementById("lockSubmitBtn");
     toggle.addEventListener("click", function(){
       var show = input.type === "password";
       input.type = show ? "text" : "password";
@@ -19316,23 +20818,51 @@ var TRIPLES = [
       // Recorta espacios de más al principio/final: en el celular es fácil que el
       // teclado agregue un espacio sin que se note, sobre todo escribiendo a mano
       // (con copiar y pegar eso no pasa, por eso ahí sí entraba).
-      var typed = input.value.replace(/^\s+|\s+$/g, "");
-      if(typed === APP_PASSWORD){
-        setUnlocked();
-        hideLock();
-        init();
-      } else {
-        err.hidden = false;
-        input.value = "";
-        input.focus();
+      var correo = emailInput.value.replace(/^\s+|\s+$/g, "");
+      var clave = input.value;
+      if(!correo || !clave){
+        mostrarErrorLock("Escribe tu correo y tu contraseña.");
+        return;
       }
+      ocultarErrorLock();
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Entrando...";
+      auth.signInWithEmailAndPassword(correo, clave).then(function(cred){
+        return verificarStaffYEntrar(cred.user);
+      }).catch(function(e){
+        input.value = "";
+        var msg = "No se pudo entrar. Revisa tu correo y contraseña.";
+        if(e && e.code === "auth/too-many-requests") msg = "Demasiados intentos. Espera un momento y vuelve a intentar.";
+        else if(e && e.message) msg = e.message;
+        mostrarErrorLock(msg);
+      }).then(function(){
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Entrar";
+      });
     });
+  }
+  function cerrarSesion(){
+    CURRENT_STAFF = null;
+    auth.signOut().then(function(){ location.reload(); });
+  }
+  function wireSessionChip(){
+    var btn = document.getElementById("sessionChipSalir");
+    if(btn) btn.addEventListener("click", cerrarSesion);
+    var personalBtn = document.getElementById("sessionChipPersonal");
+    if(personalBtn) personalBtn.addEventListener("click", function(){ showPersonalModal(); });
   }
 
   function boot(){
+    initFirebase();
     wireLock();
-    if(isUnlocked()){ hideLock(); init(); }
-    else { showLock(); }
+    wireSessionChip();
+    showLock();
+    auth.onAuthStateChanged(function(user){
+      if(!user){ CURRENT_STAFF = null; showLock(); return; }
+      verificarStaffYEntrar(user).catch(function(e){
+        showLock(e && e.message);
+      });
+    });
   }
 
   if(document.readyState === "loading"){ document.addEventListener("DOMContentLoaded", boot); }
