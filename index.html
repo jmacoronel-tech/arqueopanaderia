@@ -1267,26 +1267,23 @@
      de la leyenda ni del resumen porque los tres usan los mismos tokens --good/--bad. */
 </style>
 
-<!-- Pantalla de acceso (nov-2026, a pedido de Jessica: "implementa autenticación real para el
-     personal administrativo"). Reemplaza la contraseña compartida de todo el equipo por una
-     cuenta real de Firebase Authentication (correo + contraseña) por persona -- la seguridad de
-     verdad ahora vive en las reglas de Firestore (ver firestore.rules), que exigen haber iniciado
-     sesión Y tener un documento en `staff/{uid}` con activo=true. Ver
-     diseno_seguridad_y_sincronizacion.md para el detalle completo. -->
+<!-- Pantalla de acceso -- vuelta temporalmente a la contraseña compartida del equipo (25-oct-2026):
+     Jessica subió la versión con cuenta real de Firebase Authentication antes de haber creado las
+     cuentas de su personal en Firebase (pasos A y B de instrucciones_publicar_carta_digital.md),
+     así que nadie podía entrar. Esto restaura el acceso de inmediato con la MISMA contraseña de
+     siempre. El código de autenticación real (auth, staff/{uid}, pantalla "Personal") se queda
+     completo y listo más abajo en el archivo -- no se borró nada -- para activarlo cuando Jessica
+     termine de crear las cuentas de su equipo con calma. -->
 <div id="lockScreen" class="lock-screen" hidden>
   <form id="lockForm" class="lock-card">
     <h1 class="lock-title">Arqueo Diario</h1>
-    <p class="lock-sub">Ingresa con tu cuenta del equipo para continuar.</p>
-    <div class="lock-input-wrap no-toggle">
-      <input id="lockEmail" class="lock-input" type="email" inputmode="email" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Correo" />
-    </div>
+    <p class="lock-sub">Ingresa la contraseña del equipo para continuar.</p>
     <div class="lock-input-wrap">
-      <input id="lockInput" class="lock-input" type="password" inputmode="text" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Contraseña" />
+      <input id="lockInput" class="lock-input" type="password" inputmode="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Contraseña" />
       <button class="lock-toggle" id="lockToggle" type="button" aria-label="Mostrar contraseña">Mostrar</button>
     </div>
-    <button class="btn btn-primary lock-btn" type="submit" id="lockSubmitBtn">Entrar</button>
-    <p id="lockError" class="lock-error" hidden>No se pudo entrar. Revisa tu correo y contraseña.</p>
-    <p class="lock-sub" style="margin-top:.9rem;font-size:.78rem;">¿No tienes cuenta todavía? Pídele a Jessica (o a un administrador) que te cree una.</p>
+    <button class="btn btn-primary lock-btn" type="submit">Entrar</button>
+    <p id="lockError" class="lock-error" hidden>Contraseña incorrecta. Intenta de nuevo.</p>
   </form>
 </div>
 
@@ -20755,21 +20752,22 @@ var TRIPLES = [
   // documento en `staff/{uid}` con activo=true (ver verificarStaffYEntrar). Firestore exige
   // exactamente lo mismo del lado servidor (ver firestore.rules), así que aunque alguien se las
   // arreglara para saltarse esta pantalla, Firestore igual le negaría cualquier lectura/escritura.
-  var errEl = null; // cache perezoso del <p id="lockError">, se asigna la primera vez que se usa
-  function mostrarErrorLock(mensaje){
-    errEl = errEl || document.getElementById("lockError");
-    errEl.textContent = mensaje || "No se pudo entrar. Revisa tu correo y contraseña.";
-    errEl.hidden = false;
+  // ---------- lock screen (contraseña compartida del equipo) ----------
+  // Vuelta temporal a la contraseña compartida (25-oct-2026) -- ver comentario junto a
+  // #lockScreen en el HTML. Las funciones de autenticación real (verificarStaffYEntrar,
+  // mostrarSesionChip, cerrarSesion, wireSessionChip, más abajo) se quedan definidas y listas,
+  // simplemente boot() ya no las usa hasta que Jessica termine de crear las cuentas de su equipo.
+  var APP_PASSWORD = "Carmelitas2026";
+  function isUnlocked(){
+    try{ return sessionStorage.getItem("arqueo_unlocked") === "1"; }catch(e){ return false; }
   }
-  function ocultarErrorLock(){
-    errEl = errEl || document.getElementById("lockError");
-    errEl.hidden = true;
+  function setUnlocked(){
+    try{ sessionStorage.setItem("arqueo_unlocked", "1"); }catch(e){}
   }
-  function showLock(mensajeError){
+  function showLock(){
     document.getElementById("lockScreen").hidden = false;
     document.getElementById("appRoot").hidden = true;
-    if(mensajeError) mostrarErrorLock(mensajeError);
-    var input = document.getElementById("lockEmail");
+    var input = document.getElementById("lockInput");
     setTimeout(function(){ if(input) input.focus(); }, 30);
   }
   function hideLock(){
@@ -20804,9 +20802,8 @@ var TRIPLES = [
   function wireLock(){
     var form = document.getElementById("lockForm");
     var input = document.getElementById("lockInput");
-    var emailInput = document.getElementById("lockEmail");
+    var err = document.getElementById("lockError");
     var toggle = document.getElementById("lockToggle");
-    var submitBtn = document.getElementById("lockSubmitBtn");
     toggle.addEventListener("click", function(){
       var show = input.type === "password";
       input.type = show ? "text" : "password";
@@ -20818,27 +20815,16 @@ var TRIPLES = [
       // Recorta espacios de más al principio/final: en el celular es fácil que el
       // teclado agregue un espacio sin que se note, sobre todo escribiendo a mano
       // (con copiar y pegar eso no pasa, por eso ahí sí entraba).
-      var correo = emailInput.value.replace(/^\s+|\s+$/g, "");
-      var clave = input.value;
-      if(!correo || !clave){
-        mostrarErrorLock("Escribe tu correo y tu contraseña.");
-        return;
-      }
-      ocultarErrorLock();
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Entrando...";
-      auth.signInWithEmailAndPassword(correo, clave).then(function(cred){
-        return verificarStaffYEntrar(cred.user);
-      }).catch(function(e){
+      var typed = input.value.replace(/^\s+|\s+$/g, "");
+      if(typed === APP_PASSWORD){
+        setUnlocked();
+        hideLock();
+        init();
+      } else {
+        err.hidden = false;
         input.value = "";
-        var msg = "No se pudo entrar. Revisa tu correo y contraseña.";
-        if(e && e.code === "auth/too-many-requests") msg = "Demasiados intentos. Espera un momento y vuelve a intentar.";
-        else if(e && e.message) msg = e.message;
-        mostrarErrorLock(msg);
-      }).then(function(){
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Entrar";
-      });
+        input.focus();
+      }
     });
   }
   function cerrarSesion(){
@@ -20855,14 +20841,8 @@ var TRIPLES = [
   function boot(){
     initFirebase();
     wireLock();
-    wireSessionChip();
-    showLock();
-    auth.onAuthStateChanged(function(user){
-      if(!user){ CURRENT_STAFF = null; showLock(); return; }
-      verificarStaffYEntrar(user).catch(function(e){
-        showLock(e && e.message);
-      });
-    });
+    if(isUnlocked()){ hideLock(); init(); }
+    else { showLock(); }
   }
 
   if(document.readyState === "loading"){ document.addEventListener("DOMContentLoaded", boot); }
