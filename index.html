@@ -1142,10 +1142,29 @@
   .moz-mic-btn.listening{ background:var(--bad); border-color:var(--bad); color:#fff; animation:mozMicPulse 1.1s ease-in-out infinite; }
   @keyframes mozMicPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(179,68,40,.45); } 50%{ box-shadow:0 0 0 .5rem rgba(179,68,40,0); } }
 
-  .moz-cat-row{ display:flex; gap:.5rem; overflow-x:auto; padding-bottom:.3rem; margin-bottom:.4rem; -ms-overflow-style:none; scrollbar-width:none; }
+  /* nov-2026, pedido de Jessica ("que se vea muy bien la categoría"): cada chip pasa a leerse
+     como una etiqueta pequeña prendida en la vitrina de la panadería -- un círculo con el ícono
+     separado del texto, en reposo discreta, y recién se "calienta" a dorado cuando está elegida
+     (con una sombra cálida propia, no la sombra gris genérica de cualquier tarjeta). Reutiliza
+     EXACTAMENTE los mismos tokens de color que ya usa el resto de Mozos (--accent/--surface/
+     --border/--ink-soft) -- nada de paleta nueva, solo mejor estructura visual. */
+  .moz-cat-row{ display:flex; gap:.55rem; overflow-x:auto; padding:.15rem .1rem .45rem; margin-bottom:.4rem; -ms-overflow-style:none; scrollbar-width:none; -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 2.4rem), transparent 100%); mask-image:linear-gradient(to right, #000 calc(100% - 2.4rem), transparent 100%); }
   .moz-cat-row::-webkit-scrollbar{ display:none; }
-  .moz-cat-chip{ flex:none; border:1px solid var(--border); background:var(--surface); color:var(--ink-soft); padding:.6rem 1.05rem; border-radius:999px; font-size:.88rem; font-weight:700; cursor:pointer; white-space:nowrap; font-family:inherit; }
-  .moz-cat-chip.active{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .moz-cat-chip{ flex:none; display:inline-flex; align-items:center; gap:.5rem; border:1px solid var(--border); background:var(--surface); color:var(--ink-soft); padding:.4rem 1.05rem .4rem .4rem; border-radius:999px; font-size:.86rem; font-weight:700; letter-spacing:.01em; cursor:pointer; white-space:nowrap; font-family:inherit; transition:transform .12s ease, box-shadow .15s ease, background-color .15s ease, border-color .15s ease, color .15s ease; }
+  .moz-cat-chip:active{ transform:scale(.96); }
+  .moz-cat-chip-icon{ flex:none; width:1.7rem; height:1.7rem; border-radius:50%; background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:.94rem; line-height:1; transition:background-color .15s ease; }
+  .moz-cat-chip.active{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); box-shadow:0 6px 16px -6px rgba(156,107,24,.55); }
+  .moz-cat-chip.active .moz-cat-chip-icon{ background:rgba(253,248,238,.3); }
+  /* "⭐ Frecuentes" no es una categoría más del menú -- es personal, cambia con el uso real de
+     cada mozo (ver mozosFrecuentesIncrementar) -- por eso se distingue con su propio borde
+     dorado incluso en reposo, en vez de verse igual que el resto de categorías de producto. */
+  .moz-cat-chip-estrella{ border-color:var(--accent); color:var(--accent); }
+  .moz-cat-chip-estrella .moz-cat-chip-icon{ background:var(--accent-soft); }
+  /* "🔎 Todos" es quitar el filtro, no una categoría -- se ve a propósito más discreta (sin
+     círculo de ícono, borde punteado) mientras no está elegida. */
+  .moz-cat-chip-todos{ padding-left:1.05rem; }
+  .moz-cat-chip-todos:not(.active){ background:none; border-style:dashed; }
+  .moz-cat-chip-todos .moz-cat-chip-icon{ display:none; }
 
   .moz-grid-prod{ display:grid; grid-template-columns:repeat(auto-fill,minmax(155px,1fr)); gap:.7rem; padding-bottom:9rem; }
   .moz-prod-tile{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:.85rem .8rem; min-height:106px; display:flex; flex-direction:column; justify-content:space-between; position:relative; }
@@ -1219,6 +1238,79 @@
   .moz-drawer-total .moz-lbl{ font-size:.78rem; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
   .moz-drawer-total .moz-val{ font-family:"Fraunces",Georgia,serif; font-size:1.5rem; font-weight:700; color:var(--ink); }
   .moz-drawer-footer .moz-btn-enviar{ width:100%; }
+
+  /* ---------- nov-2026: rediseño de la pantalla de Comanda -- pestañas Productos / Nueva
+     comanda / Consumo, barra de "Consumo acumulado" persistente, y vista previa de precuenta
+     (pedido de Jessica: pantalla más rápida/clara para tableta, sin tocar la lógica ya probada
+     de comandas/precios/impresión). Reutiliza los mismos tokens de color (--accent/--good/--bad/
+     --ink/--surface/--border) que ya usa el resto de Mozos/Salón, nunca colores sueltos. ---- */
+  .moz-resumen-bar{ display:flex; align-items:center; justify-content:space-between; gap:.8rem; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:.85rem 1rem; margin-bottom:.8rem; flex-wrap:wrap; }
+  .moz-resumen-lbl{ font-size:.72rem; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+  .moz-resumen-val{ font-family:"Fraunces",Georgia,serif; font-size:1.55rem; font-weight:700; color:var(--ink); line-height:1.15; }
+  .moz-resumen-sub{ font-size:.78rem; color:var(--ink-muted); font-weight:600; margin-top:.1rem; }
+  .moz-resumen-pendiente{ color:var(--warn); font-weight:800; }
+  .moz-resumen-ver-btn{ flex:none; border:1.3px solid var(--accent); background:var(--accent-soft); color:var(--accent); border-radius:999px; padding:.6rem 1rem; font-size:.84rem; font-weight:800; cursor:pointer; font-family:inherit; white-space:nowrap; }
+
+  .moz-tabs-nav{ display:flex; gap:.5rem; margin-bottom:.9rem; }
+  .moz-tab-btn{ flex:1; border:1px solid var(--border); background:var(--surface); color:var(--ink-soft); border-radius:var(--radius-sm); padding:.8rem .6rem; font-size:.92rem; font-weight:800; cursor:pointer; font-family:inherit; text-align:center; position:relative; }
+  .moz-tab-btn.active{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .moz-tab-badge{ display:inline-flex; align-items:center; justify-content:center; min-width:1.3rem; height:1.3rem; padding:0 .3rem; border-radius:999px; background:var(--bad); color:#fff; font-size:.7rem; font-weight:800; margin-left:.3rem; vertical-align:middle; }
+  .moz-tab-btn.active .moz-tab-badge{ background:var(--accent-ink); color:var(--accent); }
+
+  /* Cada pestaña queda montada en el DOM todo el tiempo (igual que hacía el drawer antes) para
+     no perder el buscador ni el scroll -- solo se alterna "show" para mostrar una a la vez. */
+  .moz-tab-panel{ display:none; }
+  .moz-tab-panel.show{ display:block; }
+
+  .moz-nueva-body{ padding-bottom:9rem; }
+  .moz-nueva-empty{ color:var(--ink-muted); text-align:center; padding:2rem 1rem; }
+  .moz-nueva-ir-productos{ display:block; margin:0 auto; border:1px solid var(--accent); background:var(--accent-soft); color:var(--accent); border-radius:999px; padding:.7rem 1.2rem; font-weight:800; font-size:.88rem; cursor:pointer; font-family:inherit; }
+  .moz-nueva-pendiente{ font-size:.78rem; color:var(--ink-soft); font-weight:700; margin-top:.3rem; }
+  .moz-nueva-pendiente b{ color:var(--good); }
+  .moz-nueva-pendiente-primero{ color:var(--good); }
+  .moz-nueva-footer{ position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:1120px; background:var(--surface); border-top:1px solid var(--border); box-shadow:0 -8px 24px -12px rgba(36,28,19,.28); padding:.9rem 1.1rem calc(.9rem + env(safe-area-inset-bottom)); z-index:14; }
+  .moz-nueva-footer .moz-btn-enviar{ width:100%; }
+  /* La barra general (Total/Cobrar/Precuenta) se oculta mientras se ve "Nueva comanda", que
+     tiene su propio pie fijo -- evita dos barras fijas superpuestas en bottom:0 (ver mostrarTab). */
+  .moz-cart-bar.moz-cart-bar-oculto{ display:none; }
+
+  .moz-consumo-body{ padding-bottom:9rem; }
+  .moz-consumo-title{ font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; font-weight:700; color:var(--ink-muted); margin-bottom:.6rem; }
+  .moz-consumo-row{ background:var(--surface); border:1px solid var(--surface-2); border-radius:var(--radius-sm); padding:.75rem .9rem; margin-bottom:.55rem; }
+  .moz-consumo-row-top{ display:flex; align-items:baseline; justify-content:space-between; gap:.6rem; }
+  .moz-consumo-nombre{ font-weight:700; font-size:.94rem; }
+  .moz-consumo-sin-enviar{ display:inline-block; background:var(--warn-soft); color:var(--warn); font-size:.62rem; font-weight:800; padding:.1rem .4rem; border-radius:999px; margin-left:.3rem; vertical-align:middle; }
+  .moz-consumo-monto{ font-weight:800; font-size:.96rem; color:var(--ink); white-space:nowrap; }
+  .moz-consumo-row-sub{ font-size:.78rem; color:var(--ink-soft); margin-top:.2rem; }
+  .moz-consumo-corregir-btn{ border:none; background:none; color:var(--accent); font-size:.76rem; font-weight:700; cursor:pointer; font-family:inherit; padding:.4rem 0 0; }
+  .moz-consumo-corregir-box{ display:none; align-items:center; gap:.5rem; margin-top:.5rem; flex-wrap:wrap; background:var(--bg); border-radius:var(--radius-sm); padding:.6rem; }
+  .moz-consumo-corregir-box.show{ display:flex; }
+  .moz-consumo-corregir-lbl{ font-size:.76rem; color:var(--ink-soft); font-weight:700; flex:1 0 100%; }
+  .moz-consumo-corregir-box input{ border:1px solid var(--border); background:var(--surface); border-radius:var(--radius-sm); padding:.4rem .5rem; font-size:.88rem; width:6.5rem; font-family:inherit; }
+  .moz-consumo-corregir-box button{ border:none; background:var(--accent); color:var(--accent-ink); border-radius:var(--radius-sm); padding:.5rem .8rem; font-weight:800; font-size:.8rem; cursor:pointer; font-family:inherit; }
+  .moz-consumo-precuenta-btn{ display:block; width:100%; margin-top:.8rem; border:none; background:var(--accent); color:var(--accent-ink); border-radius:var(--radius-sm); padding:1rem; font-weight:800; font-size:.98rem; cursor:pointer; font-family:inherit; }
+
+  /* Vista previa de precuenta (nov-2026): espejo en pantalla del ticket impreso -- sin
+     controles de azúcar/cebolla/ají/agregar, solo lectura + "Volver"/"Imprimir". */
+  .moz-precuenta-preview{ position:fixed; top:50%; left:50%; transform:translate(-50%,-48%); width:min(420px,92vw); max-height:88vh; overflow-y:auto; background:var(--surface); border-radius:var(--radius); box-shadow:0 24px 48px -12px rgba(36,28,19,.4); z-index:33; display:none; flex-direction:column; padding:1.3rem 1.3rem 1rem; font-family:"Courier New",monospace; }
+  .moz-precuenta-preview.show{ display:flex; }
+  .moz-precuenta-head{ text-align:center; border-bottom:2px dashed var(--border); padding-bottom:.8rem; margin-bottom:.7rem; }
+  .moz-precuenta-marca{ font-weight:800; font-size:.92rem; letter-spacing:.03em; }
+  .moz-precuenta-titulo{ font-family:"Fraunces",Georgia,serif; font-weight:700; font-size:1.5rem; margin:.3rem 0; }
+  .moz-precuenta-mesa{ font-weight:800; font-size:1.1rem; }
+  .moz-precuenta-sub{ font-size:.8rem; color:var(--ink-soft); margin-top:.3rem; }
+  .moz-precuenta-lista{ flex:1; }
+  .moz-precuenta-item{ padding:.55rem 0; border-bottom:1px dashed var(--surface-2); }
+  .moz-precuenta-item-top{ display:flex; justify-content:space-between; font-weight:800; font-size:.96rem; gap:.6rem; }
+  .moz-precuenta-item-sub{ font-size:.8rem; color:var(--ink-soft); margin-top:.1rem; }
+  .moz-precuenta-item-obs{ font-size:.76rem; color:var(--accent); font-weight:800; margin-top:.15rem; }
+  .moz-precuenta-total{ display:flex; justify-content:space-between; font-family:"Fraunces",Georgia,serif; font-weight:700; font-size:1.3rem; border-top:2px dashed var(--border); margin-top:.5rem; padding-top:.6rem; }
+  .moz-precuenta-pagoinfo{ font-size:.8rem; color:var(--ink-soft); text-align:center; margin-top:.5rem; }
+  .moz-precuenta-aviso{ text-align:center; font-weight:800; font-size:.78rem; color:var(--ink-muted); margin-top:.6rem; padding-top:.6rem; border-top:1px dashed var(--surface-2); }
+  .moz-precuenta-footer{ display:flex; gap:.6rem; margin-top:1rem; font-family:inherit; }
+  .moz-precuenta-volver{ flex:1; border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:var(--radius-sm); padding:.85rem; font-weight:700; font-size:.88rem; cursor:pointer; font-family:inherit; }
+  .moz-precuenta-imprimir{ flex:1.4; border:none; background:var(--accent); color:var(--accent-ink); border-radius:var(--radius-sm); padding:.85rem; font-weight:800; font-size:.92rem; cursor:pointer; font-family:inherit; }
+  .moz-precuenta-imprimir:disabled{ opacity:.6; cursor:not-allowed; }
 
   /* ---------- Mozos / Salón -- paleta "gastronómica premium" (set-2026, pedido de Jessica:
      el negro/gris se sentía "como pantalla de duelo" -- cambio ÚNICAMENTE de colores, nada de
@@ -6078,9 +6170,34 @@ var TRIPLES = [
   function catalogoDocId(nombre){
     return normalizePrecioKey(nombre).replace(/\//g, "-");
   }
+  // -------- "Etapa B" (25-oct-2026, pedido de Jessica: "quiero que Lista de Precios actualice
+  // directo lo que cobran Mozos y Pedidos, sin que yo tenga que avisarte cada vez") --------
+  // Lista de Precios (catalogoProductos, administrado desde la pantalla "Lista de Precios", con
+  // PIN e historial) pasa a ser la fuente de verdad para el precio oficial/congelado. Se
+  // reutiliza el MISMO mapa de alias de Triples/Otros que ya resolvía el precio congelado viejo
+  // (getPedidoPrecioAliasMap), para que un producto que antes se resolvía por alias (ej. "Triples
+  // Clásicos" -> "UND T. CLÁSICO") lo siga haciendo exactamente igual, solo que ahora el precio
+  // viene de catalogoProductos en vez de PEDIDO_PRECIO_SEED. PEDIDO_PRECIO_SEED se deja intacto
+  // como respaldo automático -- se usa SOLO si CATALOGO_PRODUCTOS todavía no cargó (ej. sin
+  // conexión un instante) o el producto todavía no se migró a Lista de Precios -- para que un
+  // pedido nunca se quede sin precio mientras tanto. Un producto desactivado en Lista de Precios
+  // (activo=false) NO cuenta como oficial acá -- cae al respaldo o a precio editable, igual que
+  // un producto nuevo que nadie ha migrado todavía.
+  function getCatalogoPrecioOficial(key){
+    if(!CATALOGO_PRODUCTOS || !key) return null;
+    var aliasMap = getPedidoPrecioAliasMap();
+    var keyOficial = aliasMap.hasOwnProperty(key) ? aliasMap[key] : key;
+    var id = keyOficial.replace(/\//g, "-");
+    var p = CATALOGO_PRODUCTOS[id];
+    if(!p || p.activo === false) return null;
+    if(typeof p.precio !== "number" || !(p.precio > 0)) return null;
+    return p.precio;
+  }
   function getPrecioFor(producto){
     var key = normalizePrecioKey(producto);
     if(!key) return null;
+    var precioCatalogo = getCatalogoPrecioOficial(key);
+    if(precioCatalogo !== null) return precioCatalogo;
     var seedMap = getPedidoPrecioSeedMap();
     if(seedMap.hasOwnProperty(key)) return seedMap[key];
     var aliasMap = getPedidoPrecioAliasMap();
@@ -6091,13 +6208,14 @@ var TRIPLES = [
     return map.hasOwnProperty(key) ? map[key] : null;
   }
   // Jessica: "el precio se tiene que congelar, que no lo pueda editar nadie" -- para un
-  // producto que SÍ está en la lista oficial (PEDIDO_PRECIO_SEED, directo o por alias), el
-  // precio queda fijo y de solo lectura en el formulario de pedido (ver renderPedidoItems).
-  // Un producto que todavía no está en la lista oficial (algo nuevo, o "Otros") sigue siendo
-  // editable a mano, igual que antes.
+  // producto que SÍ está en la lista oficial (Lista de Precios / catalogoProductos primero,
+  // PEDIDO_PRECIO_SEED como respaldo, directo o por alias), el precio queda fijo y de solo
+  // lectura en el formulario de pedido (ver renderPedidoItems). Un producto que todavía no está
+  // en ninguna lista oficial (algo nuevo, o "Otros") sigue siendo editable a mano, igual que antes.
   function esPrecioOficialProducto(producto){
     var key = normalizePrecioKey(producto);
     if(!key) return false;
+    if(getCatalogoPrecioOficial(key) !== null) return true;
     var seedMap = getPedidoPrecioSeedMap();
     if(seedMap.hasOwnProperty(key)) return true;
     var aliasMap = getPedidoPrecioAliasMap();
@@ -7321,7 +7439,7 @@ var TRIPLES = [
     var intro = document.createElement("div");
     intro.className = "hint";
     intro.style.marginBottom = "1rem";
-    intro.textContent = "Cualquiera puede ver y buscar precios acá. Para agregar, editar o activar/desactivar un producto se pide el PIN administrativo -- cada cambio de precio queda guardado con quién, cuándo y el precio anterior. Por ahora Pedidos y Mozos siguen usando los precios de siempre (Etapa B, todavía no activada) -- este catálogo es solo para revisarlo y prepararlo con calma.";
+    intro.textContent = "Cualquiera puede ver y buscar precios acá. Para agregar, editar o activar/desactivar un producto se pide el PIN administrativo -- cada cambio de precio queda guardado con quién, cuándo y el precio anterior. Pedidos y Mozos ya cobran directo con estos precios -- un cambio de precio acá se refleja de inmediato ahí, sin ningún paso extra. Un producto desactivado acá deja de ofrecerse con precio oficial.";
     card.appendChild(intro);
 
     // Primero el error real (si lo hay) -- nunca se queda atascado en "Cargando..." sin que la
@@ -17772,69 +17890,85 @@ var TRIPLES = [
     mozosGuardarMesa(mesa);
   }
 
-  // oct-2026, AJUSTE OPERATIVO PRIORITARIO (Jessica): categorías de navegación nuevas (antes
-  // Panes/Pastelería/Bebidas/Sándwiches/Otros -- ver pedido: "Frecuentes, Sándwiches, Cafés e
-  // infusiones, Bebidas, Panadería, Empanadas, Dulces/Postres, Especialidades, Empaques, Todos").
+  // nov-2026, AJUSTE OPERATIVO PRIORITARIO (Jessica): "¿podemos igualar las categorías de Mozos a
+  // mi Lista de Precios?" -- antes Mozos tenía su propio set de categorías (Frecuentes,
+  // Sándwiches, Cafés e infusiones, Bebidas, Panadería, Empanadas, Dulces/Postres, Especialidades,
+  // Empaques, Todos), distinto en nombres Y en agrupación al de Lista de Precios
+  // (LISTA_PRECIOS_CATEGORIAS, ver más arriba). Jessica eligió explícitamente la opción grande:
+  // reconstruir esta función para que sean EXACTAMENTE las mismas 10 categorías de Lista de
+  // Precios (Panadería, Sándwiches, Empanadas, Cafetería, Bebidas, Embutidos, Triples, Empaques,
+  // Especialidades, Otros), con Frecuentes/Todos como "bookends" de navegación (no son categorías
+  // reales del catálogo, así que no entran en ese reparto).
   // IMPORTANTE -- MISMO BUG HISTÓRICO QUE mozosObsGrupoDe YA TUVO QUE CORREGIR (ver el aviso
   // justo abajo de esta función, antes de MOZOS_OBS_SANDWICH_EXTRA): la vieja versión de esta
   // función metía "CHICHA" como palabra clave ancha de Bebidas, y por ser un match de
-  // SUBSTRING esa misma palabra también calzaba con "CHICHARRÓN" y "SALCHICHA" -- como Bebidas
-  // se revisaba ANTES que Sándwiches, "Mega Sandwich Chicharrón" caía en Bebidas sin llegar
-  // nunca a calzar con "SANDWICH". Esta versión corrige EXACTAMENTE ese error, igual que ya se
-  // corrigió en mozosObsGrupoDe:
-  //   1) Sándwiches (incluye Triples: "Tira de"/"Und T.") se revisa PRIMERO, con la MISMA lista
-  //      exacta de "Mini X" armados que ya usa mozosObsGrupoDe (MOZOS_OBS_SANDWICH_EXTRA) --
-  //      así "Mini Chicharrón"/"Sándwich Chicharrón"/"Mega Sándwich Chicharrón" SIEMPRE caen en
-  //      Sándwiches, y "Chicharrón" o "Chicharrón Prensa" solos (al peso, sin ningún calificador
-  //      de sándwich) NUNCA se confunden con un sándwich -- van a Especialidades.
-  //   2) NINGÚN keyword de otra categoría usa "CHICHA" como substring suelto -- se usan frases
-  //      completas ("Chicha Litro"/"Chicha Medio Litro"/"Chicha Vaso"), así "Salchicha de
-  //      Huacho" tampoco se confunde con una bebida ni se asume como sándwich.
-  //   3) Categorías más específicas (Empanadas, Cafés e infusiones, Dulces/Postres, Empaques)
-  //      se revisan ANTES que las más amplias (Especialidades, Panadería), para que por ejemplo
-  //      "Porción de Tarta de Queso y Vainilla" caiga en Dulces/Postres (por "Tarta") y no en
-  //      Especialidades solo por contener la palabra "Queso".
-  // Si un producto no calza con ninguna categoría de forma segura, esta función devuelve null a
-  // propósito -- JAMÁS se inventa una categoría -- y ese producto sigue disponible en "🔎 Todos".
+  // SUBSTRING esa misma palabra también calzaba con "CHICHARRÓN" y "SALCHICHA". Esta versión
+  // sigue evitando ESE error y evita uno nuevo equivalente que introduciría Embutidos/
+  // Especialidades si se usaran keywords anchos ("TOCINO" suelto calzaría con "Tira De Champiñón
+  // Y Tocino", que es un Triple, no un embutido):
+  //   1) Triples (incluye "Tira de"/"Und T.") se revisa PRIMERO de todo -- es la MISMA familia de
+  //      producto que Sándwiches/Especialidades/Embutidos podrían atraer por error si se revisara
+  //      después (ver TRIPLE_PRECIO_ALIAS / mult:3 más arriba).
+  //   2) Sándwiches se revisa en SEGUNDO lugar, con la MISMA lista exacta de "Mini X" armados que
+  //      ya usa mozosObsGrupoDe (MOZOS_OBS_SANDWICH_EXTRA) -- así "Mini Chicharrón"/"Sándwich
+  //      Chicharrón"/"Mega Sándwich Chicharrón" SIEMPRE caen en Sándwiches, y "Chicharrón" o
+  //      "Chicharrón Prensa" solos (al peso, sin ningún calificador de sándwich) NUNCA se
+  //      confunden con un sándwich -- van a Especialidades/Embutidos.
+  //   3) Especialidades y Embutidos usan listas CURADAS de match EXACTO por nombre (ver
+  //      MOZOS_CATEGORIA_ESPECIALIDADES_CASA / MOZOS_CATEGORIA_EMBUTIDOS_ESTACION más abajo), no
+  //      keywords anchos -- así "Tocino por Kilo" (Embutidos) nunca se confunde con "Tira De
+  //      Champiñón Y Tocino" (Triples, ya resuelto en el paso 1), y "Chicharrón" (Especialidades,
+  //      carne entera) nunca se confunde con "Chicharrón Prensa" (Embutidos, fiambre de la misma
+  //      estación pero producto distinto).
+  //   4) NINGÚN keyword de otra categoría usa "CHICHA" como substring suelto -- se usan frases
+  //      completas ("Chicha Litro"/"Chicha Medio Litro"/"Chicha Vaso").
+  //   5) Categorías más específicas (Empanadas, Cafetería, Empaques) se revisan ANTES que las
+  //      más amplias (Panadería).
+  // Si un producto no calza con ninguna categoría de forma segura, esta función devuelve "Otros"
+  // a propósito -- JAMÁS se inventa UNA categoría específica para él -- que es, literalmente, la
+  // misma categoría catch-all que Jessica ya usa para esto en Lista de Precios (antes, antes de
+  // este pedido, se devolvía null y el producto solo aparecía sin chip propio en "🔎 Todos").
   function mozoCategoriaDe(nombre){
     var n = String(nombre || "").trim().toUpperCase();
     function tieneAlguna(lista){
       return lista.some(function(w){ return n.indexOf(w) !== -1; });
     }
-    // 1) Sándwiches (y Triples) -- SIEMPRE primero, mismo patrón ya probado en mozosObsGrupoDe.
+    // 1) Triples -- SIEMPRE primero (ver aviso arriba).
+    if(tieneAlguna(["TIRA DE","UND T."])) return "Triples";
+    // 2) Sándwiches -- mismo patrón ya probado en mozosObsGrupoDe (sin "TIRA DE"/"UND T.", ya
+    // resueltos como Triples en el paso 1).
     if(MOZOS_OBS_SANDWICH_EXTRA.hasOwnProperty(n)) return "Sándwiches";
-    if(tieneAlguna(["SANDWICH","SÁNDWICH","MIXTO","TIRA DE","UND T.","CIABATTITAS CON POLLO"])) return "Sándwiches";
-    // 2) Empanadas.
+    if(tieneAlguna(["SANDWICH","SÁNDWICH","MIXTO","CIABATTITAS CON POLLO"])) return "Sándwiches";
+    // 3) Empanadas.
     if(n.indexOf("EMPANADA") !== -1) return "Empanadas";
-    // 3) Cafés e infusiones -- lista EXACTA (igual que MOZOS_OBS_CAFE_CALIENTE para los chips de
-    // azúcar), nunca un keyword ancho como "CAFE" suelto (que también aparece en "Café Molido
-    // 250g", una bolsa de grano para Especialidades, no una bebida preparada).
-    if(MOZOS_OBS_CAFE_CALIENTE.hasOwnProperty(n)) return "Cafés e infusiones";
-    // 4) Bebidas envasadas/preparadas frías -- frases completas, NUNCA "CHICHA" suelto (ver aviso
-    // arriba).
+    // 4) Cafetería (café/infusiones calientes) -- lista EXACTA (igual que MOZOS_OBS_CAFE_CALIENTE
+    // para los chips de azúcar), nunca un keyword ancho como "CAFE" suelto (que también aparece en
+    // "Café Molido 250g", una bolsa de grano, no una bebida preparada -- eso cae en "Otros").
+    if(MOZOS_OBS_CAFE_CALIENTE.hasOwnProperty(n)) return "Cafetería";
+    // 5) Bebidas envasadas/preparadas frías -- frases completas, NUNCA "CHICHA" suelto.
     if(tieneAlguna(["JUGO","BATIDO","FROZEN","LIMONADA","AGUA CON GAS","AGUA SIN GAS","COCA COLA",
       "COCA ZERO","FANTA","INCA KOLA","INKA ZERO","CHOCOLATADA","LECHE ENTERA","LECHE LIGTH",
       "LECHE LIGHT","LECHE SIN LACTOSA","LECHE SOLA","MORA POWER","MIX BI","MIX TRI","MIX FRESA",
       "CHICHA LITRO","CHICHA MEDIO LITRO","CHICHA VASO"])) return "Bebidas";
-    // 5) Dulces / Postres.
-    if(tieneAlguna(["FONDANT","MUFFIN","ALFAJOR","MILHOJAS","ROSCA","GALLETA","CINNAMON","STRUDEL",
-      "MAZAMORRA","BUDIN","TURRÓN","TURRON","ENCIMADA","CHIRIMOYA","CROISSANT DE CHOCOLATE",
-      "CROISANT DE MANJAR","TARTA","OREJAS"])) return "Dulces / Postres";
     // 6) Empaques.
     if(tieneAlguna(["BOLSA PLASTICA","BOLSA PLÁSTICA","CAJA 1","CAJA 4","CAJA ADICIONAL","CAJA GRANDE"])) return "Empaques";
-    // 7) Especialidades -- fiambres/quesos/mantequillas/carnes al peso, condimentos y afines
-    // (venta por peso/pieza o como producto de despensa, no un snack individual para llevar).
-    if(tieneAlguna(["CHICHARRÓN","CHICHARRON","JAMÓN","JAMON","JAMONADA","PATE","PATÉ","TOCINO",
-      "QUESO","MANTEQUILLA","MANT.","ACEITUNA ENTERA","SALCHICHA DE HUACHO","ASADO","PAVO",
-      "MANJAR BLANCO","MIEL","MERMELADA","HUEVOS","TAMAL","PASTEL DE ACELGA",
-      "PORCIÓN DE AJÍ CARMELITAS","PORCIÓN DE CAMOTE","PORCIÓN DE CEBOLLA","PORCIÓN DE MAYONESA",
-      "PORCIÓN HONEY MUSTARD","CAFE MOLIDO","CAFÉ MOLIDO"])) return "Especialidades";
-    // 8) Panadería -- la más amplia, se revisa al final.
+    // 7) Especialidades -- SOLO las carnes enteras de "Especialidades de la Casa" (match EXACTO
+    // por nombre normalizado, ver MOZOS_CATEGORIA_ESPECIALIDADES_CASA más abajo).
+    if(MOZOS_CATEGORIA_ESPECIALIDADES_CASA.hasOwnProperty(normalizePrecioKey(nombre))) return "Especialidades";
+    // 8) Embutidos -- el resto de la estación: quesos, jamonadas, tocino, aceitunas, mantequillas,
+    // patés, salchicha de Huacho (match EXACTO, ver MOZOS_CATEGORIA_EMBUTIDOS_ESTACION más abajo).
+    if(MOZOS_CATEGORIA_EMBUTIDOS_ESTACION.hasOwnProperty(normalizePrecioKey(nombre))) return "Embutidos";
+    // 9) Panadería -- la más amplia, se revisa casi al final.
     if(tieneAlguna(["PAN ","FRANCÉS","FRANCES","INTEGRAL","CIABATTA","BAGUET","CHANCAY","COLIZA",
       "HAMBURGUESA","YEMA","CARAMANDUCA","TOSTADA","MASA MADRE","MULTIGRANOS","PITA","CRUTONES",
       "MOLDE BLANCO","MOLDE INTEGRAL","MOLDE ESPECIAL","MOLDE 7 SEMILLAS","CROISSANT","BRIOCHE",
       "PETIPAN","MIQUETITA"])) return "Panadería";
-    return null;
+    // 10) Otros -- catch-all honesto de Lista de Precios: pastelería/dulces (Fondant, Muffin,
+    // Alfajor, Milhojas, Rosca, Galleta, Turrón Carmelitas, etc.), despensa (Miel, Mermelada,
+    // Huevos, Manjar Blanco, Café Molido, Tamal, Pastel de Acelga), porciones sueltas (ají,
+    // camote, cebolla, mayonesa, honey mustard), y cualquier producto que no calce de forma
+    // segura con nada de lo de arriba.
+    return "Otros";
   }
   // Catálogo para Mozos: MISMOS nombres y precios que ya usa Pedidos (buildCatalogNameList +
   // getPrecioFor, ver más arriba) -- no se duplica ni un nombre ni un precio nuevo acá.
@@ -18069,6 +18203,12 @@ var TRIPLES = [
     if(!mesa.items[nombreProducto]) mesa.items[nombreProducto] = { cant: 0, enviado: 0, obs: "" };
     var it = mesa.items[nombreProducto];
     it.cant = Math.max(0, (it.cant || 0) + delta);
+    // nov-2026: "enviado" nunca puede quedar por encima de "cant" -- si el mozo baja la cantidad
+    // por debajo de lo que ya se mandó a cocina (ej. se equivocó y en realidad eran menos), esto
+    // es una CORRECCIÓN de consumo, no "pedir menos de lo ya cocinado": no genera ninguna comanda
+    // ni avisa nada a cocina, solo deja el registro de consumo/cobro correcto (ver también
+    // mozosCorregirConsumo, para corregir un producto YA enviado sin tocar su cantidad pendiente).
+    if((it.enviado || 0) > it.cant) it.enviado = it.cant;
     mozosGuardarMesa(mesa);
   }
   // Observación libre por producto (pedido de Jessica, con ejemplos suyos: "con ají", "sin
@@ -18118,6 +18258,49 @@ var TRIPLES = [
   function mozosEsProductoAlPeso(nombre){
     return !!MOZOS_PRODUCTOS_AL_PESO_KEYS[normalizePrecioKey(nombre)];
   }
+  // nov-2026, pedido de Jessica: "igualar las categorías de Mozos a mi Lista de Precios" -- estas
+  // dos listas reusan EXACTAMENTE los mismos nombres que ya separa el comentario de arriba
+  // (MOZOS_PRODUCTOS_AL_PESO): "Especialidades de la Casa" = carnes enteras, "Embutidos" = el
+  // resto de la estación. Son listas CURADAS a propósito (match exacto por nombre normalizado,
+  // nunca un keyword ancho) para que mozoCategoriaDe nunca confunda, por ejemplo, "Chicharrón"
+  // (Especialidades) con "Chicharrón Prensa" (Embutidos), ni "Tocino por Kilo" (Embutidos) con
+  // "Tira De Champiñón Y Tocino" (un Triple, aunque ese ya se resuelve antes de llegar aquí). Si
+  // Jessica agrega un producto nuevo a esa estación, hay que agregarlo también acá -- no se
+  // deriva automáticamente de MOZOS_PRODUCTOS_AL_PESO porque esa lista mezcla ambas categorías y
+  // porque no todo lo de esa estación se vende al peso (ver las excepciones por unidad abajo).
+  // "Pan Molido x Kg Milossi" queda afuera a propósito: existe en MOZOS_PRODUCTOS_AL_PESO pero
+  // está explícitamente excluido del catálogo de Mozos ("para el Arqueo nada más, para mozos no"
+  // -- ver buildCatalogNameList más arriba), así que nunca llega a pasar por esta función.
+  var MOZOS_CATEGORIA_ESPECIALIDADES_CASA = (function(){
+    var out = {};
+    ["Asado", "Chicharrón", "Jamón De País", "Jamón Glaseado", "Pavo Entero X Kg", "Pechuga Pavo X Kg"]
+      .forEach(function(n){ out[normalizePrecioKey(n)] = true; });
+    return out;
+  })();
+  var MOZOS_CATEGORIA_EMBUTIDOS_ESTACION = (function(){
+    var out = {};
+    [
+      // Mismo bloque "Embutidos" de MOZOS_PRODUCTOS_AL_PESO (va al peso), menos "Turrón
+      // Carmelitas" -- eso es Pastelería/Dulces (cae en "Otros"), no Embutidos, aunque esté en
+      // esa misma lista por venderse también por peso.
+      "Chicharrón Prensa", "Jamón Ingles", "Jamón Inglés", "Jamonada de Pollo", "Jamonada Polaca",
+      "Tocino por Kilo", "Queso Fresco", "Queso Andino Carmelitas (AD)", "Queso Andino Carmelitas ( Ad)",
+      "Queso Suizo Carmelitas", "Queso Edam Carmelitas", "Aceituna", "Queso Mozzarella",
+      "Mantequilla Serranita por Kilo", "Jamon De Pierna Artesanal", "Jamón de Pierna Artesanal",
+      "Queso Ahumado Holandés", "Queso Gouda President", "Queso De Cabra Kg", "Queso de Cabra (Kg)",
+      "Queso Belpaese", "Queso Belpaese Kg",
+      "Aceituna Entera Por Kilo",
+      // Excepciones por UNIDAD de la misma estación (confirmado por Jessica, ver comentario de
+      // MOZOS_PRODUCTOS_AL_PESO): no van al peso, pero son Embutidos igual. Se incluyen las DOS
+      // variantes de escritura de cada una (con/sin tilde, nombre completo/abreviado) porque el
+      // nombre real que devuelve buildCatalogNameList (la lista de precios real de Jessica) usa
+      // la forma abreviada ("Mant. Laive 90 Gr", "Pate" sin tilde) -- verificado contra el
+      // catálogo real, no inventado.
+      "Salchicha de Huacho", "Paté", "Pate", "Paté Finas Hierbas", "Pate Finas Hierbas",
+      "Mantequilla Laive 90g", "Mant. Laive 90 Gr", "Mantequilla Laive 180g", "Mant. Laive 180 Gr"
+    ].forEach(function(n){ out[normalizePrecioKey(n)] = true; });
+    return out;
+  })();
   // Mínimo general 0.100 kg (pedido de Jessica) -- excepción: Chicharrón (y Chicharrón Prensa),
   // mínimo 0.250 kg.
   function mozosPesoMinimo(nombre){
@@ -18129,13 +18312,43 @@ var TRIPLES = [
   // "cant"/"enviado" que ya usan los productos por unidad, así mozosTotalMesa (precio × cant),
   // mozosEnviarComanda (delta = cant - enviado) y la precuenta siguen funcionando igual sin
   // duplicar lógica -- solo cambia cómo se ve (kg en vez de unidades, ver mozosProduccionTicketTexto
-  // / mozosPrecuentaTicketTexto / renderGrid / renderDrawer más abajo).
+  // / mozosPrecuentaTicketTexto / renderGrid / renderPanelNueva / renderPanelConsumo más abajo).
   function mozosSetPeso(numero, nombreProducto, peso){
     var mesa = mozosGetMesa(numero);
     if(mesa.estado !== "ocupada") return;
     if(!mesa.items[nombreProducto]) mesa.items[nombreProducto] = { cant: 0, enviado: 0, obs: "" };
-    mesa.items[nombreProducto].cant = Math.max(0, Math.round((peso || 0) * 1000) / 1000);
+    var itPeso = mesa.items[nombreProducto];
+    itPeso.cant = Math.max(0, Math.round((peso || 0) * 1000) / 1000);
+    // nov-2026: mismo ajuste que mozosCambiarCantidad -- "enviado" nunca queda por encima del
+    // nuevo peso total. Si el mozo retipea un peso MENOR al que ya se mandó a cocina (ej. "en
+    // realidad eran 450g, no 500g"), es una corrección de consumo: se arregla el total que se
+    // cobra, sin generar ninguna comanda nueva ni avisar nada a cocina.
+    if((itPeso.enviado || 0) > itPeso.cant) itPeso.enviado = itPeso.cant;
     mozosGuardarMesa(mesa);
+  }
+
+  // ---- Corrección explícita de consumo YA enviado (nov-2026, pedido de Jessica: "diferenciar
+  // correctamente una nueva comanda, una cantidad adicional y una corrección del consumo") ----
+  // A diferencia de "pedir más" (mozosCambiarCantidad/mozosSetPeso seguido de mozosEnviarComanda,
+  // que SÍ debe generar una comanda nueva solo con la diferencia), esto es para cuando el número
+  // que ya quedó registrado como enviado está mal -- por ejemplo, la báscula de cocina pesó
+  // distinto a lo cargado, o el mozo tipeó mal -- y lo único que hay que arreglar es cuánto se le
+  // va a cobrar a la mesa, SIN avisarle nada nuevo a cocina (ya se preparó, no hay nada que
+  // volver a mandar). Pone "cant" Y "enviado" en el mismo valor nuevo de una sola vez, así:
+  //  - mozosEnviarComanda nunca ve una diferencia pendiente por esta línea (no imprime nada), y
+  //  - mozosTotalMesa / la precuenta reflejan de inmediato el total correcto.
+  // Vive en la pestaña "Consumo" (solo lectura para todo lo demás) como la única acción posible
+  // sobre un producto ya enviado -- nunca en "Nueva comanda", que es donde se pide más.
+  function mozosCorregirConsumo(numero, nombreProducto, nuevoTotal){
+    var mesa = mozosGetMesa(numero);
+    if(mesa.estado !== "ocupada") return false;
+    if(!mesa.items[nombreProducto]) return false;
+    var esPeso = mozosEsProductoAlPeso(nombreProducto);
+    var val = Math.max(0, esPeso ? (Math.round((nuevoTotal || 0) * 1000) / 1000) : Math.round(nuevoTotal || 0));
+    mesa.items[nombreProducto].cant = val;
+    mesa.items[nombreProducto].enviado = val;
+    mozosGuardarMesa(mesa);
+    return true;
   }
 
   // ---------- Historial de atenciones de Mozos (set-2026, módulo Reporte de Mozos) ----------
@@ -19064,6 +19277,17 @@ var TRIPLES = [
   // -- si no se pasa (como en código viejo, si lo hubiera), la función funciona exactamente igual
   // que antes.
   var mozosEnviandoComanda = {};
+  // oct/nov-2026, pedido de Jessica tras el incidente del chicharrón ("pidieron 500g, mandamos
+  // la comanda, después pidieron 250g más -- el sistema generó una comanda de 750g con el aviso
+  // PESO CORREGIDO, cuando cocina solo tenía que preparar los 250g adicionales"): ANTES, los
+  // productos al peso tenían una rama especial que mandaba el TOTAL completo (no la diferencia)
+  // cada vez que el peso cambiaba después de la primera comanda, marcándolo como "corrección" --
+  // eso confundía "pedir más" con "corregir un error". Ahora los productos al peso usan EXACTAMENTE
+  // la misma lógica de diferencia (delta = cant - enviado) que ya usan los productos por unidad:
+  // una comanda nueva SOLO lleva lo que falta por enviar de cada producto, sea por peso o por
+  // unidad. Una corrección real (arreglar un número ya mal registrado, sin que cocina prepare
+  // nada nuevo) ya NO pasa por acá -- tiene su propio camino explícito, ver mozosCorregirConsumo
+  // más abajo, que nunca crea una comanda ni imprime nada.
   function mozosEnviarComanda(numero, onDone){
     function terminar(){ if(onDone) onDone(); }
     if(mozosEnviandoComanda[numero]){ terminar(); return; }
@@ -19074,9 +19298,10 @@ var TRIPLES = [
       var it = mesa.items[nombre];
       var enviadoPrevio = it.enviado || 0;
       if(mozosEsProductoAlPeso(nombre)){
-        if((it.cant || 0) > 0 && (it.cant || 0) !== enviadoPrevio){
-          deltaItems.push({ producto: nombre, cantidad: it.cant, obs: it.obs || "", pesoCorregido: enviadoPrevio > 0 });
-        }
+        // Redondeo a 3 decimales (mismo criterio que mozosSetPeso) para no generar un "delta"
+        // de 0.0000000001 kg por puro error de punto flotante.
+        var deltaPeso = Math.round(((it.cant || 0) - enviadoPrevio) * 1000) / 1000;
+        if(deltaPeso > 0) deltaItems.push({ producto: nombre, cantidad: deltaPeso, obs: it.obs || "" });
         return;
       }
       var delta = (it.cant || 0) - enviadoPrevio;
@@ -19521,17 +19746,25 @@ var TRIPLES = [
   // categoría virtual que NO viene de mozoCategoriaDe sino del contador local (ver
   // mozosFrecuentesTop más abajo) -- un producto nunca pierde su categoría real por aparecer
   // también en Frecuentes.
+  // nov-2026: "icon" separado de "label" (antes iba todo junto en un solo texto) -- así el chip
+  // puede dibujar el ícono en su propio círculo y el texto aparte (ver renderCats), en vez de
+  // los dos pegados como un emoji suelto adelante de la palabra.
+  // nov-2026: orden igualado EXACTAMENTE al de LISTA_PRECIOS_CATEGORIAS (ver más arriba), con
+  // Frecuentes/Todos como bookends de navegación (no son categorías reales del catálogo, así que
+  // no entran en ese orden).
   var MOZOS_CATEGORIAS = [
-    { label: "⭐ Frecuentes", cat: "Frecuentes" },
-    { label: "🥪 Sándwiches", cat: "Sándwiches" },
-    { label: "☕ Cafés e infusiones", cat: "Cafés e infusiones" },
-    { label: "🧃 Bebidas", cat: "Bebidas" },
-    { label: "🥐 Panadería", cat: "Panadería" },
-    { label: "🥟 Empanadas", cat: "Empanadas" },
-    { label: "🍰 Dulces / Postres", cat: "Dulces / Postres" },
-    { label: "🧀 Especialidades", cat: "Especialidades" },
-    { label: "📦 Empaques", cat: "Empaques" },
-    { label: "🔎 Todos", cat: "Todos" }
+    { icon: "⭐", label: "Frecuentes", cat: "Frecuentes" },
+    { icon: "🥐", label: "Panadería", cat: "Panadería" },
+    { icon: "🥪", label: "Sándwiches", cat: "Sándwiches" },
+    { icon: "🥟", label: "Empanadas", cat: "Empanadas" },
+    { icon: "☕", label: "Cafetería", cat: "Cafetería" },
+    { icon: "🧃", label: "Bebidas", cat: "Bebidas" },
+    { icon: "🧀", label: "Embutidos", cat: "Embutidos" },
+    { icon: "🌯", label: "Triples", cat: "Triples" },
+    { icon: "📦", label: "Empaques", cat: "Empaques" },
+    { icon: "🍖", label: "Especialidades", cat: "Especialidades" },
+    { icon: "🧺", label: "Otros", cat: "Otros" },
+    { icon: "🔎", label: "Todos", cat: "Todos" }
   ];
 
   // "⭐ Frecuentes" -- el pedido fue explícito: "No inventar qué productos son frecuentes si el
@@ -19583,6 +19816,18 @@ var TRIPLES = [
     t = t.replace(/expreso/g, "espresso");
     return t;
   }
+  // ---------------------------------------------------------------------------------------
+  // nov-2026, rediseño pedido por Jessica: "las categorías están dispersas, los productos
+  // aparecen mezclados y el panel «Tu pedido» muestra demasiados controles incluso cuando ya se
+  // enviaron las comandas". Se reorganiza la pantalla en 3 pestañas (Productos / Nueva comanda /
+  // Consumo) en vez de un solo panel "Tu pedido" que mezclaba todo. La estructura de datos
+  // (mesa.items[nombre] = {cant, enviado, obs}, mesa.comandas[]), la cabecera, el modal "Cobrar",
+  // el buscador+categorías+grilla de productos y buildPesoCtrl se CONSERVAN exactamente igual
+  // que antes -- esto es solo una reorganización de cómo se ven y se agrupan en pantalla, nunca
+  // una reescritura de la lógica ya probada. Lo nuevo es: la separación en pestañas, la vista
+  // previa de precuenta (antes imprimía directo sin mostrar nada en pantalla), y la corrección
+  // explícita de consumo (mozosCorregirConsumo, ver más arriba) para cuando hay que arreglar un
+  // número ya enviado sin generar una comanda ni avisar a cocina.
   function buildMozosComandaView(numero){
     var mesa = mozosGetMesa(numero);
     var box = document.createElement("div");
@@ -19653,7 +19898,7 @@ var TRIPLES = [
     // estilo cálido que ya tiene el resto de la app (no se copió el mockup literal, que era en
     // blanco y negro). La LÓGICA de guardado (mozosSetMedioPago/mozosSetTipoComprobante/etc, y el
     // bloqueo real en mozosLiberarMesa) es EXACTAMENTE la misma que ya estaba probada -- esto solo
-    // cambia dónde y cómo se ve en pantalla.
+    // cambia dónde y cómo se ve en pantalla. SIN CAMBIOS en el rediseño de nov-2026.
     var cobrarAbierto = false;
     var cobrarBackdrop = document.createElement("div");
     cobrarBackdrop.className = "moz-cobrar-backdrop";
@@ -19674,14 +19919,14 @@ var TRIPLES = [
       var minutos = mesaLocal.horaApertura ? Math.max(0, Math.round((Date.now() - mesaLocal.horaApertura) / 60000)) : 0;
       cobrarModal.innerHTML = "";
 
-      var head = document.createElement("div");
-      head.className = "moz-cobrar-head";
-      head.innerHTML = '<h3>💰 Cobrar — Mesa ' + numero + '</h3>';
+      var headCobrar = document.createElement("div");
+      headCobrar.className = "moz-cobrar-head";
+      headCobrar.innerHTML = '<h3>💰 Cobrar — Mesa ' + numero + '</h3>';
       var closeBtn = document.createElement("button");
       closeBtn.type = "button"; closeBtn.className = "moz-cobrar-close"; closeBtn.textContent = "×";
       closeBtn.addEventListener("click", function(){ cobrarAbierto = false; renderCobrarModal(); });
-      head.appendChild(closeBtn);
-      cobrarModal.appendChild(head);
+      headCobrar.appendChild(closeBtn);
+      cobrarModal.appendChild(headCobrar);
 
       var sub = document.createElement("div");
       sub.className = "moz-cobrar-sub";
@@ -19804,6 +20049,81 @@ var TRIPLES = [
     }
     renderCobrarModal();
 
+    // ---- nov-2026: utilidades compartidas por las 3 pestañas para saber qué está "pendiente de
+    // enviar" (cant por encima de lo ya enviado) de forma consistente en todos lados. ----
+    function mozosItemPendiente(it, esPeso){
+      var enviado = (it && it.enviado) || 0;
+      var cant = (it && it.cant) || 0;
+      var delta = esPeso ? (Math.round((cant - enviado) * 1000) / 1000) : (cant - enviado);
+      return delta > 0;
+    }
+    function mozosHayPendiente(mesaLocal){
+      return Object.keys(mesaLocal.items || {}).some(function(n){
+        return mozosItemPendiente(mesaLocal.items[n], mozosEsProductoAlPeso(n));
+      });
+    }
+
+    // ---- nov-2026: barra de "Consumo acumulado" -- queda SIEMPRE visible (referencia visual
+    // que mandó Jessica), sin importar en qué pestaña se esté. Muestra el total que se le va a
+    // cobrar a la mesa (TODO lo cargado, enviado o no -- igual que siempre calculó mozosTotalMesa
+    // y la precuenta) y cuántas comandas ya se mandaron a cocina. ----
+    var resumenBar = document.createElement("div");
+    resumenBar.className = "moz-resumen-bar";
+    box.appendChild(resumenBar);
+    function renderResumenBar(){
+      var mesaLocal = mozosGetMesa(numero);
+      var nComandas = (mesaLocal.comandas || []).length;
+      var pendiente = mozosHayPendiente(mesaLocal);
+      resumenBar.innerHTML = "";
+      var left = document.createElement("div");
+      left.className = "moz-resumen-left";
+      left.innerHTML = '<div class="moz-resumen-lbl">Consumo acumulado</div>' +
+        '<div class="moz-resumen-val">S/' + fmtMoney(mozosTotalMesa(mesaLocal)) + '</div>' +
+        '<div class="moz-resumen-sub">' + nComandas + (nComandas === 1 ? " comanda enviada" : " comandas enviadas") +
+        (pendiente ? ' · <span class="moz-resumen-pendiente">● hay productos sin enviar</span>' : '') + '</div>';
+      var verBtn = document.createElement("button");
+      verBtn.type = "button"; verBtn.className = "moz-resumen-ver-btn"; verBtn.textContent = "Ver precuenta →";
+      verBtn.addEventListener("click", function(){ dispararPrecuentaPreview(); });
+      resumenBar.appendChild(left);
+      resumenBar.appendChild(verBtn);
+    }
+
+    // ---- nov-2026: pestañas Productos / Nueva comanda / Consumo (reemplaza el único panel
+    // "Tu pedido" de antes, que mezclaba armar el pedido con revisar lo ya enviado). ----
+    var tabActiva = "productos";
+    var tabsNav = document.createElement("div");
+    tabsNav.className = "moz-tabs-nav";
+    box.appendChild(tabsNav);
+    var tabBtnProductos = document.createElement("button");
+    tabBtnProductos.type = "button"; tabBtnProductos.className = "moz-tab-btn";
+    tabBtnProductos.innerHTML = "🗂️ Productos";
+    tabBtnProductos.addEventListener("click", function(){ mostrarTab("productos"); });
+    var tabBtnNueva = document.createElement("button");
+    tabBtnNueva.type = "button"; tabBtnNueva.className = "moz-tab-btn";
+    tabBtnNueva.addEventListener("click", function(){ mostrarTab("nueva"); });
+    var tabBtnConsumo = document.createElement("button");
+    tabBtnConsumo.type = "button"; tabBtnConsumo.className = "moz-tab-btn";
+    tabBtnConsumo.innerHTML = "📋 Consumo";
+    tabBtnConsumo.addEventListener("click", function(){ mostrarTab("consumo"); });
+    tabsNav.appendChild(tabBtnProductos); tabsNav.appendChild(tabBtnNueva); tabsNav.appendChild(tabBtnConsumo);
+    function renderTabsNav(){
+      var mesaLocal = mozosGetMesa(numero);
+      var nPend = Object.keys(mesaLocal.items || {}).filter(function(n){ return mozosItemPendiente(mesaLocal.items[n], mozosEsProductoAlPeso(n)); }).length;
+      tabBtnNueva.innerHTML = "🆕 Nueva comanda" + (nPend > 0 ? ' <span class="moz-tab-badge">' + nPend + '</span>' : "");
+      tabBtnProductos.classList.toggle("active", tabActiva === "productos");
+      tabBtnNueva.classList.toggle("active", tabActiva === "nueva");
+      tabBtnConsumo.classList.toggle("active", tabActiva === "consumo");
+    }
+
+    // =====================================================================================
+    // ---- Pestaña "Productos": buscador + categorías + grilla (CATÁLOGO) -- SIN CAMBIOS en
+    // la lógica de búsqueda/categorías/frecuentes/al-peso, solo ahora vive dentro de su propia
+    // pestaña en vez de ser la única pantalla posible. ----
+    // =====================================================================================
+    var panelProductos = document.createElement("div");
+    panelProductos.className = "moz-tab-panel moz-tab-productos";
+    box.appendChild(panelProductos);
+
     // Buscador + categorías SIEMPRE visibles (pedido de Jessica): van juntos en una barra
     // "sticky" que se queda pegada justo debajo de la barra superior de la app al hacer scroll
     // por la grilla de productos. El offset se mide en JS (altura real de .topbar) porque en
@@ -19812,7 +20132,7 @@ var TRIPLES = [
     stickyBar.className = "moz-sticky-search";
     var topbarEl = document.querySelector(".topbar");
     stickyBar.style.top = (topbarEl ? topbarEl.getBoundingClientRect().height : 0) + "px";
-    box.appendChild(stickyBar);
+    panelProductos.appendChild(stickyBar);
 
     var searchBox = document.createElement("div");
     searchBox.className = "moz-search-box";
@@ -19873,19 +20193,23 @@ var TRIPLES = [
 
     var grid = document.createElement("div");
     grid.className = "moz-grid-prod";
-    box.appendChild(grid);
+    panelProductos.appendChild(grid);
 
     var catalogo = mozosCatalogo();
     var catActivaLocal = "Todos";
-    var drawerAbierto = false;
 
     function renderCats(){
       catRow.innerHTML = "";
       MOZOS_CATEGORIAS.forEach(function(c){
         var chipBtn = document.createElement("button");
         chipBtn.type = "button";
-        chipBtn.className = "moz-cat-chip" + (c.cat === catActivaLocal ? " active" : "");
-        chipBtn.textContent = c.label;
+        // nov-2026 (pedido de Jessica, "que se vea muy bien la categoría"): "Frecuentes" (es
+        // personal/dinámica, no una categoría del menú) y "Todos" (es quitar el filtro, no una
+        // categoría más) llevan su propia clase para distinguirse visualmente del resto -- ver
+        // CSS .moz-cat-chip-estrella / .moz-cat-chip-todos.
+        var claseExtra = c.cat === "Frecuentes" ? " moz-cat-chip-estrella" : (c.cat === "Todos" ? " moz-cat-chip-todos" : "");
+        chipBtn.className = "moz-cat-chip" + claseExtra + (c.cat === catActivaLocal ? " active" : "");
+        chipBtn.innerHTML = '<span class="moz-cat-chip-icon">' + c.icon + '</span><span>' + esc(c.label) + '</span>';
         chipBtn.addEventListener("click", function(){ catActivaLocal = c.cat; renderCats(); renderGrid(); });
         catRow.appendChild(chipBtn);
       });
@@ -19941,7 +20265,7 @@ var TRIPLES = [
           // Jessica): en vez de -1+, se ingresa el peso en kg directamente.
           tile.appendChild(buildPesoCtrl(p, cantActual, function(){ refreshAfterQty(); }, function(){
             mozosFrecuentesIncrementar(p.nombre);
-            drawerAbierto = true; renderDrawer();
+            mostrarTab("nueva");
           }));
         } else if(cantActual > 0){
           var ctrl = document.createElement("div"); ctrl.className = "moz-qty-ctrl";
@@ -19955,15 +20279,15 @@ var TRIPLES = [
         } else {
           var add = document.createElement("button"); add.type = "button"; add.className = "moz-add-btn"; add.textContent = "+ Agregar";
           // Al agregar un producto NUEVO (pedido de Jessica, con captura de referencia de su
-          // propia página web): se abre el panel "Tu pedido" para que el mozo vea de una vez
-          // qué quedó cargado -- no hace falta ir botón por botón en la grilla para revisar.
+          // propia página web): se cambia a la pestaña "Nueva comanda" para que el mozo vea de
+          // una vez qué quedó cargado -- no hace falta ir botón por botón en la grilla para
+          // revisar (nov-2026: antes abría el panel "Tu pedido"; ahora es la pestaña dedicada).
           // set-2026/oct-2026: cada "+ Agregar" también alimenta el contador local de "⭐
           // Frecuentes" (mozosFrecuentesIncrementar) -- nunca bloquea nada si localStorage falla.
           add.addEventListener("click", function(){
             mozosCambiarCantidad(numero, p.nombre, 1);
             mozosFrecuentesIncrementar(p.nombre);
-            drawerAbierto = true;
-            renderDrawer();
+            mostrarTab("nueva");
             refreshAfterQty();
           });
           tile.appendChild(add);
@@ -19972,12 +20296,13 @@ var TRIPLES = [
       });
     }
 
-    // Control de peso (kg) reutilizado en la grilla y en el panel "Tu pedido" -- construye un
+    // Control de peso (kg) reutilizado en la grilla y en "Nueva comanda" -- construye un
     // input + botón para escribir directamente el peso de un producto vendido al peso, en vez
     // de la grilla -1+. Valida el mínimo (mozosPesoMinimo) antes de guardar. onGuardado se llama
     // siempre que se confirma un cambio (para refrescar grilla/total); onPrimerAgregado SOLO la
-    // primera vez que el producto pasa de 0 a tener peso (para abrir el panel "Tu pedido", igual
-    // que el resto de productos).
+    // primera vez que el producto pasa de 0 a tener peso (para ir a "Nueva comanda", igual que el
+    // resto de productos). SIN CAMBIOS respecto a la versión anterior -- sigue pre-llenando con
+    // el TOTAL actual (pesos flexibles conservados, sin incrementos forzados).
     function buildPesoCtrl(p, pesoActual, onGuardado, onPrimerAgregado){
       var minimo = mozosPesoMinimo(p.nombre);
       var wrap = document.createElement("div");
@@ -20024,183 +20349,214 @@ var TRIPLES = [
       return wrap;
     }
 
-    function updateCartBar(){
+    // =====================================================================================
+    // ---- Pestaña "Nueva comanda": SOLO lo que todavía no se mandó a cocina (pendiente = cant -
+    // enviado > 0), con los controles completos para configurarlo (cantidad/peso, observaciones)
+    // y el botón de enviar. Un producto YA enviado del todo desaparece de aquí solo -- si el mozo
+    // quiere pedir más, lo agrega de nuevo desde "Productos" y reaparece acá con lo nuevo. ----
+    // =====================================================================================
+    var panelNueva = document.createElement("div");
+    panelNueva.className = "moz-tab-panel moz-tab-nueva";
+    box.appendChild(panelNueva);
+    var nuevaBody = document.createElement("div");
+    nuevaBody.className = "moz-nueva-body";
+    panelNueva.appendChild(nuevaBody);
+    var nuevaFooter = document.createElement("div");
+    nuevaFooter.className = "moz-nueva-footer";
+    var nuevaFooterTotal = document.createElement("div");
+    nuevaFooterTotal.className = "moz-drawer-total";
+    nuevaFooterTotal.innerHTML = '<span class="moz-lbl">Total mesa</span><span class="moz-val" id="mozNuevaTotal">S/0.00</span>';
+    var btnEnviar = document.createElement("button");
+    btnEnviar.type = "button"; btnEnviar.className = "moz-btn-enviar"; btnEnviar.textContent = "📨 ENVIAR COMANDA";
+    btnEnviar.addEventListener("click", function(){ dispararEnviarComanda(); });
+    nuevaFooter.appendChild(nuevaFooterTotal);
+    nuevaFooter.appendChild(btnEnviar);
+    panelNueva.appendChild(nuevaFooter);
+
+    function renderPanelNueva(){
       var mesaLocal = mozosGetMesa(numero);
-      var valEl = cartTotal.querySelector(".moz-val");
-      if(valEl) valEl.textContent = "S/" + fmtMoney(mozosTotalMesa(mesaLocal));
-      var n = Object.keys(mesaLocal.items).filter(function(k){ return (mesaLocal.items[k].cant || 0) > 0; }).length;
-      var badge = btnVerPedido.querySelector(".moz-carrito-badge");
-      if(badge) badge.remove();
-      if(n > 0){
-        var nuevoBadge = document.createElement("span");
-        nuevoBadge.className = "moz-carrito-badge";
-        nuevoBadge.textContent = n;
-        btnVerPedido.appendChild(nuevoBadge);
-      }
-    }
-    // Refresca SOLO la grilla de productos y el total (no reconstruye el buscador ni la
-    // cabecera) -- así un toque en +/- nunca pierde lo que el mozo esté escribiendo en el
-    // buscador ni el chip de categoría elegido.
-    function refreshAfterQty(){
-      renderGrid();
-      updateCartBar();
-      if(drawerAbierto) renderDrawer();
-    }
-
-    // ---- Bloqueo de botones críticos mientras se procesa (set-2026, pedido de Jessica: "los
-    // botones críticos deben bloquearse temporalmente ... para evitar doble clic") ----
-    // Son "function" (no "var ... = function") para que queden disponibles arriba de donde se
-    // declaran btnEnviarDrawer/btnEnviar/btnPrecuenta más abajo (hoisting) -- igual solo se
-    // EJECUTAN cuando el mozo toca el botón, momento en el que esos botones ya existen.
-    function dispararEnviarComanda(){
-      if(btnEnviarDrawer){ btnEnviarDrawer.disabled = true; btnEnviarDrawer.textContent = "Enviando..."; }
-      if(btnEnviar){ btnEnviar.disabled = true; btnEnviar.textContent = "Enviando..."; }
-      mozosEnviarComanda(numero, function(){
-        if(btnEnviarDrawer){ btnEnviarDrawer.disabled = false; btnEnviarDrawer.textContent = "📨 ENVIAR COMANDA"; }
-        if(btnEnviar){ btnEnviar.disabled = false; btnEnviar.textContent = "📨 ENVIAR COMANDA"; }
-      });
-      // Igual que antes del cambio: la grilla se refresca de una vez (no espera la respuesta del
-      // puente) porque mozosEnviarComanda YA marcó "enviado" en mesa.items de forma síncrona.
-      refreshAfterQty();
-    }
-    function dispararPrecuenta(){
-      if(!btnPrecuenta) return;
-      btnPrecuenta.disabled = true;
-      btnPrecuenta.textContent = "Imprimiendo...";
-      doPrintMozosPrecuenta(numero, function(){
-        var mesaAhora = mozosGetMesa(numero);
-        btnPrecuenta.disabled = false;
-        btnPrecuenta.textContent = mesaAhora.precuentaImpresionFallo ? "🧾 Precuenta ⚠️" : "🧾 Precuenta";
-        btnPrecuenta.classList.toggle("moz-btn-precuenta-falla", !!mesaAhora.precuentaImpresionFallo);
-      });
-    }
-
-    // ---- Panel "Tu pedido" (referencia visual de Jessica: el carrito de su página web) ----
-    // Lista todo lo cargado en la mesa con control de cantidad y una Observación libre por
-    // producto ("con ají", "sin cebolla", "poca azúcar"...), que viaja impresa tanto en la
-    // comanda de producción como en la precuenta.
-    var drawerBackdrop = document.createElement("div");
-    drawerBackdrop.className = "moz-drawer-backdrop";
-    drawerBackdrop.addEventListener("click", function(){ drawerAbierto = false; renderDrawer(); });
-    var drawer = document.createElement("div");
-    drawer.className = "moz-drawer";
-    var drawerHeader = document.createElement("div");
-    drawerHeader.className = "moz-drawer-header";
-    drawerHeader.innerHTML = '<h3>Tu pedido — Mesa ' + numero + '</h3>';
-    var drawerCloseBtn = document.createElement("button");
-    drawerCloseBtn.type = "button"; drawerCloseBtn.className = "moz-drawer-close"; drawerCloseBtn.textContent = "×";
-    drawerCloseBtn.addEventListener("click", function(){ drawerAbierto = false; renderDrawer(); });
-    drawerHeader.appendChild(drawerCloseBtn);
-    var drawerBody = document.createElement("div");
-    drawerBody.className = "moz-drawer-body";
-    var drawerFooter = document.createElement("div");
-    drawerFooter.className = "moz-drawer-footer";
-    drawerFooter.innerHTML = '<div class="moz-drawer-total"><span class="moz-lbl">Total</span><span class="moz-val" id="mozDrawerTotal">S/0.00</span></div>';
-    var btnEnviarDrawer = document.createElement("button");
-    btnEnviarDrawer.type = "button"; btnEnviarDrawer.className = "moz-btn-enviar"; btnEnviarDrawer.textContent = "📨 ENVIAR COMANDA";
-    btnEnviarDrawer.addEventListener("click", function(){ dispararEnviarComanda(); });
-    drawerFooter.appendChild(btnEnviarDrawer);
-    drawer.appendChild(drawerHeader); drawer.appendChild(drawerBody); drawer.appendChild(drawerFooter);
-    box.appendChild(drawerBackdrop);
-    box.appendChild(drawer);
-
-    function renderDrawer(){
-      drawerBackdrop.classList.toggle("show", drawerAbierto);
-      drawer.classList.toggle("show", drawerAbierto);
-      var mesaLocal = mozosGetMesa(numero);
-      var nombres = Object.keys(mesaLocal.items).filter(function(n){ return (mesaLocal.items[n].cant || 0) > 0; }).sort();
-      drawerBody.innerHTML = "";
+      var nombres = Object.keys(mesaLocal.items).filter(function(n){
+        return mozosItemPendiente(mesaLocal.items[n], mozosEsProductoAlPeso(n));
+      }).sort();
+      nuevaBody.innerHTML = "";
       if(!nombres.length){
         var vacio = document.createElement("div");
         vacio.className = "moz-drawer-empty";
-        vacio.textContent = "Todavía no cargaste ningún producto.";
-        drawerBody.appendChild(vacio);
+        vacio.innerHTML = "Todavía no hay productos nuevos para esta comanda.<br>Ve a <b>Productos</b> para agregar.";
+        nuevaBody.appendChild(vacio);
+        var irBtn = document.createElement("button");
+        irBtn.type = "button"; irBtn.className = "moz-nueva-ir-productos"; irBtn.textContent = "🗂️ Ir a Productos";
+        irBtn.addEventListener("click", function(){ mostrarTab("productos"); });
+        nuevaBody.appendChild(irBtn);
+        btnEnviar.disabled = true;
+      } else {
+        btnEnviar.disabled = false;
+        nombres.forEach(function(nombre){
+          var it = mesaLocal.items[nombre];
+          var esPeso = mozosEsProductoAlPeso(nombre);
+          var precioUnit = getPrecioFor(nombre) || 0;
+          var enviadoPrevio = it.enviado || 0;
+          var pendiente = esPeso ? (Math.round(((it.cant || 0) - enviadoPrevio) * 1000) / 1000) : ((it.cant || 0) - enviadoPrevio);
+          var row = document.createElement("div");
+          row.className = "moz-drawer-item";
+          var top = document.createElement("div");
+          top.className = "moz-drawer-item-top";
+          var info = document.createElement("div");
+          // nov-2026: distinción visible pedida por Jessica entre lo YA enviado y lo NUEVO en
+          // esta comanda -- así nunca se confunde "pedir más" con el total acumulado completo.
+          var pendienteTxt = enviadoPrevio > 0
+            ? ('<div class="moz-nueva-pendiente">Ya enviado: ' + (esPeso ? enviadoPrevio.toFixed(3) + " kg" : enviadoPrevio) +
+               ' · Nuevo en esta comanda: <b>+' + (esPeso ? pendiente.toFixed(3) + " kg" : pendiente) + '</b></div>')
+            : '<div class="moz-nueva-pendiente moz-nueva-pendiente-primero">Pedido nuevo</div>';
+          info.innerHTML = '<div class="moz-drawer-item-name">' + esc(nombre) + '</div>' +
+            (esPeso
+              ? '<div class="moz-drawer-item-precio">S/' + fmtMoney(precioUnit) + ' /kg · S/' + fmtMoney(precioUnit * (it.cant || 0)) + '</div>'
+              : '<div class="moz-drawer-item-precio">S/' + fmtMoney(precioUnit) + ' c/u</div>') + pendienteTxt;
+          if(esPeso){
+            top.appendChild(info);
+            top.appendChild(buildPesoCtrl({ nombre: nombre, precio: precioUnit }, it.cant || 0, function(){ refreshAfterQty(); }, null));
+          } else {
+            var ctrl = document.createElement("div"); ctrl.className = "moz-qty-ctrl";
+            var minus = document.createElement("button"); minus.type = "button"; minus.textContent = "−";
+            minus.addEventListener("click", function(){ mozosCambiarCantidad(numero, nombre, -1); refreshAfterQty(); });
+            var numEl = document.createElement("span"); numEl.className = "moz-qty-num"; numEl.textContent = it.cant;
+            var plus = document.createElement("button"); plus.type = "button"; plus.textContent = "+";
+            plus.addEventListener("click", function(){ mozosCambiarCantidad(numero, nombre, 1); refreshAfterQty(); });
+            ctrl.appendChild(minus); ctrl.appendChild(numEl); ctrl.appendChild(plus);
+            top.appendChild(info); top.appendChild(ctrl);
+          }
+          row.appendChild(top);
+
+          // Observaciones (igual que antes -- chips rápidos de café/sándwich + campo libre).
+          var obsWrap = document.createElement("div");
+          obsWrap.className = "moz-drawer-obs";
+          var obsGrupo = mozosObsGrupoDe(nombre);
+          var opcionesRapidas = MOZOS_OBS_RAPIDAS[obsGrupo];
+          if(opcionesRapidas && opcionesRapidas.length){
+            var chipsRow = document.createElement("div");
+            chipsRow.className = "moz-obs-chips";
+            opcionesRapidas.forEach(function(tag){
+              var chip = document.createElement("button");
+              chip.type = "button";
+              chip.className = "moz-obs-chip" + (mozosObsTieneTag(it.obs, tag) ? " active" : "");
+              chip.textContent = tag;
+              chip.addEventListener("click", function(){
+                var nuevoTexto = mozosObsToggleTag(obsInput.value, tag);
+                obsInput.value = nuevoTexto;
+                mozosSetObservacion(numero, nombre, nuevoTexto);
+                chip.classList.toggle("active");
+              });
+              chipsRow.appendChild(chip);
+            });
+            obsWrap.appendChild(chipsRow);
+          }
+          var obsLbl = document.createElement("label"); obsLbl.textContent = "Observación";
+          var obsInput = document.createElement("input");
+          obsInput.type = "text";
+          obsInput.placeholder = opcionesRapidas ? "Ej: con ají, sin cebolla, poca azúcar..." : "Escribe una observación…";
+          obsInput.value = it.obs || "";
+          obsInput.addEventListener("change", function(){ mozosSetObservacion(numero, nombre, obsInput.value.trim()); });
+          obsWrap.appendChild(obsLbl); obsWrap.appendChild(obsInput);
+          row.appendChild(obsWrap);
+
+          nuevaBody.appendChild(row);
+        });
+      }
+      var totalEl = nuevaFooter.querySelector("#mozNuevaTotal");
+      if(totalEl) totalEl.textContent = "S/" + fmtMoney(mozosTotalMesa(mesaLocal));
+    }
+
+    // =====================================================================================
+    // ---- Pestaña "Consumo": SOLO LECTURA (sin botones de +/agregar/observación) -- resumen
+    // limpio de todo lo pedido por la mesa + historial de comandas con reimpresión + acceso a la
+    // precuenta. La única acción posible acá es la corrección explícita de un total ya enviado
+    // (mozosCorregirConsumo), que nunca genera una comanda ni avisa nada a cocina. ----
+    // =====================================================================================
+    var panelConsumo = document.createElement("div");
+    panelConsumo.className = "moz-tab-panel moz-tab-consumo";
+    box.appendChild(panelConsumo);
+    var consumoBody = document.createElement("div");
+    consumoBody.className = "moz-consumo-body";
+    panelConsumo.appendChild(consumoBody);
+
+    function renderPanelConsumo(){
+      var mesaLocal = mozosGetMesa(numero);
+      consumoBody.innerHTML = "";
+
+      var resumenTitle = document.createElement("div");
+      resumenTitle.className = "moz-consumo-title";
+      resumenTitle.textContent = "Resumen de la mesa";
+      consumoBody.appendChild(resumenTitle);
+
+      var nombres = Object.keys(mesaLocal.items).filter(function(n){ return (mesaLocal.items[n].cant || 0) > 0; }).sort();
+      if(!nombres.length){
+        var vacio = document.createElement("div");
+        vacio.className = "moz-drawer-empty";
+        vacio.textContent = "Todavía no se cargó ningún producto.";
+        consumoBody.appendChild(vacio);
       }
       nombres.forEach(function(nombre){
         var it = mesaLocal.items[nombre];
         var esPeso = mozosEsProductoAlPeso(nombre);
         var precioUnit = getPrecioFor(nombre) || 0;
+        var cant = it.cant || 0;
+        var sinEnviar = mozosItemPendiente(it, esPeso);
+        var cantTxt = esPeso ? (num(cant).toFixed(3) + " kg") : (cant + " und");
         var row = document.createElement("div");
-        row.className = "moz-drawer-item";
-        var top = document.createElement("div");
-        top.className = "moz-drawer-item-top";
-        var info = document.createElement("div");
-        info.innerHTML = '<div class="moz-drawer-item-name">' + esc(nombre) + '</div>' +
-          (esPeso
-            ? '<div class="moz-drawer-item-precio">S/' + fmtMoney(precioUnit) + ' /kg · S/' + fmtMoney(precioUnit * (it.cant || 0)) + '</div>'
-            : '<div class="moz-drawer-item-precio">S/' + fmtMoney(precioUnit) + ' c/u</div>');
-        if(esPeso){
-          top.appendChild(info);
-          top.appendChild(buildPesoCtrl({ nombre: nombre, precio: precioUnit }, it.cant || 0, function(){ refreshAfterQty(); }, null));
-        } else {
-          var ctrl = document.createElement("div"); ctrl.className = "moz-qty-ctrl";
-          var minus = document.createElement("button"); minus.type = "button"; minus.textContent = "−";
-          minus.addEventListener("click", function(){ mozosCambiarCantidad(numero, nombre, -1); refreshAfterQty(); });
-          var numEl = document.createElement("span"); numEl.className = "moz-qty-num"; numEl.textContent = it.cant;
-          var plus = document.createElement("button"); plus.type = "button"; plus.textContent = "+";
-          plus.addEventListener("click", function(){ mozosCambiarCantidad(numero, nombre, 1); refreshAfterQty(); });
-          ctrl.appendChild(minus); ctrl.appendChild(numEl); ctrl.appendChild(plus);
-          top.appendChild(info); top.appendChild(ctrl);
-        }
-        row.appendChild(top);
-
-        var obsWrap = document.createElement("div");
-        obsWrap.className = "moz-drawer-obs";
-        // Observaciones rápidas (set-2026, pedido de Jessica): SOLO aparecen si el producto es de
-        // un grupo con opciones definidas (café/infusión caliente o sándwich -- ver
-        // mozosObsGrupoDe/MOZOS_OBS_RAPIDAS arriba, función dedicada y separada de
-        // mozoCategoriaDe a propósito, fix del bug de chips mal asignados) -- para el resto de
-        // productos (bebidas envasadas/preparadas, panes, pastelería, al peso, embutidos,
-        // especialidades, etc.) no se dibuja nada acá, solo queda el campo de observación manual
-        // de siempre. Tocar una opción la agrega al texto de observación; tocarla de nuevo la
-        // quita -- se pueden combinar varias a la vez.
-        var obsGrupo = mozosObsGrupoDe(nombre);
-        var opcionesRapidas = MOZOS_OBS_RAPIDAS[obsGrupo];
-        if(opcionesRapidas && opcionesRapidas.length){
-          var chipsRow = document.createElement("div");
-          chipsRow.className = "moz-obs-chips";
-          opcionesRapidas.forEach(function(tag){
-            var chip = document.createElement("button");
-            chip.type = "button";
-            chip.className = "moz-obs-chip" + (mozosObsTieneTag(it.obs, tag) ? " active" : "");
-            chip.textContent = tag;
-            chip.addEventListener("click", function(){
-              var nuevoTexto = mozosObsToggleTag(obsInput.value, tag);
-              obsInput.value = nuevoTexto;
-              mozosSetObservacion(numero, nombre, nuevoTexto);
-              chip.classList.toggle("active");
+        row.className = "moz-consumo-row";
+        row.innerHTML = '<div class="moz-consumo-row-top">' +
+            '<div class="moz-consumo-nombre">' + esc(nombre) + (sinEnviar ? ' <span class="moz-consumo-sin-enviar">sin enviar</span>' : '') + '</div>' +
+            '<div class="moz-consumo-monto">S/' + fmtMoney(precioUnit * cant) + '</div>' +
+          '</div>' +
+          '<div class="moz-consumo-row-sub">' + esc(cantTxt) + ' × S/' + fmtMoney(precioUnit) + (it.obs ? ' · <i>' + esc(it.obs) + '</i>' : '') + '</div>';
+        // ---- Corrección explícita de consumo (nov-2026) -- SOLO visible si ya se envió algo de
+        // este producto a cocina. "Nueva comanda" (pestaña aparte) es el único camino para pedir
+        // más; esto es solo para arreglar un número ya mal registrado, sin avisar a cocina.
+        if((it.enviado || 0) > 0){
+          var corrBtn = document.createElement("button");
+          corrBtn.type = "button"; corrBtn.className = "moz-consumo-corregir-btn"; corrBtn.textContent = "✏️ Corregir";
+          var corrBox = document.createElement("div");
+          corrBox.className = "moz-consumo-corregir-box";
+          corrBtn.addEventListener("click", function(){
+            var abrir = !corrBox.classList.contains("show");
+            corrBox.innerHTML = "";
+            corrBox.classList.toggle("show", abrir);
+            if(!abrir) return;
+            var lbl = document.createElement("div");
+            lbl.className = "moz-consumo-corregir-lbl";
+            lbl.textContent = esPeso ? "Corregir peso total (kg):" : "Corregir cantidad total:";
+            var inputCorr = document.createElement("input");
+            inputCorr.type = "number";
+            inputCorr.step = esPeso ? "0.05" : "1";
+            inputCorr.min = "0";
+            inputCorr.value = esPeso ? cant.toFixed(3) : String(cant);
+            var guardarCorr = document.createElement("button");
+            guardarCorr.type = "button"; guardarCorr.textContent = "✓ Guardar corrección";
+            guardarCorr.addEventListener("click", function(){
+              var raw = (inputCorr.value || "").replace(",", ".").trim();
+              var val = parseFloat(raw);
+              if(!raw || !isFinite(val) || val < 0){ showToast("Ingresa un valor válido.", 3000); return; }
+              var actualTxt = esPeso ? (cant.toFixed(3) + " kg") : String(cant);
+              var nuevoTxt = esPeso ? (val.toFixed(3) + " kg") : String(Math.round(val));
+              if(!confirm('¿Corregir el consumo de "' + nombre + '" de ' + actualTxt + ' a ' + nuevoTxt + '?\n\nEsto NO genera una comanda nueva ni avisa nada a cocina -- solo corrige el total que se le cobra a la mesa.')) return;
+              mozosCorregirConsumo(numero, nombre, val);
+              refreshAfterQty();
             });
-            chipsRow.appendChild(chip);
+            corrBox.appendChild(lbl); corrBox.appendChild(inputCorr); corrBox.appendChild(guardarCorr);
           });
-          obsWrap.appendChild(chipsRow);
+          row.appendChild(corrBtn);
+          row.appendChild(corrBox);
         }
-        var obsLbl = document.createElement("label"); obsLbl.textContent = "Observación";
-        var obsInput = document.createElement("input");
-        obsInput.type = "text";
-        // set-2026, pedido de Jessica: el placeholder de ejemplo ("con ají, sin cebolla, poca
-        // azúcar...") solo tiene sentido cuando el producto SÍ tiene chips (café o sándwich) --
-        // para cualquier otro producto (sin grupo definido) el placeholder debe ser genérico,
-        // nunca un ejemplo de café/sándwich que no aplica.
-        obsInput.placeholder = opcionesRapidas ? "Ej: con ají, sin cebolla, poca azúcar..." : "Escribe una observación…";
-        obsInput.value = it.obs || "";
-        // "change" (no "input"): se guarda al salir del campo, no en cada letra -- así no se
-        // reconstruye el panel mientras el mozo todavía está escribiendo la observación.
-        obsInput.addEventListener("change", function(){ mozosSetObservacion(numero, nombre, obsInput.value.trim()); });
-        obsWrap.appendChild(obsLbl); obsWrap.appendChild(obsInput);
-        row.appendChild(obsWrap);
-
-        drawerBody.appendChild(row);
+        consumoBody.appendChild(row);
       });
 
       // ---- Comandas ya enviadas a producción, con botón para reimprimir (set-2026, pedido de
-      // Jessica) ---- Se muestra debajo del pedido actual, siempre que esta mesa ya haya enviado
-      // al menos una comanda -- así el mozo puede pedir una copia sin tener que avisar en cocina
-      // a mano. Es de solo lectura (no se puede editar cantidades acá, solo reimprimir el papel).
+      // Jessica; nov-2026: vive en esta pestaña en vez de al fondo de "Tu pedido") ----
       if((mesaLocal.comandas || []).length){
         var histTitle = document.createElement("div");
         histTitle.className = "moz-drawer-hist-title";
-        histTitle.textContent = "Comandas enviadas";
-        drawerBody.appendChild(histTitle);
+        histTitle.textContent = "Historial de comandas";
+        consumoBody.appendChild(histTitle);
         mesaLocal.comandas.slice().reverse().forEach(function(c){
           var itemResumen = (c.items || []).map(function(it){
             var cantTxt = mozosEsProductoAlPeso(it.producto) ? (num(it.cantidad).toFixed(3) + "kg") : it.cantidad;
@@ -20229,46 +20585,198 @@ var TRIPLES = [
           histBtn.addEventListener("click", function(){ mozosReimprimirComanda(numero, c.id); });
           histRow.appendChild(histInfo);
           histRow.appendChild(histBtn);
-          drawerBody.appendChild(histRow);
+          consumoBody.appendChild(histRow);
         });
       }
 
-      var totalEl = drawerFooter.querySelector("#mozDrawerTotal");
-      if(totalEl) totalEl.textContent = "S/" + fmtMoney(mozosTotalMesa(mesaLocal));
+      var precuentaBtn = document.createElement("button");
+      precuentaBtn.type = "button"; precuentaBtn.className = "moz-consumo-precuenta-btn"; precuentaBtn.textContent = "🧾 Revisar precuenta";
+      precuentaBtn.addEventListener("click", function(){ dispararPrecuentaPreview(); });
+      consumoBody.appendChild(precuentaBtn);
+    }
+
+    // =====================================================================================
+    // ---- Vista previa de precuenta (nov-2026, pedido de Jessica: "la precuenta debe poder
+    // revisarse antes de imprimir. No debe generar comandas ni modificar consumos. La impresión
+    // se realiza solo cuando el mozo presiona «Imprimir precuenta».") ----
+    // Espejo en pantalla del MISMO contenido que imprime mozosPrecuentaTicketTexto (que NO se
+    // tocó -- el formato del ticket impreso sigue exactamente igual que antes). Esta vista previa
+    // es de solo lectura: nunca llama a mozosCambiarCantidad/mozosSetPeso/mozosSetObservacion ni
+    // a mozosEnviarComanda -- solo LEE mesa.items para mostrarlos, y solo imprime cuando se toca
+    // el botón "Imprimir precuenta" (que llama a doPrintMozosPrecuenta, también sin cambios).
+    // =====================================================================================
+    var precuentaBackdrop = document.createElement("div");
+    precuentaBackdrop.className = "moz-drawer-backdrop moz-precuenta-backdrop";
+    precuentaBackdrop.addEventListener("click", function(){ cerrarPrecuentaPreview(); });
+    var precuentaModal = document.createElement("div");
+    precuentaModal.className = "moz-precuenta-preview";
+    box.appendChild(precuentaBackdrop);
+    box.appendChild(precuentaModal);
+
+    function cerrarPrecuentaPreview(){
+      precuentaBackdrop.classList.remove("show");
+      precuentaModal.classList.remove("show");
+    }
+    function dispararPrecuentaPreview(){
+      renderPrecuentaPreview();
+      precuentaBackdrop.classList.add("show");
+      precuentaModal.classList.add("show");
+    }
+    function renderPrecuentaPreview(){
+      var mesaLocal = mozosGetMesa(numero);
+      var nombres = Object.keys(mesaLocal.items || {}).filter(function(n){ return (mesaLocal.items[n].cant || 0) > 0; }).sort();
+      var total = 0;
+      precuentaModal.innerHTML = "";
+      var headPrec = document.createElement("div");
+      headPrec.className = "moz-precuenta-head";
+      headPrec.innerHTML = '<div class="moz-precuenta-marca">PANADERÍA CARMELITAS</div>' +
+        '<div class="moz-precuenta-titulo">PRECUENTA</div>' +
+        '<div class="moz-precuenta-mesa">Mesa ' + ("0" + numero).slice(-2) + '</div>' +
+        '<div class="moz-precuenta-sub">Mozo: ' + esc(mesaLocal.mozo || "-") + ' · ' + esc(fmtHoraCortaMillis(Date.now())) + '</div>';
+      precuentaModal.appendChild(headPrec);
+
+      var lista = document.createElement("div");
+      lista.className = "moz-precuenta-lista";
+      if(!nombres.length){
+        lista.innerHTML = '<div class="moz-drawer-empty">Sin productos cargados todavía.</div>';
+      }
+      nombres.forEach(function(nombre){
+        var it = mesaLocal.items[nombre];
+        var cant = it.cant || 0;
+        var precio = getPrecioFor(nombre) || 0;
+        var sub = precio * cant;
+        total += sub;
+        var esPeso = mozosEsProductoAlPeso(nombre);
+        var cantTxt = esPeso ? (num(cant).toFixed(3) + " kg") : String(cant);
+        var row = document.createElement("div");
+        row.className = "moz-precuenta-item";
+        row.innerHTML = '<div class="moz-precuenta-item-top"><span>' + esc(nombre) + '</span><span>S/' + fmtMoney(sub) + '</span></div>' +
+          '<div class="moz-precuenta-item-sub">' + esc(cantTxt) + ' × S/' + fmtMoney(precio) + '</div>' +
+          (it.obs ? '<div class="moz-precuenta-item-obs">' + esc(String(it.obs).toUpperCase()) + '</div>' : '');
+        lista.appendChild(row);
+      });
+      precuentaModal.appendChild(lista);
+
+      var totalRow = document.createElement("div");
+      totalRow.className = "moz-precuenta-total";
+      totalRow.innerHTML = '<span>TOTAL</span><span>S/' + fmtMoney(total) + '</span>';
+      precuentaModal.appendChild(totalRow);
+
+      if(mesaLocal.medioPago || mesaLocal.tipoComprobante){
+        var pagoInfo = document.createElement("div");
+        pagoInfo.className = "moz-precuenta-pagoinfo";
+        var piezas = [];
+        if(mesaLocal.medioPago) piezas.push("Pago: " + mozosMedioPagoLabel(mesaLocal.medioPago));
+        if(mesaLocal.tipoComprobante) piezas.push("Comprobante: " + mozosTipoComprobanteLabel(mesaLocal.tipoComprobante));
+        pagoInfo.textContent = piezas.join(" · ");
+        precuentaModal.appendChild(pagoInfo);
+      }
+
+      var avisoNoComprobante = document.createElement("div");
+      avisoNoComprobante.className = "moz-precuenta-aviso";
+      avisoNoComprobante.textContent = "NO ES COMPROBANTE DE PAGO";
+      precuentaModal.appendChild(avisoNoComprobante);
+
+      var footerPrec = document.createElement("div");
+      footerPrec.className = "moz-precuenta-footer";
+      var volverBtn = document.createElement("button");
+      volverBtn.type = "button"; volverBtn.className = "moz-precuenta-volver"; volverBtn.textContent = "← Volver al pedido";
+      volverBtn.addEventListener("click", function(){ cerrarPrecuentaPreview(); });
+      var imprimirBtn = document.createElement("button");
+      imprimirBtn.type = "button"; imprimirBtn.id = "mozBtnPrecuentaImprimir"; imprimirBtn.className = "moz-precuenta-imprimir";
+      imprimirBtn.textContent = mesaLocal.precuentaImpresionFallo ? "🖨️ Imprimir precuenta ⚠️" : "🖨️ Imprimir precuenta";
+      imprimirBtn.addEventListener("click", function(){
+        imprimirBtn.disabled = true;
+        imprimirBtn.textContent = "Imprimiendo...";
+        doPrintMozosPrecuenta(numero, function(){
+          var mesaAhora = mozosGetMesa(numero);
+          imprimirBtn.disabled = false;
+          imprimirBtn.textContent = mesaAhora.precuentaImpresionFallo ? "🖨️ Imprimir precuenta ⚠️" : "🖨️ Imprimir precuenta";
+          updateCartBar();
+        });
+      });
+      footerPrec.appendChild(volverBtn); footerPrec.appendChild(imprimirBtn);
+      precuentaModal.appendChild(footerPrec);
+    }
+
+    // ---- Cambio de pestaña: alterna qué panel se ve sin reconstruirlo entero (igual de
+    // conservador que el resto de la pantalla: no se pierde el buscador ni el scroll). ----
+    function mostrarTab(tab){
+      tabActiva = tab;
+      panelProductos.classList.toggle("show", tab === "productos");
+      panelNueva.classList.toggle("show", tab === "nueva");
+      panelConsumo.classList.toggle("show", tab === "consumo");
+      // La pestaña "Nueva comanda" tiene su propio pie fijo (total + Enviar comanda) -- se
+      // oculta la barra inferior general mientras tanto para que no queden dos barras fijas
+      // superpuestas una sobre la otra (ambas "bottom:0"), lo que además bloqueaba el toque del
+      // botón "Enviar comanda" en tablet/celular.
+      if(cartBar) cartBar.classList.toggle("moz-cart-bar-oculto", tab === "nueva");
+      renderTabsNav();
+      if(tab === "nueva") renderPanelNueva();
+      if(tab === "consumo") renderPanelConsumo();
+    }
+
+    // ---- Bloqueo de botones críticos mientras se procesa (set-2026, pedido de Jessica: "los
+    // botones críticos deben bloquearse temporalmente ... para evitar doble clic") ----
+    function dispararEnviarComanda(){
+      btnEnviar.disabled = true; btnEnviar.textContent = "Enviando...";
+      mozosEnviarComanda(numero, function(){
+        btnEnviar.disabled = false; btnEnviar.textContent = "📨 ENVIAR COMANDA";
+      });
+      // Igual que antes del rediseño: la grilla/pestañas se refrescan de una vez (no esperan la
+      // respuesta del puente) porque mozosEnviarComanda YA marcó "enviado" en mesa.items de forma
+      // síncrona.
+      refreshAfterQty();
+    }
+
+    // Refresca SOLO lo necesario según la pestaña activa -- no reconstruye el buscador ni la
+    // cabecera, igual de conservador que antes del rediseño.
+    function refreshAfterQty(){
+      renderGrid();
+      updateCartBar();
+      renderResumenBar();
+      renderTabsNav();
+      if(tabActiva === "nueva") renderPanelNueva();
+      if(tabActiva === "consumo") renderPanelConsumo();
     }
 
     searchInput.addEventListener("input", function(){ renderGrid(); });
     renderCats();
     renderGrid();
+    renderTabsNav();
+    renderResumenBar();
 
+    // ---- Barra inferior fija: total + Cobrar + Precuenta (abre la vista previa) -- ya no lleva
+    // "Tu pedido" (reemplazado por las pestañas) ni "Enviar comanda" (vive dentro de "Nueva
+    // comanda", que es la única pestaña donde tiene sentido). ----
     var cartBar = document.createElement("div");
     cartBar.className = "moz-cart-bar";
     var cartTotal = document.createElement("div");
     cartTotal.className = "moz-cart-total";
     cartTotal.innerHTML = '<div class="moz-lbl">Total mesa</div><div class="moz-val">S/' + fmtMoney(mozosTotalMesa(mesa)) + '</div>';
-    var btnVerPedido = document.createElement("button");
-    btnVerPedido.type = "button"; btnVerPedido.className = "moz-btn-vercarrito"; btnVerPedido.textContent = "🛒 Tu pedido";
-    btnVerPedido.addEventListener("click", function(){ drawerAbierto = true; renderDrawer(); });
     var btnPrecuenta = document.createElement("button");
     btnPrecuenta.type = "button"; btnPrecuenta.id = "mozBtnPrecuenta"; btnPrecuenta.className = "moz-btn-precuenta";
-    // set-2026: si la última precuenta de ESTA mesa quedó fallida, se marca acá mismo (además
-    // del banner de arriba) -- justo donde el mozo va a tocar de nuevo para reintentar.
     btnPrecuenta.textContent = mesa.precuentaImpresionFallo ? "🧾 Precuenta ⚠️" : "🧾 Precuenta";
     if(mesa.precuentaImpresionFallo) btnPrecuenta.classList.add("moz-btn-precuenta-falla");
-    btnPrecuenta.addEventListener("click", function(){ dispararPrecuenta(); });
+    btnPrecuenta.addEventListener("click", function(){ dispararPrecuentaPreview(); });
     var btnCobrar = document.createElement("button");
     btnCobrar.type = "button"; btnCobrar.className = "moz-btn-cobrar"; btnCobrar.textContent = "💰 Cobrar";
-    // set-2026: si ya se marcó el medio de pago, el botón lo muestra de una vez (mismo dato que
-    // ya se ve en la tarjeta de la mesa en Mesas) -- así el mozo sabe sin abrir la ventana.
     if(mesa.medioPago) btnCobrar.textContent = "💰 " + mozosMedioPagoLabel(mesa.medioPago);
     btnCobrar.addEventListener("click", function(){ cobrarAbierto = true; renderCobrarModal(); });
-    var btnEnviar = document.createElement("button");
-    btnEnviar.type = "button"; btnEnviar.className = "moz-btn-enviar"; btnEnviar.textContent = "📨 ENVIAR COMANDA";
-    btnEnviar.addEventListener("click", function(){ dispararEnviarComanda(); });
-    cartBar.appendChild(cartTotal); cartBar.appendChild(btnVerPedido); cartBar.appendChild(btnPrecuenta); cartBar.appendChild(btnCobrar); cartBar.appendChild(btnEnviar);
+    cartBar.appendChild(cartTotal); cartBar.appendChild(btnPrecuenta); cartBar.appendChild(btnCobrar);
     box.appendChild(cartBar);
 
+    function updateCartBar(){
+      var mesaLocal = mozosGetMesa(numero);
+      var valEl = cartTotal.querySelector(".moz-val");
+      if(valEl) valEl.textContent = "S/" + fmtMoney(mozosTotalMesa(mesaLocal));
+      btnPrecuenta.textContent = mesaLocal.precuentaImpresionFallo ? "🧾 Precuenta ⚠️" : "🧾 Precuenta";
+      btnPrecuenta.classList.toggle("moz-btn-precuenta-falla", !!mesaLocal.precuentaImpresionFallo);
+      if(mesaLocal.medioPago) btnCobrar.textContent = "💰 " + mozosMedioPagoLabel(mesaLocal.medioPago);
+    }
     updateCartBar();
+
+    mostrarTab("productos");
 
     return box;
   }
