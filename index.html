@@ -13514,6 +13514,10 @@ var TRIPLES = [
           cliente: (p.cliente && p.cliente.nombre) || "",
           cantidad: num(it.cantidad),
           producto: it.producto,
+          // oct-2026 (Jessica, "INDICACIONES en reporte PEDIDOS DELIVERY"): la indicación
+          // especial del producto (misma convención que Mozos: it.obs) ahora viaja también
+          // al reporte agregado del día, no solo a la orden individual.
+          indicacion: (it.obs && it.obs.trim()) || "",
           hora: p.hora || "",
           tipoEntrega: pedidoTipoEntregaLabel(p)
         });
@@ -13537,17 +13541,19 @@ var TRIPLES = [
     var headCols = '<th style="' + thStyle + '">Cliente</th>' +
       '<th style="' + thStyle + 'text-align:center;">Cantidad</th>' +
       '<th style="' + thStyle + '">Producto</th>' +
+      '<th style="' + thStyle + '">Indicaciones</th>' +
       '<th style="' + thStyle + 'text-align:center;">Hora Entrega</th>' +
       '<th style="' + thStyle + 'text-align:center;">Tipo Entrega</th>';
     var body = "";
     if(rows.length === 0){
-      body = '<tr><td colspan="5" style="padding:12px; text-align:center; color:#777; font-style:italic;">No hay pedidos de este origen para esta fecha.</td></tr>';
+      body = '<tr><td colspan="6" style="padding:12px; text-align:center; color:#777; font-style:italic;">No hay pedidos de este origen para esta fecha.</td></tr>';
     } else {
       rows.forEach(function(r){
         body += "<tr>" +
           '<td style="' + tdStyle + 'font-weight:700;">' + esc(r.cliente) + "</td>" +
           '<td style="' + tdStyle + 'text-align:center;">' + fmt(r.cantidad) + "</td>" +
           '<td style="' + tdStyle + '">' + esc(r.producto) + "</td>" +
+          '<td style="' + tdStyle + 'font-style:italic; color:#555;">' + (r.indicacion ? esc(r.indicacion) : "—") + "</td>" +
           '<td style="' + tdStyle + 'text-align:center;">' + esc(fmtHora12(r.hora)) + "</td>" +
           '<td style="' + tdStyle + 'text-align:center;">' + esc(r.tipoEntrega) + "</td>" +
           "</tr>";
@@ -14003,8 +14009,16 @@ var TRIPLES = [
       if(pedidoNecesitaPagoPrevio(p)) return;
       (p.items || []).forEach(function(it){
         if(it.fecha !== date) return;
-        if(!totals[it.producto]) totals[it.producto] = { delivery:0, tienda:0, masivo:0 };
-        totals[it.producto][p.canal] = (totals[it.producto][p.canal] || 0) + num(it.cantidad);
+        // oct-2026 (Jessica, "INDICACIONES en PRODUCCIÓN POR DÍA"): si un producto tiene
+        // pedidos con indicaciones/preparaciones distintas (ej. "Francés Sanguchero" normal
+        // vs. "Francés Sanguchero" con indicación "ROSETAS"), deben verse como líneas
+        // separadas -- nunca sumados en una sola fila que esconda la diferencia, pero
+        // tampoco duplicando la cantidad: cada unidad del pedido se suma UNA sola vez, en
+        // la fila que le corresponde según su indicación exacta.
+        var obsTxt = (it.obs && it.obs.trim()) || "";
+        var key = obsTxt ? (it.producto + " — " + obsTxt) : it.producto;
+        if(!totals[key]) totals[key] = { delivery:0, tienda:0, masivo:0 };
+        totals[key][p.canal] = (totals[key][p.canal] || 0) + num(it.cantidad);
       });
     });
     return totals;
@@ -14050,18 +14064,21 @@ var TRIPLES = [
       // WhatsApp", ver buildPedidosReporteRows).
       [["tienda","Tienda", tiendaRows], ["whatsapp","Delivery", deliveryRows]].forEach(function(triple){
         var rows = triple[2];
-        var headers = ["Cliente","Cantidad","Producto","Hora Entrega","Tipo Entrega"];
+        // oct-2026 (Jessica, "INDICACIONES en reporte PEDIDOS DELIVERY"): la columna
+        // Indicaciones va después de Producto también en el Excel, igual que en pantalla/PDF.
+        var headers = ["Cliente","Cantidad","Producto","Indicaciones","Hora Entrega","Tipo Entrega"];
+        var filler = headers.map(function(){ return ""; });
         var aoa = [
-          ["PEDIDOS " + triple[1].toUpperCase(), "", "", "", ""],
-          [fmtDateLabel(date), "", "", "", ""],
-          ["", "", "", "", ""],
+          ["PEDIDOS " + triple[1].toUpperCase()].concat(filler.slice(1)),
+          [fmtDateLabel(date)].concat(filler.slice(1)),
+          filler.slice(),
           headers.slice()
         ];
         rows.forEach(function(r){
-          aoa.push([r.cliente, r.cantidad, r.producto, fmtHora12(r.hora), r.tipoEntrega]);
+          aoa.push([r.cliente, r.cantidad, r.producto, r.indicacion || "—", fmtHora12(r.hora), r.tipoEntrega]);
         });
         var ws = XLSX.utils.aoa_to_sheet(aoa);
-        ws["!cols"] = [{wch:26},{wch:10},{wch:32},{wch:14},{wch:14}];
+        ws["!cols"] = [{wch:26},{wch:10},{wch:32},{wch:24},{wch:14},{wch:14}];
         ws["!merges"] = [{ s:{r:0,c:0}, e:{r:0,c:headers.length-1} }, { s:{r:1,c:0}, e:{r:1,c:headers.length-1} }];
         XLSX.utils.book_append_sheet(wb, ws, triple[1]);
       });
