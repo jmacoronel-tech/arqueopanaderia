@@ -1169,6 +1169,10 @@
   .moz-grid-prod{ display:grid; grid-template-columns:repeat(auto-fill,minmax(155px,1fr)); gap:.7rem; padding-bottom:9rem; }
   .moz-prod-tile{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:.85rem .8rem; min-height:106px; display:flex; flex-direction:column; justify-content:space-between; position:relative; }
   .moz-prod-tile.sin-ruta{ border-style:dashed; }
+  /* nov-2026 (v2, "carrito"): un producto con algo pendiente de enviar se nota directo en la
+     grilla (no solo en el carrito de al lado) -- mismo acento dorado que ya usa el resto de la
+     pantalla para "esto está activo/elegido", nunca un color nuevo. */
+  .moz-prod-tile.en-carrito{ border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft), var(--shadow); }
   .moz-prod-tile .moz-nombre{ font-weight:700; font-size:.92rem; line-height:1.25; }
   .moz-prod-tile.sin-ruta .moz-nombre{ padding-right:3.4rem; }
   .moz-prod-tile .moz-precio{ font-size:.85rem; color:var(--ink-soft); font-weight:600; margin-top:.35rem; }
@@ -1196,16 +1200,11 @@
   .moz-tag-enviado{ display:inline-block; background:var(--surface-2); color:var(--ink-muted); font-size:.62rem; font-weight:800; padding:.12rem .4rem; border-radius:999px; margin-left:.3rem; vertical-align:middle; }
   .moz-empty{ grid-column:1/-1; text-align:center; color:var(--ink-muted); padding:1.5rem 0; }
 
-  .moz-cart-bar{ position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:1120px; background:var(--surface); border-top:1px solid var(--border); box-shadow:0 -8px 24px -12px rgba(36,28,19,.28); padding:.9rem 1.1rem calc(.9rem + env(safe-area-inset-bottom)); display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; z-index:15; }
-  .moz-cart-total{ flex:1; min-width:140px; }
-  .moz-cart-total .moz-lbl{ font-size:.72rem; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
-  .moz-cart-total .moz-val{ font-family:"Fraunces",Georgia,serif; font-size:1.6rem; font-weight:700; color:var(--ink); }
   .moz-btn-precuenta{ border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:var(--radius-sm); padding:.9rem 1rem; font-size:.92rem; font-weight:700; cursor:pointer; font-family:inherit; }
   .moz-btn-precuenta-falla{ border:1.6px solid var(--bad); background:var(--bad-soft); color:var(--bad); }
+  .moz-btn-consumo{ border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:var(--radius-sm); padding:.9rem 1rem; font-size:.92rem; font-weight:700; cursor:pointer; font-family:inherit; }
   .moz-btn-enviar{ border:none; background:var(--accent); color:var(--accent-ink); border-radius:var(--radius-sm); padding:1rem 1.4rem; font-size:1.05rem; font-weight:800; cursor:pointer; flex:1; min-width:200px; box-shadow:0 6px 18px -6px rgba(31,91,110,.55); font-family:inherit; }
   .moz-btn-enviar:active{ transform:scale(.98); }
-  .moz-btn-vercarrito{ border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:var(--radius-sm); padding:.9rem 1rem; font-size:.92rem; font-weight:700; cursor:pointer; font-family:inherit; position:relative; }
-  .moz-btn-vercarrito .moz-carrito-badge{ position:absolute; top:-.45rem; right:-.45rem; background:var(--accent); color:var(--accent-ink); font-size:.68rem; font-weight:800; min-width:1.3rem; height:1.3rem; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 .25rem; }
 
   /* ---- Drawer "Tu pedido" (referencia visual de Jessica: carrito de su página web) ---- */
   .moz-drawer-backdrop{ position:fixed; inset:0; background:rgba(36,28,19,.45); z-index:30; display:none; }
@@ -1217,9 +1216,15 @@
   .moz-drawer-close{ border:none; background:var(--surface-2); color:var(--ink); width:2.1rem; height:2.1rem; border-radius:50%; font-size:1.1rem; cursor:pointer; font-family:inherit; line-height:1; }
   .moz-drawer-body{ flex:1; overflow-y:auto; padding:.6rem 1.2rem; }
   .moz-drawer-empty{ color:var(--ink-muted); text-align:center; padding:2rem 0; }
-  .moz-drawer-item{ padding:.9rem 0; border-bottom:1px solid var(--surface-2); }
+  /* Franja de color a la izquierda de cada línea del carrito: distingue de un vistazo lo que es
+     pedido nuevo (dorado) de lo que ya se mandó antes y solo se está completando (verde, como
+     el resto del texto "Ya enviado"/"+n" que ya usaba --good) -- refuerzo visual del pedido de
+     Jessica de nunca confundir "lo nuevo" con "lo ya enviado". */
+  .moz-drawer-item{ padding:.9rem 0 .9rem .7rem; margin-left:-.7rem; border-bottom:1px solid var(--surface-2); border-left:3px solid transparent; }
+  .moz-drawer-item-nuevo{ border-left-color:var(--accent); }
+  .moz-drawer-item-repetido{ border-left-color:var(--good); }
   .moz-drawer-item-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:.6rem; }
-  .moz-drawer-item-name{ font-weight:700; font-size:.96rem; }
+  .moz-drawer-item-name{ font-family:"Fraunces",Georgia,serif; font-weight:600; font-size:1.02rem; }
   .moz-drawer-item-precio{ font-size:.8rem; color:var(--ink-soft); font-weight:600; margin-top:.15rem; }
   .moz-drawer-item .moz-qty-ctrl{ flex:none; }
   .moz-drawer-obs{ margin-top:.55rem; }
@@ -1239,42 +1244,71 @@
   .moz-drawer-total .moz-val{ font-family:"Fraunces",Georgia,serif; font-size:1.5rem; font-weight:700; color:var(--ink); }
   .moz-drawer-footer .moz-btn-enviar{ width:100%; }
 
-  /* ---------- nov-2026: rediseño de la pantalla de Comanda -- pestañas Productos / Nueva
-     comanda / Consumo, barra de "Consumo acumulado" persistente, y vista previa de precuenta
-     (pedido de Jessica: pantalla más rápida/clara para tableta, sin tocar la lógica ya probada
-     de comandas/precios/impresión). Reutiliza los mismos tokens de color (--accent/--good/--bad/
-     --ink/--surface/--border) que ya usa el resto de Mozos/Salón, nunca colores sueltos. ---- */
-  .moz-resumen-bar{ display:flex; align-items:center; justify-content:space-between; gap:.8rem; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:.85rem 1rem; margin-bottom:.8rem; flex-wrap:wrap; }
+  /* ---------- nov-2026 (v2): REDISEÑO "TIPO CARRITO DE COMPRAS" -- pedido de Jessica con
+     referencia de POS modernos (Toast/Lightspeed/Square): reemplaza las 3 pestañas por una sola
+     pantalla de trabajo -- catálogo a la izquierda, carrito del pedido nuevo SIEMPRE visible a la
+     derecha, barra inferior con acceso a consumo acumulado/historial/precuenta. Reutiliza los
+     mismos tokens de color (--accent/--good/--bad/--ink/--surface/--border) que ya usa el resto
+     de Mozos/Salón -- nunca colores sueltos, nunca una paleta nueva. ---- */
+  .moz-pos-layout{ display:grid; grid-template-columns:1fr minmax(300px,360px); gap:1rem; align-items:start; }
+  .moz-pos-left{ min-width:0; }
+  /* El carrito queda "pegado" (sticky) al lado del catálogo mientras se hace scroll por la
+     grilla de productos -- es el pedido pedido explícito de Jessica ("carrito siempre visible
+     mientras se toman pedidos"). Su propia lista de productos hace scroll interno; el título y
+     el pie (total + Enviar comanda) quedan siempre a la vista. */
+  /* "5.5rem" de margen/alto reservado abajo: deja libre el espacio de la barra inferior fija
+     (.moz-pos-bottombar), que si no quedaría tapando el botón "Enviar comanda" del pie del
+     carrito (el mismo problema de dos barras fijas superpuestas que ya se había resuelto antes
+     del rediseño v2, ahora con el carrito sticky en vez de un segundo pie fijo). */
+  /* El carrito es el elemento "hero" de esta pantalla -- la cuenta que se está armando -- así
+     que además de la misma sombra de tarjeta que usa el resto de la app, lleva una sombra algo
+     más profunda y una franja dorada superior (su propia variable --cart-shadow para que el
+     pulso de abajo y el override de tema oscuro puedan reusarla sin repetir el valor). */
+  .moz-pos-cart{ position:sticky; top:.8rem; margin-bottom:5.5rem; display:flex; flex-direction:column; max-height:calc(100vh - 1.6rem - 5.5rem); background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; --cart-shadow:0 1px 2px rgba(36,28,19,.07), 0 24px 44px -18px rgba(36,28,19,.38); box-shadow:var(--cart-shadow); }
+  .moz-pos-cart::before{ content:""; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, var(--accent), rgba(156,107,24,.35)); }
+  .moz-cart-header{ flex:none; display:flex; align-items:center; gap:.5rem; padding:.9rem 1.1rem; background:var(--accent-soft); color:var(--accent); border-bottom:1px solid var(--border); font-weight:800; font-size:.96rem; }
+  .moz-cart-header-icono{ font-size:1.1rem; }
+  .moz-cart-header-txt{ font-family:"Fraunces",Georgia,serif; font-size:1.05rem; letter-spacing:-.005em; }
+  /* Feedback visual rápido al agregar un producto desde el catálogo -- el carrito ya está
+     siempre visible al lado, así que en vez de cambiar de pantalla, se resalta un instante con
+     un brillo dorado para que quede claro que el pedido cambió. */
+  .moz-pos-cart-pulse{ animation:mozCartPulse .5s ease; }
+  @keyframes mozCartPulse{ 0%{ box-shadow:0 0 0 0 rgba(156,107,24,.55), var(--cart-shadow); } 100%{ box-shadow:0 0 0 .4rem rgba(156,107,24,0), var(--cart-shadow); } }
+  @media (max-width:760px){
+    .moz-pos-layout{ grid-template-columns:1fr; }
+    /* "relative" y no "static": deja de pegarse (sticky) al hacer scroll igual que antes, pero
+       sigue siendo un contenedor posicionado para que la franja dorada (::before) no se escape
+       del carrito y termine pegada arriba de toda la página. */
+    .moz-pos-cart{ position:relative; max-height:none; }
+  }
+
+  .moz-resumen-left{ min-width:160px; }
   .moz-resumen-lbl{ font-size:.72rem; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
   .moz-resumen-val{ font-family:"Fraunces",Georgia,serif; font-size:1.55rem; font-weight:700; color:var(--ink); line-height:1.15; }
   .moz-resumen-sub{ font-size:.78rem; color:var(--ink-muted); font-weight:600; margin-top:.1rem; }
   .moz-resumen-pendiente{ color:var(--warn); font-weight:800; }
-  .moz-resumen-ver-btn{ flex:none; border:1.3px solid var(--accent); background:var(--accent-soft); color:var(--accent); border-radius:999px; padding:.6rem 1rem; font-size:.84rem; font-weight:800; cursor:pointer; font-family:inherit; white-space:nowrap; }
 
-  .moz-tabs-nav{ display:flex; gap:.5rem; margin-bottom:.9rem; }
-  .moz-tab-btn{ flex:1; border:1px solid var(--border); background:var(--surface); color:var(--ink-soft); border-radius:var(--radius-sm); padding:.8rem .6rem; font-size:.92rem; font-weight:800; cursor:pointer; font-family:inherit; text-align:center; position:relative; }
-  .moz-tab-btn.active{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
-  .moz-tab-badge{ display:inline-flex; align-items:center; justify-content:center; min-width:1.3rem; height:1.3rem; padding:0 .3rem; border-radius:999px; background:var(--bad); color:#fff; font-size:.7rem; font-weight:800; margin-left:.3rem; vertical-align:middle; }
-  .moz-tab-btn.active .moz-tab-badge{ background:var(--accent-ink); color:var(--accent); }
+  /* Barra inferior fija: consumo acumulado + accesos a Consumo/historial, Precuenta y Cobrar --
+     UNA sola barra (antes había dos: "Consumo acumulado" arriba de las pestañas + "Total/
+     Precuenta/Cobrar" al pie, que además tenían que ocultarse una a otra para no superponerse). */
+  .moz-pos-bottombar{ position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:1120px; background:var(--surface); border-top:1px solid var(--border); box-shadow:0 -8px 24px -12px rgba(36,28,19,.28); padding:.85rem 1.1rem calc(.85rem + env(safe-area-inset-bottom)); display:flex; align-items:center; justify-content:space-between; gap:.8rem; flex-wrap:wrap; z-index:15; }
+  .moz-pos-bottombar-acciones{ display:flex; gap:.6rem; flex-wrap:wrap; }
 
-  /* Cada pestaña queda montada en el DOM todo el tiempo (igual que hacía el drawer antes) para
-     no perder el buscador ni el scroll -- solo se alterna "show" para mostrar una a la vez. */
-  .moz-tab-panel{ display:none; }
-  .moz-tab-panel.show{ display:block; }
-
-  .moz-nueva-body{ padding-bottom:9rem; }
-  .moz-nueva-empty{ color:var(--ink-muted); text-align:center; padding:2rem 1rem; }
-  .moz-nueva-ir-productos{ display:block; margin:0 auto; border:1px solid var(--accent); background:var(--accent-soft); color:var(--accent); border-radius:999px; padding:.7rem 1.2rem; font-weight:800; font-size:.88rem; cursor:pointer; font-family:inherit; }
+  .moz-nueva-body{ flex:1; overflow-y:auto; padding:.5rem 1.1rem; }
   .moz-nueva-pendiente{ font-size:.78rem; color:var(--ink-soft); font-weight:700; margin-top:.3rem; }
   .moz-nueva-pendiente b{ color:var(--good); }
   .moz-nueva-pendiente-primero{ color:var(--good); }
-  .moz-nueva-footer{ position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:1120px; background:var(--surface); border-top:1px solid var(--border); box-shadow:0 -8px 24px -12px rgba(36,28,19,.28); padding:.9rem 1.1rem calc(.9rem + env(safe-area-inset-bottom)); z-index:14; }
+  .moz-nueva-footer{ flex:none; border-top:1px solid var(--border); padding:.9rem 1.1rem; background:var(--surface); }
   .moz-nueva-footer .moz-btn-enviar{ width:100%; }
-  /* La barra general (Total/Cobrar/Precuenta) se oculta mientras se ve "Nueva comanda", que
-     tiene su propio pie fijo -- evita dos barras fijas superpuestas en bottom:0 (ver mostrarTab). */
-  .moz-cart-bar.moz-cart-bar-oculto{ display:none; }
 
-  .moz-consumo-body{ padding-bottom:9rem; }
+  /* El modal de "Consumo" (nov-2026 v2: antes era una pestaña más, ahora se abre desde la barra
+     inferior -- mismo patrón de ventana centrada que ya usa "Cobrar"). */
+  .moz-consumo-modal{ position:fixed; top:50%; left:50%; transform:translate(-50%,-48%); width:min(480px,92vw); max-height:88vh; overflow-y:auto; background:var(--surface); border-radius:var(--radius); box-shadow:0 24px 48px -12px rgba(36,28,19,.4); z-index:33; display:none; flex-direction:column; padding:1.2rem; }
+  .moz-consumo-modal.show{ display:flex; }
+  .moz-consumo-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:.3rem; }
+  .moz-consumo-head h3{ margin:0; font-family:"Fraunces",Georgia,serif; font-size:1.2rem; }
+  .moz-consumo-close{ border:none; background:var(--surface-2); color:var(--ink); width:2.1rem; height:2.1rem; border-radius:50%; font-size:1.1rem; cursor:pointer; font-family:inherit; line-height:1; flex:none; }
+  .moz-consumo-body{ padding-top:.3rem; }
   .moz-consumo-title{ font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; font-weight:700; color:var(--ink-muted); margin-bottom:.6rem; }
   .moz-consumo-row{ background:var(--surface); border:1px solid var(--surface-2); border-radius:var(--radius-sm); padding:.75rem .9rem; margin-bottom:.55rem; }
   .moz-consumo-row-top{ display:flex; align-items:baseline; justify-content:space-between; gap:.6rem; }
@@ -1348,7 +1382,8 @@
      un color fijo -- se ajustan a mano para que se vean bien sobre el fondo crema (una sombra
      oscura sigue siendo lo correcto para dar profundidad, sea cual sea el tema de fondo). */
   .moz-dark .moz-sticky-search{ box-shadow:0 6px 12px -10px rgba(58,36,21,.18); }
-  .moz-dark .moz-cart-bar{ box-shadow:0 -8px 24px -12px rgba(58,36,21,.22); }
+  .moz-dark .moz-pos-bottombar{ box-shadow:0 -8px 24px -12px rgba(58,36,21,.22); }
+  .moz-dark .moz-pos-cart{ --cart-shadow:0 1px 2px rgba(58,36,21,.08), 0 24px 44px -18px rgba(58,36,21,.3); }
   .moz-dark .moz-btn-enviar{ box-shadow:0 6px 18px -6px rgba(156,107,24,.45); }
   .moz-dark .moz-drawer-backdrop{ background:rgba(58,36,21,.45); }
   .moz-dark .moz-drawer{ box-shadow:-12px 0 32px -12px rgba(58,36,21,.25); }
@@ -17970,11 +18005,55 @@ var TRIPLES = [
     // segura con nada de lo de arriba.
     return "Otros";
   }
-  // Catálogo para Mozos: MISMOS nombres y precios que ya usa Pedidos (buildCatalogNameList +
-  // getPrecioFor, ver más arriba) -- no se duplica ni un nombre ni un precio nuevo acá.
+  // nov-2026, pedido de Jessica: "quiero que Mozos utilice la información vigente del catálogo
+  // central: producto, categoría, precio, unidad y estado activo/inactivo" + "Pavo Entero X Kg
+  // está INACTIVO en Lista de Precios, pero aparece disponible para agregar en Mozos" + "no
+  // quiero clasificar productos dos veces ni mantener catálogos paralelos".
+  // Esto extiende la misma conexión que "Etapa B" (25-oct-2026, ver getCatalogoPrecioOficial/
+  // getPrecioFor más arriba) ya hizo para el PRECIO -- catalogoProductos (la colección de
+  // Firestore detrás de la pantalla "Lista de Precios", administrada por Jessica con PIN e
+  // historial) pasa a ser TAMBIÉN la fuente de qué productos aparecen para agregar y en qué
+  // categoría, en vez del clasificador por palabras clave (mozoCategoriaDe) y el catálogo
+  // legado (buildCatalogNameList, armado de los 4 catálogos viejos del Arqueo + semilla).
+  //   - "activo === false" en Lista de Precios = el producto NO aparece para agregarlo a una
+  //     venta nueva (resuelve el caso real de "Pavo Entero X Kg"). Esto nunca borra ni modifica
+  //     el consumo ya cargado en una mesa -- una mesa que YA tiene ese producto en su pedido
+  //     sigue viéndolo y cobrándolo igual (mesa.items se guarda por nombre, no depende de este
+  //     catálogo), solo deja de poder agregarse de nuevo.
+  //   - "categoria" viene directo de Lista de Precios -- la MISMA categoría que Jessica ya
+  //     administra ahí (LISTA_PRECIOS_CATEGORIAS), nunca una adivinada por palabra clave.
+  // mozoCategoriaDe/buildCatalogNameList NO se borran -- quedan como RESPALDO (misma filosofía
+  // que ya usa getPrecioFor con PEDIDO_PRECIO_SEED): si catalogoProductos todavía no cargó (ej.
+  // recién se abrió la página) o está vacío, Mozos sigue funcionando con el sistema anterior en
+  // vez de mostrar un catálogo vacío.
+  function mozosCatalogoVivo(){
+    if(!CATALOGO_PRODUCTOS) return null; // todavía no respondió el listener -- usar respaldo
+    var ids = Object.keys(CATALOGO_PRODUCTOS);
+    if(!ids.length) return null; // snapshot vacío de verdad (o ni cargó) -- usar respaldo
+    var out = [];
+    var vistos = {};
+    ids.forEach(function(id){
+      var p = CATALOGO_PRODUCTOS[id] || {};
+      if(!p.nombre) return;
+      if(p.activo === false) return; // inactivo: no se puede agregar a una venta nueva
+      var key = normalizePrecioKey(p.nombre);
+      if(vistos[key]) return; // defensivo: dos ids que normalizaran al mismo nombre
+      vistos[key] = true;
+      out.push({
+        nombre: p.nombre,
+        precio: getPrecioFor(p.nombre) || 0,
+        categoria: p.categoria || "Otros",
+        unidad: p.unidad || "unidad"
+      });
+    });
+    return out;
+  }
   function mozosCatalogo(){
+    var vivo = mozosCatalogoVivo();
+    if(vivo) return vivo;
     return buildCatalogNameList().map(function(nombre){
-      return { nombre: nombre, precio: getPrecioFor(nombre) || 0, categoria: mozoCategoriaDe(nombre) };
+      return { nombre: nombre, precio: getPrecioFor(nombre) || 0, categoria: mozoCategoriaDe(nombre),
+        unidad: mozosEsProductoAlPesoLegacy(nombre) ? "kg" : "unidad" };
     });
   }
 
@@ -18255,8 +18334,29 @@ var TRIPLES = [
     MOZOS_PRODUCTOS_AL_PESO.forEach(function(n){ out[normalizePrecioKey(n)] = true; });
     return out;
   })();
-  function mozosEsProductoAlPeso(nombre){
+  // Respaldo "puro" (sin catálogo vivo) -- lo que ya había antes de nov-2026, se mantiene con
+  // otro nombre porque mozosCatalogo lo sigue usando cuando catalogoProductos no cargó.
+  function mozosEsProductoAlPesoLegacy(nombre){
     return !!MOZOS_PRODUCTOS_AL_PESO_KEYS[normalizePrecioKey(nombre)];
+  }
+  // nov-2026, pedido de Jessica: "quiero que Mozos utilice... unidad... del catálogo central".
+  // Si Lista de Precios (catalogoProductos) ya tiene la unidad de este producto, manda esa --
+  // "kg"/"g" = al peso. UNIÓN, nunca reemplazo: si el catálogo vivo todavía no tiene este
+  // producto, o no cargó, se respeta igual la lista curada y confirmada por Jessica
+  // (MOZOS_PRODUCTOS_AL_PESO) -- a propósito el catálogo vivo solo puede SUMAR productos al
+  // peso, nunca quitar uno que ya se sabe que es al peso (ej. Chicharrón), para no arriesgar el
+  // flujo de peso ya corregido (ver mozosEnviarComanda) por un dato de unidad incompleto o
+  // todavía no migrado en Firestore.
+  function mozosEsProductoAlPeso(nombre){
+    if(mozosEsProductoAlPesoLegacy(nombre)) return true;
+    if(CATALOGO_PRODUCTOS){
+      var p = CATALOGO_PRODUCTOS[catalogoDocId(nombre)];
+      if(p && p.unidad){
+        var u = String(p.unidad).trim().toLowerCase();
+        if(u === "kg" || u === "g") return true;
+      }
+    }
+    return false;
   }
   // nov-2026, pedido de Jessica: "igualar las categorías de Mozos a mi Lista de Precios" -- estas
   // dos listas reusan EXACTAMENTE los mismos nombres que ya separa el comentario de arriba
@@ -19831,6 +19931,7 @@ var TRIPLES = [
   function buildMozosComandaView(numero){
     var mesa = mozosGetMesa(numero);
     var box = document.createElement("div");
+    box.className = "moz-pos-root";
 
     var head = document.createElement("div");
     head.className = "moz-comanda-head";
@@ -19898,7 +19999,7 @@ var TRIPLES = [
     // estilo cálido que ya tiene el resto de la app (no se copió el mockup literal, que era en
     // blanco y negro). La LÓGICA de guardado (mozosSetMedioPago/mozosSetTipoComprobante/etc, y el
     // bloqueo real en mozosLiberarMesa) es EXACTAMENTE la misma que ya estaba probada -- esto solo
-    // cambia dónde y cómo se ve en pantalla. SIN CAMBIOS en el rediseño de nov-2026.
+    // cambia dónde y cómo se ve en pantalla. SIN CAMBIOS respecto al rediseño de nov-2026 anterior.
     var cobrarAbierto = false;
     var cobrarBackdrop = document.createElement("div");
     cobrarBackdrop.className = "moz-cobrar-backdrop";
@@ -19960,56 +20061,45 @@ var TRIPLES = [
       pasoPago.appendChild(pagoRow);
       cobrarModal.appendChild(pasoPago);
 
-      if(mesaLocal.medioPago === "yape_plin"){
-        var qrBox = document.createElement("div");
-        qrBox.className = "moz-qr-box";
-        if(MOZOS_QR_YAPE_PLIN_DATAURL){
-          qrBox.innerHTML = '<div class="moz-qr-titulo">📱 Escanea el QR para pagar</div>' +
-            '<img src="' + MOZOS_QR_YAPE_PLIN_DATAURL + '" alt="QR Yape/Plin Panadería Carmelitas">';
-        } else {
-          qrBox.innerHTML = '<div class="moz-qr-pendiente">⚠️ Falta subir el QR de Yape/Plin de Carmelitas -- avísale a Jessica.</div>';
-        }
-        cobrarModal.appendChild(qrBox);
-      }
-
-      var pasoComp = document.createElement("div");
-      pasoComp.className = "moz-cobrar-paso";
-      pasoComp.innerHTML = '<div class="moz-cobrar-paso-titulo"><span class="moz-cobrar-paso-num">2</span>Comprobante</div>';
+      var pasoComprobante = document.createElement("div");
+      pasoComprobante.className = "moz-cobrar-paso";
+      pasoComprobante.innerHTML = '<div class="moz-cobrar-paso-titulo"><span class="moz-cobrar-paso-num">2</span>Comprobante</div>';
       var compRow = document.createElement("div");
       compRow.className = "moz-cobro-row";
-      MOZOS_TIPOS_COMPROBANTE.forEach(function(c){
+      MOZOS_TIPOS_COMPROBANTE.forEach(function(t){
         var b = document.createElement("button");
         b.type = "button";
-        b.className = "moz-cobro-chip" + (mesaLocal.tipoComprobante === c.key ? " active" : "");
-        b.textContent = c.label;
+        b.className = "moz-cobro-chip" + (mesaLocal.tipoComprobante === t.key ? " active" : "");
+        b.textContent = t.label;
         b.addEventListener("click", function(){
-          mozosSetTipoComprobante(numero, mesaLocal.tipoComprobante === c.key ? "" : c.key);
+          mozosSetTipoComprobante(numero, mesaLocal.tipoComprobante === t.key ? "" : t.key);
           renderCobrarModal();
         });
         compRow.appendChild(b);
       });
-      pasoComp.appendChild(compRow);
-      cobrarModal.appendChild(pasoComp);
+      pasoComprobante.appendChild(compRow);
+      cobrarModal.appendChild(pasoComprobante);
 
       if(mesaLocal.tipoComprobante === "boleta_dni"){
         var dniWrap = document.createElement("div");
         dniWrap.className = "moz-cobro-campo";
-        var dniLbl = document.createElement("label"); dniLbl.textContent = "DNI del cliente (para la caja)";
+        var dniLbl = document.createElement("label"); dniLbl.textContent = "DNI (opcional, para la boleta)";
         var dniInput = document.createElement("input");
-        dniInput.type = "text"; dniInput.inputMode = "numeric"; dniInput.maxLength = 15;
+        dniInput.type = "text"; dniInput.inputMode = "numeric"; dniInput.maxLength = 8;
         dniInput.value = mesaLocal.comprobanteDni || "";
-        dniInput.placeholder = "Ej: 12345678";
+        dniInput.addEventListener("input", function(){ dniInput.value = dniInput.value.replace(/\D/g, "").slice(0, 8); });
         dniInput.addEventListener("change", function(){ mozosSetComprobanteCampo(numero, "comprobanteDni", dniInput.value.trim()); });
         dniWrap.appendChild(dniLbl); dniWrap.appendChild(dniInput);
         cobrarModal.appendChild(dniWrap);
-      } else if(mesaLocal.tipoComprobante === "factura"){
+      }
+      if(mesaLocal.tipoComprobante === "factura"){
         var rucWrap = document.createElement("div");
         rucWrap.className = "moz-cobro-campo";
-        var rucLbl = document.createElement("label"); rucLbl.textContent = "RUC (para la caja)";
+        var rucLbl = document.createElement("label"); rucLbl.textContent = "RUC (para la factura)";
         var rucInput = document.createElement("input");
-        rucInput.type = "text"; rucInput.inputMode = "numeric"; rucInput.maxLength = 15;
+        rucInput.type = "text"; rucInput.inputMode = "numeric"; rucInput.maxLength = 11;
         rucInput.value = mesaLocal.comprobanteRuc || "";
-        rucInput.placeholder = "Ej: 20123456789";
+        rucInput.addEventListener("input", function(){ rucInput.value = rucInput.value.replace(/\D/g, "").slice(0, 11); });
         rucInput.addEventListener("change", function(){ mozosSetComprobanteCampo(numero, "comprobanteRuc", rucInput.value.trim()); });
         rucWrap.appendChild(rucLbl); rucWrap.appendChild(rucInput);
         cobrarModal.appendChild(rucWrap);
@@ -20049,8 +20139,10 @@ var TRIPLES = [
     }
     renderCobrarModal();
 
-    // ---- nov-2026: utilidades compartidas por las 3 pestañas para saber qué está "pendiente de
-    // enviar" (cant por encima de lo ya enviado) de forma consistente en todos lados. ----
+    // ---- nov-2026 (v2, "tipo carrito de compras"): utilidades compartidas para saber qué está
+    // "pendiente de enviar" (cant por encima de lo ya enviado) de forma consistente en todos
+    // lados. SIN CAMBIOS respecto a la versión de pestañas -- el modelo de datos de la mesa
+    // (mesa.items[nombre] = {cant, enviado, obs}) es exactamente el mismo. ----
     function mozosItemPendiente(it, esPeso){
       var enviado = (it && it.enviado) || 0;
       var cant = (it && it.cant) || 0;
@@ -20063,76 +20155,31 @@ var TRIPLES = [
       });
     }
 
-    // ---- nov-2026: barra de "Consumo acumulado" -- queda SIEMPRE visible (referencia visual
-    // que mandó Jessica), sin importar en qué pestaña se esté. Muestra el total que se le va a
-    // cobrar a la mesa (TODO lo cargado, enviado o no -- igual que siempre calculó mozosTotalMesa
-    // y la precuenta) y cuántas comandas ya se mandaron a cocina. ----
-    var resumenBar = document.createElement("div");
-    resumenBar.className = "moz-resumen-bar";
-    box.appendChild(resumenBar);
-    function renderResumenBar(){
-      var mesaLocal = mozosGetMesa(numero);
-      var nComandas = (mesaLocal.comandas || []).length;
-      var pendiente = mozosHayPendiente(mesaLocal);
-      resumenBar.innerHTML = "";
-      var left = document.createElement("div");
-      left.className = "moz-resumen-left";
-      left.innerHTML = '<div class="moz-resumen-lbl">Consumo acumulado</div>' +
-        '<div class="moz-resumen-val">S/' + fmtMoney(mozosTotalMesa(mesaLocal)) + '</div>' +
-        '<div class="moz-resumen-sub">' + nComandas + (nComandas === 1 ? " comanda enviada" : " comandas enviadas") +
-        (pendiente ? ' · <span class="moz-resumen-pendiente">● hay productos sin enviar</span>' : '') + '</div>';
-      var verBtn = document.createElement("button");
-      verBtn.type = "button"; verBtn.className = "moz-resumen-ver-btn"; verBtn.textContent = "Ver precuenta →";
-      verBtn.addEventListener("click", function(){ dispararPrecuentaPreview(); });
-      resumenBar.appendChild(left);
-      resumenBar.appendChild(verBtn);
-    }
-
-    // ---- nov-2026: pestañas Productos / Nueva comanda / Consumo (reemplaza el único panel
-    // "Tu pedido" de antes, que mezclaba armar el pedido con revisar lo ya enviado). ----
-    var tabActiva = "productos";
-    var tabsNav = document.createElement("div");
-    tabsNav.className = "moz-tabs-nav";
-    box.appendChild(tabsNav);
-    var tabBtnProductos = document.createElement("button");
-    tabBtnProductos.type = "button"; tabBtnProductos.className = "moz-tab-btn";
-    tabBtnProductos.innerHTML = "🗂️ Productos";
-    tabBtnProductos.addEventListener("click", function(){ mostrarTab("productos"); });
-    var tabBtnNueva = document.createElement("button");
-    tabBtnNueva.type = "button"; tabBtnNueva.className = "moz-tab-btn";
-    tabBtnNueva.addEventListener("click", function(){ mostrarTab("nueva"); });
-    var tabBtnConsumo = document.createElement("button");
-    tabBtnConsumo.type = "button"; tabBtnConsumo.className = "moz-tab-btn";
-    tabBtnConsumo.innerHTML = "📋 Consumo";
-    tabBtnConsumo.addEventListener("click", function(){ mostrarTab("consumo"); });
-    tabsNav.appendChild(tabBtnProductos); tabsNav.appendChild(tabBtnNueva); tabsNav.appendChild(tabBtnConsumo);
-    function renderTabsNav(){
-      var mesaLocal = mozosGetMesa(numero);
-      var nPend = Object.keys(mesaLocal.items || {}).filter(function(n){ return mozosItemPendiente(mesaLocal.items[n], mozosEsProductoAlPeso(n)); }).length;
-      tabBtnNueva.innerHTML = "🆕 Nueva comanda" + (nPend > 0 ? ' <span class="moz-tab-badge">' + nPend + '</span>' : "");
-      tabBtnProductos.classList.toggle("active", tabActiva === "productos");
-      tabBtnNueva.classList.toggle("active", tabActiva === "nueva");
-      tabBtnConsumo.classList.toggle("active", tabActiva === "consumo");
-    }
-
     // =====================================================================================
-    // ---- Pestaña "Productos": buscador + categorías + grilla (CATÁLOGO) -- SIN CAMBIOS en
-    // la lógica de búsqueda/categorías/frecuentes/al-peso, solo ahora vive dentro de su propia
-    // pestaña en vez de ser la única pantalla posible. ----
+    // nov-2026 (v2): REDISEÑO "TIPO CARRITO DE COMPRAS" (pedido de Jessica, con referencia de
+    // Toast/Lightspeed/Square) -- reemplaza las 3 pestañas (Productos/Nueva comanda/Consumo) por
+    // una sola pantalla de trabajo: catálogo a la izquierda, carrito del pedido nuevo SIEMPRE
+    // visible a la derecha (nunca hay que cambiar de pestaña para ver qué se lleva cargado), y
+    // una barra inferior con acceso a consumo acumulado/historial/precuenta. La LÓGICA de abajo
+    // (buscador, categorías, frecuentes, al-peso, observaciones, envío de comanda por diferencia,
+    // corrección de consumo, precuenta) es EXACTAMENTE la misma que ya estaba probada -- esto
+    // solo cambia CÓMO se organiza en pantalla.
     // =====================================================================================
-    var panelProductos = document.createElement("div");
-    panelProductos.className = "moz-tab-panel moz-tab-productos";
-    box.appendChild(panelProductos);
+    var posLayout = document.createElement("div");
+    posLayout.className = "moz-pos-layout";
+    box.appendChild(posLayout);
 
-    // Buscador + categorías SIEMPRE visibles (pedido de Jessica): van juntos en una barra
-    // "sticky" que se queda pegada justo debajo de la barra superior de la app al hacer scroll
-    // por la grilla de productos. El offset se mide en JS (altura real de .topbar) porque en
-    // pantallas angostas la barra superior puede armarse en más de una línea.
+    // ---- Columna izquierda: buscador + categorías + grilla de catálogo (SIN CAMBIOS en la
+    // lógica de búsqueda/categorías/frecuentes/al-peso respecto a la versión anterior). ----
+    var posLeft = document.createElement("div");
+    posLeft.className = "moz-pos-left";
+    posLayout.appendChild(posLeft);
+
     var stickyBar = document.createElement("div");
     stickyBar.className = "moz-sticky-search";
     var topbarEl = document.querySelector(".topbar");
     stickyBar.style.top = (topbarEl ? topbarEl.getBoundingClientRect().height : 0) + "px";
-    panelProductos.appendChild(stickyBar);
+    posLeft.appendChild(stickyBar);
 
     var searchBox = document.createElement("div");
     searchBox.className = "moz-search-box";
@@ -20193,7 +20240,7 @@ var TRIPLES = [
 
     var grid = document.createElement("div");
     grid.className = "moz-grid-prod";
-    panelProductos.appendChild(grid);
+    posLeft.appendChild(grid);
 
     var catalogo = mozosCatalogo();
     var catActivaLocal = "Todos";
@@ -20252,7 +20299,7 @@ var TRIPLES = [
         var tienePunto = !!mozosPuntoProduccion(p.nombre);
         var esPeso = mozosEsProductoAlPeso(p.nombre);
         var tile = document.createElement("div");
-        tile.className = "moz-prod-tile" + (!tienePunto ? " sin-ruta" : "");
+        tile.className = "moz-prod-tile" + (!tienePunto ? " sin-ruta" : "") + (cantActual > enviado ? " en-carrito" : "");
         var tagHtml = "";
         if(cantActual > enviado) tagHtml = '<span class="moz-tag-nuevo">nuevo</span>';
         else if(enviado > 0) tagHtml = '<span class="moz-tag-enviado">enviado</span>';
@@ -20263,9 +20310,8 @@ var TRIPLES = [
         if(esPeso){
           // Productos vendidos al peso (Especialidades de la Casa / Embutidos, pedido de
           // Jessica): en vez de -1+, se ingresa el peso en kg directamente.
-          tile.appendChild(buildPesoCtrl(p, cantActual, function(){ refreshAfterQty(); }, function(){
+          tile.appendChild(buildPesoCtrl(p, cantActual, function(){ refreshAfterQty(); pulseCarrito(); }, function(){
             mozosFrecuentesIncrementar(p.nombre);
-            mostrarTab("nueva");
           }));
         } else if(cantActual > 0){
           var ctrl = document.createElement("div"); ctrl.className = "moz-qty-ctrl";
@@ -20273,22 +20319,23 @@ var TRIPLES = [
           minus.addEventListener("click", function(){ mozosCambiarCantidad(numero, p.nombre, -1); refreshAfterQty(); });
           var numEl = document.createElement("span"); numEl.className = "moz-qty-num"; numEl.textContent = cantActual;
           var plus = document.createElement("button"); plus.type = "button"; plus.textContent = "+";
-          plus.addEventListener("click", function(){ mozosCambiarCantidad(numero, p.nombre, 1); mozosFrecuentesIncrementar(p.nombre); refreshAfterQty(); });
+          plus.addEventListener("click", function(){ mozosCambiarCantidad(numero, p.nombre, 1); mozosFrecuentesIncrementar(p.nombre); refreshAfterQty(); pulseCarrito(); });
           ctrl.appendChild(minus); ctrl.appendChild(numEl); ctrl.appendChild(plus);
           tile.appendChild(ctrl);
         } else {
           var add = document.createElement("button"); add.type = "button"; add.className = "moz-add-btn"; add.textContent = "+ Agregar";
-          // Al agregar un producto NUEVO (pedido de Jessica, con captura de referencia de su
-          // propia página web): se cambia a la pestaña "Nueva comanda" para que el mozo vea de
-          // una vez qué quedó cargado -- no hace falta ir botón por botón en la grilla para
-          // revisar (nov-2026: antes abría el panel "Tu pedido"; ahora es la pestaña dedicada).
+          // nov-2026 (v2, "carrito"): el mozo YA ve el carrito al lado (columna derecha, siempre
+          // visible) -- agregar un producto ya no cambia de pestaña, solo actualiza el carrito y
+          // lo resalta un instante (pulseCarrito) para que quede claro que se cargó, sin
+          // interrumpir el catálogo. Puede seguir tocando "+ Agregar" en varios productos
+          // seguidos sin salir de la grilla (pedido explícito de Jessica).
           // set-2026/oct-2026: cada "+ Agregar" también alimenta el contador local de "⭐
           // Frecuentes" (mozosFrecuentesIncrementar) -- nunca bloquea nada si localStorage falla.
           add.addEventListener("click", function(){
             mozosCambiarCantidad(numero, p.nombre, 1);
             mozosFrecuentesIncrementar(p.nombre);
-            mostrarTab("nueva");
             refreshAfterQty();
+            pulseCarrito();
           });
           tile.appendChild(add);
         }
@@ -20296,13 +20343,11 @@ var TRIPLES = [
       });
     }
 
-    // Control de peso (kg) reutilizado en la grilla y en "Nueva comanda" -- construye un
-    // input + botón para escribir directamente el peso de un producto vendido al peso, en vez
-    // de la grilla -1+. Valida el mínimo (mozosPesoMinimo) antes de guardar. onGuardado se llama
-    // siempre que se confirma un cambio (para refrescar grilla/total); onPrimerAgregado SOLO la
-    // primera vez que el producto pasa de 0 a tener peso (para ir a "Nueva comanda", igual que el
-    // resto de productos). SIN CAMBIOS respecto a la versión anterior -- sigue pre-llenando con
-    // el TOTAL actual (pesos flexibles conservados, sin incrementos forzados).
+    // Control de peso (kg) reutilizado en la grilla y en el carrito -- construye un input + botón
+    // para escribir directamente el peso de un producto vendido al peso, en vez de la grilla -1+.
+    // Valida el mínimo (mozosPesoMinimo) antes de guardar. SIN CAMBIOS respecto a la versión
+    // anterior -- sigue pre-llenando con el TOTAL actual (pesos flexibles conservados, sin
+    // incrementos forzados).
     function buildPesoCtrl(p, pesoActual, onGuardado, onPrimerAgregado){
       var minimo = mozosPesoMinimo(p.nombre);
       var wrap = document.createElement("div");
@@ -20350,17 +20395,25 @@ var TRIPLES = [
     }
 
     // =====================================================================================
-    // ---- Pestaña "Nueva comanda": SOLO lo que todavía no se mandó a cocina (pendiente = cant -
-    // enviado > 0), con los controles completos para configurarlo (cantidad/peso, observaciones)
-    // y el botón de enviar. Un producto YA enviado del todo desaparece de aquí solo -- si el mozo
-    // quiere pedir más, lo agrega de nuevo desde "Productos" y reaparece acá con lo nuevo. ----
+    // ---- Columna derecha: CARRITO -- SOLO lo que todavía no se mandó a cocina (pendiente = cant
+    // - enviado > 0), SIEMPRE visible al lado del catálogo (nunca hay que cambiar de pantalla
+    // para verlo), con los controles completos para configurarlo (cantidad/peso, observaciones) y
+    // el botón de enviar. Un producto YA enviado del todo desaparece de aquí solo -- si el mozo
+    // quiere pedir más, lo agrega de nuevo desde el catálogo y reaparece acá con lo nuevo marcado
+    // claramente como adicional (nunca se reenvía lo que ya se mandó). ----
     // =====================================================================================
-    var panelNueva = document.createElement("div");
-    panelNueva.className = "moz-tab-panel moz-tab-nueva";
-    box.appendChild(panelNueva);
+    var posCart = document.createElement("div");
+    posCart.className = "moz-pos-cart";
+    posLayout.appendChild(posCart);
+
+    var cartHeader = document.createElement("div");
+    cartHeader.className = "moz-cart-header";
+    cartHeader.innerHTML = '<span class="moz-cart-header-icono">🛒</span><span class="moz-cart-header-txt">Carrito — pedido nuevo</span>';
+    posCart.appendChild(cartHeader);
+
     var nuevaBody = document.createElement("div");
     nuevaBody.className = "moz-nueva-body";
-    panelNueva.appendChild(nuevaBody);
+    posCart.appendChild(nuevaBody);
     var nuevaFooter = document.createElement("div");
     nuevaFooter.className = "moz-nueva-footer";
     var nuevaFooterTotal = document.createElement("div");
@@ -20371,23 +20424,24 @@ var TRIPLES = [
     btnEnviar.addEventListener("click", function(){ dispararEnviarComanda(); });
     nuevaFooter.appendChild(nuevaFooterTotal);
     nuevaFooter.appendChild(btnEnviar);
-    panelNueva.appendChild(nuevaFooter);
+    posCart.appendChild(nuevaFooter);
 
-    function renderPanelNueva(){
+    function renderCarrito(){
       var mesaLocal = mozosGetMesa(numero);
       var nombres = Object.keys(mesaLocal.items).filter(function(n){
         return mozosItemPendiente(mesaLocal.items[n], mozosEsProductoAlPeso(n));
       }).sort();
       nuevaBody.innerHTML = "";
+      cartHeader.querySelector(".moz-cart-header-txt").textContent = nombres.length
+        ? ("Carrito — pedido nuevo (" + nombres.length + (nombres.length === 1 ? " producto" : " productos") + ")")
+        : "Carrito — pedido nuevo";
       if(!nombres.length){
         var vacio = document.createElement("div");
         vacio.className = "moz-drawer-empty";
-        vacio.innerHTML = "Todavía no hay productos nuevos para esta comanda.<br>Ve a <b>Productos</b> para agregar.";
+        // nov-2026 (v2): ya no hay botón "Ir a Productos" -- el catálogo está siempre visible al
+        // lado, así que no hace falta cambiar de pantalla para agregar algo.
+        vacio.innerHTML = "El carrito está vacío.<br>Toca <b>+ Agregar</b> en un producto del catálogo para empezar un pedido nuevo.";
         nuevaBody.appendChild(vacio);
-        var irBtn = document.createElement("button");
-        irBtn.type = "button"; irBtn.className = "moz-nueva-ir-productos"; irBtn.textContent = "🗂️ Ir a Productos";
-        irBtn.addEventListener("click", function(){ mostrarTab("productos"); });
-        nuevaBody.appendChild(irBtn);
         btnEnviar.disabled = true;
       } else {
         btnEnviar.disabled = false;
@@ -20398,7 +20452,7 @@ var TRIPLES = [
           var enviadoPrevio = it.enviado || 0;
           var pendiente = esPeso ? (Math.round(((it.cant || 0) - enviadoPrevio) * 1000) / 1000) : ((it.cant || 0) - enviadoPrevio);
           var row = document.createElement("div");
-          row.className = "moz-drawer-item";
+          row.className = "moz-drawer-item" + (enviadoPrevio > 0 ? " moz-drawer-item-repetido" : " moz-drawer-item-nuevo");
           var top = document.createElement("div");
           top.className = "moz-drawer-item-top";
           var info = document.createElement("div");
@@ -20427,7 +20481,9 @@ var TRIPLES = [
           }
           row.appendChild(top);
 
-          // Observaciones (igual que antes -- chips rápidos de café/sándwich + campo libre).
+          // Observaciones (igual que antes -- chips rápidos de café/sándwich + campo libre),
+          // configuradas DENTRO de la fila del producto en el carrito, de forma compacta -- NO
+          // ocupan toda la pantalla (pedido explícito de Jessica).
           var obsWrap = document.createElement("div");
           obsWrap.className = "moz-drawer-obs";
           var obsGrupo = mozosObsGrupoDe(nombre);
@@ -20466,22 +20522,61 @@ var TRIPLES = [
       if(totalEl) totalEl.textContent = "S/" + fmtMoney(mozosTotalMesa(mesaLocal));
     }
 
+    // Resalta un instante el carrito cuando se agrega un producto desde el catálogo -- feedback
+    // visual rápido (el mozo ve que el carrito cambió sin tener que cambiar de pantalla, ya que
+    // ambos están siempre visibles lado a lado). Puramente visual, no afecta ningún dato.
+    function pulseCarrito(){
+      posCart.classList.remove("moz-pos-cart-pulse");
+      void posCart.offsetWidth; // fuerza reflow para poder repetir la animación en toques seguidos
+      posCart.classList.add("moz-pos-cart-pulse");
+    }
+
     // =====================================================================================
-    // ---- Pestaña "Consumo": SOLO LECTURA (sin botones de +/agregar/observación) -- resumen
+    // ---- Modal "Consumo" -- de solo lectura (sin botones de +/agregar/observación): resumen
     // limpio de todo lo pedido por la mesa + historial de comandas con reimpresión + acceso a la
     // precuenta. La única acción posible acá es la corrección explícita de un total ya enviado
-    // (mozosCorregirConsumo), que nunca genera una comanda ni avisa nada a cocina. ----
+    // (mozosCorregirConsumo), que nunca genera una comanda ni avisa nada a cocina. nov-2026 (v2):
+    // antes era una pestaña más; ahora se abre como ventana desde la barra inferior ("📋 Consumo
+    // acumulado"), porque dejó de competir por espacio con el catálogo/carrito que ahora están
+    // siempre visibles. SIN CAMBIOS en la lógica de adentro. ----
     // =====================================================================================
-    var panelConsumo = document.createElement("div");
-    panelConsumo.className = "moz-tab-panel moz-tab-consumo";
-    box.appendChild(panelConsumo);
-    var consumoBody = document.createElement("div");
-    consumoBody.className = "moz-consumo-body";
-    panelConsumo.appendChild(consumoBody);
+    var consumoAbierto = false;
+    var consumoBackdrop = document.createElement("div");
+    consumoBackdrop.className = "moz-drawer-backdrop moz-consumo-backdrop";
+    consumoBackdrop.addEventListener("click", function(){ cerrarConsumoModal(); });
+    var consumoModal = document.createElement("div");
+    consumoModal.className = "moz-consumo-modal";
+    box.appendChild(consumoBackdrop);
+    box.appendChild(consumoModal);
+
+    function cerrarConsumoModal(){
+      consumoAbierto = false;
+      consumoBackdrop.classList.remove("show");
+      consumoModal.classList.remove("show");
+    }
+    function abrirConsumoModal(){
+      consumoAbierto = true;
+      renderPanelConsumo();
+      consumoBackdrop.classList.add("show");
+      consumoModal.classList.add("show");
+    }
 
     function renderPanelConsumo(){
       var mesaLocal = mozosGetMesa(numero);
-      consumoBody.innerHTML = "";
+      consumoModal.innerHTML = "";
+
+      var consumoHead = document.createElement("div");
+      consumoHead.className = "moz-consumo-head";
+      consumoHead.innerHTML = '<h3>📋 Consumo acumulado — Mesa ' + numero + '</h3>';
+      var consumoCloseBtn = document.createElement("button");
+      consumoCloseBtn.type = "button"; consumoCloseBtn.className = "moz-consumo-close"; consumoCloseBtn.textContent = "×";
+      consumoCloseBtn.addEventListener("click", function(){ cerrarConsumoModal(); });
+      consumoHead.appendChild(consumoCloseBtn);
+      consumoModal.appendChild(consumoHead);
+
+      var consumoBody = document.createElement("div");
+      consumoBody.className = "moz-consumo-body";
+      consumoModal.appendChild(consumoBody);
 
       var resumenTitle = document.createElement("div");
       resumenTitle.className = "moz-consumo-title";
@@ -20510,7 +20605,7 @@ var TRIPLES = [
           '</div>' +
           '<div class="moz-consumo-row-sub">' + esc(cantTxt) + ' × S/' + fmtMoney(precioUnit) + (it.obs ? ' · <i>' + esc(it.obs) + '</i>' : '') + '</div>';
         // ---- Corrección explícita de consumo (nov-2026) -- SOLO visible si ya se envió algo de
-        // este producto a cocina. "Nueva comanda" (pestaña aparte) es el único camino para pedir
+        // este producto a cocina. El carrito (siempre visible) es el único camino para pedir
         // más; esto es solo para arreglar un número ya mal registrado, sin avisar a cocina.
         if((it.enviado || 0) > 0){
           var corrBtn = document.createElement("button");
@@ -20551,7 +20646,7 @@ var TRIPLES = [
       });
 
       // ---- Comandas ya enviadas a producción, con botón para reimprimir (set-2026, pedido de
-      // Jessica; nov-2026: vive en esta pestaña en vez de al fondo de "Tu pedido") ----
+      // Jessica). ----
       if((mesaLocal.comandas || []).length){
         var histTitle = document.createElement("div");
         histTitle.className = "moz-drawer-hist-title";
@@ -20596,9 +20691,9 @@ var TRIPLES = [
     }
 
     // =====================================================================================
-    // ---- Vista previa de precuenta (nov-2026, pedido de Jessica: "la precuenta debe poder
-    // revisarse antes de imprimir. No debe generar comandas ni modificar consumos. La impresión
-    // se realiza solo cuando el mozo presiona «Imprimir precuenta».") ----
+    // ---- Vista previa de precuenta (pedido de Jessica: "la precuenta debe poder revisarse antes
+    // de imprimir. No debe generar comandas ni modificar consumos. La impresión se realiza solo
+    // cuando el mozo presiona «Imprimir precuenta».") SIN CAMBIOS respecto a la versión anterior.
     // Espejo en pantalla del MISMO contenido que imprime mozosPrecuentaTicketTexto (que NO se
     // tocó -- el formato del ticket impreso sigue exactamente igual que antes). Esta vista previa
     // es de solo lectura: nunca llama a mozosCambiarCantidad/mozosSetPeso/mozosSetObservacion ni
@@ -20692,28 +20787,11 @@ var TRIPLES = [
           var mesaAhora = mozosGetMesa(numero);
           imprimirBtn.disabled = false;
           imprimirBtn.textContent = mesaAhora.precuentaImpresionFallo ? "🖨️ Imprimir precuenta ⚠️" : "🖨️ Imprimir precuenta";
-          updateCartBar();
+          updateBottomBar();
         });
       });
       footerPrec.appendChild(volverBtn); footerPrec.appendChild(imprimirBtn);
       precuentaModal.appendChild(footerPrec);
-    }
-
-    // ---- Cambio de pestaña: alterna qué panel se ve sin reconstruirlo entero (igual de
-    // conservador que el resto de la pantalla: no se pierde el buscador ni el scroll). ----
-    function mostrarTab(tab){
-      tabActiva = tab;
-      panelProductos.classList.toggle("show", tab === "productos");
-      panelNueva.classList.toggle("show", tab === "nueva");
-      panelConsumo.classList.toggle("show", tab === "consumo");
-      // La pestaña "Nueva comanda" tiene su propio pie fijo (total + Enviar comanda) -- se
-      // oculta la barra inferior general mientras tanto para que no queden dos barras fijas
-      // superpuestas una sobre la otra (ambas "bottom:0"), lo que además bloqueaba el toque del
-      // botón "Enviar comanda" en tablet/celular.
-      if(cartBar) cartBar.classList.toggle("moz-cart-bar-oculto", tab === "nueva");
-      renderTabsNav();
-      if(tab === "nueva") renderPanelNueva();
-      if(tab === "consumo") renderPanelConsumo();
     }
 
     // ---- Bloqueo de botones críticos mientras se procesa (set-2026, pedido de Jessica: "los
@@ -20723,37 +20801,50 @@ var TRIPLES = [
       mozosEnviarComanda(numero, function(){
         btnEnviar.disabled = false; btnEnviar.textContent = "📨 ENVIAR COMANDA";
       });
-      // Igual que antes del rediseño: la grilla/pestañas se refrescan de una vez (no esperan la
+      // Igual que antes del rediseño: la grilla/carrito se refrescan de una vez (no esperan la
       // respuesta del puente) porque mozosEnviarComanda YA marcó "enviado" en mesa.items de forma
-      // síncrona.
+      // síncrona. nov-2026 (v2): el carrito queda vacío y listo para un pedido nuevo (pedido
+      // adicional), mientras el consumo acumulado de la mesa sigue intacto -- se ve en la barra
+      // inferior y en el modal de Consumo.
       refreshAfterQty();
     }
 
-    // Refresca SOLO lo necesario según la pestaña activa -- no reconstruye el buscador ni la
-    // cabecera, igual de conservador que antes del rediseño.
+    // Refresca SOLO lo necesario -- catálogo (izquierda), carrito (derecha, siempre visible) y la
+    // barra inferior se actualizan siempre; el modal de Consumo solo si está abierto. Igual de
+    // conservador que antes del rediseño (no reconstruye el buscador ni la cabecera).
     function refreshAfterQty(){
       renderGrid();
-      updateCartBar();
-      renderResumenBar();
-      renderTabsNav();
-      if(tabActiva === "nueva") renderPanelNueva();
-      if(tabActiva === "consumo") renderPanelConsumo();
+      renderCarrito();
+      updateBottomBar();
+      if(consumoAbierto) renderPanelConsumo();
     }
 
     searchInput.addEventListener("input", function(){ renderGrid(); });
     renderCats();
     renderGrid();
-    renderTabsNav();
-    renderResumenBar();
+    renderCarrito();
 
-    // ---- Barra inferior fija: total + Cobrar + Precuenta (abre la vista previa) -- ya no lleva
-    // "Tu pedido" (reemplazado por las pestañas) ni "Enviar comanda" (vive dentro de "Nueva
-    // comanda", que es la única pestaña donde tiene sentido). ----
-    var cartBar = document.createElement("div");
-    cartBar.className = "moz-cart-bar";
-    var cartTotal = document.createElement("div");
-    cartTotal.className = "moz-cart-total";
-    cartTotal.innerHTML = '<div class="moz-lbl">Total mesa</div><div class="moz-val">S/' + fmtMoney(mozosTotalMesa(mesa)) + '</div>';
+    // =====================================================================================
+    // ---- Barra inferior fija: consumo acumulado (total + comandas enviadas) + accesos a
+    // Consumo/historial, Precuenta y Cobrar. nov-2026 (v2): reemplaza la barra de "Consumo
+    // acumulado" y la barra de "Total/Precuenta/Cobrar" de la versión de pestañas -- ahora es UNA
+    // sola barra (pedido de Jessica: "parte inferior: acceso al consumo anterior, historial de
+    // comandas y precuenta"). Siempre visible -- ya no hay que ocultarla al cambiar de pestaña
+    // porque ya no hay pestañas. ----
+    // =====================================================================================
+    var bottomBar = document.createElement("div");
+    bottomBar.className = "moz-pos-bottombar";
+    box.appendChild(bottomBar);
+
+    var bottomResumen = document.createElement("div");
+    bottomResumen.className = "moz-resumen-left";
+    bottomBar.appendChild(bottomResumen);
+
+    var bottomAcciones = document.createElement("div");
+    bottomAcciones.className = "moz-pos-bottombar-acciones";
+    var btnConsumo = document.createElement("button");
+    btnConsumo.type = "button"; btnConsumo.className = "moz-btn-consumo"; btnConsumo.textContent = "📋 Consumo";
+    btnConsumo.addEventListener("click", function(){ abrirConsumoModal(); });
     var btnPrecuenta = document.createElement("button");
     btnPrecuenta.type = "button"; btnPrecuenta.id = "mozBtnPrecuenta"; btnPrecuenta.className = "moz-btn-precuenta";
     btnPrecuenta.textContent = mesa.precuentaImpresionFallo ? "🧾 Precuenta ⚠️" : "🧾 Precuenta";
@@ -20763,20 +20854,24 @@ var TRIPLES = [
     btnCobrar.type = "button"; btnCobrar.className = "moz-btn-cobrar"; btnCobrar.textContent = "💰 Cobrar";
     if(mesa.medioPago) btnCobrar.textContent = "💰 " + mozosMedioPagoLabel(mesa.medioPago);
     btnCobrar.addEventListener("click", function(){ cobrarAbierto = true; renderCobrarModal(); });
-    cartBar.appendChild(cartTotal); cartBar.appendChild(btnPrecuenta); cartBar.appendChild(btnCobrar);
-    box.appendChild(cartBar);
+    bottomAcciones.appendChild(btnConsumo);
+    bottomAcciones.appendChild(btnPrecuenta);
+    bottomAcciones.appendChild(btnCobrar);
+    bottomBar.appendChild(bottomAcciones);
 
-    function updateCartBar(){
+    function updateBottomBar(){
       var mesaLocal = mozosGetMesa(numero);
-      var valEl = cartTotal.querySelector(".moz-val");
-      if(valEl) valEl.textContent = "S/" + fmtMoney(mozosTotalMesa(mesaLocal));
+      var nComandas = (mesaLocal.comandas || []).length;
+      var pendiente = mozosHayPendiente(mesaLocal);
+      bottomResumen.innerHTML = '<div class="moz-resumen-lbl">Consumo acumulado</div>' +
+        '<div class="moz-resumen-val">S/' + fmtMoney(mozosTotalMesa(mesaLocal)) + '</div>' +
+        '<div class="moz-resumen-sub">' + nComandas + (nComandas === 1 ? " comanda enviada" : " comandas enviadas") +
+        (pendiente ? ' · <span class="moz-resumen-pendiente">● hay productos sin enviar</span>' : '') + '</div>';
       btnPrecuenta.textContent = mesaLocal.precuentaImpresionFallo ? "🧾 Precuenta ⚠️" : "🧾 Precuenta";
       btnPrecuenta.classList.toggle("moz-btn-precuenta-falla", !!mesaLocal.precuentaImpresionFallo);
       if(mesaLocal.medioPago) btnCobrar.textContent = "💰 " + mozosMedioPagoLabel(mesaLocal.medioPago);
     }
-    updateCartBar();
-
-    mostrarTab("productos");
+    updateBottomBar();
 
     return box;
   }
