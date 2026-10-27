@@ -1191,11 +1191,19 @@
   .moz-peso-hint{ display:block; font-size:.68rem; color:var(--ink-muted); font-weight:700; margin-top:.15rem; }
   /* Productos vendidos al peso (Especialidades de la Casa / Embutidos, pedido de Jessica): en vez
      de -1+, se ingresa el peso en kg directamente. */
-  .moz-peso-ctrl{ display:flex; align-items:center; gap:.35rem; margin-top:.5rem; }
-  .moz-peso-ctrl input{ flex:1; min-width:0; border:1px solid var(--border); background:var(--surface); border-radius:var(--radius-sm); padding:.5rem .4rem; font-size:.92rem; color:var(--ink); text-align:center; font-family:inherit; }
-  .moz-peso-ctrl .moz-peso-unidad{ font-size:.78rem; color:var(--ink-soft); font-weight:700; }
-  .moz-peso-ctrl button{ flex:none; border:none; background:var(--accent); color:var(--accent-ink); border-radius:var(--radius-sm); padding:.5rem .6rem; font-weight:800; font-size:.82rem; cursor:pointer; font-family:inherit; }
-  .moz-peso-quitar{ margin-top:.35rem; border:none; background:none; color:var(--bad); font-size:.72rem; font-weight:700; cursor:pointer; font-family:inherit; padding:0; text-align:left; }
+  /* nov-2026 (ERROR CRÍTICO, Mesa 15): .moz-peso-ctrl pasa a columna (estado informativo arriba,
+     fila input+unidad+botón debajo, Quitar al final) -- antes el input era hijo directo así que
+     "display:flex" horizontal alcanzaba; ahora ".moz-peso-ctrl-fila" es la que necesita ese
+     mismo flex horizontal. Mismos colores/tamaños de siempre, solo cambia la estructura. */
+  .moz-peso-ctrl{ display:flex; flex-direction:column; gap:.3rem; margin-top:.5rem; }
+  .moz-peso-ctrl-fila{ display:flex; align-items:center; gap:.35rem; }
+  .moz-peso-ctrl-fila input{ flex:1; min-width:0; border:1px solid var(--border); background:var(--surface); border-radius:var(--radius-sm); padding:.5rem .4rem; font-size:.92rem; color:var(--ink); text-align:center; font-family:inherit; }
+  .moz-peso-ctrl-fila .moz-peso-unidad{ font-size:.78rem; color:var(--ink-soft); font-weight:700; }
+  .moz-peso-ctrl-fila button{ flex:none; border:none; background:var(--accent); color:var(--accent-ink); border-radius:var(--radius-sm); padding:.5rem .6rem; font-weight:800; font-size:.82rem; cursor:pointer; font-family:inherit; }
+  /* nov-2026: línea informativa ("Ya enviado: X kg · En este pedido (sin enviar): Y kg") que
+     reemplaza el viejo pre-llenado del total en el input -- ver buildPesoCtrl. */
+  .moz-peso-estado{ font-size:.68rem; color:var(--ink-muted); font-weight:700; }
+  .moz-peso-quitar{ border:none; background:none; color:var(--bad); font-size:.72rem; font-weight:700; cursor:pointer; font-family:inherit; padding:0; text-align:left; }
   .moz-tag-nuevo{ display:inline-block; background:var(--good-soft); color:var(--good); font-size:.62rem; font-weight:800; padding:.12rem .4rem; border-radius:999px; margin-left:.3rem; vertical-align:middle; }
   .moz-tag-enviado{ display:inline-block; background:var(--surface-2); color:var(--ink-muted); font-size:.62rem; font-weight:800; padding:.12rem .4rem; border-radius:999px; margin-left:.3rem; vertical-align:middle; }
   .moz-empty{ grid-column:1/-1; text-align:center; color:var(--ink-muted); padding:1.5rem 0; }
@@ -8805,7 +8813,22 @@ var TRIPLES = [
     if(PRODUCCION_MOVIMIENTOS !== null || produccionCargando) return Promise.resolve(PRODUCCION_MOVIMIENTOS || []);
     produccionCargando = true;
     PRODUCCION_MOVIMIENTOS_ERROR = false;
-    return db.collection("produccionMovimientos").orderBy("fecha", "asc").get().then(function(snap){
+    // oct-2026 (reporte de Jessica con captura: "Cargando historial de producción..." se quedaba
+    // pegado para siempre -- ni cargaba ni mostraba error, ni siquiera recargando la página): el
+    // .get() de Firestore de acá abajo no tenía ningún límite de tiempo. Si esa consulta se queda
+    // esperando (sin red, o cualquier otra causa del lado de Firestore que nunca llega a resolver
+    // NI a rechazar la promesa), la pantalla se quedaba trabada en "Cargando..." sin aviso y sin
+    // forma de reintentar -- el .catch() de abajo nunca llegaba a dispararse porque la promesa
+    // jamás se resolvía ni se rechazaba por sí sola. Con Promise.race contra un límite de 20s, la
+    // pantalla SIEMPRE termina mostrando el aviso de error (con botón para reintentar a mano,
+    // mismo patrón ya usado en Lista de Precios/Mozos) en vez de quedar pegada para siempre.
+    var vencido = new Promise(function(resolve, reject){
+      setTimeout(function(){ reject(new Error("Tiempo de espera agotado cargando el historial de producción.")); }, 20000);
+    });
+    return Promise.race([
+      db.collection("produccionMovimientos").orderBy("fecha", "asc").get(),
+      vencido
+    ]).then(function(snap){
       var arr = [];
       snap.forEach(function(doc){ var d = doc.data(); d._id = doc.id; arr.push(d); });
       PRODUCCION_MOVIMIENTOS = arr;
@@ -9409,11 +9432,40 @@ var TRIPLES = [
       "<strong>Única excepción: Empanada de carne</strong> <span class=\"chip warn\" style=\"vertical-align:middle\">Lote (taller)</span> -- el taller la entrega por tandas que pueden quedar pendientes hasta el día siguiente, así que para esta sí se registra el lote y cada entrega a mano abajo; lo que falta entregar se ve como \"Pendiente en taller\", nunca como merma ni faltante.";
     card.appendChild(hint);
     if(PRODUCCION_MOVIMIENTOS === null){
-      produccionCargarMovimientos().then(function(){ renderPanel(); }).catch(function(){ renderPanel(); });
-      var loading = document.createElement("div");
-      loading.className = "empty-state";
-      loading.textContent = PRODUCCION_MOVIMIENTOS_ERROR ? "No se pudo cargar el historial de producción. Revisa tu conexión." : "Cargando historial de producción...";
-      card.appendChild(loading);
+      // oct-2026 (reporte de Jessica con captura: se quedaba pegado en "Cargando..." para
+      // siempre): ahora que produccionCargarMovimientos() SIEMPRE termina de un modo u otro
+      // (ver su propio comentario, límite de 20s), acá se muestra el aviso de error de verdad
+      // -- con botón para reintentar a mano sin tener que cambiar de pestaña e volver, mismo
+      // patrón ya usado en Lista de Precios (buildListaPreciosErrorBox) y Mozos/Salón.
+      // IMPORTANTE: el chequeo de PRODUCCION_MOVIMIENTOS_ERROR va ANTES de disparar una nueva
+      // carga -- produccionCargarMovimientos() resetea esa bandera a false en cuanto arranca,
+      // así que si se llamara primero (como en un intento anterior de este mismo arreglo) jamás
+      // se llegaría a mostrar el aviso de error: cada repintado volvería a limpiar la bandera y
+      // a disparar otro intento de 20s en silencio, dejando la pantalla en "Cargando..." para
+      // siempre igual que antes, solo que ahora reintentando sin que Jessica se entere.
+      if(PRODUCCION_MOVIMIENTOS_ERROR){
+        var err = document.createElement("div");
+        err.className = "moz-error";
+        var errTxt = document.createElement("span");
+        errTxt.textContent = "No se pudo cargar el historial de producción (falla de conexión con Firestore). Ningún dato se perdió. Revisa tu conexión a internet e intenta de nuevo.";
+        err.appendChild(errTxt);
+        var btnReintentar = document.createElement("button");
+        btnReintentar.type = "button";
+        btnReintentar.className = "moz-error-retry";
+        btnReintentar.textContent = "🔄 Reintentar ahora";
+        btnReintentar.addEventListener("click", function(){
+          produccionCargarMovimientos().then(function(){ renderPanel(); }).catch(function(){ renderPanel(); });
+          renderPanel();
+        });
+        err.appendChild(btnReintentar);
+        card.appendChild(err);
+      } else {
+        produccionCargarMovimientos().then(function(){ renderPanel(); }).catch(function(){ renderPanel(); });
+        var loading = document.createElement("div");
+        loading.className = "empty-state";
+        loading.textContent = "Cargando historial de producción...";
+        card.appendChild(loading);
+      }
       wrap.appendChild(card);
       return wrap;
     }
@@ -18352,13 +18404,18 @@ var TRIPLES = [
     if(mesa.estado !== "ocupada") return;
     if(!mesa.items[nombreProducto]) mesa.items[nombreProducto] = { cant: 0, enviado: 0, obs: "" };
     var it = mesa.items[nombreProducto];
-    it.cant = Math.max(0, (it.cant || 0) + delta);
-    // nov-2026: "enviado" nunca puede quedar por encima de "cant" -- si el mozo baja la cantidad
-    // por debajo de lo que ya se mandó a cocina (ej. se equivocó y en realidad eran menos), esto
-    // es una CORRECCIÓN de consumo, no "pedir menos de lo ya cocinado": no genera ninguna comanda
-    // ni avisa nada a cocina, solo deja el registro de consumo/cobro correcto (ver también
-    // mozosCorregirConsumo, para corregir un producto YA enviado sin tocar su cantidad pendiente).
-    if((it.enviado || 0) > it.cant) it.enviado = it.cant;
+    // nov-2026 (ERROR CRÍTICO reportado por Jessica con capturas de Mesa 15, prueba real): antes,
+    // si "cant" bajaba por debajo de "enviado" (ej. el mozo tocaba "−" de más, o escribía un
+    // número menor al ya enviado), esta misma función arrastraba "enviado" hacia abajo en
+    // SILENCIO para que nunca quedara por encima de "cant" -- sin aviso, sin registro de que fue
+    // una corrección, y sin pasar por mozosCorregirConsumo (que SÍ pide confirmación explícita).
+    // Eso permitía borrar consumo ya enviado/cobrado con un simple -1, exactamente lo que Jessica
+    // encontró en su prueba real (el total de chicharrón bajó de 1.000kg a 0.750kg sin ninguna
+    // comanda ni corrección visible). Ahora el piso de "cant" es "enviado": estos controles
+    // (pedir más/menos de lo TODAVÍA NO enviado) nunca pueden tocar lo ya mandado a cocina. El
+    // único camino para reducir algo ya enviado sigue siendo mozosCorregirConsumo, con su propio
+    // aviso de confirmación.
+    it.cant = Math.max(it.enviado || 0, (it.cant || 0) + delta);
     mozosGuardarMesa(mesa);
   }
   // Observación libre por producto (pedido de Jessica, con ejemplos suyos: "con ají", "sin
@@ -18489,12 +18546,16 @@ var TRIPLES = [
     if(mesa.estado !== "ocupada") return;
     if(!mesa.items[nombreProducto]) mesa.items[nombreProducto] = { cant: 0, enviado: 0, obs: "" };
     var itPeso = mesa.items[nombreProducto];
-    itPeso.cant = Math.max(0, Math.round((peso || 0) * 1000) / 1000);
-    // nov-2026: mismo ajuste que mozosCambiarCantidad -- "enviado" nunca queda por encima del
-    // nuevo peso total. Si el mozo retipea un peso MENOR al que ya se mandó a cocina (ej. "en
-    // realidad eran 450g, no 500g"), es una corrección de consumo: se arregla el total que se
-    // cobra, sin generar ninguna comanda nueva ni avisar nada a cocina.
-    if((itPeso.enviado || 0) > itPeso.cant) itPeso.enviado = itPeso.cant;
+    // nov-2026 (ERROR CRÍTICO reportado por Jessica, Mesa 15, prueba real -- ver el mismo
+    // comentario en mozosCambiarCantidad): antes, retipear CUALQUIER peso menor al ya enviado
+    // (fácil de hacer sin querer, porque el campo se pre-llenaba con el TOTAL acumulado -- ver
+    // buildPesoCtrl) bajaba "enviado" en silencio, sin aviso ni registro de que fue una
+    // corrección. Eso fue exactamente lo que le borró 0.250kg de chicharrón ya enviado sin
+    // ninguna comanda ni corrección visible. Ahora el piso de "cant" es "enviado" -- este camino
+    // (pedir más desde el catálogo/carrito) nunca puede bajar lo ya enviado a cocina. El único
+    // camino para corregir algo ya enviado sigue siendo mozosCorregirConsumo (con su propio
+    // aviso de confirmación, nunca en silencio).
+    itPeso.cant = Math.max(itPeso.enviado || 0, Math.round((peso || 0) * 1000) / 1000);
     mozosGuardarMesa(mesa);
   }
 
@@ -20394,17 +20455,23 @@ var TRIPLES = [
         var pesoHintHtml = esPeso ? '<span class="moz-peso-hint">S/' + fmtMoney(p.precio) + ' /kg · mín. ' + mozosPesoMinimo(p.nombre).toFixed(3) + ' kg</span>' : "";
         tile.innerHTML = '<div>' + warnHtml + '<div class="moz-nombre">' + esc(p.nombre) + tagHtml + '</div>' +
           (esPeso ? pesoHintHtml : '<div class="moz-precio">S/' + fmtMoney(p.precio) + '</div>') + '</div>';
+        // nov-2026 (ERROR CRÍTICO reportado por Jessica, Mesa 15, prueba real): el catálogo ya
+        // NO vuelve a mostrar nunca el TOTAL acumulado de un producto -- ni en el control de
+        // peso ni en el +/- de unidades. Acá SIEMPRE se parte de cero (pendiente = cantActual -
+        // enviado), así cada "+ Agregar"/peso tecleado es, sin ambigüedad, la cantidad NUEVA que
+        // se está por pedir ahora, nunca un total a reemplazar que pueda pisar lo ya enviado.
+        var pendienteActual = esPeso ? (Math.round((cantActual - enviado) * 1000) / 1000) : (cantActual - enviado);
         if(esPeso){
           // Productos vendidos al peso (Especialidades de la Casa / Embutidos, pedido de
           // Jessica): en vez de -1+, se ingresa el peso en kg directamente.
-          tile.appendChild(buildPesoCtrl(p, cantActual, function(){ refreshAfterQty(); pulseCarrito(); }, function(){
+          tile.appendChild(buildPesoCtrl(p, enviado, cantActual, "agregar", function(){ refreshAfterQty(); pulseCarrito(); }, function(){
             mozosFrecuentesIncrementar(p.nombre);
           }));
-        } else if(cantActual > 0){
+        } else if(pendienteActual > 0){
           var ctrl = document.createElement("div"); ctrl.className = "moz-qty-ctrl";
           var minus = document.createElement("button"); minus.type = "button"; minus.textContent = "−";
           minus.addEventListener("click", function(){ mozosCambiarCantidad(numero, p.nombre, -1); refreshAfterQty(); });
-          var numEl = document.createElement("span"); numEl.className = "moz-qty-num"; numEl.textContent = cantActual;
+          var numEl = document.createElement("span"); numEl.className = "moz-qty-num"; numEl.textContent = pendienteActual;
           var plus = document.createElement("button"); plus.type = "button"; plus.textContent = "+";
           plus.addEventListener("click", function(){ mozosCambiarCantidad(numero, p.nombre, 1); mozosFrecuentesIncrementar(p.nombre); refreshAfterQty(); pulseCarrito(); });
           ctrl.appendChild(minus); ctrl.appendChild(numEl); ctrl.appendChild(plus);
@@ -20432,24 +20499,56 @@ var TRIPLES = [
 
     // Control de peso (kg) reutilizado en la grilla y en el carrito -- construye un input + botón
     // para escribir directamente el peso de un producto vendido al peso, en vez de la grilla -1+.
-    // Valida el mínimo (mozosPesoMinimo) antes de guardar. SIN CAMBIOS respecto a la versión
-    // anterior -- sigue pre-llenando con el TOTAL actual (pesos flexibles conservados, sin
-    // incrementos forzados).
-    function buildPesoCtrl(p, pesoActual, onGuardado, onPrimerAgregado){
+    // Valida el mínimo (mozosPesoMinimo) antes de guardar.
+    // nov-2026 (ERROR CRÍTICO reportado por Jessica, Mesa 15, prueba real -- ver también el
+    // comentario de mozosSetPeso): ANTES este control se pre-llenaba con el TOTAL acumulado del
+    // producto (cant) y lo que se tecleaba encima REEMPLAZABA ese total -- muy fácil de confundir
+    // con "cuánto quiero agregar ahora", y si el mozo tecleaba sin querer un número menor al ya
+    // enviado a cocina, el total registrado (y lo que se le cobraba a la mesa) bajaba EN
+    // SILENCIO, sin generar ninguna comanda ni dejar ningún aviso -- exactamente lo que le borró
+    // 0.250kg de chicharrón ya enviado en su prueba real. Ahora tiene dos modos, según dónde vive:
+    //  - "agregar" (catálogo, siempre visible, para CUALQUIER producto tenga o no historial): el
+    //    campo SIEMPRE arranca vacío. Lo que se escriba es la cantidad NUEVA a agregar AHORA, que
+    //    se SUMA al total existente (cant = cant + lo tecleado) -- nunca lo reemplaza. "Pedir más"
+    //    de un producto ya enviado es tan simple como escribir el peso de lo nuevo, sin sumar nada
+    //    a mano ni arriesgar lo ya mandado. El historial ("Ya enviado"/"En este pedido") se
+    //    muestra aparte, de solo lectura, nunca dentro del campo editable.
+    //  - "pendiente" (carrito, solo aparece ahí para items que todavía no se enviaron): el campo
+    //    se pre-llena con lo pendiente actual (lo que todavía NO se mandó a cocina) y lo tecleado
+    //    REEMPLAZA esa porción pendiente -- seguro, porque mozosSetPeso ya nunca deja que el total
+    //    baje de lo ya enviado, pase lo que pase acá.
+    // En ambos casos, cuánto se manda a cocina lo sigue decidiendo únicamente mozosEnviarComanda
+    // (delta = cant - enviado) -- este control nunca envía ni imprime nada por sí solo.
+    function buildPesoCtrl(p, enviadoPrevio, cantActual, modo, onGuardado, onPrimerAgregado){
+      enviadoPrevio = enviadoPrevio || 0;
+      cantActual = cantActual || 0;
+      var pendienteActual = Math.round((cantActual - enviadoPrevio) * 1000) / 1000;
       var minimo = mozosPesoMinimo(p.nombre);
       var wrap = document.createElement("div");
       wrap.className = "moz-peso-ctrl";
+      if(modo === "agregar" && (enviadoPrevio > 0 || pendienteActual > 0)){
+        var partes = [];
+        if(enviadoPrevio > 0) partes.push("Ya enviado: " + enviadoPrevio.toFixed(3) + " kg");
+        if(pendienteActual > 0) partes.push("En este pedido (sin enviar): " + pendienteActual.toFixed(3) + " kg");
+        var estadoEl = document.createElement("div");
+        estadoEl.className = "moz-peso-estado";
+        estadoEl.textContent = partes.join(" · ");
+        wrap.appendChild(estadoEl);
+      }
+      var fila = document.createElement("div");
+      fila.className = "moz-peso-ctrl-fila";
       var input = document.createElement("input");
       input.type = "number";
       input.step = "0.05";
       input.min = String(minimo);
       input.inputMode = "decimal";
       input.placeholder = minimo.toFixed(3);
-      if(pesoActual > 0) input.value = pesoActual.toFixed(3);
+      // Solo "pendiente" (carrito) pre-llena -- y solo con lo pendiente, nunca con el total.
+      if(modo === "pendiente" && pendienteActual > 0) input.value = pendienteActual.toFixed(3);
       var unidad = document.createElement("span"); unidad.className = "moz-peso-unidad"; unidad.textContent = "kg";
       var btn = document.createElement("button");
       btn.type = "button";
-      btn.textContent = pesoActual > 0 ? "✓" : "+ Agregar";
+      btn.textContent = modo === "pendiente" ? "✓" : "+ Agregar";
       btn.addEventListener("click", function(){
         var raw = (input.value || "").replace(",", ".").trim();
         var val = parseFloat(raw);
@@ -20461,22 +20560,26 @@ var TRIPLES = [
           showToast("Peso mínimo para " + p.nombre + ": " + minimo.toFixed(3) + " kg.", 3800);
           return;
         }
-        var eraCero = !(pesoActual > 0);
-        mozosSetPeso(numero, p.nombre, val);
+        var eraCero = !(cantActual > 0);
+        var nuevoTotal = modo === "pendiente"
+          ? Math.round((enviadoPrevio + val) * 1000) / 1000   // reemplaza SOLO la porción pendiente
+          : Math.round((cantActual + val) * 1000) / 1000;     // suma sobre el total existente
+        mozosSetPeso(numero, p.nombre, nuevoTotal);
         if(eraCero && onPrimerAgregado) onPrimerAgregado();
         if(onGuardado) onGuardado();
       });
-      wrap.appendChild(input); wrap.appendChild(unidad); wrap.appendChild(btn);
-      if(pesoActual > 0){
+      fila.appendChild(input); fila.appendChild(unidad); fila.appendChild(btn);
+      wrap.appendChild(fila);
+      if(modo === "pendiente" && pendienteActual > 0){
+        // "Quitar" acá SOLO cancela la porción pendiente (todavía sin enviar) -- vuelve el total
+        // exactamente a "enviadoPrevio", nunca más abajo (mozosSetPeso ya no deja bajar de ahí).
         var quitar = document.createElement("button");
         quitar.type = "button"; quitar.className = "moz-peso-quitar"; quitar.textContent = "✕ Quitar";
         quitar.addEventListener("click", function(){
-          mozosSetPeso(numero, p.nombre, 0);
+          mozosSetPeso(numero, p.nombre, enviadoPrevio);
           if(onGuardado) onGuardado();
         });
-        var col = document.createElement("div");
-        col.appendChild(wrap); col.appendChild(quitar);
-        return col;
+        wrap.appendChild(quitar);
       }
       return wrap;
     }
@@ -20580,16 +20683,23 @@ var TRIPLES = [
               : '<div class="moz-drawer-item-precio">S/' + fmtMoney(precioUnit) + ' c/u</div>') + pendienteTxt;
           top.appendChild(info);
           if(esPeso){
-            top.appendChild(buildPesoCtrl({ nombre: nombre, precio: precioUnit }, it.cant || 0, function(){ refreshAfterQty(); }, null));
+            // "pendiente" (ver buildPesoCtrl): acá SÍ se pre-llena, pero solo con lo pendiente
+            // (lo que todavía no se mandó) -- nunca con el total ya enviado, que queda protegido
+            // aparte por el piso de mozosSetPeso.
+            top.appendChild(buildPesoCtrl({ nombre: nombre, precio: precioUnit }, enviadoPrevio, it.cant || 0, "pendiente", function(){ refreshAfterQty(); }, null));
           } else {
             // "moz-qty-ctrl-compacta" (pedido de Jessica, con "modelo"): mismo control +/- de
             // siempre, solo que más chico -- el carrito ahora es más angosto en contenido (más
             // ancho en pantalla, pero más compacto por fila) y ya no necesita un botón tan grande
             // como el de la tarjeta del catálogo.
+            // nov-2026 (ERROR CRÍTICO, Mesa 15): el número que se ve acá es SOLO lo pendiente
+            // (nunca el total -- "Ya enviado" ya se ve aparte arriba, en pendienteTxt), así nunca
+            // se confunde con el total ya facturado. "−" nunca baja de lo ya enviado (piso en
+            // mozosCambiarCantidad).
             var ctrl = document.createElement("div"); ctrl.className = "moz-qty-ctrl moz-qty-ctrl-compacta";
             var minus = document.createElement("button"); minus.type = "button"; minus.textContent = "−";
             minus.addEventListener("click", function(){ mozosCambiarCantidad(numero, nombre, -1); refreshAfterQty(); });
-            var numEl = document.createElement("span"); numEl.className = "moz-qty-num"; numEl.textContent = it.cant;
+            var numEl = document.createElement("span"); numEl.className = "moz-qty-num"; numEl.textContent = pendiente;
             var plus = document.createElement("button"); plus.type = "button"; plus.textContent = "+";
             plus.addEventListener("click", function(){ mozosCambiarCantidad(numero, nombre, 1); refreshAfterQty(); });
             ctrl.appendChild(minus); ctrl.appendChild(numEl); ctrl.appendChild(plus);
