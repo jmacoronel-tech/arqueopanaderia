@@ -296,6 +296,86 @@
   .pedidos-toolbar .field{ margin:0; }
   .pedidos-toolbar-actions{ display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; }
 
+  /* ---------- Producción por áreas (oct-2026) ---------- */
+  .pa-tabs{ display:flex; flex-wrap:wrap; gap:.7rem; margin:0 0 1rem; align-items:stretch; }
+  .pa-area-card{ position:relative; flex:1 1 240px; display:flex; align-items:center; gap:.7rem; text-align:left; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:.7rem .9rem; cursor:pointer; font-family:inherit; color:var(--ink); }
+  .pa-area-card.active{ background:#4a2f1d; color:#fdf8ee; border-color:#4a2f1d; box-shadow:0 2px 8px rgba(0,0,0,.18); }
+  .pa-area-ico{ font-size:1.8rem; line-height:1; }
+  .pa-area-txt{ display:flex; flex-direction:column; flex:1; min-width:0; }
+  .pa-area-txt strong{ font-size:.92rem; text-transform:uppercase; letter-spacing:.02em; }
+  .pa-area-txt small{ font-size:.74rem; opacity:.75; }
+  .pa-area-count{ display:flex; flex-direction:column; align-items:center; background:var(--surface-2); color:var(--ink); border-radius:var(--radius-sm); padding:.25rem .7rem; }
+  .pa-area-card.active .pa-area-count{ background:rgba(255,255,255,.16); color:#fdf8ee; }
+  .pa-area-count b{ font-size:1.3rem; line-height:1.1; }
+  .pa-area-count small{ font-size:.62rem; opacity:.8; }
+  .pa-area-alerta{ position:absolute; top:-7px; right:-7px; width:22px; height:22px; border-radius:50%; background:var(--bad); color:#fff; font-weight:800; font-size:.8rem; display:flex; align-items:center; justify-content:center; }
+  .pa-general-btn{ flex:0 0 auto; background:var(--accent); color:var(--accent-ink); border:1px solid var(--accent); border-radius:var(--radius); padding:.7rem 1rem; font-weight:700; cursor:pointer; font-family:inherit; }
+  .pa-general-btn.active{ box-shadow:0 0 0 2px var(--ink) inset; }
+  .pa-modos{ display:flex; gap:.4rem; margin:0 0 .7rem; flex-wrap:wrap; }
+  .pa-modo{ border:1px solid var(--border); background:var(--surface); color:var(--ink-soft); border-radius:999px; padding:.4rem .9rem; font-weight:700; font-size:.82rem; cursor:pointer; font-family:inherit; }
+  .pa-modo.active{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .pa-filtros{ display:flex; flex-wrap:wrap; gap:.6rem .9rem; align-items:center; margin:0 0 .9rem; }
+  .pa-dias{ display:flex; flex-wrap:wrap; border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; background:var(--surface); }
+  .pa-dia{ border:none; border-right:1px solid var(--border); background:transparent; color:var(--ink); padding:.45rem .8rem; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; align-items:center; min-width:62px; }
+  .pa-dia strong{ font-size:.82rem; } .pa-dia small{ font-size:.66rem; opacity:.75; }
+  .pa-dia.active{ background:#4a2f1d; color:#fdf8ee; }
+  .pa-fecha{ border:none; background:transparent; padding:.4rem .5rem; font-family:inherit; color:var(--ink); }
+  .pa-fecha.active{ background:#4a2f1d; color:#fdf8ee; }
+  .pa-estados{ display:flex; flex-wrap:wrap; gap:.3rem; }
+  .pa-chip{ border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:999px; padding:.3rem .7rem; font-size:.78rem; cursor:pointer; font-family:inherit; }
+  .pa-chip.active{ background:#4a2f1d; color:#fdf8ee; border-color:#4a2f1d; font-weight:700; }
+  .pa-buscar{ flex:1 1 200px; min-width:160px; border:1px solid var(--border); background:var(--surface); border-radius:var(--radius-sm); padding:.5rem .7rem; font-family:inherit; color:var(--ink); }
+  .pa-alerta{ display:flex; align-items:center; gap:.8rem; background:var(--bad-soft); border:1px solid var(--bad); border-radius:var(--radius); padding:.7rem .9rem; margin:0 0 .9rem; }
+  .pa-alerta-ico{ flex:none; width:34px; height:34px; border-radius:50%; background:var(--bad); color:#fff; font-weight:800; font-size:1.2rem; display:flex; align-items:center; justify-content:center; }
+  .pa-alerta-txt{ flex:1; font-size:.86rem; } .pa-alerta-txt strong{ display:block; font-size:.95rem; }
+  .pa-layout{ display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:1rem; align-items:start; }
+  @media (max-width: 980px){ .pa-layout{ grid-template-columns:1fr; } }
+  .pa-lista, .pa-panel, .pa-comp{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .pa-comp{ padding:.9rem 1rem; margin:0 0 1rem; } .pa-comp h3{ margin:0 0 .4rem; font-size:1rem; }
+  .pa-lista-cab{ display:flex; justify-content:space-between; align-items:center; background:#4a2f1d; color:#fdf8ee; padding:.7rem 1rem; font-weight:700; }
+  .pa-tabla-wrap{ overflow-x:auto; }
+  table.pa-tabla{ border-collapse:collapse; width:100%; font-size:.84rem; }
+  table.pa-tabla th{ text-align:left; background:var(--surface-2); color:var(--ink-soft); font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; padding:.5rem .6rem; white-space:nowrap; }
+  table.pa-tabla td{ padding:.55rem .6rem; border-top:1px solid var(--border); vertical-align:middle; }
+  .pa-fila{ cursor:pointer; } .pa-fila:hover{ filter:brightness(.97); } .pa-fila.sel{ outline:2px solid var(--accent); outline-offset:-2px; }
+  .pa-fila-PENDIENTE{ background:var(--bad-soft); } .pa-fila-MODIFICADO{ background:var(--warn-soft); } .pa-fila-ANULADO{ background:var(--surface-2); text-decoration:line-through; opacity:.75; }
+  .pa-ent{ white-space:nowrap; } .pa-cli .btn{ white-space:nowrap; flex:none; }
+  .pa-sub{ font-size:.7rem; color:var(--ink-muted); } .pa-warn{ color:var(--bad); font-weight:700; }
+  .pa-cant{ white-space:nowrap; font-weight:700; } .pa-obs{ color:var(--ink-soft); font-style:italic; } .pa-go{ font-size:1.2rem; color:var(--ink-muted); }
+  .pa-pill{ display:inline-block; border-radius:999px; padding:.2rem .65rem; font-size:.74rem; font-weight:700; border:1px solid transparent; white-space:nowrap; }
+  .pa-pill-PENDIENTE{ background:var(--bad-soft); color:var(--bad); border-color:var(--bad); }
+  .pa-pill-MODIFICADO{ background:var(--warn-soft); color:var(--warn); border-color:var(--warn); }
+  .pa-pill-CONFIRMADO{ background:var(--warn-soft); color:#8a5b0f; border-color:var(--warn); }
+  .pa-pill-EN_PREPARACION{ background:var(--info-soft); color:var(--info); border-color:var(--info); }
+  .pa-pill-LISTO{ background:var(--good-soft); color:var(--good); border-color:var(--good); }
+  .pa-pill-ENTREGADO{ background:var(--surface-2); color:var(--ink-soft); border-color:var(--border); }
+  .pa-pill-ANULADO{ background:var(--surface-2); color:var(--ink-soft); border-color:var(--border); }
+  .pa-panel{ padding:.8rem; display:flex; flex-direction:column; gap:.7rem; }
+  .pa-banda{ border-radius:var(--radius-sm); padding:.5rem .7rem; font-weight:800; font-size:.9rem; background:var(--surface-2); }
+  .pa-banda-PENDIENTE{ background:var(--bad-soft); color:var(--bad); } .pa-banda-MODIFICADO{ background:var(--warn-soft); color:var(--warn); }
+  .pa-banda-CONFIRMADO{ background:var(--warn-soft); color:#8a5b0f; } .pa-banda-EN_PREPARACION{ background:var(--info-soft); color:var(--info); } .pa-banda-LISTO{ background:var(--good-soft); color:var(--good); }
+  .pa-cli{ display:flex; justify-content:space-between; gap:.6rem; align-items:flex-start; } .pa-cli-nombre{ font-size:1rem; }
+  .pa-prod{ background:var(--surface-2); border-radius:var(--radius-sm); padding:.7rem; }
+  .pa-prod-top{ display:flex; justify-content:space-between; gap:.5rem; font-size:1rem; } .pa-prod-cant{ font-size:1.15rem; }
+  .pa-ind small{ color:var(--ink-muted); } .pa-ind-txt{ font-weight:700; }
+  .pa-datos{ font-size:.82rem; display:flex; flex-direction:column; gap:.2rem; } .pa-ok{ color:var(--good); font-weight:700; }
+  .pa-cambio{ background:var(--warn-soft); border:1px solid var(--warn); border-radius:var(--radius-sm); padding:.55rem .7rem; font-size:.82rem; }
+  .pa-insumos{ background:var(--bad-soft); border-radius:var(--radius-sm); padding:.5rem .7rem; font-size:.82rem; }
+  .pa-resp, .pa-nota{ display:flex; flex-direction:column; gap:.2rem; font-size:.78rem; } .pa-nota small{ color:var(--ink-muted); }
+  .pa-input{ border:1px solid var(--border); background:var(--surface); border-radius:var(--radius-sm); padding:.5rem .6rem; font-family:inherit; color:var(--ink); width:100%; box-sizing:border-box; }
+  .pa-cap{ width:84px; }
+  .pa-insumo-form{ display:flex; gap:.4rem; }
+  .pa-acciones{ display:grid; grid-template-columns:1fr 1fr; gap:.5rem; }
+  .pa-btn{ border:none; border-radius:var(--radius-sm); padding:.75rem .5rem; font-weight:800; font-size:.86rem; cursor:pointer; font-family:inherit; color:#fff; }
+  .pa-btn:disabled{ opacity:.35; cursor:not-allowed; }
+  .pa-btn-ok{ background:var(--good-deep); } .pa-btn-info{ background:var(--info); } .pa-btn-prep{ background:var(--accent); } .pa-btn-listo{ background:var(--good); } .pa-btn-ent{ background:var(--ink-soft); }
+  .pa-deshacer{ border:none; background:none; color:var(--ink-soft); font-size:.78rem; cursor:pointer; text-decoration:underline; font-family:inherit; align-self:flex-start; }
+  .pa-falta{ background:var(--bad-soft); color:var(--bad); }
+  .pa-ins-fila{ display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; padding:.4rem 0; border-top:1px solid var(--border); font-size:.84rem; }
+  .pa-asig summary{ cursor:pointer; font-weight:800; }
+  .pa-asig-fila{ display:flex; flex-wrap:wrap; gap:.4rem .9rem; align-items:center; padding:.45rem 0; border-top:1px solid var(--border); font-size:.84rem; }
+  .pa-asig-nombre{ flex:1 1 200px; font-weight:700; } .pa-asig-op{ display:flex; align-items:center; gap:.25rem; }
+
   /* Grupos con etiqueta (BUSCAR / FECHA DE ENTREGA / ORIGEN / RESULTADOS) para los controles de
      "Todos los pedidos" (set-2026, "REORGANIZACIÓN VISUAL -- MÓDULO PEDIDOS") -- misma idea que
      .pedidos-nav arriba, para que cada control se entienda de un vistazo en vez de verse suelto. */
@@ -14089,7 +14169,924 @@ var TRIPLES = [
     }
   }
 
+  // =====================================================================================
+  // PRODUCCIÓN POR ÁREAS (oct-2026, pedido de Jessica: "cada cocina debe ver únicamente los
+  // pedidos que le corresponde preparar, sin volver a ingresarlos").
+  //
+  // Diseño (a propósito mínimo y seguro):
+  //  - NO existe una segunda base de pedidos. Las líneas que ve cada área se calculan al
+  //    vuelo desde PEDIDOS (la MISMA fuente que ya usan Despacho y Producción por día).
+  //  - Lo único que se guarda es el SEGUIMIENTO de cada línea en una colección aparte
+  //    (produccionAreas): estado, quién confirmó y a qué hora, insumos faltantes, notas y una
+  //    "firma" de lo que el área vio al confirmar. Jamás se escribe nada en el pedido, en sus
+  //    precios, ni en los totales de venta -- cambiar un estado NO altera el pedido original.
+  //  - Si el pedido cambia después de confirmado (cantidad, indicación, fecha, hora o
+  //    producto), la firma deja de coincidir: la línea vuelve a "Pendiente" marcada como
+  //    MODIFICADA, mostrando qué cambió, hasta que el área vuelva a confirmar.
+  //  - Qué producto va a qué área es configurable (config/produccionAreasConfig), con una
+  //    asignación por defecto razonable; un producto puede ir a varias áreas sin duplicar la
+  //    cantidad pedida (cada área ve la MISMA cantidad del pedido; los requerimientos
+  //    estimados de insumos se anotan aparte, a mano, y no suman a nada).
+  // =====================================================================================
+  var PROD_AREAS = [
+    { key:"panaderia", label:"Panadería", sub:"Panes y productos del taller", icono:"🥖" },
+    { key:"carnes", label:"Carnes y Especialidades", sub:"Chicharrón, pavo, jamones, asado", icono:"🥩" },
+    { key:"cocina", label:"Cocina de Preparados", sub:"Triples, pollo, ají de gallina, chicha", icono:"🍲" }
+  ];
+  var PROD_AREA_ESTADOS = [
+    { key:"PENDIENTE", label:"Pendiente" },
+    { key:"CONFIRMADO", label:"Confirmado" },
+    { key:"EN_PREPARACION", label:"En preparación" },
+    { key:"LISTO", label:"Listo" },
+    { key:"ENTREGADO", label:"Entregado" }
+  ];
+  var PROD_AREA_COLECCION = "produccionAreas";
+  var PROD_AREA_ALERTA_HORAS = 24;     // un pedido sin confirmar a menos de 24 h de su entrega genera alerta
+  var PROD_AREA_HORIZONTE_DIAS = 45;   // "Comprometido por fecha": desde hoy hasta hoy + 45 días
+  var PRODUCCION_AREAS_CFG = null;     // { asignaciones:{claveProducto:[areas]}, capacidad:{claveProducto:numero} }
+  var PRODUCCION_AREAS_REG = {};       // recId -> seguimiento guardado (NUNCA copia del pedido)
+  var produccionAreaVista = "panaderia";   // general | panaderia | carnes | cocina
+  var produccionAreaRangoSel = "hoy";      // hoy | manana | 7dias | fecha | d:YYYY-MM-DD
+  var produccionAreaFechaCustom = "";
+  var produccionAreaEstadoFiltro = "todos";
+  var produccionAreaBusqueda = "";
+  var produccionAreaSel = null;            // recId de la línea abierta en el panel derecho
+  var produccionAreaModo = "lista";        // lista | comprometido
+  var produccionAreaRenderPendiente = false;
+
+  function produccionAreaLabel(key){
+    for(var i = 0; i < PROD_AREAS.length; i++){ if(PROD_AREAS[i].key === key) return PROD_AREAS[i].label; }
+    return key;
+  }
+  function produccionAreaEstadoLabel(key){
+    for(var i = 0; i < PROD_AREA_ESTADOS.length; i++){ if(PROD_AREA_ESTADOS[i].key === key) return PROD_AREA_ESTADOS[i].label; }
+    return key;
+  }
+  function produccionAreaClave(nombre){
+    return normalizePrecioKey(nombre).replace(/\//g, "-");
+  }
+  // Asignación por defecto producto -> área (solo si Jessica no configuró otra). Regla simple y
+  // conservadora: lo que no calza con Carnes ni Cocina se queda en Panadería, igual que hoy.
+  function produccionAreaDefaultDe(nombre){
+    var n = normalizePrecioKey(nombre);
+    if(/sandwich|sándwich|mixto|croissant|empanada|ciabatt/.test(n)) return ["panaderia"];
+    if(n.indexOf("triple") !== -1 || n.indexOf("tira de") === 0 || n.indexOf("und t.") === 0) return ["cocina"];
+    // OJO: "\bchicha\b" y no indexOf("chicha") -- "chicharrón" CONTIENE "chicha" y terminaría en Cocina.
+    if(/\bchicha\b/.test(n)) return ["cocina"];
+    if(/aj[ií] de gallina/.test(n)) return ["cocina"];
+    if(typeof MOZOS_CATEGORIA_ESPECIALIDADES_CASA !== "undefined" && MOZOS_CATEGORIA_ESPECIALIDADES_CASA.hasOwnProperty(n)) return ["carnes"];
+    if(/^(pavo|pechuga|chicharr[oó]n|asado|jam[oó]n de pa[ií]s|jam[oó]n glaseado|jam[oó]n de pierna|pierna)/.test(n) && n.indexOf("prensa") === -1) return ["carnes"];
+    return ["panaderia"];
+  }
+  function produccionAreasDeProducto(nombre){
+    var cfg = PRODUCCION_AREAS_CFG && PRODUCCION_AREAS_CFG.asignaciones;
+    var key = produccionAreaClave(nombre);
+    if(cfg && Array.isArray(cfg[key]) && cfg[key].length){
+      var validas = cfg[key].filter(function(a){ return PROD_AREAS.some(function(x){ return x.key === a; }); });
+      if(validas.length) return validas;
+    }
+    return produccionAreaDefaultDe(nombre);
+  }
+  function produccionAreaUnidadDe(nombre){
+    if(typeof mozosEsProductoAlPeso === "function" && mozosEsProductoAlPeso(nombre)) return "kg";
+    var p = CATALOGO_PRODUCTOS && CATALOGO_PRODUCTOS[catalogoDocId(nombre)];
+    var u = p && p.unidad ? String(p.unidad).trim().toLowerCase() : "";
+    if(u && u !== "unidad" && u !== "unid" && u !== "und") return u;
+    return "unid.";
+  }
+  function produccionAreaFmtCant(cant, unidad){
+    return fmt(cant) + " " + unidad;
+  }
+  function produccionAreaFechaCorta(iso){
+    if(!iso) return "";
+    var d = new Date(iso + "T12:00:00");
+    var dias = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+    return dias[d.getDay()] + " " + d.getDate() + "/" + (d.getMonth() + 1);
+  }
+  function produccionAreaEntregaMs(fecha, hora){
+    if(!fecha) return null;
+    var ms = new Date(fecha + "T" + (hora || "23:59") + ":00-05:00").getTime();
+    return isNaN(ms) ? null : ms;
+  }
+  function produccionAreaFirma(p, it){
+    return [String(it.producto || "").trim(), num(it.cantidad), it.fecha || "", String(it.obs || "").trim(), p.hora || ""].join("|");
+  }
+  function produccionAreaSnapshot(line){
+    return { producto: line.producto, cantidad: line.cantidad, fecha: line.fecha, hora: line.hora, obs: line.obs };
+  }
+  function produccionAreaRangoFechas(){
+    var hoy = todayISO();
+    var r = produccionAreaRangoSel;
+    if(r === "hoy") return [hoy, hoy];
+    if(r === "manana"){ var m = addDaysISO(hoy, 1); return [m, m]; }
+    if(r === "7dias") return [hoy, addDaysISO(hoy, 6)];
+    if(r === "fecha"){ var f = produccionAreaFechaCustom || hoy; return [f, f]; }
+    if(r.indexOf("d:") === 0){ var d = r.slice(2); return [d, d]; }
+    return [hoy, hoy];
+  }
+
+  // Construye las líneas de trabajo de un área (o de todas con "*") entre dos fechas. Lee PEDIDOS
+  // sin modificarlo. Cada línea referencia al pedido (p) solo para mostrarlo.
+  function produccionAreaLineas(areaKey, desde, hasta){
+    var out = [];
+    var vistos = {};
+    (PEDIDOS || []).forEach(function(p){
+      var ocurrencias = {};
+      (p.items || []).forEach(function(it){
+        if(!it.producto || !String(it.producto).trim() || !(num(it.cantidad) > 0)) return;
+        var pk = produccionAreaClave(it.producto);
+        ocurrencias[pk] = (ocurrencias[pk] || 0) + 1;
+        if(!it.fecha || it.fecha < desde || it.fecha > hasta) return;
+        var lineKey = pk.replace(/[.#]/g, "-") + "#" + ocurrencias[pk];
+        var areas = produccionAreasDeProducto(it.producto);
+        areas.forEach(function(area){
+          if(areaKey !== "*" && area !== areaKey) return;
+          var recId = (area + "__" + p.id + "__" + lineKey).replace(/\//g, "-");
+          vistos[recId] = true;
+          var rec = PRODUCCION_AREAS_REG[recId] || null;
+          var firma = produccionAreaFirma(p, it);
+          var estado = "PENDIENTE", modificado = false;
+          if(rec && rec.estado && rec.estado !== "PENDIENTE"){
+            if(rec.firma && rec.firma !== firma){ modificado = true; estado = "PENDIENTE"; }
+            else estado = rec.estado;
+          }
+          if(p.anulado){
+            if(!rec || rec.estado === "PENDIENTE" || rec.cierre) return;
+          }
+          out.push({
+            recId: recId, area: area, areas: areas, pedidoId: p.id, p: p,
+            numero: p.numero || "", cliente: (p.cliente && p.cliente.nombre) || "Cliente",
+            telefono: (p.cliente && p.cliente.telefono) || "",
+            producto: String(it.producto).trim(), cantidad: num(it.cantidad), unidad: produccionAreaUnidadDe(it.producto),
+            fecha: it.fecha, hora: p.hora || "", obs: String(it.obs || "").trim(),
+            tipo: pedidoTipoEntregaLabel(p), creadoEn: p.createdAt || null,
+            firma: firma, rec: rec, estado: estado, modificado: modificado,
+            anulado: !!p.anulado, sinPago: !!pedidoNecesitaPagoPrevio(p),
+            entregaMs: produccionAreaEntregaMs(it.fecha, p.hora)
+          });
+        });
+      });
+    });
+    // Líneas que el área ya había confirmado y que desaparecieron del pedido (se quitó el
+    // producto): el área debe enterarse, no dejar de verlas en silencio.
+    Object.keys(PRODUCCION_AREAS_REG).forEach(function(id){
+      var rec = PRODUCCION_AREAS_REG[id];
+      if(vistos[id] || !rec || rec.cierre || rec.estado === "PENDIENTE") return;
+      if(areaKey !== "*" && rec.area !== areaKey) return;
+      if(!rec.fecha || rec.fecha < desde || rec.fecha > hasta) return;
+      var snap = rec.snapshot || {};
+      out.push({
+        recId: id, area: rec.area, areas: [rec.area], pedidoId: rec.pedidoId, p: null,
+        numero: rec.pedidoNumero || "", cliente: rec.cliente || "Cliente", telefono: "",
+        producto: rec.producto || snap.producto || "", cantidad: num(snap.cantidad), unidad: produccionAreaUnidadDe(rec.producto || ""),
+        fecha: rec.fecha, hora: snap.hora || "", obs: snap.obs || "", tipo: "", creadoEn: null,
+        firma: rec.firma || "", rec: rec, estado: rec.estado, modificado: false, anulado: true, retirada: true, sinPago: false,
+        entregaMs: produccionAreaEntregaMs(rec.fecha, snap.hora)
+      });
+    });
+    out.sort(function(a, b){
+      if(a.fecha !== b.fecha) return a.fecha < b.fecha ? -1 : 1;
+      var ha = a.entregaMs == null ? 9e15 : a.entregaMs, hb = b.entregaMs == null ? 9e15 : b.entregaMs;
+      if(ha !== hb) return ha - hb;
+      return String(a.cliente).localeCompare(String(b.cliente));
+    });
+    return out;
+  }
+  function produccionAreaContarPedidos(lineas){
+    var s = {};
+    lineas.forEach(function(l){ s[l.pedidoId] = true; });
+    return Object.keys(s).length;
+  }
+  // Líneas sin confirmar cuya entrega está a menos de PROD_AREA_ALERTA_HORAS horas (o ya pasó
+  // hoy): generan la alerta visible, sin que administración tenga que llamar a nadie.
+  function produccionAreaAlertas(areaKey){
+    var hoy = todayISO();
+    var limite = Date.now() + PROD_AREA_ALERTA_HORAS * 3600 * 1000;
+    return produccionAreaLineas(areaKey, hoy, addDaysISO(hoy, 3)).filter(function(l){
+      return !l.anulado && !l.sinPago && l.estado === "PENDIENTE" && l.entregaMs != null && l.entregaMs <= limite;
+    });
+  }
+
+  // ---------- Persistencia del seguimiento (NUNCA toca la colección "pedidos") ----------
+  function produccionAreaResponsableActual(){
+    var el = document.getElementById("paResponsable");
+    var v = el ? String(el.value || "").trim() : "";
+    if(!v) v = getDespachoEncargado();
+    return tituloCase(v || "");
+  }
+  // Igual que renderPanel(), pero si alguien está escribiendo una nota/insumo en Producción por
+  // áreas, espera a que termine (no le borra lo escrito cuando llega un pedido nuevo).
+  function produccionAreaRenderSeguro(){
+    var ae = document.activeElement;
+    if(pedidosView === "produccion" && produccionAreaVista !== "panaderia" && ae && ae.classList && ae.classList.contains("pa-input")){
+      produccionAreaRenderPendiente = true; return;
+    }
+    renderPanel();
+  }
+  function produccionAreaRefrescar(){
+    if(currentTab !== "pedidos" || pedidosView !== "produccion" || produccionAreaVista === "panaderia") return;
+    var ae = document.activeElement;
+    if(ae && ae.classList && ae.classList.contains("pa-input")){ produccionAreaRenderPendiente = true; return; }
+    renderPanel();
+  }
+  function produccionAreaGuardar(line, cambios, opciones){
+    opciones = opciones || {};
+    if(!db){ showToast("Sin conexión: no se pudo guardar."); return false; }
+    var prev = PRODUCCION_AREAS_REG[line.recId] || null;
+    var ahora = Date.now();
+    var base = {
+      area: line.area, pedidoId: line.pedidoId, pedidoNumero: line.numero, cliente: line.cliente,
+      producto: line.producto, fecha: line.fecha,
+      estado: (prev && prev.estado) || "PENDIENTE", actualizadoEn: ahora
+    };
+    // La "firma" (lo que el área vio y confirmó) SOLO se actualiza cuando el área cambia el
+    // estado a propósito. Si se guardara también al anotar una nota o un insumo, una línea
+    // MODIFICADA dejaría de verse como modificada sin que nadie la haya vuelto a confirmar.
+    if(cambios.estado || !prev){ base.firma = line.firma; base.snapshot = produccionAreaSnapshot(line); }
+    var nuevo = {};
+    Object.keys(prev || {}).forEach(function(k){ nuevo[k] = prev[k]; });
+    Object.keys(base).forEach(function(k){ nuevo[k] = base[k]; });
+    Object.keys(cambios).forEach(function(k){ nuevo[k] = cambios[k]; });
+    if(cambios.estado && (!prev || prev.estado !== cambios.estado || line.modificado)){
+      nuevo.historial = ((prev && prev.historial) || []).concat([{ estado: cambios.estado, por: nuevo.responsable || "", en: ahora }]);
+    }
+    nuevo.id = line.recId;
+    PRODUCCION_AREAS_REG[line.recId] = nuevo;
+    var payload = {};
+    Object.keys(nuevo).forEach(function(k){ if(k !== "id") payload[k] = nuevo[k]; });
+    db.collection(PROD_AREA_COLECCION).doc(line.recId).set(payload, { merge: true }).catch(function(){
+      if(prev) PRODUCCION_AREAS_REG[line.recId] = prev; else delete PRODUCCION_AREAS_REG[line.recId];
+      showToast("No se pudo guardar. Revisa tu conexión e intenta de nuevo.");
+      renderPanel();
+    });
+    if(opciones.mensaje) showToast(opciones.mensaje);
+    return true;
+  }
+  var PROD_AREA_TRANSICIONES = {
+    CONFIRMADO: ["PENDIENTE"],
+    EN_PREPARACION: ["CONFIRMADO"],
+    LISTO: ["CONFIRMADO", "EN_PREPARACION"],
+    ENTREGADO: ["LISTO"]
+  };
+  function produccionAreaPuedeCambiar(line, nuevoEstado){
+    if(line.anulado) return false;
+    if(line.sinPago) return false;
+    var permitidos = PROD_AREA_TRANSICIONES[nuevoEstado];
+    return !!permitidos && permitidos.indexOf(line.estado) !== -1;
+  }
+  function produccionAreaCambiarEstado(line, nuevoEstado, responsable){
+    responsable = tituloCase(String(responsable == null ? produccionAreaResponsableActual() : responsable).trim());
+    if(!responsable){ showToast("Escribe tu nombre en \"Responsable\" para dejar constancia."); return false; }
+    if(!produccionAreaPuedeCambiar(line, nuevoEstado)){
+      showToast(line.sinPago ? "Pedido no pagado: no se puede producir todavía." : "Ese cambio no está permitido desde el estado actual.");
+      return false;
+    }
+    setDespachoEncargado(responsable);
+    var cambios = { estado: nuevoEstado, responsable: responsable };
+    if(nuevoEstado === "CONFIRMADO"){ cambios.confirmadoPor = responsable; cambios.confirmadoEn = Date.now(); }
+    return produccionAreaGuardar(line, cambios, { mensaje: produccionAreaEstadoLabel(nuevoEstado) + " — registrado por " + responsable + "." });
+  }
+  function produccionAreaDeshacer(line, responsable){
+    responsable = tituloCase(String(responsable == null ? produccionAreaResponsableActual() : responsable).trim());
+    if(!responsable){ showToast("Escribe tu nombre en \"Responsable\" para dejar constancia."); return false; }
+    var h = (line.rec && line.rec.historial) || [];
+    var anterior = h.length >= 2 ? h[h.length - 2].estado : "PENDIENTE";
+    return produccionAreaGuardar(line, { estado: anterior, responsable: responsable }, { mensaje: "Volvió a " + produccionAreaEstadoLabel(anterior) + "." });
+  }
+  function produccionAreaReportarInsumo(line, texto, responsable){
+    texto = String(texto || "").trim();
+    responsable = tituloCase(String(responsable == null ? produccionAreaResponsableActual() : responsable).trim());
+    if(!texto){ showToast("Escribe qué insumo falta."); return false; }
+    if(!responsable){ showToast("Escribe tu nombre en \"Responsable\" para dejar constancia."); return false; }
+    var lista = ((line.rec && line.rec.insumosFaltantes) || []).concat([{ texto: texto, por: responsable, en: Date.now(), resuelto: false }]);
+    return produccionAreaGuardar(line, { insumosFaltantes: lista }, { mensaje: "Insumo faltante registrado para compras y administración." });
+  }
+  function produccionAreaResolverInsumo(recId, idx, responsable){
+    var rec = PRODUCCION_AREAS_REG[recId];
+    if(!rec || !rec.insumosFaltantes || !rec.insumosFaltantes[idx]) return false;
+    var lista = rec.insumosFaltantes.map(function(x){ return x; });
+    lista[idx] = { texto: lista[idx].texto, por: lista[idx].por, en: lista[idx].en, resuelto: true, resueltoPor: tituloCase(responsable || getDespachoEncargado() || ""), resueltoEn: Date.now() };
+    var nuevo = {}; Object.keys(rec).forEach(function(k){ nuevo[k] = rec[k]; });
+    nuevo.insumosFaltantes = lista; nuevo.actualizadoEn = Date.now();
+    PRODUCCION_AREAS_REG[recId] = nuevo;
+    if(db){
+      db.collection(PROD_AREA_COLECCION).doc(recId).set({ insumosFaltantes: lista, actualizadoEn: nuevo.actualizadoEn }, { merge: true }).catch(function(){
+        PRODUCCION_AREAS_REG[recId] = rec; showToast("No se pudo guardar."); renderPanel();
+      });
+    }
+    return true;
+  }
+  function produccionAreaGuardarTexto(line, campo, valor){
+    var c = {}; c[campo] = String(valor || "").trim();
+    return produccionAreaGuardar(line, c, {});
+  }
+  function produccionAreaEnterado(line, responsable){
+    return produccionAreaGuardar(line, { cierre: true, cierrePor: tituloCase(responsable || produccionAreaResponsableActual() || ""), cierreEn: Date.now() }, { mensaje: "Enterado." });
+  }
+  // Configuración (asignaciones y capacidad): se escribe completa en config/produccionAreasConfig.
+  function produccionAreaGuardarConfig(nuevaCfg, responsable){
+    if(!db){ showToast("Sin conexión: no se pudo guardar."); return false; }
+    var anterior = PRODUCCION_AREAS_CFG;
+    PRODUCCION_AREAS_CFG = { asignaciones: nuevaCfg.asignaciones || {}, capacidad: nuevaCfg.capacidad || {} };
+    db.collection("config").doc("produccionAreasConfig").set({
+      asignaciones: PRODUCCION_AREAS_CFG.asignaciones, capacidad: PRODUCCION_AREAS_CFG.capacidad,
+      actualizadoPor: responsable || "", actualizadoEn: Date.now()
+    }).catch(function(){
+      PRODUCCION_AREAS_CFG = anterior; showToast("No se pudo guardar la configuración."); renderPanel();
+    });
+    return true;
+  }
+  function produccionAreaCfgCopia(){
+    var c = PRODUCCION_AREAS_CFG || {};
+    var a = {}, cap = {};
+    Object.keys(c.asignaciones || {}).forEach(function(k){ a[k] = c.asignaciones[k]; });
+    Object.keys(c.capacidad || {}).forEach(function(k){ cap[k] = c.capacidad[k]; });
+    return { asignaciones: a, capacidad: cap };
+  }
+  function produccionAreaAsignarProducto(nombre, areas, responsable){
+    var cfg = produccionAreaCfgCopia();
+    var clave = produccionAreaClave(nombre);
+    areas = (areas || []).filter(function(a){ return PROD_AREAS.some(function(x){ return x.key === a; }); });
+    if(areas.length === 0) delete cfg.asignaciones[clave]; else cfg.asignaciones[clave] = areas;
+    return produccionAreaGuardarConfig(cfg, responsable);
+  }
+  function produccionAreaGuardarCapacidad(nombre, valor, responsable){
+    var cfg = produccionAreaCfgCopia();
+    var n = num(valor);
+    var clave = produccionAreaClave(nombre);
+    if(n > 0) cfg.capacidad[clave] = n; else delete cfg.capacidad[clave];
+    return produccionAreaGuardarConfig(cfg, responsable);
+  }
+  function attachProduccionAreasSync(){
+    if(!db) return;
+    document.addEventListener("focusout", function(ev){
+      if(produccionAreaRenderPendiente && ev.target && ev.target.classList && ev.target.classList.contains("pa-input")){
+        produccionAreaRenderPendiente = false;
+        setTimeout(produccionAreaRefrescar, 60);
+      }
+    });
+    var desde = addDaysISO(todayISO(), -14);
+    db.collection(PROD_AREA_COLECCION).where("fecha", ">=", desde).onSnapshot(function(snap){
+      var m = {};
+      snap.forEach(function(doc){ var d = doc.data(); d.id = doc.id; m[doc.id] = d; });
+      PRODUCCION_AREAS_REG = m;
+      produccionAreaRefrescar();
+    }, function(){});
+    db.collection("config").doc("produccionAreasConfig").onSnapshot(function(snap){
+      var d = snap.exists ? (snap.data() || {}) : {};
+      PRODUCCION_AREAS_CFG = { asignaciones: d.asignaciones || {}, capacidad: d.capacidad || {} };
+      produccionAreaRefrescar();
+    }, function(){
+      if(PRODUCCION_AREAS_CFG === null) PRODUCCION_AREAS_CFG = { asignaciones: {}, capacidad: {} };
+    });
+  }
+
+  // ---------- Pantalla ----------
+  function paEl(tag, cls, texto){
+    var e = document.createElement(tag);
+    if(cls) e.className = cls;
+    if(texto != null) e.textContent = texto;
+    return e;
+  }
+  function paHoraFmt(ms){
+    var h = limaHoraHHMM(ms);
+    return h ? fmtHora12(h) : "";
+  }
+  function paFechaDeMs(ms){
+    try{ return new Date(ms).toLocaleDateString("en-CA", { timeZone: "America/Lima" }); }catch(e){ return ""; }
+  }
+  function paPill(estado, modificado){
+    var s = paEl("span", "pa-pill pa-pill-" + (modificado ? "MODIFICADO" : estado), modificado ? "Modificado" : produccionAreaEstadoLabel(estado));
+    return s;
+  }
+
+  function buildProduccionAreaTabs(){
+    var wrap = paEl("div", "pa-tabs");
+    var rango = produccionAreaRangoFechas();
+    PROD_AREAS.forEach(function(a){
+      var lineas = produccionAreaLineas(a.key, rango[0], rango[1]).filter(function(l){ return !l.anulado; });
+      var alertas = produccionAreaAlertas(a.key).length;
+      var b = paEl("button", "pa-area-card" + (produccionAreaVista === a.key ? " active" : ""));
+      b.type = "button";
+      b.setAttribute("data-area", a.key);
+      b.appendChild(paEl("span", "pa-area-ico", a.icono));
+      var txt = paEl("span", "pa-area-txt");
+      txt.appendChild(paEl("strong", "", a.label));
+      txt.appendChild(paEl("small", "", a.sub));
+      b.appendChild(txt);
+      var cnt = paEl("span", "pa-area-count");
+      cnt.appendChild(paEl("b", "", String(produccionAreaContarPedidos(lineas))));
+      cnt.appendChild(paEl("small", "", "pedidos"));
+      b.appendChild(cnt);
+      if(alertas > 0 && a.key !== "panaderia"){ b.appendChild(paEl("span", "pa-area-alerta", "!")); }
+      b.addEventListener("click", function(){ produccionAreaVista = a.key; produccionAreaSel = null; renderPanel(); });
+      wrap.appendChild(b);
+    });
+    var g = paEl("button", "pa-general-btn" + (produccionAreaVista === "general" ? " active" : ""), "Vista general");
+    g.type = "button";
+    g.setAttribute("data-area", "general");
+    g.addEventListener("click", function(){ produccionAreaVista = "general"; produccionAreaSel = null; renderPanel(); });
+    wrap.appendChild(g);
+    return wrap;
+  }
+
+  function buildProduccionAreaFiltros(conEstado){
+    var bar = paEl("div", "pa-filtros");
+    var hoy = todayISO();
+    var dias = paEl("div", "pa-dias");
+    function btnRango(valor, titulo, sub){
+      var b = paEl("button", "pa-dia" + (produccionAreaRangoSel === valor ? " active" : ""));
+      b.type = "button";
+      b.setAttribute("data-rango", valor);
+      b.appendChild(paEl("strong", "", titulo));
+      if(sub) b.appendChild(paEl("small", "", sub));
+      b.addEventListener("click", function(){ produccionAreaRangoSel = valor; produccionAreaSel = null; renderPanel(); });
+      dias.appendChild(b);
+    }
+    btnRango("hoy", "Hoy", produccionAreaFechaCorta(hoy));
+    btnRango("manana", "Mañana", produccionAreaFechaCorta(addDaysISO(hoy, 1)));
+    for(var i = 2; i <= 4; i++){
+      var f = addDaysISO(hoy, i);
+      btnRango("d:" + f, produccionAreaFechaCorta(f), "");
+    }
+    btnRango("7dias", "Próximos 7 días", "");
+    var fecha = document.createElement("input");
+    fecha.type = "date";
+    fecha.className = "pa-fecha" + (produccionAreaRangoSel === "fecha" ? " active" : "");
+    fecha.value = produccionAreaRangoSel === "fecha" ? (produccionAreaFechaCustom || hoy) : "";
+    fecha.title = "Otra fecha";
+    fecha.addEventListener("change", function(){
+      if(!fecha.value) return;
+      produccionAreaFechaCustom = fecha.value; produccionAreaRangoSel = "fecha"; produccionAreaSel = null; renderPanel();
+    });
+    dias.appendChild(fecha);
+    bar.appendChild(dias);
+    if(conEstado){
+      var chips = paEl("div", "pa-estados");
+      var todos = [{ key:"todos", label:"Todos" }].concat(PROD_AREA_ESTADOS);
+      todos.forEach(function(e){
+        var c = paEl("button", "pa-chip pa-chip-" + e.key + (produccionAreaEstadoFiltro === e.key ? " active" : ""), e.label);
+        c.type = "button";
+        c.setAttribute("data-estado", e.key);
+        c.addEventListener("click", function(){ produccionAreaEstadoFiltro = e.key; renderPanel(); });
+        chips.appendChild(c);
+      });
+      bar.appendChild(chips);
+      var bus = document.createElement("input");
+      bus.type = "search";
+      bus.className = "pa-buscar pa-input";
+      bus.placeholder = "Buscar cliente o producto…";
+      bus.value = produccionAreaBusqueda;
+      bus.addEventListener("input", function(){ produccionAreaBusqueda = bus.value; });
+      bus.addEventListener("keydown", function(ev){ if(ev.key === "Enter"){ renderPanel(); } });
+      bus.addEventListener("change", function(){ renderPanel(); });
+      bar.appendChild(bus);
+    }
+    return bar;
+  }
+
+  function buildProduccionAreaAlerta(areaKey){
+    var alertas = produccionAreaAlertas(areaKey);
+    if(alertas.length === 0) return null;
+    var box = paEl("div", "pa-alerta");
+    box.appendChild(paEl("div", "pa-alerta-ico", "!"));
+    var t = paEl("div", "pa-alerta-txt");
+    var n = produccionAreaContarPedidos(alertas);
+    t.appendChild(paEl("strong", "", n + (n === 1 ? " pedido próximo a vencer sin confirmar" : " pedidos próximos a vencer sin confirmar")));
+    t.appendChild(paEl("div", "", "Revisa los pedidos pendientes para evitar retrasos en producción."));
+    box.appendChild(t);
+    var ver = paEl("button", "btn btn-sm", "Ver pendientes");
+    ver.type = "button";
+    ver.addEventListener("click", function(){ produccionAreaRangoSel = "7dias"; produccionAreaEstadoFiltro = "PENDIENTE"; renderPanel(); });
+    box.appendChild(ver);
+    return box;
+  }
+
+  function produccionAreaFiltrarLineas(lineas){
+    var q = String(produccionAreaBusqueda || "").trim().toLowerCase();
+    return lineas.filter(function(l){
+      if(produccionAreaEstadoFiltro !== "todos"){
+        if(l.anulado) return false;
+        if(l.estado !== produccionAreaEstadoFiltro) return false;
+      }
+      if(q && (l.cliente + " " + l.producto + " " + l.obs + " " + l.numero).toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+
+  function buildProduccionAreaView(areaKey){
+    var wrap = paEl("div", "pa-view");
+    wrap.setAttribute("data-vista", areaKey);
+    var rango = produccionAreaRangoFechas();
+    var modos = paEl("div", "pa-modos");
+    [["lista", "Pedidos del área"], ["comprometido", "Comprometido por fecha"]].forEach(function(m){
+      var b = paEl("button", "pa-modo" + (produccionAreaModo === m[0] ? " active" : ""), m[1]);
+      b.type = "button";
+      b.setAttribute("data-modo", m[0]);
+      b.addEventListener("click", function(){ produccionAreaModo = m[0]; renderPanel(); });
+      modos.appendChild(b);
+    });
+    wrap.appendChild(modos);
+    if(produccionAreaModo === "comprometido"){
+      wrap.appendChild(buildProduccionAreaComprometido(areaKey));
+      return wrap;
+    }
+    wrap.appendChild(buildProduccionAreaFiltros(true));
+    var alerta = buildProduccionAreaAlerta(areaKey);
+    if(alerta) wrap.appendChild(alerta);
+
+    var todas = produccionAreaLineas(areaKey, rango[0], rango[1]);
+    var lineas = produccionAreaFiltrarLineas(todas);
+    var layout = paEl("div", "pa-layout");
+    var izq = paEl("div", "pa-lista");
+    var cab = paEl("div", "pa-lista-cab");
+    cab.appendChild(paEl("span", "", "Pedidos de " + produccionAreaLabel(areaKey).toUpperCase()));
+    cab.appendChild(paEl("b", "", produccionAreaContarPedidos(lineas) + " pedidos"));
+    izq.appendChild(cab);
+    if(lineas.length === 0){
+      izq.appendChild(paEl("div", "empty-state", "No hay pedidos para esta área con estos filtros."));
+    } else {
+      var tw = paEl("div", "pa-tabla-wrap");
+      var tabla = document.createElement("table");
+      tabla.className = "pa-tabla";
+      var thead = document.createElement("thead");
+      var hr = document.createElement("tr");
+      ["Cliente","Producto","Cant.","Indicaciones","Entrega","Tipo","Estado",""].forEach(function(h){ hr.appendChild(paEl("th", "", h)); });
+      thead.appendChild(hr);
+      tabla.appendChild(thead);
+      var tb = document.createElement("tbody");
+      lineas.forEach(function(l){
+        var tr = document.createElement("tr");
+        tr.className = "pa-fila pa-fila-" + (l.anulado ? "ANULADO" : (l.modificado ? "MODIFICADO" : l.estado)) + (produccionAreaSel === l.recId ? " sel" : "");
+        tr.setAttribute("data-rec", l.recId);
+        var c1 = document.createElement("td");
+        c1.appendChild(paEl("strong", "", l.cliente));
+        c1.appendChild(paEl("div", "pa-sub", "#" + (l.numero || "—")));
+        tr.appendChild(c1);
+        tr.appendChild(paEl("td", "", l.producto));
+        tr.appendChild(paEl("td", "pa-cant", produccionAreaFmtCant(l.cantidad, l.unidad)));
+        tr.appendChild(paEl("td", "pa-obs", l.obs || "—"));
+        var ce = document.createElement("td");
+        ce.className = "pa-ent";
+        ce.appendChild(paEl("div", "", produccionAreaFechaCorta(l.fecha)));
+        ce.appendChild(paEl("div", "pa-sub", l.hora ? fmtHora12(l.hora) : "Sin hora"));
+        tr.appendChild(ce);
+        tr.appendChild(paEl("td", "", l.tipo || "—"));
+        var cs = document.createElement("td");
+        if(l.anulado) cs.appendChild(paEl("span", "pa-pill pa-pill-ANULADO", l.retirada ? "Retirado" : "Anulado"));
+        else cs.appendChild(paPill(l.estado, l.modificado));
+        if(l.sinPago && !l.anulado) cs.appendChild(paEl("div", "pa-sub pa-warn", "🔒 Falta pago"));
+        var ins = l.rec && (l.rec.insumosFaltantes || []).filter(function(x){ return !x.resuelto; }).length;
+        if(ins) cs.appendChild(paEl("div", "pa-sub pa-warn", "⚠ Insumo faltante"));
+        tr.appendChild(cs);
+        tr.appendChild(paEl("td", "pa-go", "›"));
+        tr.addEventListener("click", function(){ produccionAreaSel = l.recId; renderPanel(); });
+        tb.appendChild(tr);
+      });
+      tabla.appendChild(tb);
+      tw.appendChild(tabla);
+      izq.appendChild(tw);
+    }
+    layout.appendChild(izq);
+    var sel = lineas.filter(function(l){ return l.recId === produccionAreaSel; })[0];
+    layout.appendChild(buildProduccionAreaPanel(sel || null));
+    wrap.appendChild(layout);
+    return wrap;
+  }
+
+  function buildProduccionAreaPanel(l){
+    var panel = paEl("div", "pa-panel");
+    if(!l){
+      panel.appendChild(paEl("div", "empty-state", "Toca un pedido de la lista para revisarlo y confirmarlo."));
+      return panel;
+    }
+    var estadoTxt = l.anulado ? (l.retirada ? "Producto retirado del pedido" : "Pedido anulado") : (l.modificado ? "Pedido modificado — confirma de nuevo" : (l.estado === "PENDIENTE" ? "Pedido pendiente de revisar" : produccionAreaEstadoLabel(l.estado)));
+    var banda = paEl("div", "pa-banda pa-banda-" + (l.anulado ? "ANULADO" : (l.modificado ? "MODIFICADO" : l.estado)), estadoTxt);
+    panel.appendChild(banda);
+    var cli = paEl("div", "pa-cli");
+    var cn = paEl("div", "");
+    cn.appendChild(paEl("strong", "pa-cli-nombre", l.cliente));
+    cn.appendChild(paEl("div", "pa-sub", "Pedido #" + (l.numero || "—") + (l.telefono ? " · 📞 " + l.telefono : "")));
+    cli.appendChild(cn);
+    if(l.p){
+      var ver = paEl("button", "btn btn-sm", "Ver pedido original");
+      ver.type = "button";
+      ver.addEventListener("click", function(){ showPedidoDespachoDetalle(l.p); });
+      cli.appendChild(ver);
+    }
+    panel.appendChild(cli);
+
+    var prod = paEl("div", "pa-prod");
+    var top = paEl("div", "pa-prod-top");
+    top.appendChild(paEl("strong", "", l.producto));
+    top.appendChild(paEl("b", "pa-prod-cant", produccionAreaFmtCant(l.cantidad, l.unidad)));
+    prod.appendChild(top);
+    var ind = paEl("div", "pa-ind");
+    ind.appendChild(paEl("small", "", "Indicaciones:"));
+    ind.appendChild(paEl("div", "pa-ind-txt", l.obs || "—"));
+    prod.appendChild(ind);
+    panel.appendChild(prod);
+
+    if(l.modificado && l.rec && l.rec.snapshot){
+      var s = l.rec.snapshot;
+      var cambios = [];
+      if(num(s.cantidad) !== l.cantidad) cambios.push("Cantidad: " + produccionAreaFmtCant(num(s.cantidad), l.unidad) + " → " + produccionAreaFmtCant(l.cantidad, l.unidad));
+      if((s.obs || "") !== l.obs) cambios.push("Indicaciones: " + (s.obs || "—") + " → " + (l.obs || "—"));
+      if((s.fecha || "") !== l.fecha || (s.hora || "") !== l.hora) cambios.push("Entrega: " + produccionAreaFechaCorta(s.fecha) + " " + (s.hora ? fmtHora12(s.hora) : "") + " → " + produccionAreaFechaCorta(l.fecha) + " " + (l.hora ? fmtHora12(l.hora) : ""));
+      if((s.producto || "") !== l.producto) cambios.push("Producto: " + s.producto + " → " + l.producto);
+      var cb = paEl("div", "pa-cambio");
+      cb.appendChild(paEl("strong", "", "El pedido cambió desde que lo confirmaste"));
+      cambios.forEach(function(c){ cb.appendChild(paEl("div", "", c)); });
+      panel.appendChild(cb);
+    }
+
+    var datos = paEl("div", "pa-datos");
+    datos.appendChild(paEl("div", "", "Entrega: " + produccionAreaFechaCorta(l.fecha) + (l.hora ? " · " + fmtHora12(l.hora) : "")));
+    if(l.tipo) datos.appendChild(paEl("div", "", "Tipo: " + l.tipo));
+    if(l.creadoEn) datos.appendChild(paEl("div", "", "Registrado: " + fmtFechaCorta(paFechaDeMs(l.creadoEn)) + " · " + paHoraFmt(l.creadoEn)));
+    if(l.rec && l.rec.confirmadoPor) datos.appendChild(paEl("div", "pa-ok", "Confirmado por " + l.rec.confirmadoPor + " · " + paHoraFmt(l.rec.confirmadoEn) + " (" + fmtFechaCorta(paFechaDeMs(l.rec.confirmadoEn)) + ")"));
+    if(l.rec && l.rec.responsable) datos.appendChild(paEl("div", "", "Responsable: " + l.rec.responsable));
+    if(l.areas.length > 1){
+      datos.appendChild(paEl("div", "", "También participa: " + l.areas.filter(function(a){ return a !== l.area; }).map(produccionAreaLabel).join(", ")));
+    }
+    if(l.sinPago) datos.appendChild(paEl("div", "pa-warn", "🔒 Pedido sin pagar (ni crédito autorizado): NO PRODUCIR todavía."));
+    panel.appendChild(datos);
+
+    if(l.anulado){
+      var en = paEl("button", "btn btn-sm", "Enterado");
+      en.type = "button";
+      en.addEventListener("click", function(){ produccionAreaEnterado(l); produccionAreaSel = null; renderPanel(); });
+      panel.appendChild(en);
+      return panel;
+    }
+
+    var resp = paEl("div", "pa-resp");
+    resp.appendChild(paEl("label", "", "Responsable"));
+    var ri = document.createElement("input");
+    ri.type = "text"; ri.id = "paResponsable"; ri.className = "pa-input"; ri.placeholder = "Tu nombre";
+    ri.value = (l.rec && l.rec.responsable) || getDespachoEncargado();
+    resp.appendChild(ri);
+    panel.appendChild(resp);
+
+    if(l.areas.length > 1){
+      var rq = paEl("div", "pa-nota");
+      rq.appendChild(paEl("label", "", "Requerimiento estimado de este pedido (manual)"));
+      var rqi = document.createElement("input");
+      rqi.type = "text"; rqi.className = "pa-input"; rqi.placeholder = "Ej: 6 kg de chicharrón para 40 sándwiches";
+      rqi.value = (l.rec && l.rec.requerimiento) || "";
+      rqi.addEventListener("change", function(){ produccionAreaGuardarTexto(l, "requerimiento", rqi.value); });
+      rq.appendChild(rqi);
+      rq.appendChild(paEl("small", "", "Es solo una anotación: no cambia la cantidad vendida ni el pedido."));
+      panel.appendChild(rq);
+    }
+
+    var nota = paEl("div", "pa-nota");
+    nota.appendChild(paEl("label", "", "Notas internas"));
+    var ni = document.createElement("input");
+    ni.type = "text"; ni.className = "pa-input"; ni.placeholder = "Agregar nota…";
+    ni.value = (l.rec && l.rec.nota) || "";
+    ni.addEventListener("change", function(){ produccionAreaGuardarTexto(l, "nota", ni.value); });
+    nota.appendChild(ni);
+    panel.appendChild(nota);
+
+    var abiertos = ((l.rec && l.rec.insumosFaltantes) || []).filter(function(x){ return !x.resuelto; });
+    if(abiertos.length){
+      var ib = paEl("div", "pa-insumos");
+      ib.appendChild(paEl("strong", "", "Insumos faltantes reportados"));
+      abiertos.forEach(function(x){ ib.appendChild(paEl("div", "", "• " + x.texto + " (" + x.por + ")")); });
+      panel.appendChild(ib);
+    }
+
+    var acc = paEl("div", "pa-acciones");
+    function boton(texto, cls, estado){
+      var b = paEl("button", "pa-btn " + cls, texto);
+      b.type = "button";
+      b.setAttribute("data-accion", estado);
+      var ok = produccionAreaPuedeCambiar(l, estado);
+      b.disabled = !ok;
+      b.addEventListener("click", function(){ if(produccionAreaCambiarEstado(l, estado)) renderPanel(); });
+      acc.appendChild(b);
+    }
+    boton(l.modificado ? "Confirmar cambio" : "Confirmar pedido revisado", "pa-btn-ok", "CONFIRMADO");
+    var ibtn = paEl("button", "pa-btn pa-btn-info", "Insumos faltantes");
+    ibtn.type = "button"; ibtn.setAttribute("data-accion", "INSUMOS");
+    ibtn.addEventListener("click", function(){
+      var cont = panel.querySelector(".pa-insumo-form");
+      if(cont){ cont.remove(); return; }
+      var f = paEl("div", "pa-insumo-form");
+      var inp = document.createElement("input");
+      inp.type = "text"; inp.className = "pa-input"; inp.placeholder = "¿Qué insumo falta? (ej. sal de Maras)";
+      var go = paEl("button", "btn btn-sm", "Registrar");
+      go.type = "button";
+      go.addEventListener("click", function(){ if(produccionAreaReportarInsumo(l, inp.value)) renderPanel(); });
+      f.appendChild(inp); f.appendChild(go);
+      acc.parentNode.insertBefore(f, acc);
+      inp.focus();
+    });
+    acc.appendChild(ibtn);
+    boton("En preparación", "pa-btn-prep", "EN_PREPARACION");
+    boton("Listo", "pa-btn-listo", "LISTO");
+    boton("Entregado", "pa-btn-ent", "ENTREGADO");
+    panel.appendChild(acc);
+    if(l.rec && l.rec.estado && l.rec.estado !== "PENDIENTE" && !l.modificado){
+      var und = paEl("button", "pa-deshacer", "↩ Deshacer último cambio");
+      und.type = "button";
+      und.addEventListener("click", function(){ if(produccionAreaDeshacer(l)) renderPanel(); });
+      panel.appendChild(und);
+    }
+    return panel;
+  }
+
+  // "Comprometido por fecha": cantidades por producto y día para el área, con detección
+  // anticipada de faltantes contra una capacidad diaria que Jessica puede fijar por producto.
+  function produccionAreaComprometido(areaKey){
+    var hoy = todayISO();
+    var lineas = produccionAreaLineas(areaKey, hoy, addDaysISO(hoy, PROD_AREA_HORIZONTE_DIAS)).filter(function(l){ return !l.anulado; });
+    var productos = {}, fechas = {};
+    lineas.forEach(function(l){
+      var k = produccionAreaClave(l.producto);
+      if(!productos[k]) productos[k] = { nombre: l.producto, unidad: l.unidad, porFecha: {}, total: 0 };
+      productos[k].porFecha[l.fecha] = (productos[k].porFecha[l.fecha] || 0) + l.cantidad;
+      productos[k].total += l.cantidad;
+      fechas[l.fecha] = true;
+    });
+    return { productos: productos, fechas: Object.keys(fechas).sort() };
+  }
+  function buildProduccionAreaComprometido(areaKey){
+    var card = paEl("div", "pa-comp");
+    var datos = produccionAreaComprometido(areaKey);
+    var claves = Object.keys(datos.productos).sort();
+    card.appendChild(paEl("h3", "", "Cantidades comprometidas — " + produccionAreaLabel(areaKey)));
+    card.appendChild(paEl("div", "hint", "Suma de los pedidos de los próximos " + PROD_AREA_HORIZONTE_DIAS + " días (sin contar anulados). Si fijas una capacidad diaria por producto, el sistema marca en rojo los días en que lo pedido la supera."));
+    if(claves.length === 0){
+      card.appendChild(paEl("div", "empty-state", "No hay pedidos comprometidos para esta área."));
+      return card;
+    }
+    var tw = paEl("div", "pa-tabla-wrap");
+    var t = document.createElement("table");
+    t.className = "pa-tabla pa-tabla-comp";
+    var hr = document.createElement("tr");
+    hr.appendChild(paEl("th", "", "Producto"));
+    hr.appendChild(paEl("th", "", "Cap. por día"));
+    datos.fechas.forEach(function(f){ hr.appendChild(paEl("th", "", produccionAreaFechaCorta(f))); });
+    hr.appendChild(paEl("th", "", "Total"));
+    var th = document.createElement("thead"); th.appendChild(hr); t.appendChild(th);
+    var tb = document.createElement("tbody");
+    claves.forEach(function(k){
+      var pr = datos.productos[k];
+      var cap = PRODUCCION_AREAS_CFG && PRODUCCION_AREAS_CFG.capacidad ? num(PRODUCCION_AREAS_CFG.capacidad[k]) : 0;
+      var tr = document.createElement("tr");
+      tr.setAttribute("data-producto", k);
+      tr.appendChild(paEl("td", "", pr.nombre));
+      var tdc = document.createElement("td");
+      var ci = document.createElement("input");
+      ci.type = "number"; ci.min = "0"; ci.step = "0.5"; ci.className = "pa-input pa-cap";
+      ci.placeholder = "—"; ci.value = cap > 0 ? String(cap) : "";
+      ci.addEventListener("change", function(){
+        pedirPinAdministrativoYEjecutar(function(nombre){ produccionAreaGuardarCapacidad(pr.nombre, ci.value, nombre); renderPanel(); });
+      });
+      tdc.appendChild(ci);
+      tr.appendChild(tdc);
+      datos.fechas.forEach(function(f){
+        var q = pr.porFecha[f] || 0;
+        var td = paEl("td", "pa-cant", q ? produccionAreaFmtCant(q, pr.unidad) : "—");
+        if(cap > 0 && q > cap){
+          td.className += " pa-falta";
+          td.appendChild(paEl("div", "pa-sub", "Falta " + produccionAreaFmtCant(q - cap, pr.unidad)));
+        }
+        tr.appendChild(td);
+      });
+      tr.appendChild(paEl("td", "pa-cant", produccionAreaFmtCant(pr.total, pr.unidad)));
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+    tw.appendChild(t);
+    card.appendChild(tw);
+    return card;
+  }
+
+  function buildProduccionGeneralView(){
+    var wrap = paEl("div", "pa-view");
+    wrap.setAttribute("data-vista", "general");
+    wrap.appendChild(buildProduccionAreaFiltros(false));
+    var rango = produccionAreaRangoFechas();
+    var card = paEl("div", "pa-comp");
+    card.appendChild(paEl("h3", "", "Resumen por área"));
+    var tw = paEl("div", "pa-tabla-wrap");
+    var t = document.createElement("table");
+    t.className = "pa-tabla";
+    var hr = document.createElement("tr");
+    ["Área","Pedidos","Pendiente","Modificado","Confirmado","En preparación","Listo","Entregado","Alertas"].forEach(function(h){ hr.appendChild(paEl("th", "", h)); });
+    var th = document.createElement("thead"); th.appendChild(hr); t.appendChild(th);
+    var tb = document.createElement("tbody");
+    PROD_AREAS.forEach(function(a){
+      var ls = produccionAreaLineas(a.key, rango[0], rango[1]).filter(function(l){ return !l.anulado; });
+      var tr = document.createElement("tr");
+      tr.setAttribute("data-area", a.key);
+      tr.appendChild(paEl("td", "", a.icono + " " + a.label));
+      tr.appendChild(paEl("td", "pa-cant", String(produccionAreaContarPedidos(ls))));
+      tr.appendChild(paEl("td", "pa-cant", String(ls.filter(function(l){ return l.estado === "PENDIENTE" && !l.modificado; }).length)));
+      tr.appendChild(paEl("td", "pa-cant", String(ls.filter(function(l){ return l.modificado; }).length)));
+      ["CONFIRMADO","EN_PREPARACION","LISTO","ENTREGADO"].forEach(function(e){
+        tr.appendChild(paEl("td", "pa-cant", String(ls.filter(function(l){ return l.estado === e; }).length)));
+      });
+      var al = a.key === "panaderia" ? 0 : produccionAreaContarPedidos(produccionAreaAlertas(a.key));
+      tr.appendChild(paEl("td", "pa-cant" + (al ? " pa-falta" : ""), al ? String(al) : "—"));
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb); tw.appendChild(t); card.appendChild(tw);
+    wrap.appendChild(card);
+
+    // Insumos faltantes pendientes (para compras y administración).
+    var ins = [];
+    Object.keys(PRODUCCION_AREAS_REG).forEach(function(id){
+      var rec = PRODUCCION_AREAS_REG[id];
+      (rec.insumosFaltantes || []).forEach(function(x, i){ if(!x.resuelto) ins.push({ id: id, idx: i, rec: rec, x: x }); });
+    });
+    var ic = paEl("div", "pa-comp");
+    ic.appendChild(paEl("h3", "", "Insumos faltantes reportados"));
+    if(ins.length === 0){
+      ic.appendChild(paEl("div", "hint", "Ninguna área ha reportado insumos faltantes."));
+    } else {
+      ins.sort(function(a, b){ return b.x.en - a.x.en; });
+      ins.forEach(function(r){
+        var f = paEl("div", "pa-ins-fila");
+        f.appendChild(paEl("span", "", produccionAreaLabel(r.rec.area) + " · " + r.rec.producto + " (pedido #" + (r.rec.pedidoNumero || "—") + "): "));
+        f.appendChild(paEl("strong", "", r.x.texto));
+        f.appendChild(paEl("small", "", " — " + r.x.por + ", " + paHoraFmt(r.x.en)));
+        var b = paEl("button", "btn btn-sm", "Resuelto");
+        b.type = "button";
+        b.addEventListener("click", function(){ produccionAreaResolverInsumo(r.id, r.idx); renderPanel(); });
+        f.appendChild(b);
+        ic.appendChild(f);
+      });
+    }
+    wrap.appendChild(ic);
+    wrap.appendChild(buildProduccionAreaAsignaciones());
+    return wrap;
+  }
+
+  // Asignación configurable de productos a áreas (protegida con el PIN administrativo, igual que
+  // Lista de Precios). Muestra los productos que aparecen en pedidos próximos.
+  function buildProduccionAreaAsignaciones(){
+    var det = document.createElement("details");
+    det.className = "pa-comp pa-asig";
+    var sm = document.createElement("summary");
+    sm.textContent = "⚙ Asignación de productos a áreas";
+    det.appendChild(sm);
+    det.appendChild(paEl("div", "hint", "La categoría comercial no siempre coincide con la cocina responsable. Marca en qué áreas se prepara cada producto; si marcas varias, cada área verá el pedido sin duplicar la cantidad vendida."));
+    var hoy = todayISO();
+    var vistos = {};
+    produccionAreaLineas("*", hoy, addDaysISO(hoy, PROD_AREA_HORIZONTE_DIAS)).forEach(function(l){ vistos[produccionAreaClave(l.producto)] = l.producto; });
+    var claves = Object.keys(vistos).sort();
+    if(claves.length === 0){
+      det.appendChild(paEl("div", "empty-state", "No hay productos en pedidos próximos para asignar."));
+      return det;
+    }
+    claves.forEach(function(k){
+      var nombre = vistos[k];
+      var actuales = produccionAreasDeProducto(nombre);
+      var fila = paEl("div", "pa-asig-fila");
+      fila.setAttribute("data-producto", k);
+      fila.appendChild(paEl("span", "pa-asig-nombre", nombre));
+      PROD_AREAS.forEach(function(a){
+        var lab = paEl("label", "pa-asig-op");
+        var cb = document.createElement("input");
+        cb.type = "checkbox"; cb.value = a.key; cb.checked = actuales.indexOf(a.key) !== -1;
+        lab.appendChild(cb);
+        lab.appendChild(document.createTextNode(" " + a.label));
+        fila.appendChild(lab);
+      });
+      var g = paEl("button", "btn btn-sm", "Guardar");
+      g.type = "button";
+      g.addEventListener("click", function(){
+        var sel = [];
+        fila.querySelectorAll("input[type=checkbox]").forEach(function(c){ if(c.checked) sel.push(c.value); });
+        if(sel.length === 0){ showToast("Marca al menos un área."); return; }
+        pedirPinAdministrativoYEjecutar(function(nombreAdmin){
+          produccionAreaAsignarProducto(nombre, sel, nombreAdmin);
+          showToast("Asignación guardada para " + nombre + ".");
+          renderPanel();
+        });
+      });
+      fila.appendChild(g);
+      det.appendChild(fila);
+    });
+    return det;
+  }
+
   function buildProduccionView(){
+    var wrap = document.createElement("div");
+    wrap.appendChild(buildProduccionAreaTabs());
+    if(produccionAreaVista === "general") wrap.appendChild(buildProduccionGeneralView());
+    else if(produccionAreaVista === "carnes" || produccionAreaVista === "cocina") wrap.appendChild(buildProduccionAreaView(produccionAreaVista));
+    else wrap.appendChild(buildProduccionPanaderiaView());
+    return wrap;
+  }
+
+  // Vista PANADERÍA = la sección "Producción por día" de siempre, sin ningún cambio (totales,
+  // reportes, observaciones, PDF y Excel).
+  function buildProduccionPanaderiaView(){
     var wrap = document.createElement("div");
     var card = document.createElement("div");
     card.className = "card";
@@ -21356,7 +22353,7 @@ var TRIPLES = [
       PEDIDOS = list;
       // No repintamos si está en "Nuevo pedido": así no se pierde lo que está escribiendo
       // si otra persona (ej. quien toma pedidos por WhatsApp) guarda algo al mismo tiempo.
-      if(currentTab === "pedidos" && pedidosView !== "nuevo") renderPanel();
+      if(currentTab === "pedidos" && pedidosView !== "nuevo") produccionAreaRenderSeguro();
       revisarAlertasCola();
       if(pedidoHashAbrir){
         var pedidoDesdeHash = list.filter(function(x){ return x.id === pedidoHashAbrir; })[0];
@@ -21610,6 +22607,7 @@ var TRIPLES = [
     attachCatalogoProductosSync();
     attachAdminAuthSync();
     attachListaPreciosConfigSync();
+    attachProduccionAreasSync();
     // Avisa ANTES de cerrar o recargar la página si todavía hay cambios del arqueo sin
     // guardar -- así nadie pierde lo que avanzó por cerrar la pestaña justo cuando un
     // guardado está fallando o todavía está en camino (ver saveRetryCount más arriba).
