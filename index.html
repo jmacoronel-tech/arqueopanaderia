@@ -403,6 +403,7 @@
   .pa-conf-est-ok{ background:var(--good-soft); color:var(--good); } .pa-conf-est-pendiente{ background:var(--bad-soft); color:var(--bad); } .pa-conf-est-invalida{ background:var(--warn-soft); color:#8a5b0f; }
   .pa-turno-lab{ font-size:.74rem; color:var(--ink-soft); } .pa-turno-sel{ font-family:inherit; font-size:.76rem; padding:.2rem .3rem; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface); color:var(--ink); }
   .pa-conf-pin{ display:flex; flex-direction:column; gap:.4rem; } .pa-conf-pin label{ font-size:.78rem; font-weight:700; }
+  .pa-oculto{ -webkit-text-security:disc; text-security:disc; }
   .pa-pin{ font-size:1.2rem; letter-spacing:.35em; text-align:center; }
   .pa-confirmar{ width:100%; padding:.9rem .5rem; }
   .pa-conf-msg{ font-size:.82rem; min-height:1.1em; } .pa-conf-msg.mal{ color:var(--bad); font-weight:700; }
@@ -14729,10 +14730,22 @@ var TRIPLES = [
   function produccionCarnesPinValido(pin){ return /^\d{4,6}$/.test(String(pin || "").trim()); }
   function produccionCarnesHashPin(id, pin){ return sha256Hex("pa|" + id + "|" + String(pin).trim()); }
   // Identifica al responsable por su PIN personal (compara hashes; el PIN no se guarda en ningún lado).
+  // Nombre exacto del mozo (tal como está en MOZOS_PINES) para un nombre escrito, sin importar
+  // mayúsculas ni tildes; "" si esa persona no está en la lista de Mozos.
+  function produccionCarnesMozoDe(nombre){
+    var n = normalizePrecioKey(nombre || "");
+    if(!n || typeof MOZOS_PINES === "undefined") return "";
+    return Object.keys(MOZOS_PINES).filter(function(k){ return normalizePrecioKey(k) === n; })[0] || "";
+  }
   function produccionCarnesIdentificar(pin){
     pin = String(pin || "").trim();
-    var ws = ((PRODUCCION_AREAS_CFG || {}).trabajadores || []).filter(function(w){ return w && w.activo !== false && w.hash; });
-    if(!produccionCarnesPinValido(pin) || !ws.length || !adminAuthDisponible()) return Promise.resolve(null);
+    var todos = ((PRODUCCION_AREAS_CFG || {}).trabajadores || []).filter(function(w){ return w && w.activo !== false; });
+    if(!produccionCarnesPinValido(pin)) return Promise.resolve(null);
+    // Un solo PIN por persona: quien usa el PIN de Mozos se identifica con ese mismo número.
+    var porMozos = todos.filter(function(w){ return w.pinMozos && MOZOS_PINES[w.mozo || w.nombre] === pin; })[0];
+    if(porMozos) return Promise.resolve(porMozos);
+    var ws = todos.filter(function(w){ return !w.pinMozos && w.hash; });
+    if(!ws.length || !adminAuthDisponible()) return Promise.resolve(null);
     return Promise.all(ws.map(function(w){
       return produccionCarnesHashPin(w.id, pin).then(function(h){ return h === w.hash ? w : null; });
     })).then(function(r){ return r.filter(Boolean)[0] || null; });
@@ -14822,18 +14835,28 @@ var TRIPLES = [
     if(!nombre) return mal("Escribe el nombre del responsable.");
     if(datos.rol !== "carnes" && datos.rol !== "plancha") return mal("Elige el bloque del responsable.");
     if(datos.rol === "plancha" && datos.turno !== "manana" && datos.turno !== "tarde") return mal("Elige el turno del planchero.");
-    if(!datos.id && !produccionCarnesPinValido(pin)) return mal("El PIN debe tener de 4 a 6 números.");
+    var mozo = produccionCarnesMozoDe(nombre);
+    var prevW = datos.id ? ((PRODUCCION_AREAS_CFG || {}).trabajadores || []).filter(function(w){ return w.id === datos.id; })[0] : null;
+    // Sin PIN escrito y la persona está en Mozos: usa su mismo PIN de Mozos (un solo PIN por persona).
+    var usaMozos = !pin && !!mozo && (!prevW || prevW.pinMozos || !prevW.hash);
+    if(usaMozos) nombre = mozo;
+    if(!usaMozos && !datos.id && !produccionCarnesPinValido(pin)) return mal("El PIN debe tener de 4 a 6 números.");
     if(pin && !produccionCarnesPinValido(pin)) return mal("El PIN debe tener de 4 a 6 números.");
-    if(!adminAuthDisponible()) return mal("Este navegador no admite la validación segura de PIN.");
+    // Un PIN propio no puede ser el PIN de Mozos de otra persona.
+    if(pin && typeof MOZOS_PINES !== "undefined" && Object.keys(MOZOS_PINES).some(function(k){ return MOZOS_PINES[k] === pin && k !== mozo; })) return mal("Ese PIN ya lo usa otra persona en Mozos. Elige uno distinto.");
+    if(!usaMozos && !adminAuthDisponible()) return mal("Este navegador no admite la validación segura de PIN.");
     var id = datos.id || ("w" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
     return (pin ? produccionAreaPinLibre(pin, id) : Promise.resolve(true)).then(function(libre){
       if(!libre) return { ok: false, msg: "Ese PIN ya lo usa otro responsable. Elige uno distinto." };
       return (pin ? produccionCarnesHashPin(id, pin) : Promise.resolve(null)).then(function(hash){
+        if(usaMozos) hash = "";
         var cfg = produccionAreaCfgCopia(), idx = -1;
         cfg.trabajadores.forEach(function(w, i){ if(w.id === id) idx = i; });
         var prev = idx >= 0 ? cfg.trabajadores[idx] : null;
         var reg = { id: id, nombre: nombre, rol: datos.rol, turno: datos.rol === "plancha" ? datos.turno : "",
-                    activo: prev ? prev.activo !== false : true, hash: hash || (prev && prev.hash) || "",
+                    activo: prev ? prev.activo !== false : true,
+                    pinMozos: usaMozos, mozo: usaMozos ? mozo : "",
+                    hash: usaMozos ? "" : (hash || (prev && !prev.pinMozos && prev.hash) || ""),
                     creadoEn: (prev && prev.creadoEn) || Date.now(), actualizadoEn: Date.now() };
         if(idx >= 0) cfg.trabajadores[idx] = reg; else cfg.trabajadores.push(reg);
         if(!produccionAreaGuardarConfig(cfg, responsable)) return { ok: false, msg: "Sin conexión: no se pudo guardar." };
@@ -15369,8 +15392,9 @@ var TRIPLES = [
       idb.appendChild(paEl("label", "", "Identificación: PIN individual del trabajador"));
       var fila = paEl("div", "pa-conf-pinfila");
       var pin = document.createElement("input");
-      pin.type = "password"; pin.inputMode = "numeric"; pin.maxLength = 6; pin.autocomplete = "off";
-      pin.className = "pa-input pa-pin"; pin.placeholder = "Tu PIN";
+      pin.type = "text"; pin.inputMode = "numeric"; pin.maxLength = 6; pin.autocomplete = "off"; pin.name = "pa-pin-trabajador";
+      pin.setAttribute("autocorrect", "off"); pin.setAttribute("data-lpignore", "true");
+      pin.className = "pa-input pa-pin pa-oculto"; pin.placeholder = "Tu PIN";
       fila.appendChild(pin);
       idb.appendChild(fila);
       var msg = paEl("div", "pa-conf-msg", "");
@@ -15421,7 +15445,7 @@ var TRIPLES = [
     var sm = document.createElement("summary");
     sm.textContent = "👥 Responsables y PIN (Carnes y Especialidades)";
     det.appendChild(sm);
-    det.appendChild(paEl("div", "hint", "Aquí defines quiénes confirman cada pedido de Carnes: los de Cocina de carnes confirman uno por uno; en Plancha y armado confirma el turno (mañana o tarde) que interviene. Cada persona usa su PIN personal de 4 a 6 números. Los PIN se guardan cifrados (no se pueden leer) y no se repiten entre personas. Para cualquier cambio se pide el PIN administrativo."));
+    det.appendChild(paEl("div", "hint", "Aquí defines quiénes confirman cada pedido de Carnes: los de Cocina de carnes confirman uno por uno; en Plancha y armado confirma el turno (mañana o tarde) que interviene. Si la persona ya está en la lista de Mozos (por ejemplo Luis, Leo), escribe su nombre igual y deja el PIN vacío: usará el mismo PIN que tiene en Mozos. Si no está en Mozos, ponle un PIN personal de 4 a 6 números. Los PIN nuevos se guardan cifrados (no se pueden leer) y no se repiten entre personas. Para cualquier cambio se pide el PIN administrativo."));
     var cfg = PRODUCCION_AREAS_CFG || produccionAreaCfgNormalizar({});
     var lista = cfg.trabajadores || [];
     var rolTxt = function(w){ return w.rol === "carnes" ? "Cocina de carnes" : ("Plancha y armado · turno " + (PROD_CARNES_TURNOS[w.turno] || "")); };
@@ -15430,10 +15454,11 @@ var TRIPLES = [
       var f = paEl("div", "pa-asig-fila pa-resp-fila" + (w.activo === false ? " inactivo" : ""));
       f.setAttribute("data-worker", w.id);
       f.appendChild(paEl("span", "pa-asig-nombre", w.nombre));
-      f.appendChild(paEl("span", "pa-asig-origen", rolTxt(w) + (w.activo === false ? " · inactivo" : "")));
+      f.appendChild(paEl("span", "pa-asig-origen", rolTxt(w) + (w.pinMozos ? " · PIN de Mozos" : "") + (w.activo === false ? " · inactivo" : "")));
       var cp = paEl("button", "btn btn-sm", "Cambiar PIN");
       cp.type = "button"; cp.setAttribute("data-accion", "pin");
       cp.addEventListener("click", function(){
+        if(w.pinMozos){ showToast(w.nombre + " usa su PIN de Mozos; ese PIN se cambia en la lista de Mozos."); return; }
         pedirPinAdministrativoYEjecutar(function(admin){
           var nuevo = prompt("Nuevo PIN personal para " + w.nombre + " (4 a 6 números):", "");
           if(nuevo === null) return;
@@ -15462,7 +15487,9 @@ var TRIPLES = [
     [["carnes|", "Cocina de carnes"], ["plancha|manana", "Plancha y armado · mañana"], ["plancha|tarde", "Plancha y armado · tarde"]].forEach(function(o){
       var op = document.createElement("option"); op.value = o[0]; op.textContent = o[1]; rol.appendChild(op);
     });
-    var pn = document.createElement("input"); pn.type = "password"; pn.inputMode = "numeric"; pn.maxLength = 6; pn.className = "pa-input pa-resp-pin"; pn.placeholder = "PIN (4 a 6 números)"; pn.autocomplete = "off";
+    var pn = document.createElement("input"); pn.type = "text"; pn.inputMode = "numeric"; pn.maxLength = 6; pn.className = "pa-input pa-resp-pin pa-oculto"; pn.placeholder = "PIN (vacío = el de Mozos)"; pn.autocomplete = "off"; pn.name = "pa-pin-nuevo-responsable"; pn.setAttribute("data-lpignore", "true");
+    pn.addEventListener("input", function(){ pn.value = pn.value.replace(/\D/g, ""); });
+    nom.autocomplete = "off"; nom.name = "pa-nombre-responsable";
     var ag = paEl("button", "btn btn-sm", "Agregar responsable");
     ag.type = "button"; ag.setAttribute("data-accion", "agregar");
     ag.addEventListener("click", function(){
@@ -20064,9 +20091,13 @@ var TRIPLES = [
     "Leo": "9247",
     "July": "5638",
     "Marcelo": "2904",
-    "Lucero": "6715"
+    "Lucero": "6715",
+    "Luis": "8362",
+    "Daniel": "1479",
+    "Mateo": "5927",
+    "Ingrid": "3841"
   };
-  var MOZOS_NOMBRES_REALES = ["Sandra", "José", "Juan", "Leo", "July", "Marcelo", "Lucero"];
+  var MOZOS_NOMBRES_REALES = ["Sandra", "José", "Juan", "Leo", "July", "Marcelo", "Lucero", "Luis", "Daniel", "Mateo", "Ingrid"];
   // Resuelve un PIN de 4 dígitos al nombre real del mozo, o "" si no calza con ninguno (PIN mal
   // escrito o inventado). Comparación exacta, nada de adivinar por parecido -- un PIN o es el
   // correcto o no identifica a nadie.
