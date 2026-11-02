@@ -21950,6 +21950,30 @@ var TRIPLES = [
       pasoPago.appendChild(pagoRow);
       cobrarModal.appendChild(pasoPago);
 
+      // nov-2026: el QR de Yape/Plin vuelve a mostrarse al elegir "Yape/Plin" (la constante y el
+      // estilo seguían en el archivo, pero faltaba este bloque que lo dibuja). Solo muestra el
+      // QR que ya estaba guardado -- no cambia datos, ni el cobro, ni lo que se guarda en la mesa.
+      if(mesaLocal.medioPago === "yape_plin"){
+        var qrBox = document.createElement("div");
+        qrBox.className = "moz-qr-box";
+        if(MOZOS_QR_YAPE_PLIN_DATAURL){
+          var qrTit = document.createElement("div");
+          qrTit.className = "moz-qr-titulo";
+          qrTit.textContent = "Escanea para pagar con Yape · S/" + fmtMoney(mozosTotalMesa(mesaLocal));
+          var qrImg = document.createElement("img");
+          qrImg.src = MOZOS_QR_YAPE_PLIN_DATAURL;
+          qrImg.alt = "QR de Yape de Carmelitas";
+          qrBox.appendChild(qrTit);
+          qrBox.appendChild(qrImg);
+        } else {
+          var qrFalta = document.createElement("div");
+          qrFalta.className = "moz-qr-pendiente";
+          qrFalta.textContent = "Falta subir el QR de Yape/Plin.";
+          qrBox.appendChild(qrFalta);
+        }
+        cobrarModal.appendChild(qrBox);
+      }
+
       var pasoComprobante = document.createElement("div");
       pasoComprobante.className = "moz-cobrar-paso";
       pasoComprobante.innerHTML = '<div class="moz-cobrar-paso-titulo"><span class="moz-cobrar-paso-num">2</span>Comprobante</div>';
