@@ -869,6 +869,17 @@
   /* oct-2026, Pedido Masivo -- Recojo en tienda ("el PIN al costado del entregado", pedido de
      Jessica): PIN + botón lado a lado dentro de .desp-actions, mismo PIN de Mozos que en "Todos
      los pedidos" (ver .recogido-pin-input). */
+  /* Pedido Masivo en Despacho: cuadro Fecha/Hora/Estado por entrega + bloque de la entrega del día. */
+  .mas-prog{ font-size:.78rem; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface-2); padding:.35rem .55rem; }
+  .mas-prog summary{ cursor:pointer; font-weight:800; color:var(--ink-soft); }
+  .mas-prog-tabla{ width:100%; border-collapse:collapse; margin-top:.35rem; font-size:.78rem; }
+  .mas-prog-tabla th{ text-align:left; font-size:.66rem; text-transform:uppercase; letter-spacing:.03em; color:var(--ink-muted); padding:.2rem .3rem; border-bottom:1px solid var(--border); }
+  .mas-prog-tabla td{ padding:.22rem .3rem; border-bottom:1px solid var(--border); }
+  .mas-prog-tabla tr.mas-sel td{ background:var(--warn-soft); font-weight:800; }
+  .mas-prog-tabla .mas-ok{ color:var(--good); font-weight:800; }
+  .mas-prog-tabla .mas-pend{ color:var(--warn); font-weight:800; }
+  .mas-entrega-dia{ font-size:.8rem; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--good-soft); padding:.45rem .6rem; display:flex; flex-direction:column; gap:.12rem; }
+  .mas-entrega-tit{ font-weight:900; color:var(--good); }
   .desp-recogido-wrap{ display:flex; gap:.35rem; flex:1 1 100%; }
   .desp-recogido-wrap .recogido-pin-input{ width:54px; flex:none; }
   .desp-recogido-wrap .desp-btn{ flex:1; min-width:0; }
@@ -1650,8 +1661,10 @@
 
 <script id="state-data" type="application/json">{"meta":{"businessName":"","lastSavedAt":null,"schema":2},"days":{"2026-09-01":{"turno":{"respAM":"","respPM":"","eAM":"","sAM":"","ePM":"","sPM":"","obsAM":"","obsPM":"","notas":""},"p":{"am":[{"a":0,"i1":38,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":60,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":270,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":100,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":35,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":12,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":160,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":240,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":90,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":15,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":10,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":15,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":10,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":10,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":2,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":9,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":5,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":5,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":5,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":15,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":30,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":6,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":6,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":12,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":1,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":15,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":8,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":5,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":5,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":3,"i1":6,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":9,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":11,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":19,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":18,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":2,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":3,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"pm":[{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":25,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":39,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"agAm":{},"agPm":{}},"b":{"am":[{"a":7,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":6,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":5,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":12,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":6,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":11,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":26,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":3,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":5,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":5,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":4,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"pm":[{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"agAm":{},"agPm":{}},"e":{"am":[{"a":1.725,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":4.02,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":2.67,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.51,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":2,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.19,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0.935,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.16,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":5.315,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":12,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":10,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":18,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.18,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":11.25,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0.25,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0.055,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.51,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":2.28,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0.955,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":3.015,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.52,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":1.62,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"pm":[{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"agAm":{},"agPm":{}},"o":{"am":[],"pm":[],"agAm":{},"agPm":{}},"t":{"am":[{"a":79,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":24,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":24,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":6,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":0,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":12,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"a":6,"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"pm":[{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null},{"i1":0,"i2":0,"i3":0,"m":0,"f":0,"vc":null}],"agAm":{},"agPm":{}}}},"customCatalog":[]}</script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -2308,6 +2321,20 @@ var TRIPLES = [
   // baseline por separado, en cualquier orden, y el que terminara después podía pisar al
   // otro con una foto más vieja -- borrando en pantalla un cambio que sí quedó bien guardado.
   var pendingRemoteSnapshot = null;
+  // nov-2026, DIVISIÓN DEL ARQUEO POR DÍAS (el documento único "arqueo/state" ya iba por ~727 KB
+  // de los 1024 KB que permite Firestore, creciendo ~22 KB por día: se iba a llenar y a dejar de
+  // guardar). En "modo docs" (meta.diasModo === "docs", se activa SOLO con el botón de migración
+  // de Historial, nunca solo) cada día vive en su propio documento chico en la colección
+  // arqueo_dias/<AAAA-MM-DD> y "arqueo/state" conserva solo meta/precios/metasObjetivos/
+  // customCatalog. Mientras no se active, TODO funciona exactamente igual que siempre ("modo
+  // legado"). STATE en memoria es siempre el mismo objeto completo de antes (con todos los días),
+  // así que Arqueo, Metas, Historial, Dashboard y el respaldo no cambian.
+  var ARQUEO_DIAS_COL = "arqueo_dias";
+  var arqueoStateRaw = null;       // último documento arqueo/state tal cual llegó de Firestore
+  var arqueoDiasRaw = {};          // fecha -> { day, actualizado } de la colección arqueo_dias
+  var arqueoDiasListo = false;     // ya llegó la primera carga de arqueo_dias
+  var arqueoDiasError = false;     // la colección arqueo_dias no se pudo leer (p. ej. reglas)
+  var arqueoMigrando = false;
   var currentDate = todayISO();
   // Pedidos (delivery / recojo en tienda / masivo): viven en su propia colección de Firestore,
   // separada del documento "arqueo/state", para no hacer crecer sin límite el documento del
@@ -2371,6 +2398,22 @@ var TRIPLES = [
   // importa, este número nunca cambia. Es solo esta variable; se puede subir o bajar cuando
   // quieras sin tocar nada más.
   var PEDIDOS_LIMITE_RECIENTES = 1500;
+  // nov-2026 (preparación campaña navideña): la ventana en vivo ya no es "los últimos 1500" a
+  // secas. Se carga SIEMPRE: (1) todo pedido que no esté finalizado (pendientes, activos y los
+  // programados a fecha futura, sin importar cuándo se registraron); (2) lo registrado en los
+  // últimos PEDIDOS_DIAS_RECIENTES días; (3) lo entregado en esos mismos días; (4) las deudas sin
+  // pagar y (5) los Masivo activos (como antes). Los 15 días son SOLO el filtro inicial: nada se
+  // borra y todo lo anterior sigue disponible en "Buscar pedidos antiguos" (por fecha, cliente
+  // o código). PEDIDOS_LIMITE_RECIENTES queda como tope de seguridad de la ventana de 15 días.
+  var PEDIDOS_DIAS_RECIENTES = 15;
+  // Pedidos ENTREGADOS recientemente aunque se hayan registrado hace más de 15 días (típico:
+  // un pedido programado semanas antes). Solo 3 días en vivo por ahora: mientras la foto del
+  // Yape viva DENTRO del pedido, repetir los 15 días bajaría los mismos documentos dos veces.
+  // Cuando las fotos pasen a su propio archivo se puede subir a 15 sin costo (ver propuesta).
+  var PEDIDOS_DIAS_ENTREGADOS = 3;
+  // Diagnóstico de carga (solo lectura): qué tardó y cuánto bajó cada consulta al abrir la app.
+  var CARGA_DIAG = { t0: Date.now(), arqueoMs: null, listeners: {} };
+  var pedidosBusquedaTexto = "";
   // Búsqueda de pedidos más antiguos que la ventana de arriba: es una consulta aparte, de una
   // sola vez (NO un listener en vivo), para no volver a cargar todo el historial siempre.
   var pedidosBusquedaDesde = "";
@@ -2969,6 +3012,62 @@ var TRIPLES = [
   function scheduleAutosave(){ clearTimeout(saveTimer); saveTimer = setTimeout(function(){ doSave(); }, 1500); }
 
   function deepClone(o){ return o == null ? o : JSON.parse(JSON.stringify(o)); }
+  // ---------- División del Arqueo por días (ver ARQUEO_DIAS_COL arriba) ----------
+  // Texto canónico (llaves ordenadas): Firestore devuelve los mapas con otro orden de llaves que
+  // el que se guardó, así que para COMPARAR contenido nunca se usa JSON.stringify a secas.
+  function arqueoCanon(o){
+    if(o === null || typeof o !== "object") return JSON.stringify(o === undefined ? null : o);
+    if(Array.isArray(o)) return "[" + o.map(arqueoCanon).join(",") + "]";
+    return "{" + Object.keys(o).sort().map(function(k){ return JSON.stringify(k) + ":" + arqueoCanon(o[k]); }).join(",") + "}";
+  }
+  function arqueoModoDias(){
+    return !!(arqueoStateRaw && arqueoStateRaw.meta && arqueoStateRaw.meta.diasModo === "docs");
+  }
+  // Documento completo "como lo vería un solo documento": arqueo/state + (si ya está dividido)
+  // todos los días de arqueo_dias. meta.lastSavedAt = el más reciente entre ambos, porque cada
+  // guardado escribe el mismo valor en el estado y en los días que tocó (así el eco del propio
+  // guardado y el "es más nuevo" de los avisos remotos siguen funcionando igual).
+  function arqueoComponerRemoto(){
+    if(!arqueoStateRaw) return null;
+    var data = deepClone(arqueoStateRaw);
+    if(!data.days) data.days = {};
+    if(arqueoModoDias()){
+      var maxTs = (data.meta && data.meta.lastSavedAt) || 0;
+      Object.keys(arqueoDiasRaw).forEach(function(f){
+        var d = arqueoDiasRaw[f];
+        if(d && d.day){
+          data.days[f] = deepClone(d.day);
+          if(d.actualizado && d.actualizado > maxTs) maxTs = d.actualizado;
+        }
+      });
+      if(!data.meta) data.meta = {};
+      data.meta.lastSavedAt = maxTs || null;
+    }
+    return normalizeState(data);
+  }
+  // ¿Dos estados completos tienen el mismo contenido (sin contar la marca de hora del guardado)?
+  function arqueoMismoContenido(a, b){
+    if(!a || !b) return false;
+    function sin(s){ var c = Object.assign({}, s); c.meta = Object.assign({}, s.meta || {}); c.meta.lastSavedAt = null; return c; }
+    return arqueoCanon(sin(a)) === arqueoCanon(sin(b));
+  }
+  // Tamaño que Firestore le cuenta a un documento (su regla: texto = bytes UTF-8 + 1, número = 8,
+  // booleano/nulo = 1, nombre de campo = bytes + 1, más ~100 de nombre y cabecera). NO es lo mismo
+  // que el largo del JSON: los números pesan 8 bytes cada uno aunque se escriban con un dígito.
+  function arqueoBytesFirestore(v){
+    if(v === null || v === undefined || typeof v === "boolean") return 1;
+    if(typeof v === "number") return 8;
+    if(typeof v === "string"){ try{ return new TextEncoder().encode(v).length + 1; }catch(e){ return v.length + 1; } }
+    var t = 0;
+    if(Array.isArray(v)){ v.forEach(function(x){ t += arqueoBytesFirestore(x); }); return t; }
+    if(typeof v === "object"){
+      Object.keys(v).forEach(function(k){ t += arqueoBytesFirestore(k) + arqueoBytesFirestore(v[k]); });
+    }
+    return t;
+  }
+  function arqueoTamanoKB(){
+    try{ return Math.round((arqueoBytesFirestore(arqueoStateRaw || {}) + 100) / 1024); }catch(e){ return 0; }
+  }
 
   // ---------- combinar cambios al guardar (para que dos dispositivos editando productos
   // distintos -- o hasta el mismo día -- al mismo tiempo no se pisen entre sí) ----------
@@ -3205,6 +3304,16 @@ var TRIPLES = [
     var baseSnapshot = deepClone(baseline) || {};
     var ref = db.collection("arqueo").doc("state");
     var remoteChangedElsewhere = false;
+    // División por días: en "modo docs" los días que cambiaron acá se leen y se escriben en su
+    // propio documento (arqueo_dias/<fecha>), dentro de la MISMA transacción. En modo legado
+    // (el de siempre) estas dos variables no se usan y todo sigue igual.
+    var modoDocs = arqueoModoDias();
+    var fechasSucias = [];
+    if(modoDocs){
+      Object.keys(localSnapshot.days || {}).forEach(function(f){
+        if(JSON.stringify(localSnapshot.days[f]) !== JSON.stringify((baseSnapshot.days && baseSnapshot.days[f]) || null)) fechasSucias.push(f);
+      });
+    }
     // Se usa una TRANSACCIÓN de Firestore (no un simple get()+set()) porque dos
     // dispositivos pueden estar guardando casi al mismo instante: sin transacción,
     // el segundo guardado podía leer la base de datos ANTES de que el primero
@@ -3213,7 +3322,12 @@ var TRIPLES = [
     // detecte ese choque y reintente automáticamente con el dato más reciente, así
     // que ningún guardado de otro dispositivo se puede perder de esta forma.
     db.runTransaction(function(transaction){
-      return transaction.get(ref).then(function(snap){
+      var lecturas = [transaction.get(ref)];
+      if(modoDocs){
+        fechasSucias.forEach(function(f){ lecturas.push(transaction.get(db.collection(ARQUEO_DIAS_COL).doc(f))); });
+      }
+      return Promise.all(lecturas).then(function(snaps){
+        var snap = snaps[0];
         if(!snap.exists){
           // ANTES: acá se armaba el guardado partiendo de un estado vacío ({}) si la
           // transacción veía el documento como inexistente -- y como el guardado reemplaza
@@ -3225,8 +3339,40 @@ var TRIPLES = [
           errNoExiste.code = "arqueo-state-not-found";
           throw errNoExiste;
         }
-        var freshRemote = normalizeState(snap.data());
-        remoteChangedElsewhere = JSON.stringify(freshRemote) !== JSON.stringify(baseSnapshot);
+        var rawFresh = snap.data();
+        var freshEsDocs = !!(rawFresh && rawFresh.meta && rawFresh.meta.diasModo === "docs");
+        if(freshEsDocs !== modoDocs){
+          // Otro dispositivo cambió el modo (migración) justo ahora: NO se escribe nada, se
+          // reintenta apenas este equipo reciba el nuevo modo (ver attachRemoteSync).
+          var errModo = new Error("El Arqueo cambió de formato mientras se guardaba. Se reintentará.");
+          errModo.code = "arqueo-modo-cambio";
+          throw errModo;
+        }
+        if(modoDocs){
+          if(!rawFresh.days) rawFresh.days = {};
+          fechasSucias.forEach(function(f, i){
+            var dsnap = snaps[i + 1];
+            if(dsnap.exists){ rawFresh.days[f] = dsnap.data().day; }
+            else if(arqueoDiasRaw[f] && !rawFresh.days[f]){
+              // Este equipo sabía que ese día ya existía en la nube (llegó por arqueo_dias) pero su
+              // documento no aparece ahora. (Un día recién creado acá, que nunca estuvo en la nube,
+              // NO entra en este caso: ese sí se crea.)
+              // REGLA PERMANENTE, error = no escribir (ver stopArqueoWritesForUnverifiedState).
+              var errDia = new Error("No se pudo verificar el día " + f + " antes de guardar (su documento no aparece). No se escribió nada.");
+              errDia.code = "arqueo-state-not-found";
+              throw errDia;
+            }
+          });
+        }
+        var freshRemote = normalizeState(rawFresh);
+        if(modoDocs){
+          // Solo se compara lo que esta transacción leyó (el estado + los días que cambiaron acá).
+          var baseParcial = Object.assign({}, baseSnapshot, { days: {} });
+          Object.keys(freshRemote.days || {}).forEach(function(f){ if(baseSnapshot.days && baseSnapshot.days[f]) baseParcial.days[f] = baseSnapshot.days[f]; });
+          remoteChangedElsewhere = !arqueoMismoContenido(freshRemote, baseParcial);
+        } else {
+          remoteChangedElsewhere = JSON.stringify(freshRemote) !== JSON.stringify(baseSnapshot);
+        }
         var merged = mergeStateForSave(freshRemote, localSnapshot, baseSnapshot);
         merged.meta.lastSavedAt = Date.now();
         lastSavedBySelf = merged.meta.lastSavedAt;
@@ -3236,6 +3382,17 @@ var TRIPLES = [
         // más abajo); lo único que cambia es qué tan angosto es lo que se manda a Firestore.
         var updatePayload = buildPartialUpdatePayload(merged, freshRemote, localSnapshot, baseSnapshot);
         updatePayload["meta.lastSavedAt"] = merged.meta.lastSavedAt;
+        if(modoDocs){
+          // Cada "days.<fecha>" del payload se escribe en SU documento (arqueo_dias/<fecha>),
+          // reemplazando solo ese día -- igual que antes lo hacía la ruta puntual dentro de
+          // arqueo/state. El resto (meta, precios, metas...) sigue yendo a arqueo/state.
+          Object.keys(updatePayload).forEach(function(k){
+            if(k.indexOf("days.") !== 0) return;
+            var f = k.slice(5);
+            delete updatePayload[k];
+            transaction.set(db.collection(ARQUEO_DIAS_COL).doc(f), { fecha: f, day: merged.days[f], actualizado: merged.meta.lastSavedAt, v: 1 });
+          });
+        }
         transaction.update(ref, updatePayload);
         return merged;
       });
@@ -4014,8 +4171,11 @@ var TRIPLES = [
     var section = SECTIONS[tab];
     var rows = printableRowsCurrent(tab, shift, day);
     var html = "";
-    html += "<h1>" + esc(STATE.meta.businessName || "Arqueo Diario") + "</h1>";
-    html += '<div class="print-sub">' + esc(section.label) + " — " + esc(SHIFT_LABEL[shift]) + " · " + esc(fmtDateLabel(date)) + "</div>";
+    // nov-2026 (Jessica): cada hoja impresa debe decir SU categoría arriba, no el nombre guardado
+    // en "Nombre de la panadería" (que podía salir como el nombre de una persona). El nombre del
+    // negocio pasa a la línea de abajo.
+    html += "<h1>" + esc(section.label) + "</h1>";
+    html += '<div class="print-sub">' + (STATE.meta.businessName ? esc(STATE.meta.businessName) + " · " : "") + esc(SHIFT_LABEL[shift]) + " · " + esc(fmtDateLabel(date)) + "</div>";
     if(rows.length === 0){
       html += '<p class="print-empty">Sin productos registrados en esta categoría.</p>';
     } else {
@@ -4053,8 +4213,8 @@ var TRIPLES = [
     backfillDay(day, date);
     var entradas = printableMovimientosRows(day);
     var html = "";
-    html += "<h1>" + esc(STATE.meta.businessName || "Arqueo Diario") + "</h1>";
-    html += '<div class="print-sub">Otros (salidas) · ' + esc(fmtDateLabel(date)) + "</div>";
+    html += "<h1>Otros (salidas)</h1>";
+    html += '<div class="print-sub">' + (STATE.meta.businessName ? esc(STATE.meta.businessName) + " · " : "") + esc(fmtDateLabel(date)) + "</div>";
     if(entradas.length === 0){
       html += '<p class="print-empty">Todavía no se anotó ninguna salida este día.</p>';
     } else {
@@ -4087,8 +4247,8 @@ var TRIPLES = [
     backfillMetasDay(day);
     var weekdayKey = weekdayKeyFor(date);
     var html = "";
-    html += "<h1>" + esc(STATE.meta.businessName || "Arqueo Diario") + "</h1>";
-    html += '<div class="print-sub">Metas — ' + esc(SHIFT_LABEL[shift]) + " · " + esc(fmtDateLabel(date)) + "</div>";
+    html += "<h1>Metas — " + esc(SHIFT_LABEL[shift]) + "</h1>";
+    html += '<div class="print-sub">' + (STATE.meta.businessName ? esc(STATE.meta.businessName) + " · " : "") + esc(fmtDateLabel(date)) + "</div>";
     METAS_CATEGORIAS.forEach(function(cat){
       var sec = day.metas[cat.key];
       var objetivos = cat.conMeta ? (STATE.metasObjetivos[weekdayKey] && STATE.metasObjetivos[weekdayKey][cat.key]) : null;
@@ -5746,6 +5906,7 @@ var TRIPLES = [
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       respaldoDescargando = false;
+      try{ localStorage.setItem("arqueo_respaldo_ts", String(Date.now())); }catch(e){}
       if(btn){ btn.disabled = false; btn.textContent = "Descargar respaldo completo"; }
       showToast("Respaldo descargado. Guárdalo en tu Drive, correo o donde tú quieras.");
     }).catch(function(){
@@ -5753,6 +5914,177 @@ var TRIPLES = [
       if(btn){ btn.disabled = false; btn.textContent = "Descargar respaldo completo"; }
       showToast("No se pudo generar el respaldo. Revisa tu conexión e intenta de nuevo.");
     });
+  }
+  // Diagnóstico de carga (solo lectura): convierte las "posibles causas" de lentitud en datos
+  // reales de ESTE equipo -- cuánto tardó cada consulta, cuántos pedidos y fotos bajó, y qué tan
+  // grande está el documento único del Arqueo (Firestore permite 1 MB por documento).
+  function textoDiagnosticoCarga(){
+    var out = [];
+    var kbArq = 0, dias = 0;
+    try{ kbArq = Math.round(JSON.stringify(STATE).length / 1024); dias = Object.keys(STATE.days || {}).length; }catch(e){}
+    if(arqueoModoDias()){
+      out.push("ARQUEO dividido por días: " + Object.keys(arqueoDiasRaw).length + " documentos de día + el estado general (~" + arqueoTamanoKB() + " KB de 1024 KB). " + dias + " días cargados.");
+    } else {
+      var kbEstado = arqueoTamanoKB() || kbArq;
+      out.push("ARQUEO (un solo documento): ~" + kbEstado + " KB de 1024 KB posibles, " + dias + " días guardados (" + Math.round(kbEstado / 1024 * 100) + "% del límite)." + (kbEstado > 700 ? " ⚠ ESTÁ CERCA DEL LÍMITE." : ""));
+    }
+    if(CARGA_DIAG.arqueoMs !== null) out.push("El Arqueo apareció a los " + (CARGA_DIAG.arqueoMs / 1000).toFixed(1) + " s de abrir.");
+    var totalFotoMB = 0;
+    Object.keys(CARGA_DIAG.listeners).forEach(function(k){
+      var d = CARGA_DIAG.listeners[k];
+      var mb = d.fotoChars / 1048576;
+      totalFotoMB += mb;
+      out.push("• " + k + ": " + d.docs + " pedidos, " + d.fotos + " fotos (~" + mb.toFixed(1) + " MB), llegó a los " + (d.ms / 1000).toFixed(1) + " s.");
+    });
+    out.push("Fotos de Yape descargadas al abrir (sumando consultas; un pedido puede repetirse): ~" + totalFotoMB.toFixed(1) + " MB.");
+    return out.join("\n");
+  }
+  // ---------- División del Arqueo por días: migración (SOLO con el botón de Historial) ----------
+  // Nada de esto corre solo. Pasos (cada uno se verifica antes del siguiente; si algo falla, se
+  // detiene SIN borrar nada de arqueo/state):
+  //  1) copia cada día de arqueo/state.days a arqueo_dias/<fecha> (set, se puede repetir sin daño);
+  //  2) vuelve a leer cada documento copiado y comprueba que su contenido sea IDÉNTICO al original;
+  //  3) en UNA transacción vuelve a comprobar que arqueo/state no cambió y que los días siguen
+  //     idénticos, y recién ahí activa meta.diasModo = "docs" y quita "days" de arqueo/state.
+  // Si alguien guardó un día justo en medio (paso 3 ve una diferencia), no se activa nada y se
+  // reintenta (hasta 3 veces). Los días copiados quedan en arqueo_dias en cualquier caso.
+  function arqueoDividirPorDias(estado){
+    function say(t){ try{ if(estado) estado(t); }catch(e){} }
+    if(!db) return Promise.reject(new Error("Sin conexión con la base de datos."));
+    if(arqueoMigrando) return Promise.reject(new Error("Ya hay una división en curso."));
+    if(readOnly) return Promise.reject(new Error("El Arqueo está en solo lectura (no se puede dividir)."));
+    if(dirty || saving) return Promise.reject(new Error("Hay cambios sin guardar. Espera a que diga \"Guardado\" y vuelve a intentar."));
+    if(arqueoModoDias()) return Promise.reject(new Error("El Arqueo ya está dividido por días."));
+    var ts = 0;
+    try{ ts = parseInt(localStorage.getItem("arqueo_respaldo_ts") || "0", 10) || 0; }catch(e){}
+    if(!ts || Date.now() - ts > 24 * 3600 * 1000) return Promise.reject(new Error("Primero descarga el \"Respaldo completo\" (botón de arriba) y guárdalo. Debe ser de hoy."));
+    arqueoMigrando = true;
+    var ref = db.collection("arqueo").doc("state");
+    var col = db.collection(ARQUEO_DIAS_COL);
+    function intento(n){
+      var fechas = [], dias = {};
+      return ref.get().then(function(snap){
+        if(!snap.exists) throw new Error("No se pudo leer el Arqueo (arqueo/state). No se cambió nada.");
+        var raw = snap.data();
+        if(raw.meta && raw.meta.diasModo === "docs") throw new Error("El Arqueo ya estaba dividido.");
+        dias = raw.days || {};
+        fechas = Object.keys(dias).sort();
+        if(!fechas.length) throw new Error("No hay días para dividir. No se cambió nada.");
+        say("Paso 1/3: copiando " + fechas.length + " días…");
+        var ahoraCopia = Date.now();
+        var cadena = Promise.resolve();
+        for(var i = 0; i < fechas.length; i += 200){
+          (function(grupo){
+            cadena = cadena.then(function(){
+              var b = db.batch();
+              grupo.forEach(function(f){ b.set(col.doc(f), { fecha: f, day: dias[f], actualizado: ahoraCopia, v: 1, migradoDe: "state" }); });
+              return b.commit();
+            });
+          })(fechas.slice(i, i + 200));
+        }
+        return cadena;
+      }).then(function(){
+        say("Paso 2/3: comprobando que cada día copiado sea idéntico…");
+        return Promise.all(fechas.map(function(f){ return col.doc(f).get(); }));
+      }).then(function(snaps){
+        var malos = [];
+        snaps.forEach(function(sn, i){
+          if(!sn.exists || arqueoCanon(sn.data().day) !== arqueoCanon(dias[fechas[i]])) malos.push(fechas[i]);
+        });
+        if(malos.length) throw new Error("La copia de " + malos.length + " día(s) no coincide con el original (" + malos.slice(0, 3).join(", ") + "). No se cambió nada en el Arqueo.");
+        say("Paso 3/3: activando la división…");
+        var ahora = Date.now();
+        return db.runTransaction(function(tx){
+          return Promise.all([tx.get(ref)].concat(fechas.map(function(f){ return tx.get(col.doc(f)); }))).then(function(rs){
+            var fresh = rs[0].data() || {};
+            if(fresh.meta && fresh.meta.diasModo === "docs"){ var e0 = new Error("YA_DIVIDIDO"); e0.code = "ya-dividido"; throw e0; }
+            var fd = fresh.days || {};
+            var fk = Object.keys(fd).sort();
+            var cambio = fk.length !== fechas.length;
+            fk.forEach(function(f){
+              var i = fechas.indexOf(f);
+              if(i < 0 || !rs[i + 1].exists || arqueoCanon(rs[i + 1].data().day) !== arqueoCanon(fd[f])) cambio = true;
+            });
+            if(cambio){ var e1 = new Error("CAMBIO"); e1.code = "cambio-durante-division"; throw e1; }
+            tx.update(ref, { "meta.diasModo": "docs", "meta.diasMigradoEn": ahora, "meta.lastSavedAt": ahora, days: firebase.firestore.FieldValue.delete() });
+            return ahora;
+          });
+        });
+      }).then(function(ahora){
+        lastSavedBySelf = ahora;
+        return fechas.length;
+      }).catch(function(err){
+        if(err && err.code === "cambio-durante-division" && n < 3){
+          say("Alguien guardó un día mientras se dividía. Reintentando (" + (n + 1) + "/3)…");
+          return intento(n + 1);
+        }
+        if(err && err.code === "cambio-durante-division") throw new Error("El Arqueo cambió varias veces mientras se dividía. No se activó nada (no se perdió ni se borró nada). Inténtalo de nuevo cuando nadie esté guardando.");
+        if(err && err.code === "permission-denied") throw new Error("Firebase no permite crear la colección nueva (reglas de seguridad). No se cambió nada en el Arqueo.");
+        throw err;
+      });
+    }
+    return intento(1).then(function(n){ arqueoMigrando = false; return n; }, function(e){ arqueoMigrando = false; throw e; });
+  }
+  function buildDividirArqueoCard(){
+    var card = document.createElement("div");
+    card.className = "card";
+    card.style.border = "1px solid #c9a15a";
+    card.style.background = "#fbf5e8";
+    card.style.marginBottom = "1rem";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .3rem";
+    h2.textContent = "División del Arqueo por días";
+    card.appendChild(h2);
+    var info = document.createElement("div");
+    info.className = "hint";
+    info.style.margin = "0 0 .8rem";
+    card.appendChild(info);
+    var estadoTxt = document.createElement("div");
+    estadoTxt.className = "hint";
+    estadoTxt.style.margin = ".6rem 0 0";
+    estadoTxt.style.fontWeight = "700";
+    function pintar(){
+      if(arqueoModoDias()){
+        info.textContent = "El Arqueo ya está dividido: cada día se guarda en su propio documento (" + Object.keys(arqueoDiasRaw).length + " días). Ya no hay riesgo de llenar el límite de Firebase.";
+      } else {
+        var kb = arqueoTamanoKB();
+        info.textContent = "Hoy todo el Arqueo está en un solo documento: ~" + kb + " KB de 1024 KB posibles (" + Math.round(kb / 1024 * 100) + " %). Cuando se llene, el sistema no podrá guardar más. Dividirlo guarda cada día aparte; no cambia nada de lo que ves. Antes de dividir: descarga el Respaldo completo y asegúrate de que nadie esté guardando.";
+      }
+    }
+    pintar();
+    if(!arqueoModoDias()){
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-primary";
+      btn.textContent = "Dividir el Arqueo por días";
+      btn.addEventListener("click", function(){
+        if(!confirm("¿Dividir el Arqueo por días?\n\nSe copian todos los días a documentos nuevos, se comprueba que sean idénticos y recién entonces se activa. No se borra nada hasta comprobarlo. Ya descargaste el Respaldo completo de hoy?")) return;
+        pedirPinAdministrativoYEjecutar(function(){
+          btn.disabled = true;
+          arqueoDividirPorDias(function(t){ estadoTxt.textContent = t; }).then(function(n){
+            estadoTxt.textContent = "Listo: " + n + " días divididos y comprobados.";
+            showToast("Arqueo dividido por días (" + n + " días). Recarga las demás pantallas/tablets.", 6000);
+            pintar();
+            btn.hidden = true;
+          }).catch(function(e){
+            btn.disabled = false;
+            estadoTxt.textContent = "No se cambió nada: " + (e && e.message ? e.message : "error desconocido");
+            alert("No se pudo dividir el Arqueo.\n\n" + (e && e.message ? e.message : "") + "\n\nNo se cambió nada en el Arqueo.");
+          });
+        });
+      });
+      card.appendChild(btn);
+    }
+    card.appendChild(estadoTxt);
+    return card;
+  }
+  // Aviso preventivo: mientras el Arqueo siga en un solo documento, avisar cuando se acerque al
+  // límite de 1 MB de Firestore (ver "División del Arqueo por días" en Historial).
+  function arqueoAvisarTamano(){
+    if(arqueoModoDias()) return;
+    var kb = arqueoTamanoKB();
+    if(kb < 700) return;
+    showBanner("warn", "Aviso para Jessica: el Arqueo ocupa " + Math.round(kb / 1024 * 100) + " % de su límite en Firebase (" + kb + " de 1024 KB). Hay que dividirlo antes de que se llene: Historial → \"División del Arqueo por días\".", []);
   }
   function buildRespaldoCompletoCard(){
     var card = document.createElement("div");
@@ -5776,11 +6108,19 @@ var TRIPLES = [
     btn.disabled = respaldoDescargando;
     btn.addEventListener("click", function(){ doDescargarRespaldoCompleto(btn); });
     card.appendChild(btn);
+    var diagBtn = document.createElement("button");
+    diagBtn.type = "button";
+    diagBtn.className = "btn btn-sm";
+    diagBtn.style.marginLeft = ".6rem";
+    diagBtn.textContent = "Diagnóstico de carga";
+    diagBtn.addEventListener("click", function(){ alert(textoDiagnosticoCarga()); });
+    card.appendChild(diagBtn);
     return card;
   }
   function buildHistorialPanel(){
     var wrap = document.createElement("div");
     wrap.appendChild(buildRespaldoCompletoCard());
+    wrap.appendChild(buildDividirArqueoCard());
     var card = document.createElement("div");
     card.className = "card";
     var headRow = document.createElement("div");
@@ -5997,6 +6337,75 @@ var TRIPLES = [
   function pedidoQuitarRecogidoPayload(p, fecha){
     var payload = {};
     payload["entregasPorFecha." + fecha] = null;
+    return payload;
+  }
+
+  // oct/nov-2026, Pedido Masivo en Despacho (pedido de Jessica): cada fecha de un Masivo es una
+  // ENTREGA INDEPENDIENTE ligada al mismo pedido original (mismo documento, nunca se duplica
+  // ni se crean ventas/cobros nuevos). Causa del problema anterior: Despacho decidía "pendiente
+  // o entregado" por el estado del PEDIDO COMPLETO (p.estado); un Masivo-Delivery cerraba todo el
+  // pedido (ENTREGADO) con la primera entrega y los demás días desaparecían de Pendientes, y un
+  // Masivo-Recojo se quedaba para siempre en Pendientes con el sello "Recogido". Ahora Despacho
+  // calcula el estado POR FECHA a partir de entregasPorFecha.<AAAA-MM-DD> = {en, por} -- el mismo
+  // campo que ya usan "Todos los pedidos" y el reporte "Imprimir día". Solo afecta a canal
+  // "masivo": los demás canales no pasan por estas funciones.
+  function masivoFechasEntrega(p){
+    var seen = {}, out = [];
+    (p.items || []).forEach(function(it){
+      if(it && it.fecha && !seen[it.fecha]){ seen[it.fecha] = true; out.push(it.fecha); }
+    });
+    out.sort();
+    return out;
+  }
+  // Día calendario (Lima, UTC-5 fijo, sin horario de verano) de una marca de tiempo en ms.
+  function limaDiaDeMs(ms){
+    try{ return new Date(ms - 5 * 3600000).toISOString().slice(0, 10); }catch(e){ return ""; }
+  }
+  // Registro de entrega {en, por} de UNA fecha de un Masivo, o null si sigue pendiente.
+  // 1) Si la fecha tiene su propio registro en entregasPorFecha, ese manda (null = se quitó a mano).
+  // 2) Pedidos antiguos cerrados completos (estado ENTREGADO con entregadoEn, sin registro por
+  //    fecha): las fechas hasta el día de ese cierre cuentan como entregadas (así no reaparece
+  //    como pendiente lo que ya se había dado por entregado); las fechas POSTERIORES quedan
+  //    pendientes -- justo las que antes desaparecían de Despacho.
+  function masivoEntregaDia(p, fecha){
+    var ef = p.entregasPorFecha;
+    if(ef && Object.prototype.hasOwnProperty.call(ef, fecha)) return ef[fecha] || null;
+    if(p.estado === "ENTREGADO" && p.entregadoEn && fecha <= limaDiaDeMs(p.entregadoEn)){
+      return { en: p.entregadoEn, por: p.entregadoPor || "", heredado: true };
+    }
+    return null;
+  }
+  // Copia de SOLO LECTURA del pedido, vista desde UNA fecha: p.estado/entregadoEn/entregadoPor
+  // reflejan esa fecha (así la cola, los contadores y las tarjetas de Despacho funcionan igual
+  // que con un pedido normal), y _pedidoOriginal apunta al documento real para escribir. El
+  // documento en Firestore nunca se modifica por pasar por acá.
+  function despachoVistaMasivoDia(p, fecha){
+    var v = Object.assign({}, p, { _pedidoOriginal: p, _diaFecha: fecha });
+    if(p.estado === "CANCELADO") return v;
+    var rec = masivoEntregaDia(p, fecha);
+    if(rec){
+      v.estado = "ENTREGADO"; v.entregadoEn = rec.en; v.entregadoPor = rec.por || ""; v._diaEntrega = rec;
+    } else if(p.estado === "ENTREGADO"){
+      v.estado = "LISTO_DESPACHO"; v.entregadoEn = null; v.entregadoPor = "";
+    }
+    return v;
+  }
+  // Escritura de UNA entrega de Masivo: solo entregasPorFecha.<fecha> (hora real del sistema +
+  // responsable identificado por PIN). Si con esta entrega quedan entregadas TODAS las fechas del
+  // pedido, recién ahí se cierra el pedido completo (estado ENTREGADO + entregadoEn/Por) -- nunca
+  // antes. Si el pedido ya estaba cerrado (pedido antiguo), no se vuelve a tocar su cierre.
+  function masivoEntregaPayload(p, fecha, responsable){
+    var ahora = Date.now();
+    var payload = {};
+    payload["entregasPorFecha." + fecha] = { en: ahora, por: responsable };
+    var todasEntregadas = masivoFechasEntrega(p).every(function(f){ return f === fecha || !!masivoEntregaDia(p, f); });
+    if(todasEntregadas && p.estado !== "ENTREGADO" && p.estado !== "CANCELADO"){
+      payload.estado = "ENTREGADO";
+      payload.estadoHistorial = (p.estadoHistorial || []).concat([{ estado: "ENTREGADO", en: ahora, por: responsable }]);
+      payload.entregadoEn = ahora;
+      payload.entregadoPor = responsable;
+      payload.tiempoTotalMin = Math.max(0, Math.round((ahora - (p.createdAt || ahora)) / 60000));
+    }
     return payload;
   }
   // Motivo simple para "quién hizo el cambio" en cada botón de Despacho -- se pide una sola vez
@@ -16596,7 +17005,10 @@ var TRIPLES = [
     // cola (hoy por defecto, o la fecha elegida con 📅 -- ver despachoFechaActual() /
     // pedidoEsDeFechaOperativa). Adentro de eso, se ordena por la hora en que deben estar listos.
     var fechaVista = despachoFechaActual();
-    var todos = (PEDIDOS || []).filter(function(p){ return !!p.estado && pedidoEsDeFechaOperativa(p, fechaVista); });
+    var todos = (PEDIDOS || []).filter(function(p){ return !!p.estado && pedidoEsDeFechaOperativa(p, fechaVista); })
+      // Masivo: cada fecha es una entrega independiente (ver despachoVistaMasivoDia) -- la cola
+      // decide pendiente/entregado por ESA fecha, no por el estado del pedido completo.
+      .map(function(p){ return p.canal === "masivo" ? despachoVistaMasivoDia(p, fechaVista) : p; });
     var activos = todos.filter(function(p){ return p.estado !== "ENTREGADO" && p.estado !== "CANCELADO"; });
     if(filtro === "entregados"){
       return todos.filter(function(p){ return p.estado === "ENTREGADO"; })
@@ -17346,8 +17758,11 @@ var TRIPLES = [
     // en tienda, esta es la tarjeta donde en verdad se marca el recojo del día a día (no la
     // tabla "Todos los pedidos", que es más bien administrativa). Delivery/Masivo-Delivery NO
     // entra acá -- ese flujo (En ruta -> Entregado) sigue intacto, sin cambios.
-    var esMasivoRecojo = p.canal === "masivo" && !pedidoRequiereReparto(p);
-    var recogidoDiaDespacho = p.entregasPorFecha && p.entregasPorFecha[fechaProd];
+    // nov-2026: AHORA vale para Masivo en AMBOS modos (recojo y delivery) -- cada fecha es una
+    // entrega independiente con su propio PIN (ver despachoVistaMasivoDia). `p` acá es la vista
+    // de la fecha; el documento real para escribir/leer entregas es pOrig.
+    var esMasivo = p.canal === "masivo";
+    var pOrig = p._pedidoOriginal || p;
     // Candado obligatorio de pago (ver despachoMotivoBloqueoProduccion arriba, única fuente de
     // verdad -- las mismas dos funciones reales, despachoEnviarProduccion y pedidoAvanzarEstado,
     // usan exactamente esta misma función para rechazar el intento aunque se llegue por otro
@@ -17409,6 +17824,10 @@ var TRIPLES = [
     var iconoEntrega = p.canal === "masivo" ? "📦" : (pedidoRequiereReparto(p) ? "🚚" : "🏪");
     meta.textContent = iconoEntrega + " " + pedidoCanalBadgeTxt(p);
     card.appendChild(meta);
+    if(esMasivo){
+      // Idea de Jessica: cuadro Fecha/Hora/Estado de todas las entregas del pedido (plegable).
+      card.appendChild(buildMasivoProgramacionEl(pOrig, fechaProd, false));
+    }
 
     // Para Masivo, la tarjeta de Despacho solo debe mostrar las líneas de la fecha que se está
     // mostrando -- hoy por defecto, o la fecha elegida con 📅 (un pedido Masivo puede tener
@@ -17429,6 +17848,9 @@ var TRIPLES = [
     prodRow.innerHTML = "<span>" + productosHtml + "</span><span class='desp-total'>S/ " + fmt(total) + "</span>";
     card.appendChild(prodRow);
 
+    if(esMasivo && p._diaEntrega){
+      card.appendChild(buildMasivoEntregaDiaEl(p));
+    }
     if(!esTerminal){
       var creado = document.createElement("div");
       creado.className = "desp-creado";
@@ -17451,67 +17873,64 @@ var TRIPLES = [
     // el candado real, que no se puede saltar aunque se llegue por otro camino (como "Corregir
     // estado manualmente" del detalle), vive DENTRO de pedidoAvanzarEstado.
     var bloqueaEsteAvance = !!motivoBloqueo && siguiente === "EN_PREPARACION";
-    // oct-2026, Pedido Masivo -- Recojo en tienda: el ÚLTIMO paso (LISTO_DESPACHO -> ENTREGADO,
-    // sin reparto de por medio) ya NO usa el botón genérico + prompt libre de "¿Quién lo
-    // entregó?" -- pide el PIN de Mozos y marca el recojo POR FECHA (entregasPorFecha), igual
-    // que en "Todos los pedidos" (ver pedido-marcar-recogido-dia ahí). A propósito esto NUNCA
-    // cierra el pedido completo (p.estado no se toca, ver pedidoMarcarRecogidoPayload) -- un
-    // Masivo puede tener 15 entregas, una por día, y Jessica necesita que CADA día quede
-    // registrado independiente (hora + responsable) para el reporte que se imprime al cierre de
-    // ESE día, sin importar si es la primera entrega o la última. Mientras no se corrija el
-    // estado a mano desde el detalle, la tarjeta se queda visible con el sello "✓ Recogido" en
-    // vez del botón, día tras día -- es la limitación ya conocida (el pedido no "se cierra"
-    // solo), y acá es DELIBERADA, no un descuido: si se cerrara, pedidosDespachoLista lo sacaría
-    // de la cola activa en TODAS sus fechas, no solo en la que se acaba de recoger.
-    var esUltimoPasoRecojoMasivo = esMasivoRecojo && siguiente === "ENTREGADO";
+    // nov-2026, Pedido Masivo (AMBOS modos, recojo en tienda y delivery) -- pedido de Jessica:
+    // cada fecha es una entrega independiente. Cuando el pedido ya está LISTO (o ya salió/va en
+    // ruta, pedidos en curso), la entrega de ESTA fecha se confirma con el PIN personal de Mozos:
+    // se guarda solo entregasPorFecha.<fecha> = {en: hora real del sistema, por: quién}, y en
+    // cuanto se guarda esa fecha pasa sola de Pendientes a Entregados (ver despachoVistaMasivoDia).
+    // Las demás fechas siguen pendientes hasta su día y su PIN. El pedido completo solo se cierra
+    // cuando todas sus fechas están entregadas (ver masivoEntregaPayload). Para Masivo-Delivery ya
+    // no se usan los pasos "Salió de tienda / En ruta" del pedido completo (cerraban TODO el
+    // pedido con la primera entrega, que era el error original).
+    var pasoEntregaMasivo = esMasivo && (p.estado === "LISTO_DESPACHO" || p.estado === "SALIO_TIENDA" || p.estado === "EN_RUTA");
     if(!esTerminal && !readOnly && despachoEsVistaHoy() && !bloqueaEsteAvance){
-      if(esUltimoPasoRecojoMasivo){
-        if(recogidoDiaDespacho){
-          var recChip = document.createElement("span");
-          recChip.className = "chip good";
-          recChip.title = fmtFechaHoraMillis(recogidoDiaDespacho.en) + (recogidoDiaDespacho.por ? " — " + recogidoDiaDespacho.por : "");
-          recChip.textContent = "✓ Recogido";
-          actions.appendChild(recChip);
-        } else {
-          var pinWrap = document.createElement("div");
-          pinWrap.className = "desp-recogido-wrap";
-          var pinInput = document.createElement("input");
-          pinInput.type = "text";
-          pinInput.inputMode = "numeric";
-          pinInput.pattern = "[0-9]*";
-          pinInput.maxLength = 4;
-          pinInput.autocomplete = "off";
-          pinInput.className = "recogido-pin-input";
-          pinInput.placeholder = "PIN";
-          pinWrap.appendChild(pinInput);
-          var pinBtn = document.createElement("button");
-          pinBtn.type = "button";
-          pinBtn.className = "desp-btn desp-btn-primary";
-          pinBtn.textContent = "Marcar recogido";
-          pinBtn.addEventListener("click", function(){
-            if(!db) return;
-            var pin = pinInput.value.trim();
-            if(!pin){
-              showToast("Escribe tu PIN de 4 dígitos (el mismo de Mozos) para marcarlo.");
-              return;
-            }
-            var responsable = mozosNombrePorPin(pin);
-            if(!responsable){
-              showToast("PIN no reconocido -- no se marcó nada. Pídele a Jessica que te confirme tu PIN.");
-              pinInput.value = "";
-              pinInput.focus();
-              return;
-            }
-            var payload = pedidoMarcarRecogidoPayload(p, fechaProd, responsable);
-            db.collection("pedidos").doc(p.id).update(payload).then(function(){
-              showToast("Recojo del " + fmtFechaDiaMes(fechaProd) + " registrado -- " + responsable + ".");
-            }).catch(function(){
-              showToast("No se pudo registrar. Intenta de nuevo.");
-            });
+      if(pasoEntregaMasivo){
+        var pinWrap = document.createElement("div");
+        pinWrap.className = "desp-recogido-wrap";
+        var pinInput = document.createElement("input");
+        pinInput.type = "text";
+        pinInput.inputMode = "numeric";
+        pinInput.pattern = "[0-9]*";
+        pinInput.maxLength = 4;
+        pinInput.autocomplete = "off";
+        pinInput.className = "recogido-pin-input";
+        pinInput.placeholder = "PIN";
+        pinWrap.appendChild(pinInput);
+        var pinBtn = document.createElement("button");
+        pinBtn.type = "button";
+        pinBtn.className = "desp-btn desp-btn-primary";
+        pinBtn.textContent = "Marcar entregado";
+        pinBtn.addEventListener("click", function(){
+          if(!db || pinBtn.disabled) return;
+          var pin = pinInput.value.trim();
+          if(!pin){
+            showToast("Escribe tu PIN de 4 dígitos (el mismo de Mozos) para marcarlo.");
+            return;
+          }
+          var responsable = mozosNombrePorPin(pin);
+          if(!responsable){
+            showToast("PIN no reconocido -- no se marcó nada. Pídele a Jessica que te confirme tu PIN.");
+            pinInput.value = "";
+            pinInput.focus();
+            return;
+          }
+          // Se relee el pedido real al momento de confirmar (otro equipo pudo haber marcado otra fecha).
+          var fresco = (PEDIDOS || []).filter(function(x){ return x.id === pOrig.id; })[0] || pOrig;
+          if(masivoEntregaDia(fresco, fechaProd)){
+            showToast("La entrega del " + fmtFechaDiaMes(fechaProd) + " ya estaba registrada.");
+            return;
+          }
+          var payload = masivoEntregaPayload(fresco, fechaProd, responsable);
+          pinBtn.disabled = true;
+          db.collection("pedidos").doc(pOrig.id).update(payload).then(function(){
+            showToast("Entrega del " + fmtFechaDiaMes(fechaProd) + " registrada -- " + responsable + ".");
+          }).catch(function(){
+            pinBtn.disabled = false;
+            showToast("No se pudo registrar. Intenta de nuevo.");
           });
-          pinWrap.appendChild(pinBtn);
-          actions.appendChild(pinWrap);
-        }
+        });
+        pinWrap.appendChild(pinBtn);
+        actions.appendChild(pinWrap);
       } else if(siguiente){
         var mainBtn = document.createElement("button");
         mainBtn.type = "button";
@@ -17614,6 +18033,65 @@ var TRIPLES = [
   // Encabezado del bloque "solo este día" que se muestra al abrir el detalle de un Masivo desde
   // Despacho (set-2026, requisito 4): "ENTREGA DE HOY -- Lunes 21" o, para otra fecha consultada
   // con el calendario, "ENTREGA DEL Lunes 21".
+  // Resumen de programación de un Masivo para Despacho: "miércoles a martes · 7 días" (fechas
+  // consecutivas) o "N entregas · 05/11 al 20/11" (si hay saltos).
+  function masivoProgramacionTxt(fechas){
+    var n = fechas.length;
+    if(!n) return "";
+    function dia(f){ return DIAS_LARGO[new Date(f + "T12:00:00").getDay()].toLowerCase(); }
+    if(n === 1) return dia(fechas[0]) + " · 1 entrega";
+    var consecutivo = true;
+    for(var i = 1; i < n; i++){
+      var dd = (new Date(fechas[i] + "T12:00:00") - new Date(fechas[i - 1] + "T12:00:00")) / 86400000;
+      if(Math.round(dd) !== 1){ consecutivo = false; break; }
+    }
+    return consecutivo
+      ? (dia(fechas[0]) + " a " + dia(fechas[n - 1]) + " · " + n + " días")
+      : (n + " entregas · " + fmtFechaDiaMes(fechas[0]) + " al " + fmtFechaDiaMes(fechas[n - 1]));
+  }
+  // Cuadro Fecha / Hora / Estado de TODAS las entregas de un Masivo (idea de Jessica): Entregado
+  // (verde, con la hora real) o Pendiente (naranja) por día. Solo lectura. La fecha que se está
+  // mirando en Despacho se resalta.
+  function buildMasivoProgramacionEl(pOrig, fechaSel, abierto){
+    var fechas = masivoFechasEntrega(pOrig);
+    var cancelado = pOrig.estado === "CANCELADO";
+    var entregadas = 0;
+    fechas.forEach(function(f){ if(masivoEntregaDia(pOrig, f)) entregadas++; });
+    var det = document.createElement("details");
+    det.className = "mas-prog";
+    if(abierto) det.open = true;
+    var sum = document.createElement("summary");
+    sum.textContent = "📅 Programación: " + masivoProgramacionTxt(fechas) + " · " + entregadas + " de " + fechas.length + " entregadas";
+    det.appendChild(sum);
+    var rows = fechas.map(function(f){
+      var rec = masivoEntregaDia(pOrig, f);
+      var d = new Date(f + "T12:00:00");
+      var estTxt, estCls;
+      if(rec){ estTxt = "Entregado" + (rec.en ? " " + fmtHoraCortaMillis(rec.en) : ""); estCls = "mas-ok"; }
+      else if(cancelado){ estTxt = "Cancelado"; estCls = "mas-pend"; }
+      else { estTxt = "Pendiente"; estCls = "mas-pend"; }
+      return "<tr" + (f === fechaSel ? " class='mas-sel'" : "") + "><td>" + esc(DIAS_LARGO[d.getDay()] + " " + fmtFechaDiaMes(f)) + "</td><td>" +
+        esc(fmtHora12(pOrig.hora) || "—") + "</td><td class='" + estCls + "'>" + esc(estTxt) + "</td></tr>";
+    }).join("");
+    var tbl = document.createElement("table");
+    tbl.className = "mas-prog-tabla";
+    tbl.innerHTML = "<thead><tr><th>Fecha</th><th>Hora</th><th>Estado</th></tr></thead><tbody>" + rows + "</tbody>";
+    det.appendChild(tbl);
+    return det;
+  }
+  // Bloque "Entrega del miércoles — Programada / Entregada / Responsable" de la fecha consultada.
+  function buildMasivoEntregaDiaEl(v){
+    var rec = v._diaEntrega;
+    var f = v._diaFecha;
+    var d = new Date(f + "T12:00:00");
+    var box = document.createElement("div");
+    box.className = "mas-entrega-dia";
+    box.innerHTML = "<div class='mas-entrega-tit'>Entrega del " + esc(DIAS_LARGO[d.getDay()].toLowerCase()) + " " + esc(fmtFechaDiaMes(f)) + "</div>" +
+      "<div>Programada: <b>" + esc(fmtHora12(v.hora) || "—") + "</b></div>" +
+      "<div>Entregada: <b>" + esc(rec && rec.en ? fmtHoraCortaMillis(rec.en) : "—") + "</b></div>" +
+      "<div>Responsable (PIN): <b>" + esc((rec && rec.por) || "—") + "</b></div>";
+    return box;
+  }
   function despachoEntregaLabel(fechaISO){
     var d = new Date(fechaISO + "T12:00:00");
     var dia = DIAS_LARGO[d.getDay()];
@@ -17733,6 +18211,19 @@ var TRIPLES = [
       });
     }
     body.innerHTML = html;
+    if(esMasivo){
+      // Cuadro Fecha/Hora/Estado de todas las entregas (+ bloque de la entrega del día si ya se
+      // confirmó) -- se inserta arriba del detalle, solo lectura.
+      var progEl = buildMasivoProgramacionEl(p._pedidoOriginal || p, fechaVista, true);
+      progEl.style.marginBottom = ".8rem";
+      var topRef = body.firstChild;
+      if(p._diaEntrega){
+        var entDiaEl = buildMasivoEntregaDiaEl(p);
+        entDiaEl.style.marginBottom = ".6rem";
+        body.insertBefore(entDiaEl, topRef);
+      }
+      body.insertBefore(progEl, topRef);
+    }
 
     // Alternar entre "solo este día" y "pedido completo" (requisito 4) -- reconstruye todo el
     // detalle con showPedidoDespachoDetalle, igual que hace cualquier otro cambio de estado acá.
@@ -17825,7 +18316,8 @@ var TRIPLES = [
         var opt = document.createElement("option");
         opt.value = e;
         opt.textContent = (PEDIDO_ESTADO_EMOJI[e] || "") + " " + PEDIDO_ESTADO_LABEL[e];
-        if(e === p.estado) opt.selected = true;
+        // Masivo: el corrector manual actúa sobre el estado del PEDIDO COMPLETO (no el de la fecha).
+        if(e === (p._pedidoOriginal || p).estado) opt.selected = true;
         estadoSelect.appendChild(opt);
       });
       estadoRow.appendChild(estadoSelect);
@@ -17835,7 +18327,7 @@ var TRIPLES = [
       estadoBtn.textContent = "Aplicar";
       estadoBtn.addEventListener("click", function(){
         var nuevo = estadoSelect.value;
-        if(nuevo === p.estado) return;
+        if(nuevo === (p._pedidoOriginal || p).estado) return;
         if(!confirm('¿Corregir manualmente el estado a "' + (PEDIDO_ESTADO_LABEL[nuevo] || nuevo) + '"?')) return;
         pedidoAvanzarEstado(p.id, nuevo);
         closePedidoDespachoDetalle();
@@ -17890,7 +18382,7 @@ var TRIPLES = [
     card.appendChild(h2);
     var hint = document.createElement("div");
     hint.className = "hint";
-    hint.textContent = "La lista de arriba solo carga los " + PEDIDOS_LIMITE_RECIENTES + " pedidos más recientes (y las deudas sin pagar, sin importar la antigüedad) -- así la app no se pone lenta aunque pase el tiempo y crezca el negocio. Para encontrar uno más viejo y ya pagado, busca aquí por la fecha en que se tomó el pedido.";
+    hint.textContent = "La lista de arriba carga los pedidos pendientes y programados, los de los últimos " + PEDIDOS_DIAS_RECIENTES + " días (y las deudas sin pagar, sin importar la antigüedad) -- así la app no se pone lenta aunque pase el tiempo y crezca el negocio. Para encontrar uno más viejo y ya pagado, busca aquí por la fecha en que se tomó el pedido.";
     card.appendChild(hint);
 
     var filterRow = document.createElement("div");
@@ -17928,6 +18420,31 @@ var TRIPLES = [
     buscarBtn.disabled = pedidosBusquedaCargando;
     buscarBtn.addEventListener("click", doBuscarPedidosAntiguos);
     card.appendChild(buscarBtn);
+
+    // nov-2026: búsqueda histórica por cliente (nombre o teléfono) o por código de pedido.
+    var textoField = document.createElement("div");
+    textoField.className = "field";
+    var textoLabel = document.createElement("label");
+    textoLabel.textContent = "…o buscar por cliente (nombre o teléfono) o código (ej. D-0123)";
+    textoField.appendChild(textoLabel);
+    var textoRow = document.createElement("div");
+    textoRow.className = "search-row";
+    var textoInput = document.createElement("input");
+    textoInput.type = "text";
+    textoInput.name = "busqueda-historica";
+    textoInput.autocomplete = "off";
+    textoInput.value = pedidosBusquedaTexto;
+    textoInput.addEventListener("input", function(){ pedidosBusquedaTexto = textoInput.value; });
+    textoInput.addEventListener("keydown", function(ev){ if(ev.key === "Enter"){ ev.preventDefault(); doBuscarPedidosPorTexto(); } });
+    var textoBtn = document.createElement("button");
+    textoBtn.type = "button";
+    textoBtn.className = "btn btn-sm";
+    textoBtn.textContent = pedidosBusquedaCargando ? "Buscando…" : "Buscar";
+    textoBtn.disabled = pedidosBusquedaCargando;
+    textoBtn.addEventListener("click", doBuscarPedidosPorTexto);
+    textoRow.appendChild(textoInput); textoRow.appendChild(textoBtn);
+    textoField.appendChild(textoRow);
+    card.appendChild(textoField);
 
     if(pedidosBusquedaError){
       var errEl = document.createElement("div");
@@ -22968,6 +23485,41 @@ var TRIPLES = [
   function attachRemoteSync(onFirstLoad){
     var ref = db.collection("arqueo").doc("state");
     var firstLoadDone = false;
+    // Procesa el estado completo (arqueo/state + días de arqueo_dias si ya está dividido). La lógica
+    // de abajo es la de siempre -- lo único nuevo es que "data" ahora lo arma arqueoComponerRemoto().
+    function procesarRemoto(deDias){
+      if(!arqueoStateRaw) return;
+      var modoDocs = arqueoModoDias();
+      if(modoDocs && !arqueoDiasListo){
+        // Esperar la 1ª carga de los días. Si no se pueden leer, NUNCA se arma un Arqueo sin días
+        // (se vería vacío): se bloquea la escritura y se avisa.
+        if(arqueoDiasError) stopArqueoWritesForUnverifiedState("No se pudieron leer los días del Arqueo (arqueo_dias). Por seguridad no se guardará nada. Recarga la página o avisa a soporte.");
+        return;
+      }
+      var data = arqueoComponerRemoto();
+      if(data.meta && data.meta.lastSavedAt && data.meta.lastSavedAt === lastSavedBySelf){
+        // Es el eco de nuestro propio guardado — ya lo tenemos aplicado.
+        if(!firstLoadDone){ firstLoadDone = true; onFirstLoad(data); }
+        return;
+      }
+      if(!firstLoadDone){
+        firstLoadDone = true;
+        onFirstLoad(data);
+        return;
+      }
+      // Modo por días: un aviso de un día que ya tenemos igual (p. ej. el eco de nuestro guardado
+      // que llegó antes que el del estado) no hace falta aplicarlo ni volver a dibujar.
+      if(modoDocs && deDias && baseline && arqueoMismoContenido(data, baseline) && !dirty && !saving) return;
+      if(saving){
+        // Hay una transacción de guardado propia en camino ahora mismo: NO se toca
+        // STATE/baseline acá (chocaría con lo que esa transacción está por escribir).
+        // Se guarda esta llegada y se procesa apenas esa transacción termine.
+        pendingRemoteSnapshot = data;
+        return;
+      }
+      if(modoDocs && baseline && arqueoMismoContenido(data, baseline) && !dirty) return;
+      applyRemoteSnapshot(data);
+    }
     ref.onSnapshot(function(snap){
       if(!snap.exists){
         // ANTES: acá se asumía que "no existe" = "primera vez que se usa esta base de
@@ -22979,29 +23531,31 @@ var TRIPLES = [
         stopArqueoWritesForUnverifiedState("No se pudo verificar la información existente de Arqueos (el documento de datos no aparece). Por seguridad, no se realizará ninguna escritura. Avisa a soporte antes de continuar.");
         return;
       }
-      var data = normalizeState(snap.data());
-      if(data.meta && data.meta.lastSavedAt && data.meta.lastSavedAt === lastSavedBySelf){
-        // Es el eco de nuestro propio guardado — ya lo tenemos aplicado.
-        if(!firstLoadDone){ firstLoadDone = true; onFirstLoad(data); }
-        return;
-      }
-      if(!firstLoadDone){
-        firstLoadDone = true;
-        onFirstLoad(data);
-        return;
-      }
-      if(saving){
-        // Hay una transacción de guardado propia en camino ahora mismo: NO se toca
-        // STATE/baseline acá (chocaría con lo que esa transacción está por escribir).
-        // Se guarda esta llegada y se procesa apenas esa transacción termine.
-        pendingRemoteSnapshot = data;
-        return;
-      }
-      applyRemoteSnapshot(data);
+      arqueoStateRaw = snap.data();
+      procesarRemoto(false);
     }, function(){
       readOnly = true;
       showBanner("bad", "No se pudo conectar con la base de datos. Revisa tu conexión a internet y recarga la página.", []);
       setSaveStatus();
+    });
+    // Días del Arqueo en documentos propios (solo se usan cuando arqueo/state tiene
+    // meta.diasModo === "docs"). En modo legado la colección está vacía (o no existe) y esto no
+    // cuesta nada; si las reglas de Firestore no la permitieran, en modo legado se ignora el error.
+    db.collection(ARQUEO_DIAS_COL).onSnapshot(function(snap){
+      snap.docChanges().forEach(function(ch){
+        var id = ch.doc.id;
+        if(ch.type === "removed"){ delete arqueoDiasRaw[id]; return; }
+        arqueoDiasRaw[id] = ch.doc.data();
+      });
+      arqueoDiasListo = true;
+      arqueoDiasError = false;
+      // En modo legado estos documentos no se usan (pueden existir a medias durante una migración).
+      if(arqueoModoDias()) procesarRemoto(true);
+    }, function(){
+      arqueoDiasError = true;
+      if(arqueoModoDias()){
+        stopArqueoWritesForUnverifiedState("No se pudieron leer los días del Arqueo (arqueo_dias). Por seguridad no se guardará nada. Recarga la página o avisa a soporte.");
+      }
     });
   }
 
@@ -23085,7 +23639,12 @@ var TRIPLES = [
     // Mismo filtro que la cola visible (pedidosDespachoLista): solo alerta por pedidos del día
     // operativo de hoy (ver pedidoEsDelDiaOperativo). Uno que no tiene ninguna línea para hoy
     // no debe sonar ni aparecer aunque su hora "llegue" en otra fecha.
-    var activos = PEDIDOS.filter(function(p){ return p.estado && p.estado !== "ENTREGADO" && p.estado !== "CANCELADO" && pedidoEsDelDiaOperativo(p); });
+    var activos = PEDIDOS.filter(function(p){
+      if(!p.estado || p.estado === "ENTREGADO" || p.estado === "CANCELADO" || !pedidoEsDelDiaOperativo(p)) return false;
+      // Masivo: si la entrega de HOY ya se confirmó, no es trabajo pendiente aunque el pedido siga abierto.
+      if(p.canal === "masivo" && masivoEntregaDia(p, todayISO())) return false;
+      return true;
+    });
     if(!colaInicializada){
       colaInicializada = true;
       activos.forEach(function(p){ if(despachoEsInmediatoHoy(p)) pedidosAlertados[p.id] = true; });
@@ -23103,9 +23662,32 @@ var TRIPLES = [
     var recientesMap = {};
     var impagosMap = {};
     var masivoActivoMap = {};
+    var activosMap = {};
+    var entregadosMap = {};
+    var renderPedidosTimer = null;
+    // Aplica SOLO lo que cambió en cada aviso de Firestore (docChanges) en vez de volver a leer
+    // los cientos de pedidos de la consulta completa -- cada pedido (con su foto de Yape) se
+    // procesa una sola vez, no cada vez que alguien más guarda cualquier cosa.
+    function aplicarCambios(map, snap, nombre){
+      var primera = !CARGA_DIAG.listeners[nombre];
+      var diag = primera ? { docs: 0, fotos: 0, fotoChars: 0, ms: Date.now() - CARGA_DIAG.t0 } : null;
+      snap.docChanges().forEach(function(ch){
+        var id = ch.doc.id;
+        if(ch.type === "removed"){ delete map[id]; return; }
+        var data = ch.doc.data(); data.id = id; map[id] = data;
+        if(diag){
+          diag.docs++;
+          if(typeof data.comprobante === "string"){ diag.fotos++; diag.fotoChars += data.comprobante.length; }
+          if(typeof data.comprobante2 === "string"){ diag.fotos++; diag.fotoChars += data.comprobante2.length; }
+        }
+      });
+      if(diag) CARGA_DIAG.listeners[nombre] = diag;
+    }
     function mergeAndSetPedidos(){
       var merged = {};
+      Object.keys(entregadosMap).forEach(function(id){ merged[id] = entregadosMap[id]; });
       Object.keys(recientesMap).forEach(function(id){ merged[id] = recientesMap[id]; });
+      Object.keys(activosMap).forEach(function(id){ merged[id] = activosMap[id]; });
       Object.keys(impagosMap).forEach(function(id){ merged[id] = impagosMap[id]; });
       Object.keys(masivoActivoMap).forEach(function(id){ merged[id] = masivoActivoMap[id]; });
       var list = Object.keys(merged).map(function(id){ return merged[id]; });
@@ -23120,7 +23702,13 @@ var TRIPLES = [
       PEDIDOS = list;
       // No repintamos si está en "Nuevo pedido": así no se pierde lo que está escribiendo
       // si otra persona (ej. quien toma pedidos por WhatsApp) guarda algo al mismo tiempo.
-      if(currentTab === "pedidos" && pedidosView !== "nuevo") produccionAreaRenderSeguro();
+      // Con varios avisos seguidos (hora pico) se repinta UNA vez, no una por aviso.
+      if(renderPedidosTimer === null){
+        renderPedidosTimer = setTimeout(function(){
+          renderPedidosTimer = null;
+          if(currentTab === "pedidos" && pedidosView !== "nuevo") produccionAreaRenderSeguro();
+        }, 120);
+      }
       revisarAlertasCola();
       if(pedidoHashAbrir){
         var pedidoDesdeHash = list.filter(function(x){ return x.id === pedidoHashAbrir; })[0];
@@ -23135,42 +23723,48 @@ var TRIPLES = [
     // PROGRAMADO sin que llegue ningún documento nuevo de Firestore -- por eso esto no puede
     // depender solo de onSnapshot.
     setInterval(revisarAlertasCola, 30000);
-    db.collection("pedidos").orderBy("createdAt", "desc").limit(PEDIDOS_LIMITE_RECIENTES).onSnapshot(function(snap){
-      recientesMap = {};
-      snap.forEach(function(doc){ var data = doc.data(); data.id = doc.id; recientesMap[doc.id] = data; });
-      mergeAndSetPedidos();
-    }, function(){
+    var desdeMsVentana = Date.now() - PEDIDOS_DIAS_RECIENTES * 24 * 60 * 60 * 1000;
+    function falloVentana(){
       // Si falla, dejamos PEDIDOS como esté (puede seguir null) y avisamos solo si
       // el usuario está mirando esa pestaña.
       if(currentTab === "pedidos" && PEDIDOS === null){
         showToast("No se pudo cargar los pedidos. Revisa tu conexión e intenta de nuevo.");
       }
-    });
-    db.collection("pedidos").where("pagado", "==", false).onSnapshot(function(snap){
-      impagosMap = {};
-      snap.forEach(function(doc){ var data = doc.data(); data.id = doc.id; impagosMap[doc.id] = data; });
+    }
+    // (1) TODO lo que no esté finalizado: pendientes, activos y programados a fechas futuras,
+    // sin importar hace cuánto se registraron. "not-in" (y no una lista de estados) para que un
+    // estado nuevo que se agregue algún día nunca deje un pedido fuera. Índice automático.
+    db.collection("pedidos").where("estado", "not-in", ["ENTREGADO", "CANCELADO"]).onSnapshot(function(snap){
+      aplicarCambios(activosMap, snap, "pedidos activos y programados");
+      mergeAndSetPedidos();
+    }, falloVentana);
+    // (2) Lo registrado en los últimos PEDIDOS_DIAS_RECIENTES días (cualquier estado).
+    db.collection("pedidos").where("createdAt", ">=", desdeMsVentana).orderBy("createdAt", "desc").limit(PEDIDOS_LIMITE_RECIENTES).onSnapshot(function(snap){
+      aplicarCambios(recientesMap, snap, "pedidos de los últimos " + PEDIDOS_DIAS_RECIENTES + " días");
+      mergeAndSetPedidos();
+    }, falloVentana);
+    // (3) Lo ENTREGADO en los últimos días aunque se haya registrado mucho antes (Despacho sigue
+    // viendo lo entregado hoy de un pedido programado hace semanas).
+    var desdeMsEntregados = Date.now() - PEDIDOS_DIAS_ENTREGADOS * 24 * 60 * 60 * 1000;
+    db.collection("pedidos").where("entregadoEn", ">=", desdeMsEntregados).onSnapshot(function(snap){
+      aplicarCambios(entregadosMap, snap, "entregados en los últimos " + PEDIDOS_DIAS_ENTREGADOS + " días");
       mergeAndSetPedidos();
     }, function(){});
-    // 3) TODOS los pedidos Masivo que sigan activos (ni Entregado ni Cancelado), sin importar
-    // cuándo se tomaron ni si ya están pagados (Jessica, set-2026: "en Despacho no aparece
-    // ningún pedido Masivo" -- un pedido Masivo se suele tomar con anticipación para una fecha
-    // de entrega futura, así que si ya está pagado y el volumen de pedidos normales del día a
-    // día lo empuja fuera de los PEDIDOS_LIMITE_RECIENTES de arriba, desaparecía de Despacho/
-    // Producción/Todos los pedidos aunque su entrega todavía no hubiera pasado -- exactamente
-    // igual que ya se protege a las deudas sin pagar (impagosMap) de arriba, pero acá por canal
-    // en vez de por si está pagado). Se filtra "activo" del lado del cliente (no en la consulta)
-    // a propósito para que no haga falta crear ningún índice compuesto en Firestore -- Jessica
-    // dijo que sus clientes Masivo duran como mucho un mes, así que este grupo en vivo nunca
-    // crece de más: siempre son solo los contratos vigentes en este momento, sin importar
-    // cuántos años lleve funcionando la panadería.
+    // (4) TODAS las deudas sin pagar, sin importar la antigüedad (Cuentas por Cobrar).
+    db.collection("pedidos").where("pagado", "==", false).onSnapshot(function(snap){
+      aplicarCambios(impagosMap, snap, "deudas sin pagar");
+      mergeAndSetPedidos();
+    }, function(){});
+    // (5) Masivo activo (ver explicación arriba) -- se filtra "activo" del lado del cliente para
+    // no necesitar un índice compuesto. Incluye los que no tengan "estado" (muy antiguos).
     db.collection("pedidos").where("canal", "==", "masivo").onSnapshot(function(snap){
-      masivoActivoMap = {};
-      snap.forEach(function(doc){
-        var data = doc.data();
-        if(data.estado === "ENTREGADO" || data.estado === "CANCELADO") return;
-        data.id = doc.id;
-        masivoActivoMap[doc.id] = data;
+      snap.docChanges().forEach(function(ch){
+        var id = ch.doc.id;
+        var data = ch.type === "removed" ? null : ch.doc.data();
+        if(!data || data.estado === "ENTREGADO" || data.estado === "CANCELADO"){ delete masivoActivoMap[id]; return; }
+        data.id = id; masivoActivoMap[id] = data;
       });
+      if(!CARGA_DIAG.listeners["masivos activos"]) CARGA_DIAG.listeners["masivos activos"] = { docs: Object.keys(masivoActivoMap).length, fotos: 0, fotoChars: 0, ms: Date.now() - CARGA_DIAG.t0 };
       mergeAndSetPedidos();
     }, function(){});
   }
@@ -23191,6 +23785,47 @@ var TRIPLES = [
     db.collection("pedidos").where("createdAt", ">=", desdeMs).where("createdAt", "<=", hastaMs).get().then(function(snap){
       var list = [];
       snap.forEach(function(doc){ var data = doc.data(); data.id = doc.id; list.push(data); });
+      list.sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
+      pedidosBusquedaResultados = list;
+      pedidosBusquedaCargando = false;
+      renderPanel();
+    }).catch(function(){
+      pedidosBusquedaCargando = false;
+      pedidosBusquedaError = true;
+      renderPanel();
+    });
+  }
+
+  // Búsqueda histórica por cliente o código (consulta de una sola vez, nunca en vivo). Códigos
+  // "D-0123" (igual que se guardan), teléfono exacto, o nombre por inicio de palabra.
+  function doBuscarPedidosPorTexto(){
+    if(!db) return;
+    var t = String(pedidosBusquedaTexto || "").trim();
+    if(t.length < 2){ showToast("Escribe al menos 2 letras, el teléfono o el código del pedido."); return; }
+    var col = db.collection("pedidos");
+    var consultas = [];
+    var m = t.toUpperCase().match(/^([A-Z])\s*-?\s*(\d{1,6})$/);
+    if(m){
+      var n = m[2]; while(n.length < 4) n = "0" + n;
+      consultas.push(col.where("numero", "==", m[1] + "-" + n).limit(20));
+    } else if(/^[\d\s+]{6,}$/.test(t)){
+      var tel = t.replace(/\s/g, "");
+      consultas.push(col.where("cliente.telefono", "==", tel).limit(100));
+      if(tel !== t) consultas.push(col.where("cliente.telefono", "==", t).limit(100));
+    } else {
+      var vistos = {};
+      [tituloCase(t), t].forEach(function(v){
+        if(vistos[v]) return; vistos[v] = true;
+        consultas.push(col.where("cliente.nombre", ">=", v).where("cliente.nombre", "<=", v + "\uf8ff").limit(100));
+      });
+    }
+    pedidosBusquedaCargando = true;
+    pedidosBusquedaError = false;
+    renderPanel();
+    Promise.all(consultas.map(function(q){ return q.get(); })).then(function(snaps){
+      var porId = {};
+      snaps.forEach(function(snap){ snap.forEach(function(doc){ var data = doc.data(); data.id = doc.id; porId[doc.id] = data; }); });
+      var list = Object.keys(porId).map(function(id){ return porId[id]; });
       list.sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
       pedidosBusquedaResultados = list;
       pedidosBusquedaCargando = false;
@@ -23366,15 +24001,31 @@ var TRIPLES = [
       renderAll();
       baseline = deepClone(STATE);
       restoreBackupBanner();
+      arqueoAvisarTamano();
+      CARGA_DIAG.arqueoMs = Date.now() - CARGA_DIAG.t0;
+      setTimeout(iniciarRestoSync, 0);
     });
-    attachPedidosSync();
-    attachClientesSync();
-    attachCajerosSync();
-    attachMesasSync();
-    attachCatalogoProductosSync();
-    attachAdminAuthSync();
-    attachListaPreciosConfigSync();
-    attachProduccionAreasSync();
+    // nov-2026 (la app tardaba en salir de "Cargando datos…"): antes se abrían ~9 conexiones a
+    // Firestore a la vez (pedidos recientes, impagos, masivos, clientes, cajeros, mesas, lista de
+    // precios...) y todas competían con el documento del Arqueo, que es lo único que la pantalla
+    // inicial espera. Ahora se pide PRIMERO el Arqueo y el resto arranca apenas llegó (o a los 4 s
+    // como máximo, por si el Arqueo tardara o fallara -- así nada queda sin cargar). Son las mismas
+    // conexiones de siempre, solo que en otro orden: no cambia qué se lee ni qué se guarda.
+    var restoIniciado = false;
+    function iniciarRestoSync(){
+      if(restoIniciado) return;
+      restoIniciado = true;
+      attachPedidosSync();
+      attachClientesSync();
+      attachCajerosSync();
+      attachMesasSync();
+      attachCatalogoProductosSync();
+      attachAdminAuthSync();
+      attachListaPreciosConfigSync();
+      attachProduccionAreasSync();
+    }
+    window.__iniciarRestoSync = iniciarRestoSync;
+    setTimeout(iniciarRestoSync, 4000);
     // Avisa ANTES de cerrar o recargar la página si todavía hay cambios del arqueo sin
     // guardar -- así nadie pierde lo que avanzó por cerrar la pestaña justo cuando un
     // guardado está fallando o todavía está en camino (ver saveRetryCount más arriba).
