@@ -6025,6 +6025,68 @@ var TRIPLES = [
     }
     return intento(1).then(function(n){ arqueoMigrando = false; return n; }, function(e){ arqueoMigrando = false; throw e; });
   }
+  // DESHACER la división (por si hiciera falta volver atrás): vuelve a juntar todos los días en
+  // arqueo/state SOLO si caben con holgura, comprobando todo antes. NO borra los documentos de
+  // arqueo_dias (quedan como copia). Si hay días guardados desde pantallas antiguas que difieren,
+  // o si no caben, se detiene sin cambiar nada.
+  function arqueoDeshacerDivision(estado){
+    function say(t){ try{ if(estado) estado(t); }catch(e){} }
+    if(!db) return Promise.reject(new Error("Sin conexión con la base de datos."));
+    if(arqueoMigrando) return Promise.reject(new Error("Hay una operación en curso."));
+    if(readOnly) return Promise.reject(new Error("El Arqueo está en solo lectura."));
+    if(dirty || saving) return Promise.reject(new Error("Hay cambios sin guardar. Espera a que diga \"Guardado\" y vuelve a intentar."));
+    if(!arqueoModoDias()) return Promise.reject(new Error("El Arqueo no está dividido."));
+    var ts = 0;
+    try{ ts = parseInt(localStorage.getItem("arqueo_respaldo_ts") || "0", 10) || 0; }catch(e){}
+    if(!ts || Date.now() - ts > 24 * 3600 * 1000) return Promise.reject(new Error("Primero descarga el \"Respaldo completo\" (botón de arriba) y guárdalo. Debe ser de hoy."));
+    arqueoMigrando = true;
+    var ref = db.collection("arqueo").doc("state");
+    var col = db.collection(ARQUEO_DIAS_COL);
+    function intento(n){
+      var diasDocs = {}, fechas = [];
+      say("Leyendo los días…");
+      return Promise.all([ref.get(), col.get()]).then(function(rs){
+        var raw = rs[0].data() || {};
+        rs[1].forEach(function(d){ var x = d.data(); if(x && x.day) diasDocs[d.id] = x.day; });
+        var stray = raw.days || {};
+        Object.keys(stray).forEach(function(f){
+          if(diasDocs[f] && arqueoCanon(diasDocs[f]) !== arqueoCanon(stray[f])) throw new Error("El día " + f + " tiene dos versiones distintas (una guardada desde una pantalla antigua). No se puede deshacer solo; no se cambió nada. Avisa a soporte.");
+          if(!diasDocs[f]) diasDocs[f] = stray[f];
+        });
+        fechas = Object.keys(diasDocs).sort();
+        var resto = Object.assign({}, raw); delete resto.days;
+        var bytes = arqueoBytesFirestore(resto) + arqueoBytesFirestore(diasDocs) + 200;
+        if(bytes > 900 * 1024) throw new Error("Todos los días juntos ocuparían " + Math.round(bytes / 1024) + " KB y no caben con holgura en un solo documento. No se cambió nada.");
+        say("Volviendo a un solo documento…");
+        var ahora = Date.now();
+        return db.runTransaction(function(tx){
+          return Promise.all([tx.get(ref)].concat(fechas.map(function(f){ return tx.get(col.doc(f)); }))).then(function(rr){
+            var fresh = rr[0].data() || {};
+            if(!(fresh.meta && fresh.meta.diasModo === "docs")){ var e0 = new Error("YA_NO_DIVIDIDO"); e0.code = "ya-no-dividido"; throw e0; }
+            var cambio = false;
+            fechas.forEach(function(f, i){
+              var vistoEnDoc = rr[i + 1].exists ? rr[i + 1].data().day : null;
+              var vistoEnEstado = (fresh.days || {})[f] || null;
+              if(vistoEnDoc && arqueoCanon(vistoEnDoc) !== arqueoCanon(diasDocs[f]) && !(vistoEnEstado && arqueoCanon(vistoEnEstado) === arqueoCanon(diasDocs[f]))) cambio = true;
+              if(!vistoEnDoc && !vistoEnEstado) cambio = true;
+            });
+            Object.keys(fresh.days || {}).forEach(function(f){ if(!diasDocs[f]) cambio = true; });
+            if(cambio){ var e1 = new Error("CAMBIO"); e1.code = "cambio-durante-division"; throw e1; }
+            tx.update(ref, { days: diasDocs, "meta.diasModo": firebase.firestore.FieldValue.delete(), "meta.lastSavedAt": ahora });
+            return ahora;
+          });
+        });
+      }).then(function(ahora){
+        lastSavedBySelf = ahora;
+        return fechas.length;
+      }).catch(function(err){
+        if(err && err.code === "cambio-durante-division" && n < 3){ say("Alguien guardó mientras tanto. Reintentando (" + (n + 1) + "/3)…"); return intento(n + 1); }
+        if(err && err.code === "cambio-durante-division") throw new Error("El Arqueo cambió varias veces durante la operación. No se cambió nada.");
+        throw err;
+      });
+    }
+    return intento(1).then(function(n){ arqueoMigrando = false; return n; }, function(e){ arqueoMigrando = false; throw e; });
+  }
   function buildDividirArqueoCard(){
     var card = document.createElement("div");
     card.className = "card";
@@ -6074,6 +6136,28 @@ var TRIPLES = [
         });
       });
       card.appendChild(btn);
+    }
+    if(arqueoModoDias()){
+      var btnUndo = document.createElement("button");
+      btnUndo.type = "button";
+      btnUndo.className = "btn btn-sm";
+      btnUndo.textContent = "Deshacer la división (volver a un solo documento)";
+      btnUndo.addEventListener("click", function(){
+        if(!confirm("¿Volver a juntar todos los días en un solo documento?\n\nSolo se hace si caben. No se borra nada de los días ya guardados. ¿Descargaste el Respaldo completo de hoy?")) return;
+        pedirPinAdministrativoYEjecutar(function(){
+          btnUndo.disabled = true;
+          arqueoDeshacerDivision(function(t){ estadoTxt.textContent = t; }).then(function(n){
+            estadoTxt.textContent = "Listo: " + n + " días de vuelta en un solo documento.";
+            showToast("División deshecha (" + n + " días). Recarga las demás pantallas.", 6000);
+            btnUndo.hidden = true;
+          }).catch(function(e){
+            btnUndo.disabled = false;
+            estadoTxt.textContent = "No se cambió nada: " + (e && e.message ? e.message : "error desconocido");
+            alert("No se pudo deshacer.\n\n" + (e && e.message ? e.message : "") + "\n\nNo se cambió nada.");
+          });
+        });
+      });
+      card.appendChild(btnUndo);
     }
     card.appendChild(estadoTxt);
     return card;
@@ -23497,6 +23581,12 @@ var TRIPLES = [
         return;
       }
       var data = arqueoComponerRemoto();
+      // Pantallas con la versión ANTIGUA (sin recargar) siguen escribiendo los días en
+      // arqueo/state después de dividir: eso no se pierde (queda guardado ahí), pero no se ve en
+      // los días nuevos -- se avisa para recargar TODAS las pantallas.
+      var nStray = (modoDocs && arqueoStateRaw.days) ? Object.keys(arqueoStateRaw.days).length : 0;
+      if(nStray) showBanner("warn", "Aviso: hay " + nStray + " día(s) guardado(s) desde una pantalla con la versión antigua. Recarga TODAS las pantallas y tablets. Nada se pierde (quedó guardado); avisa a soporte para unirlo.", []);
+      else hideBanner("warn");
       if(data.meta && data.meta.lastSavedAt && data.meta.lastSavedAt === lastSavedBySelf){
         // Es el eco de nuestro propio guardado — ya lo tenemos aplicado.
         if(!firstLoadDone){ firstLoadDone = true; onFirstLoad(data); }
