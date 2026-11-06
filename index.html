@@ -1578,6 +1578,67 @@
      .moz-mesa-tile.libre/.ocupada (ver más arriba: libre=verde/--good, ocupada=terracota
      elegante/--bad), que ya es la paleta cálida "premium Carmelitas" y nunca se desincroniza
      de la leyenda ni del resumen porque los tres usan los mismos tokens --good/--bad. */
+  /* ===== Dashboard Gerencial Premium (nov-2026): chocolate · crema · dorado ===== */
+  .dg{ --dg-choc:#4a2f1d; --dg-choc-2:#6b4428; --dg-cream:#fbf3e2; --dg-gold:#b8893a; --dg-gold-soft:#f3e4c0; }
+  .dg-head{ background:linear-gradient(135deg,#3b2415 0%,#5a3921 100%); color:var(--dg-cream); border-radius:var(--radius); padding:1.1rem 1.25rem 1rem; margin-bottom:.9rem; box-shadow:var(--shadow); }
+  .dg-eyebrow{ font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; color:#d9b56a; font-weight:700; }
+  .dg-title{ margin:.15rem 0 .1rem; font-size:1.35rem; font-weight:700; color:var(--dg-cream); }
+  .dg-range{ font-size:.9rem; color:#ecd9b0; margin-bottom:.8rem; }
+  .dg-filtros{ display:flex; flex-wrap:wrap; gap:.55rem; align-items:center; }
+  .dg-seg{ display:inline-flex; background:rgba(255,255,255,.1); border-radius:999px; padding:3px; }
+  .dg-seg-b{ border:0; background:transparent; color:#ecd9b0; font:inherit; font-size:.82rem; font-weight:600; padding:.38rem .85rem; border-radius:999px; cursor:pointer; min-height:34px; }
+  .dg-seg-b.on{ background:var(--dg-gold); color:#2b1a0d; }
+  .dg-nav{ display:inline-flex; align-items:center; gap:.25rem; }
+  .dg-nav-b{ border:0; background:rgba(255,255,255,.12); color:var(--dg-cream); width:34px; height:34px; border-radius:50%; font-size:1.2rem; line-height:1; cursor:pointer; }
+  .dg-date{ background:rgba(255,255,255,.95); border:0; border-radius:8px; padding:.35rem .5rem; font:inherit; font-size:.85rem; color:var(--dg-choc); min-height:34px; }
+  .dg-estado{ font-size:.8rem; color:var(--ink-muted); background:var(--dg-cream); border:1px solid var(--border); border-radius:10px; padding:.55rem .8rem; margin-bottom:.7rem; }
+  .dg-aviso{ font-size:.8rem; color:var(--warn); background:var(--warn-soft); border-radius:10px; padding:.55rem .8rem; margin:.6rem 0; }
+  .dg-mute{ color:var(--ink-muted); font-size:.76rem; }
+  .dg-kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); gap:.65rem; margin-bottom:.5rem; }
+  .dg-kpi{ background:var(--surface); border:1px solid var(--border); border-top:3px solid var(--dg-choc-2); border-radius:12px; padding:.75rem .9rem; box-shadow:var(--shadow); }
+  .dg-kpi.gold{ border-top-color:var(--dg-gold); background:linear-gradient(180deg,#fff9ea,var(--surface)); }
+  .dg-kpi.warn{ border-top-color:var(--warn); }
+  .dg-kpi-t{ font-size:.7rem; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-muted); font-weight:700; }
+  .dg-kpi-v{ font-size:1.7rem; font-weight:700; color:var(--dg-choc); margin:.15rem 0; font-variant-numeric:tabular-nums; }
+  .dg-kpi-v small{ font-size:.75rem; font-weight:600; color:var(--ink-muted); }
+  .dg-kpi-s{ font-size:.74rem; color:var(--ink-muted); }
+  .dg-warn{ color:var(--warn); font-weight:700; }
+  .dg-nota{ font-size:.74rem; color:var(--ink-muted); margin:.1rem 0 .9rem; }
+  .dg-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:1rem 1.1rem; margin-bottom:1rem; }
+  .dg-h3{ margin:0 0 .15rem; font-size:1.05rem; color:var(--dg-choc); }
+  .dg-sub{ font-size:.76rem; color:var(--ink-muted); margin-bottom:.7rem; }
+  .dg-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:10px; }
+  .dg-tbl{ width:100%; border-collapse:collapse; font-size:.86rem; }
+  .dg-tbl th{ background:var(--dg-cream); color:var(--dg-choc); font-size:.7rem; letter-spacing:.05em; text-transform:uppercase; text-align:left; padding:.5rem .6rem; border-bottom:1px solid var(--border); white-space:nowrap; }
+  .dg-tbl td{ padding:.48rem .6rem; border-bottom:1px solid #efe3cb; }
+  .dg-tbl .n{ text-align:right; font-variant-numeric:tabular-nums; }
+  .dg-tbl .strong{ font-weight:700; color:var(--dg-choc); }
+  .dg-tbl tr.tot td{ background:var(--dg-gold-soft); font-weight:700; color:var(--dg-choc); }
+  .dg-tbl tr.sub td{ background:#f8efd9; font-weight:600; }
+  .dg-tbl tr.grp td{ background:var(--dg-choc); color:var(--dg-cream); font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; font-weight:700; padding:.35rem .6rem; }
+  .dg-tbl tr.kg td{ background:#fbf7ee; font-style:italic; }
+  .dg-tbl-s{ max-width:360px; margin-bottom:.8rem; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+  .dg-turno{ margin-bottom:.4rem; }
+  .dg-vacio{ text-align:center; color:var(--ink-muted); padding:1rem; }
+  .dg-src{ font-size:.68rem; font-weight:700; padding:.12rem .5rem; border-radius:999px; }
+  .dg-src-metas{ background:var(--dg-gold-soft); color:#7a5512; }
+  .dg-src-arq{ background:var(--info-soft); color:var(--info); }
+  .dg-tag{ font-size:.65rem; font-weight:700; background:var(--surface-2); color:var(--ink-muted); border-radius:6px; padding:.05rem .35rem; margin-left:.25rem; }
+  .dg-bad{ color:var(--bad); font-weight:700; }
+  .dg-ok{ color:var(--good); font-weight:700; }
+  .dg-cumpl{ min-width:120px; }
+  .dg-pct{ font-weight:700; font-size:.8rem; color:var(--dg-choc); }
+  .dg-bar{ height:6px; background:var(--surface-2); border-radius:999px; margin-top:3px; overflow:hidden; }
+  .dg-bar i{ display:block; height:100%; border-radius:999px; }
+  .dg-bar i.ok{ background:var(--good); } .dg-bar i.mid{ background:var(--dg-gold); } .dg-bar i.low{ background:var(--bad); }
+  .dg-pie{ display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; margin-top:.6rem; }
+  .dg-link{ border:0; background:transparent; color:var(--accent); font:inherit; font-size:.82rem; font-weight:700; cursor:pointer; text-decoration:underline; padding:.3rem 0; }
+  .dg-como{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:.7rem 1rem; margin-bottom:1rem; font-size:.84rem; }
+  .dg-como summary{ cursor:pointer; font-weight:700; color:var(--dg-choc); }
+  .dg-como li{ margin:.35rem 0; }
+  .dg-legacy{ background:var(--surface); border:1px dashed var(--border); border-radius:12px; padding:.6rem 1rem; margin-bottom:1rem; }
+  .dg-legacy > summary{ cursor:pointer; font-weight:700; color:var(--ink-muted); font-size:.85rem; }
+  @media (max-width:520px){ .dg-kpi-v{ font-size:1.45rem; } .dg-tbl{ font-size:.8rem; } }
 </style>
 
 <!-- Pantalla de acceso -- vuelta temporalmente a la contraseña compartida del equipo (25-oct-2026):
@@ -3012,6 +3073,7 @@ var TRIPLES = [
   function scheduleAutosave(){ clearTimeout(saveTimer); saveTimer = setTimeout(function(){ doSave(); }, 1500); }
 
   function deepClone(o){ return o == null ? o : JSON.parse(JSON.stringify(o)); }
+
   // ---------- División del Arqueo por días (ver ARQUEO_DIAS_COL arriba) ----------
   // Texto canónico (llaves ordenadas): Firestore devuelve los mapas con otro orden de llaves que
   // el que se guardó, así que para COMPARAR contenido nunca se usa JSON.stringify a secas.
@@ -10024,8 +10086,619 @@ var TRIPLES = [
     doWindowPrint("Produccion " + productoDisplay(reporte.producto) + " " + reporte.desde + "_" + reporte.hasta);
   }
 
+  // =====================================================================================
+  // DASHBOARD GERENCIAL PREMIUM (nov-2026) -- pedido de Jessica: "saber cuánto se produjo,
+  // cuánto se vendió y cuál es el saldo, sobre todo en Panadería", más las ventas de todas las
+  // categorías que se registran en Metas (jugos, batidos, sándwiches, cafés, dulces...).
+  //
+  // SOLO LEE. No escribe nada en Arqueo, Metas, Firebase ni en ningún registro histórico, y no
+  // crea formularios nuevos: todo sale de lo que ya se registra en esos dos módulos.
+  // (Se lee STATE.days[fecha] directo -- nunca getDay(), que rellena estructura -- para no
+  // tocar ni "ensuciar" ningún día guardado.)
+  //
+  // REGLA ANTI-DUPLICADO (una sola fuente de venta por producto):
+  //   1) Producto que existe en AMBOS módulos (ej. Muffin de manzana, Mixto clásico, Empanadas,
+  //      Miel, Masa madre...): la VENTA sale de METAS (reporte de ventas importado por código).
+  //      El conteo físico de Arqueo NO se suma: solo sirve de control (Diferencia = Metas −
+  //      físico). Su producción y su saldo sí salen de Arqueo (Metas no los tiene).
+  //   2) Producto solo en Arqueo (panes, bebidas, embutidos, triples, "Otros" sin equivalente):
+  //      la venta sale del conteo físico (ventas físicas) de Arqueo.
+  //   3) Producto solo en Metas (jugos, batidos, frozen, sándwiches, cafés): venta de Metas;
+  //      NO tiene producción ni saldo -- no se inventan (se muestra "sin dato", nunca 0).
+  //   4) Dudosos (Mini Butifarra, Mini Croissant, "Otros" con nombre parecido a Metas) NO se
+  //      suman al total general hasta que se confirme que no son la misma venta.
+  // Nunca se mezclan unidades, kilos y soles en un mismo total. Importes en soles: Arqueo y
+  // Metas solo guardan cantidades, así que no se muestran (no se inventan).
+  // =====================================================================================
+  var dashFiltro = { modo: "dia", ref: null, turno: "todo" };
+  var dashLegacyAbierto = false;
+  var dashPanTodos = false;
+
+  // Producto de Arqueo (Panes) -> producto de Metas, cuando el NOMBRE no es idéntico pero es
+  // el mismo producto (los idénticos se detectan solos con normName). Cada línea se revisó
+  // contra METAS_ITEM_LINKS y contra IMPORT_ALIASES (que usa el mismo nombre del reporte).
+  var DASH_EQUIV = [
+    ["Empanada Mixta", "Empanada mixta (jamón y queso)"],
+    ["Empanada Ají de Gallina", "Empanada de ají de gallina"],
+    ["Porción Pastel de Acelga con 3 Quesos", "Porción pastel de acelga"],
+    ["Muffins de Manzana", "Muffin de manzana"],
+    ["Muffins de Arándanos", "Muffin de arándanos"],
+    ["Muffins de Plátano y Chocolate", "Muffin de plátano y chocolate"],
+    ["Porción Fondant Chocolate", "Porción fondant de chocolate"],
+    ["Porción de Tarta de Queso y Vainilla", "Porción tarta de queso"],
+    ["Miel Frasco 250g", "Miel frasco 250gr"],
+    ["Miel Frasco 1.1 Kg", "Miel frasco 1.1kg"],
+    ["Miel Frasco 500g", "Miel frasco 500gr"],
+    ["Miel Frasco 200g", "Miel frasco 200gr"],
+    ["Pan Masa Madre Campesino", "Masa madre campesino"],
+    ["Pan de Centeno Masa Madre", "Masa madre centeno"],
+    ["Masa Madre con Frutos", "Masa madre con frutos secos"],
+    ["Molde Especial Semillas Chico", "Molde especial de semillas"]
+  ];
+  // Posible misma venta que los "Minis" de Metas (sándwiches) -- sin confirmar: se muestran en
+  // la tabla pero quedan FUERA del total general hasta que Jessica confirme.
+  var DASH_POR_CONFIRMAR = ["Mini Butifarra", "Mini Croissant de Jamón y Queso"];
+  var DASH_OTROS_PALABRAS = ["JUGO", "BATIDO", "FROZEN", "CAFE", "CAPUCCINO", "CAPPUCCINO", "ESPRESSO", "SANDWICH",
+    "SANGUCHE", "LIMONADA", "MIXTO", "MUFFIN", "EMPANADA", "MIEL", "GALLETA", "FONDANT", "TARTA", "CROISSANT"];
+
+  function dashSumarDias(iso, n){ return produccionFechaSumarDias(iso, n); }
+  function dashRango(modo, ref){
+    ref = ref || todayISO();
+    if(modo === "semana"){
+      var d = new Date(ref + "T12:00:00");
+      var desde = dashSumarDias(ref, -((d.getDay() + 6) % 7));
+      return { desde: desde, hasta: dashSumarDias(desde, 6) };
+    }
+    if(modo === "mes"){
+      var p = ref.split("-");
+      var y = +p[0], m = +p[1];
+      var ultimo = new Date(y, m, 0).getDate();
+      return { desde: p[0] + "-" + p[1] + "-01", hasta: p[0] + "-" + p[1] + "-" + (ultimo < 10 ? "0" : "") + ultimo };
+    }
+    return { desde: ref, hasta: ref };
+  }
+  function dashRangoEtiqueta(modo, r){
+    if(modo === "semana") return "Semana del " + fmtFechaDiaMes(r.desde) + " al " + fmtFechaDiaMes(r.hasta);
+    if(modo === "mes"){ var p = r.desde.split("-"); return MESES_LARGO[+p[1] - 1] + " " + p[0]; }
+    return fmtDateLabel(r.desde);
+  }
+  function dashRowOf(day, secKey, shift, idx){
+    var sec = day && day[secKey];
+    var arr = sec && sec[shift];
+    return (arr && arr[idx]) || null;
+  }
+  // Mismas fórmulas que ventasAm / ventasPm de Arqueo, pero tolerantes a filas que faltan
+  // (null = todavía no se contó el Saldo Final, nunca 0).
+  function dashVentaFisica(day, secKey, idx, shift){
+    var am = dashRowOf(day, secKey, "am", idx);
+    var pm = dashRowOf(day, secKey, "pm", idx);
+    if(shift === "am"){
+      if(!am || am.a == null || am.f == null) return null;
+      return num(am.a) + num(am.i1) + num(am.i2) + num(am.i3) - num(am.m) - num(am.f);
+    }
+    if(!pm || !am || pm.f == null || am.f == null) return null;
+    return num(am.f) + num(pm.i1) + num(pm.i2) + num(pm.i3) - num(pm.m) - num(pm.f);
+  }
+  // ¿Ese turno tiene datos de Metas? Solo si se importó un reporte de ventas o hay algún valor
+  // anotado -- un turno sin datos NO cuenta como "vendió 0" (ni suma meta).
+  function dashMetasConDatos(day, shift){
+    if(day.ventasCrudas && day.ventasCrudas[shift] && day.ventasCrudas[shift].length) return true;
+    var m = day.metas;
+    if(!m) return false;
+    for(var c = 0; c < METAS_CATEGORIAS.length; c++){
+      var sec = m[METAS_CATEGORIAS[c].key];
+      var arr = sec && sec[shift];
+      if(!arr) continue;
+      for(var i = 0; i < arr.length; i++){
+        var row = arr[i] || {};
+        for(var s = 0; s < METAS_CATEGORIAS[c].subcols.length; s++){
+          if(num(row[METAS_CATEGORIAS[c].subcols[s].key]) > 0) return true;
+        }
+      }
+    }
+    return false;
+  }
+  // ¿Ese turno tiene conteo de Arqueo? (al menos un Saldo Final contado en cualquier pestaña)
+  function dashArqueoContado(day, shift){
+    for(var t = 0; t < PRODUCT_TABS.length; t++){
+      var sec = day[SECTIONS[PRODUCT_TABS[t]].key];
+      var arr = sec && sec[shift];
+      if(!arr) continue;
+      for(var i = 0; i < arr.length; i++){ if(arr[i] && arr[i].f != null) return true; }
+    }
+    return false;
+  }
+  function dashObjetivos(date){
+    var wk = weekdayKeyFor(date);
+    return (STATE.metasObjetivos && STATE.metasObjetivos[wk]) || METAS_OBJETIVOS_DEFAULT[wk] || {};
+  }
+  function dashEsPorConfirmar(nombre){
+    var n = normName(nombre);
+    return DASH_POR_CONFIRMAR.some(function(x){ return normName(x) === n; });
+  }
+  // Mapa nombre normalizado de Arqueo -> {cat, idx, item} de Metas (iguales o por DASH_EQUIV).
+  function dashMapaMetas(){
+    var porItem = {};
+    METAS_CATEGORIAS.forEach(function(cat){
+      cat.items.forEach(function(it, idx){ porItem[normName(it)] = { cat: cat.key, idx: idx, item: it }; });
+    });
+    var mapa = {};
+    Object.keys(porItem).forEach(function(k){ mapa[k] = porItem[k]; });
+    DASH_EQUIV.forEach(function(par){
+      var t = porItem[normName(par[1])];
+      if(t) mapa[normName(par[0])] = t;
+    });
+    return { mapa: mapa, porItem: porItem };
+  }
+
+  // Consolida un rango. Devuelve TODO lo que pinta el dashboard; no guarda nada.
+  function dashConsolidar(desde, hasta, turno){
+    turno = turno || "todo";
+    var sel = turno === "todo" ? ["am", "pm"] : [turno];
+    var fechas = produccionFechasEnRango(desde, hasta);
+    var mm = dashMapaMetas();
+    var R = {
+      desde: desde, hasta: hasta, turno: turno, sel: sel, diasConDatos: 0, diasRango: fechas.length,
+      estado: { metasAm: 0, metasPm: 0, arqAm: 0, arqPm: 0 },
+      negativos: 0, avisos: [], loteCargando: false
+    };
+    // --- Metas: acumuladores por subcolumna (categoría × tamaño) y por producto ---
+    var mSub = {}, mMeta = {}, mItem = {};
+    METAS_CATEGORIAS.forEach(function(cat){
+      mSub[cat.key] = {}; mMeta[cat.key] = {}; mItem[cat.key] = cat.items.map(function(){ return { am: 0, pm: 0 }; });
+      cat.subcols.forEach(function(sc){ mSub[cat.key][sc.key] = { am: 0, pm: 0 }; mMeta[cat.key][sc.key] = { am: 0, pm: 0 }; });
+    });
+    // --- Productos de Arqueo: estructura fija por producto ---
+    var prods = [];
+    PRODUCT_TABS.forEach(function(tab){
+      var cat = catalogFor(tab) || [];
+      cat.forEach(function(name, idx){
+        if(isDescontinuado(tab, name)) return;
+        var n = normName(name);
+        var enlace = (tab === "panes") ? mm.mapa[n] : null;
+        var clase = "arqueo";
+        if(enlace) clase = "metas";
+        else if(tab === "panes" && dashEsPorConfirmar(name)) clase = "confirmar";
+        else if(tab === "otros"){
+          if(mm.porItem[n] || mm.mapa[n]) clase = "otros_dup";
+          else if(DASH_OTROS_PALABRAS.some(function(w){ return (" " + n + " ").indexOf(w) !== -1; })) clase = "otros_revisar";
+        }
+        prods.push({
+          tab: tab, secKey: SECTIONS[tab].key, idx: idx, name: name, kg: !!mozosEsProductoAlPeso(name),
+          clase: clase, metas: enlace || null, lote: tab === "panes" && produccionEsLote(name),
+          ing: { am: 0, pm: 0 }, ven: { am: null, pm: null }, saldo: { am: null, pm: null },
+          dif: { n: 0, neto: 0, hay: false }
+        });
+      });
+    });
+    fechas.forEach(function(date){
+      var day = STATE.days[date];
+      if(!day) return;
+      var mConDatos = { am: dashMetasConDatos(day, "am"), pm: dashMetasConDatos(day, "pm") };
+      var aConteo = { am: dashArqueoContado(day, "am"), pm: dashArqueoContado(day, "pm") };
+      if(!mConDatos.am && !mConDatos.pm && !aConteo.am && !aConteo.pm){
+        // día guardado pero vacío en ambos módulos: no cuenta como "día con datos"
+        var hayIngreso = false;
+        prods.forEach(function(p){
+          ["am", "pm"].forEach(function(sh){ var r = dashRowOf(day, p.secKey, sh, p.idx); if(r && (num(r.i1) + num(r.i2) + num(r.i3)) > 0) hayIngreso = true; });
+        });
+        if(!hayIngreso) return;
+      }
+      R.diasConDatos++;
+      if(mConDatos.am) R.estado.metasAm++;
+      if(mConDatos.pm) R.estado.metasPm++;
+      if(aConteo.am) R.estado.arqAm++;
+      if(aConteo.pm) R.estado.arqPm++;
+      // ---- Metas ----
+      var objs = dashObjetivos(date);
+      METAS_CATEGORIAS.forEach(function(cat){
+        var sec = day.metas && day.metas[cat.key];
+        ["am", "pm"].forEach(function(sh){
+          if(!mConDatos[sh]) return;
+          var arr = (sec && sec[sh]) || [];
+          arr.forEach(function(row, idx){
+            if(!row || !mItem[cat.key][idx]) return;
+            cat.subcols.forEach(function(sc){
+              var v = num(row[sc.key]);
+              if(v < 0){ R.negativos++; return; }
+              mSub[cat.key][sc.key][sh] += v;
+              mItem[cat.key][idx][sh] += v;
+            });
+          });
+          if(cat.conMeta){
+            var o = (objs[cat.key] && objs[cat.key][sh]) || [];
+            cat.subcols.forEach(function(sc, si){ mMeta[cat.key][sc.key][sh] += num(o[si]); });
+          }
+        });
+      });
+      // ---- Arqueo por producto ----
+      prods.forEach(function(p){
+        ["am", "pm"].forEach(function(sh){
+          var row = dashRowOf(day, p.secKey, sh, p.idx);
+          if(row) p.ing[sh] += num(row.i1) + num(row.i2) + num(row.i3);
+          if(row && row.f != null){
+            var ord = date + (sh === "pm" ? "b" : "a");
+            if(!p.saldo[sh] || ord > p.saldo[sh].ord) p.saldo[sh] = { v: num(row.f), fecha: date, ord: ord };
+          }
+          var fis = dashVentaFisica(day, p.secKey, p.idx, sh);
+          if(fis !== null && fis < 0){ R.negativos++; fis = null; }
+          var v;
+          if(p.clase === "metas"){
+            // Venta = Metas (única fuente). Solo si ese turno tiene datos de Metas.
+            v = mConDatos[sh] ? ((mItem[p.metas.cat][p.metas.idx] && dashMetasItemDia(day, p.metas, sh)) || 0) : null;
+          } else {
+            v = fis;
+          }
+          if(v !== null){ p.ven[sh] = (p.ven[sh] || 0) + v; }
+          // Diferencias (control): caja − físico
+          if(p.clase === "arqueo" || p.clase === "confirmar"){
+            if(fis !== null && row){
+              var caja = row.vc == null ? (fis === 0 ? null : 0) : num(row.vc);
+              if(caja !== null){ var dd = round2(caja - fis); p.dif.hay = true; if(Math.abs(dd) > 0.004){ p.dif.n++; p.dif.neto = round2(p.dif.neto + dd); } }
+            }
+          }
+        });
+        if(p.clase === "metas"){
+          // Control: Metas (POS) − físico, en los turnos donde existen los dos datos.
+          var fAm = dashVentaFisica(day, p.secKey, p.idx, "am"), fPm = dashVentaFisica(day, p.secKey, p.idx, "pm");
+          var vAm = mConDatos.am ? dashMetasItemDia(day, p.metas, "am") : null;
+          var vPm = mConDatos.pm ? dashMetasItemDia(day, p.metas, "pm") : null;
+          var pares = [];
+          if(vAm !== null && vPm !== null){
+            if(turno !== "pm" && fAm !== null) pares.push([vAm, fAm]);
+            if(turno !== "am" && fPm !== null) pares.push([vPm, fPm]);
+          } else if(vPm !== null && turno !== "am" && fAm !== null && fPm !== null){
+            // solo se importó el cierre de la tarde = total del día completo (ver applyImportToMetas)
+            pares.push([vPm, fAm + fPm]);
+          } else if(vAm !== null && vPm === null && turno !== "pm" && fAm !== null){
+            pares.push([vAm, fAm]);
+          }
+          pares.forEach(function(pr){
+            var dd = round2(pr[0] - pr[1]);
+            p.dif.hay = true;
+            if(Math.abs(dd) > 0.004){ p.dif.n++; p.dif.neto = round2(p.dif.neto + dd); }
+          });
+        }
+      });
+    });
+    // --- Lote (Empanada de carne): la producción sale de los movimientos de taller, no de Arqueo ---
+    var movs = PRODUCCION_MOVIMIENTOS;
+    if(movs === null && !PRODUCCION_MOVIMIENTOS_ERROR) R.loteCargando = true;
+    if(movs === null && PRODUCCION_MOVIMIENTOS_ERROR) R.avisos.push("No se pudo cargar el historial de lotes de taller: la producción de Empanada de carne aparece en 0.");
+    function selSum(o){ var t = 0, hay = false; sel.forEach(function(sh){ if(o[sh] !== null && o[sh] !== undefined){ t += o[sh]; hay = true; } }); return hay ? t : null; }
+    function selSumIng(o){ var t = 0; sel.forEach(function(sh){ t += o[sh]; }); return t; }
+    function saldoSel(p){
+      var best = null;
+      sel.forEach(function(sh){ var s = p.saldo[sh]; if(s && (!best || s.ord > best.ord)) best = s; });
+      return best;
+    }
+    // --- Panadería ---
+    var pan = { filas: [], ocultos: 0, kgFilas: [], tot: { prod: 0, venta: 0, saldo: 0, difN: 0, difNeto: 0 },
+      turnoDet: { am: { prod: 0, venta: 0, saldo: 0, ventaPend: 0, saldoN: 0 }, pm: { prod: 0, venta: 0, saldo: 0, ventaPend: 0, saldoN: 0 } },
+      kg: { prod: 0, venta: 0, saldo: 0, hay: false } };
+    prods.forEach(function(p){
+      if(p.tab !== "panes") return;
+      var prod = selSumIng(p.ing);
+      if(p.lote){
+        prod = 0;
+        if(movs) movs.forEach(function(m){
+          if(m.tipo === "producido" && produccionNormProducto(m.producto || "") === normName(p.name) && m.fecha >= desde && m.fecha <= hasta) prod += num(m.cantidad);
+        });
+      }
+      var ven = selSum(p.ven);
+      var sd = saldoSel(p);
+      var fila = { p: p, nombre: p.name, producido: prod, vendido: ven, saldo: sd ? sd.v : null, saldoFecha: sd ? sd.fecha : null,
+        difN: p.dif.n, difNeto: p.dif.neto, difHay: p.dif.hay, fuente: p.clase === "metas" ? "metas" : "arqueo", clase: p.clase, kg: p.kg, lote: p.lote };
+      var activo = prod > 0 || (ven !== null && ven > 0) || (sd && sd.v !== 0);
+      if(!activo){ pan.ocultos++; return; }
+      if(p.kg){
+        pan.kgFilas.push(fila);
+        pan.kg.hay = true; pan.kg.prod += prod; pan.kg.venta += (ven || 0); pan.kg.saldo += (sd ? sd.v : 0);
+        return;
+      }
+      pan.filas.push(fila);
+      pan.tot.prod += prod; pan.tot.venta += (ven || 0); pan.tot.saldo += (sd ? sd.v : 0);
+      pan.tot.difN += p.dif.n; pan.tot.difNeto = round2(pan.tot.difNeto + p.dif.neto);
+      // detalle por turno (siempre los dos turnos, sin importar el filtro de turno)
+      ["am", "pm"].forEach(function(sh){
+        if(!p.lote) pan.turnoDet[sh].prod += p.ing[sh];
+        if(p.ven[sh] !== null) pan.turnoDet[sh].venta += p.ven[sh]; else pan.turnoDet[sh].ventaPend++;
+        if(p.saldo[sh]){ pan.turnoDet[sh].saldo += p.saldo[sh].v; pan.turnoDet[sh].saldoN++; }
+      });
+    });
+    pan.filas.sort(function(a, b){ return ((b.vendido || 0) - (a.vendido || 0)) || ((b.producido || 0) - (a.producido || 0)) || a.nombre.localeCompare(b.nombre); });
+    R.pan = pan;
+    // --- Categorías: Metas ---
+    var cats = [];
+    var totMetasUnid = 0, metaReal = 0, metaObj = 0;
+    METAS_CATEGORIAS.forEach(function(cat){
+      cat.subcols.forEach(function(sc){
+        var etiqueta = cat.label;
+        if(cat.key === "frutas") etiqueta = sc.label;
+        else if(cat.key === "sanguches") etiqueta = "Sándwiches · " + sc.label;
+        else if(cat.key === "dulces") etiqueta = "Dulces y postres";
+        else if(cat.key === "cafes") etiqueta = "Cafés";
+        else if(cat.key === "saludables") etiqueta = "Panes saludables (masa madre)";
+        else if(cat.key === "empanadas") etiqueta = "Empanadas y pasteles salados";
+        var s = mSub[cat.key][sc.key], mt = mMeta[cat.key][sc.key];
+        var real = selSum(s) || 0;
+        var meta = cat.conMeta ? selSum(mt) : null;
+        cats.push({ grupo: "metas", key: cat.key + "." + sc.key, etiqueta: etiqueta, am: s.am, pm: s.pm, total: real,
+          meta: cat.conMeta ? (meta || 0) : null, pct: (cat.conMeta && meta > 0) ? real / meta : null });
+        totMetasUnid += real;
+        if(cat.conMeta && meta > 0){ metaReal += real; metaObj += meta; }
+      });
+    });
+    R.cumpl = { real: metaReal, meta: metaObj, pct: metaObj > 0 ? metaReal / metaObj : null };
+    // --- Categorías: solo Arqueo (sin equivalente en Metas) ---
+    var GRUPOS = [
+      { key: "a.panes", tab: "panes", clase: "arqueo", etiqueta: "Panes y pastelería (solo Arqueo)" },
+      { key: "a.bebidas", tab: "bebidas", clase: "arqueo", etiqueta: "Bebidas embotelladas y lácteos" },
+      { key: "a.embutidos", tab: "embutidos", clase: "arqueo", etiqueta: "Embutidos y quesos" },
+      { key: "a.triples", tab: "triples", clase: "arqueo", etiqueta: "Triples" },
+      { key: "a.otros", tab: "otros", clase: "arqueo", etiqueta: "Otros (catálogo libre de Arqueo)" }
+    ];
+    var totArqUnid = 0, kgVenta = 0, kgHay = false, porConfirmar = 0, revisarUnid = 0;
+    GRUPOS.forEach(function(g){
+      var am = 0, pm = 0, kgA = 0, kgP = 0, n = 0, hayAm = false, hayPm = false;
+      prods.forEach(function(p){
+        if(p.tab !== g.tab || p.clase !== g.clase) return;
+        n++;
+        if(p.kg){ kgA += p.ven.am || 0; kgP += p.ven.pm || 0; if(p.ven.am !== null || p.ven.pm !== null) kgHay = true; }
+        else { am += p.ven.am || 0; pm += p.ven.pm || 0; }
+        if(p.ven.am !== null) hayAm = true;
+        if(p.ven.pm !== null) hayPm = true;
+      });
+      var kgTot = (sel.indexOf("am") !== -1 ? kgA : 0) + (sel.indexOf("pm") !== -1 ? kgP : 0);
+      kgVenta += kgTot;
+      var tot = (sel.indexOf("am") !== -1 ? am : 0) + (sel.indexOf("pm") !== -1 ? pm : 0);
+      totArqUnid += tot;
+      if(n > 0 && (hayAm || hayPm || g.tab !== "otros")) cats.push({ grupo: "arqueo", key: g.key, etiqueta: g.etiqueta, am: am, pm: pm, total: tot, meta: null, pct: null, kg: kgTot, sinDatos: !hayAm && !hayPm });
+    });
+    // Dudosos: no entran al total general
+    prods.forEach(function(p){
+      if(p.clase === "confirmar" || p.clase === "otros_revisar" || p.clase === "otros_dup"){
+        var v = selSum(p.ven) || 0;
+        if(p.clase === "confirmar") porConfirmar += v; else revisarUnid += v;
+      }
+    });
+    var dud = { clase: "revisar", key: "revisar", etiqueta: "Por confirmar (posible misma venta que Metas)", am: 0, pm: 0, total: porConfirmar + revisarUnid, meta: null, pct: null, nombres: [] };
+    prods.forEach(function(p){
+      if(p.clase === "confirmar" || p.clase === "otros_revisar" || p.clase === "otros_dup"){
+        var v = selSum(p.ven);
+        if(v !== null && v > 0){ dud.am += p.ven.am || 0; dud.pm += p.ven.pm || 0; dud.nombres.push(p.name); }
+      }
+    });
+    R.dudosos = dud;
+    R.cats = cats;
+    R.totales = { metas: totMetasUnid, arqueo: totArqUnid, unid: totMetasUnid + totArqUnid, kg: kgVenta, kgHay: kgHay, porConfirmar: dud.total };
+    if(R.negativos) R.avisos.push(R.negativos + " valor(es) negativo(s) excluidos de los totales (revisar el reporte importado o el conteo).");
+    return R;
+  }
+  function dashMetasItemDia(day, ref, shift){
+    var sec = day.metas && day.metas[ref.cat];
+    var row = sec && sec[shift] && sec[shift][ref.idx];
+    if(!row) return 0;
+    var cat = METAS_CATEGORIAS.filter(function(c){ return c.key === ref.cat; })[0];
+    var t = 0;
+    cat.subcols.forEach(function(sc){ var v = num(row[sc.key]); if(v > 0) t += v; });
+    return t;
+  }
+
+  // ---------- Pantalla ----------
+  function dashN(v){ return (v === null || v === undefined) ? "—" : fmt(v); }
+  function dashEl(tag, cls, html){
+    var e = document.createElement(tag);
+    if(cls) e.className = cls;
+    if(html !== undefined) e.innerHTML = html;
+    return e;
+  }
+  function dashChipFuente(f){
+    return f === "metas" ? "<span class=\"dg-src dg-src-metas\" title=\"Venta tomada de Metas (reporte de ventas por código)\">Metas</span>"
+      : "<span class=\"dg-src dg-src-arq\" title=\"Venta tomada del conteo físico de Arqueo\">Arqueo</span>";
+  }
+  function dashBarra(pct){
+    var w = Math.max(0, Math.min(100, Math.round(pct * 100)));
+    var cls = pct >= 1 ? "ok" : (pct >= 0.7 ? "mid" : "low");
+    return "<div class=\"dg-bar\"><i class=\"" + cls + "\" style=\"width:" + w + "%\"></i></div>";
+  }
+  function dashKpi(titulo, valor, sub, clase){
+    return "<div class=\"dg-kpi" + (clase ? " " + clase : "") + "\"><div class=\"dg-kpi-t\">" + esc(titulo) + "</div><div class=\"dg-kpi-v\">" + valor + "</div><div class=\"dg-kpi-s\">" + sub + "</div></div>";
+  }
+  function buildDashboardPremium(){
+    var f = dashFiltro;
+    if(!f.ref) f.ref = todayISO();
+    var rango = dashRango(f.modo, f.ref);
+    var R = dashConsolidar(rango.desde, rango.hasta, f.turno);
+    var sel = R.sel;
+    var verAm = sel.indexOf("am") !== -1, verPm = sel.indexOf("pm") !== -1;
+    var wrap = dashEl("div", "dg");
+
+    // ---- Encabezado + filtros ----
+    var head = dashEl("div", "dg-head");
+    head.appendChild(dashEl("div", "dg-eyebrow", "Carmelitas Pan · Gerencia"));
+    head.appendChild(dashEl("h2", "dg-title", "Producción, ventas y saldos"));
+    head.appendChild(dashEl("div", "dg-range", esc(dashRangoEtiqueta(f.modo, rango))));
+    var filtros = dashEl("div", "dg-filtros");
+    var segModo = dashEl("div", "dg-seg");
+    [["dia", "Día"], ["semana", "Semana"], ["mes", "Mes"]].forEach(function(o){
+      var b = dashEl("button", "dg-seg-b" + (f.modo === o[0] ? " on" : ""), o[1]);
+      b.type = "button";
+      b.addEventListener("click", function(){ dashFiltro.modo = o[0]; renderPanel(); });
+      segModo.appendChild(b);
+    });
+    filtros.appendChild(segModo);
+    var nav = dashEl("div", "dg-nav");
+    var prev = dashEl("button", "dg-nav-b", "‹"); prev.type = "button"; prev.setAttribute("aria-label", "Anterior");
+    var next = dashEl("button", "dg-nav-b", "›"); next.type = "button"; next.setAttribute("aria-label", "Siguiente");
+    function paso(dir){
+      var r = dashRango(dashFiltro.modo, dashFiltro.ref);
+      if(dashFiltro.modo === "dia") dashFiltro.ref = dashSumarDias(dashFiltro.ref, dir);
+      else if(dashFiltro.modo === "semana") dashFiltro.ref = dashSumarDias(r.desde, dir * 7);
+      else { var p = r.desde.split("-"); var d = new Date(+p[0], +p[1] - 1 + dir, 1, 12); dashFiltro.ref = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-01"; }
+      renderPanel();
+    }
+    prev.addEventListener("click", function(){ paso(-1); });
+    next.addEventListener("click", function(){ paso(1); });
+    var inp = document.createElement("input");
+    inp.type = "date"; inp.className = "dg-date"; inp.value = f.ref; inp.name = "dash-fecha";
+    inp.addEventListener("change", function(){ if(inp.value){ dashFiltro.ref = inp.value; renderPanel(); } });
+    nav.appendChild(prev); nav.appendChild(inp); nav.appendChild(next);
+    filtros.appendChild(nav);
+    var segTurno = dashEl("div", "dg-seg");
+    [["todo", "Todo el día"], ["am", "Mañana"], ["pm", "Tarde"]].forEach(function(o){
+      var b = dashEl("button", "dg-seg-b" + (f.turno === o[0] ? " on" : ""), o[1]);
+      b.type = "button";
+      b.addEventListener("click", function(){ dashFiltro.turno = o[0]; renderPanel(); });
+      segTurno.appendChild(b);
+    });
+    filtros.appendChild(segTurno);
+    head.appendChild(filtros);
+    wrap.appendChild(head);
+
+    // ---- Estado de los datos ----
+    var est = R.estado;
+    var estado = dashEl("div", "dg-estado");
+    if(!R.diasConDatos){
+      estado.innerHTML = "<strong>Sin datos en este período.</strong> No hay conteo de Arqueo ni ventas de Metas guardados entre estas fechas.";
+      wrap.appendChild(estado);
+    } else {
+      estado.innerHTML = "Días con datos: <strong>" + R.diasConDatos + "</strong> de " + R.diasRango +
+        " · Metas (ventas): mañana " + est.metasAm + ", tarde " + est.metasPm +
+        " · Arqueo (conteo): mañana " + est.arqAm + ", tarde " + est.arqPm +
+        ". <span class=\"dg-mute\">Un turno sin datos aparece como “—” (pendiente), nunca como 0.</span>";
+      wrap.appendChild(estado);
+    }
+    R.avisos.forEach(function(a){ wrap.appendChild(dashEl("div", "dg-aviso", "⚠ " + esc(a))); });
+
+    // ---- KPIs ----
+    var pan = R.pan;
+    var kpis = dashEl("div", "dg-kpis");
+    var cumplTxt = R.cumpl.pct === null ? "—" : Math.round(R.cumpl.pct * 100) + "%";
+    var cumplSub = R.cumpl.pct === null ? "Sin metas con datos" : fmt(R.cumpl.real) + " de " + fmt(R.cumpl.meta) + " unid. meta";
+    kpis.innerHTML =
+      dashKpi("Producción Panadería", fmt(pan.tot.prod) + " <small>unid.</small>", pan.kg.hay ? "+ " + fmt(pan.kg.prod) + " kg (aparte)" : "Ingresos de Arqueo" + (R.loteCargando ? " · cargando lote…" : "")) +
+      dashKpi("Ventas Panadería", fmt(pan.tot.venta) + " <small>unid.</small>", pan.kg.hay ? "+ " + fmt(pan.kg.venta) + " kg (aparte)" : "Metas + conteo físico") +
+      dashKpi("Saldo Panadería", fmt(pan.tot.saldo) + " <small>unid.</small>", pan.tot.difN ? ("<span class=\"dg-warn\">" + pan.tot.difN + " diferencia(s) por revisar</span>") : "Sin diferencias detectadas", pan.tot.difN ? "warn" : "") +
+      dashKpi("Ventas totales", fmt(R.totales.unid) + " <small>unid.</small>", "Metas " + fmt(R.totales.metas) + " + solo Arqueo " + fmt(R.totales.arqueo) + (R.totales.kgHay ? " · " + fmt(R.totales.kg) + " kg aparte" : "")) +
+      dashKpi("Cumplimiento de metas", cumplTxt, cumplSub, "gold");
+    wrap.appendChild(kpis);
+    wrap.appendChild(dashEl("div", "dg-nota", "Importes en soles: Arqueo y Metas solo guardan cantidades, por eso no se muestran. Unidades y kilos nunca se suman entre sí."));
+
+    // ---- Panadería ----
+    var secPan = dashEl("div", "dg-card");
+    secPan.appendChild(dashEl("h3", "dg-h3", "Panadería · producido, vendido y saldo"));
+    secPan.appendChild(dashEl("div", "dg-sub", "Pestaña Panes de Arqueo. Producido = ingresos del taller · Vendido = Metas (productos que están en ambos módulos) o conteo físico · Saldo = último Saldo Final contado en el período."));
+    // detalle por turno
+    var td = pan.turnoDet;
+    var tTurno = "<div class=\"dg-turno\"><table class=\"dg-tbl dg-tbl-s\"><thead><tr><th></th><th class=\"n\">Mañana</th><th class=\"n\">Tarde</th></tr></thead><tbody>" +
+      "<tr><td>Producción</td><td class=\"n\">" + fmt(td.am.prod) + "</td><td class=\"n\">" + fmt(td.pm.prod) + "</td></tr>" +
+      "<tr><td>Ventas</td><td class=\"n\">" + (est.metasAm || est.arqAm ? fmt(td.am.venta) : "—") + "</td><td class=\"n\">" + (est.metasPm || est.arqPm ? fmt(td.pm.venta) : "—") + "</td></tr>" +
+      "<tr><td>Saldo al cierre</td><td class=\"n\">" + (td.am.saldoN ? fmt(td.am.saldo) : "—") + "</td><td class=\"n\">" + (td.pm.saldoN ? fmt(td.pm.saldo) : "—") + "</td></tr>" +
+      "</tbody></table><div class=\"dg-mute\">Detalle por turno (el lote de Empanada de carne va solo en el total).</div></div>";
+    secPan.appendChild(dashEl("div", "", tTurno));
+    var rows = pan.filas;
+    var mostrar = dashPanTodos ? rows : rows.slice(0, 12);
+    var tabla = "<div class=\"dg-wrap\"><table class=\"dg-tbl\"><thead><tr><th>Producto</th><th class=\"n\">Producido</th><th class=\"n\">Vendido</th><th class=\"n\">Saldo</th><th class=\"n\">Dif.</th><th>Fuente</th></tr></thead><tbody>";
+    if(!mostrar.length) tabla += "<tr><td colspan=\"6\" class=\"dg-vacio\">Sin movimiento de Panadería en este período.</td></tr>";
+    mostrar.forEach(function(r){
+      var dif = "—";
+      if(r.difHay) dif = r.difN ? "<span class=\"dg-bad\">" + (r.difNeto > 0 ? "+" : "") + fmt(r.difNeto) + "</span>" : "<span class=\"dg-ok\">0</span>";
+      var nombre = esc(productoDisplay(r.nombre));
+      if(r.clase === "confirmar") nombre += " <span class=\"dg-tag\" title=\"Puede ser la misma venta que los Minis de Metas: no entra al total general hasta confirmar\">por confirmar</span>";
+      if(r.lote) nombre += " <span class=\"dg-tag\" title=\"Se produce por lotes en el taller\">lote</span>";
+      var prodTxt = (r.lote && R.loteCargando) ? "…" : fmt(r.producido);
+      tabla += "<tr><td>" + nombre + "</td><td class=\"n\">" + prodTxt + "</td><td class=\"n\">" + dashN(r.vendido) + "</td><td class=\"n\">" + dashN(r.saldo) + "</td><td class=\"n\">" + dif + "</td><td>" + dashChipFuente(r.fuente) + "</td></tr>";
+    });
+    if(rows.length){
+      tabla += "<tr class=\"tot\"><td>Total unidades</td><td class=\"n\">" + fmt(pan.tot.prod) + "</td><td class=\"n\">" + fmt(pan.tot.venta) + "</td><td class=\"n\">" + fmt(pan.tot.saldo) + "</td><td class=\"n\">" + (pan.tot.difN ? (pan.tot.difNeto > 0 ? "+" : "") + fmt(pan.tot.difNeto) : "0") + "</td><td></td></tr>";
+    }
+    pan.kgFilas.forEach(function(r){
+      tabla += "<tr class=\"kg\"><td>" + esc(productoDisplay(r.nombre)) + " <span class=\"dg-tag\">kg</span></td><td class=\"n\">" + fmt(r.producido) + " kg</td><td class=\"n\">" + (r.vendido === null ? "—" : fmt(r.vendido) + " kg") + "</td><td class=\"n\">" + (r.saldo === null ? "—" : fmt(r.saldo) + " kg") + "</td><td class=\"n\">—</td><td>" + dashChipFuente(r.fuente) + "</td></tr>";
+    });
+    tabla += "</tbody></table></div>";
+    secPan.appendChild(dashEl("div", "", tabla));
+    var pie = dashEl("div", "dg-pie");
+    if(rows.length > 12){
+      var bt = dashEl("button", "dg-link", dashPanTodos ? "Ver solo los 12 principales" : "Ver los " + rows.length + " productos");
+      bt.type = "button";
+      bt.addEventListener("click", function(){ dashPanTodos = !dashPanTodos; renderPanel(); });
+      pie.appendChild(bt);
+    }
+    if(pan.ocultos) pie.appendChild(dashEl("span", "dg-mute", pan.ocultos + " producto(s) sin movimiento ni saldo en este período no se muestran."));
+    secPan.appendChild(pie);
+    wrap.appendChild(secPan);
+
+    // ---- Ventas por categoría ----
+    var secCat = dashEl("div", "dg-card");
+    secCat.appendChild(dashEl("h3", "dg-h3", "Ventas por categoría"));
+    secCat.appendChild(dashEl("div", "dg-sub", "Unidades vendidas. Cada producto cuenta una sola vez: lo que está en Metas se toma de Metas; “solo Arqueo” es lo que Metas no registra."));
+    var maxTot = 0;
+    R.cats.forEach(function(c){ if(c.total > maxTot) maxTot = c.total; });
+    var th = "<div class=\"dg-wrap\"><table class=\"dg-tbl\"><thead><tr><th>Categoría</th>" + (verAm ? "<th class=\"n\">Mañana</th>" : "") + (verPm ? "<th class=\"n\">Tarde</th>" : "") + "<th class=\"n\">Total</th><th class=\"n\">Meta</th><th class=\"dg-cumpl\">Cumplimiento</th></tr></thead><tbody>";
+    function filaCat(c){
+      var cumpl = c.pct === null ? "<span class=\"dg-mute\">" + (c.meta === null ? "sin meta" : "—") + "</span>" : "<span class=\"dg-pct\">" + Math.round(c.pct * 100) + "%</span>" + dashBarra(c.pct);
+      var sinAm = c.sinDatos || (c.grupo === "metas" && !est.metasAm);
+      var sinPm = c.sinDatos || (c.grupo === "metas" && !est.metasPm);
+      var tot = (sinAm && sinPm) || (!verPm && sinAm) || (!verAm && sinPm) ? "—" : fmt(c.total);
+      var extra = c.kg ? " <span class=\"dg-mute\">+ " + fmt(c.kg) + " kg</span>" : "";
+      return "<tr><td>" + esc(c.etiqueta) + extra + "</td>" + (verAm ? "<td class=\"n\">" + (sinAm ? "—" : fmt(c.am)) + "</td>" : "") + (verPm ? "<td class=\"n\">" + (sinPm ? "—" : fmt(c.pm)) + "</td>" : "") +
+        "<td class=\"n strong\">" + tot + "</td><td class=\"n\">" + (c.meta === null ? "—" : fmt(c.meta)) + "</td><td class=\"dg-cumpl\">" + cumpl + "</td></tr>";
+    }
+    var colspan = 4 + (verAm ? 1 : 0) + (verPm ? 1 : 0);
+    th += "<tr class=\"grp\"><td colspan=\"" + colspan + "\">Registradas en Metas</td></tr>";
+    R.cats.filter(function(c){ return c.grupo === "metas"; }).forEach(function(c){ th += filaCat(c); });
+    th += "<tr class=\"sub\"><td>Subtotal Metas</td>" + (verAm ? "<td></td>" : "") + (verPm ? "<td></td>" : "") + "<td class=\"n strong\">" + fmt(R.totales.metas) + "</td><td></td><td></td></tr>";
+    th += "<tr class=\"grp\"><td colspan=\"" + colspan + "\">Registradas solo en Arqueo</td></tr>";
+    R.cats.filter(function(c){ return c.grupo === "arqueo"; }).forEach(function(c){ th += filaCat(c); });
+    th += "<tr class=\"sub\"><td>Subtotal solo Arqueo</td>" + (verAm ? "<td></td>" : "") + (verPm ? "<td></td>" : "") + "<td class=\"n strong\">" + fmt(R.totales.arqueo) + "</td><td></td><td></td></tr>";
+    th += "<tr class=\"tot\"><td>Total ventas (unidades)</td>" + (verAm ? "<td></td>" : "") + (verPm ? "<td></td>" : "") + "<td class=\"n strong\">" + fmt(R.totales.unid) + "</td><td></td><td></td></tr>";
+    th += "</tbody></table></div>";
+    secCat.appendChild(dashEl("div", "", th));
+    if(R.dudosos.total > 0){
+      secCat.appendChild(dashEl("div", "dg-aviso", "Por confirmar, fuera del total: " + fmt(R.dudosos.total) + " unid. (" + esc(R.dudosos.nombres.map(productoDisplay).join(", ")) + "). Pueden ser la misma venta que ya está en Metas; se suman solo cuando Jessica lo confirme."));
+    }
+    wrap.appendChild(secCat);
+
+    // ---- Cómo se calcula ----
+    var det = document.createElement("details");
+    det.className = "dg-como";
+    det.innerHTML = "<summary>Cómo se calcula cada número</summary>" +
+      "<ul>" +
+      "<li><strong>Una sola fuente por producto.</strong> Si el producto está en Metas y en Arqueo, la venta es la de Metas (reporte de ventas) y el conteo físico solo se usa para detectar diferencias. Nunca se suman las dos.</li>" +
+      "<li><strong>Producción</strong> solo existe para Panadería: es el ingreso que ya se registra en Arqueo (más el lote de Empanada de carne). Jugos, batidos, cafés y sándwiches de Metas solo tienen ventas: no se inventa producción.</li>" +
+      "<li><strong>Saldo</strong> = último Saldo Final contado en el período. Si no se contó, aparece “—”.</li>" +
+      "<li><strong>Diferencia</strong> = venta de caja/Metas menos venta física. Positivo = más en caja que lo que salió del estante.</li>" +
+      "<li><strong>Cumplimiento</strong> = vendido ÷ meta, solo de los turnos que tienen datos (un turno sin importar no se castiga como 0).</li>" +
+      "<li><strong>Unidades, kilos y soles</strong> no se mezclan. Los kilos van aparte; los soles no existen en estos módulos.</li>" +
+      "</ul>";
+    wrap.appendChild(det);
+    return wrap;
+  }
+
   // ---- UI ----
   function buildProduccionPanel(){
+    var wrap = document.createElement("div");
+    wrap.appendChild(buildDashboardPremium());
+    // El lote de taller (Empanada de carne) se carga en segundo plano; el dashboard no espera por él.
+    if(PRODUCCION_MOVIMIENTOS === null && !PRODUCCION_MOVIMIENTOS_ERROR && !produccionCargando && db){
+      produccionCargarMovimientos().then(function(){ if(currentTab === "controlprod") renderPanel(); }).catch(function(){ if(currentTab === "controlprod") renderPanel(); });
+    }
+    // Prototipo anterior intacto, plegado: solo se construye cuando se abre.
+    var det = document.createElement("details");
+    det.className = "dg-legacy";
+    var sm = document.createElement("summary");
+    sm.textContent = "Prototipo anterior: registrar y consultar producción por producto";
+    det.appendChild(sm);
+    var cont = document.createElement("div");
+    det.appendChild(cont);
+    function llenar(){ cont.innerHTML = ""; cont.appendChild(buildProduccionPanelLegacy()); }
+    det.addEventListener("toggle", function(){ dashLegacyAbierto = det.open; if(det.open && !cont.firstChild) llenar(); });
+    if(dashLegacyAbierto){ det.open = true; llenar(); }
+    wrap.appendChild(det);
+    return wrap;
+  }
+  function buildProduccionPanelLegacy(){
     var wrap = document.createElement("div");
     var card = document.createElement("div");
     card.className = "card";
@@ -13244,6 +13917,7 @@ var TRIPLES = [
       }) : [ { producto:"", cantidad:1, precio:0, fecha: currentDate, obs:"" } ]
     };
     pedidoEditingId = p.id;
+    pedidoSnapGuardado = deepClone(pedidoPayloadDesdeDraft(pedidoDraft));
     pedidosView = "nuevo";
     renderPanel();
   }
@@ -13265,6 +13939,34 @@ var TRIPLES = [
     el.textContent = "Los cambios se guardan solos";
     el.style.color = "";
   }
+  // Auditoría Navidad (nov-2026): el autoguardado de "Editar pedido" mandaba SIEMPRE todos los
+  // campos del formulario (incluidos "pagado" y las fotos del comprobante). Si otra tablet
+  // confirmaba el pago (o subía la foto) mientras este formulario seguía abierto con la copia
+  // vieja, el siguiente autoguardado devolvía "pagado" a falso y borraba el comprobante. Ahora se
+  // guarda un registro de lo último que se escribió/leyó (pedidoSnapGuardado) y el autoguardado
+  // manda SOLO los campos que esta pantalla cambió de verdad -- lo demás no se toca.
+  var pedidoSnapGuardado = null;
+  function pedidoPayloadDesdeDraft(draft){
+    var validItems = (draft.items || []).filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
+    return {
+      canal: draft.canal,
+      origen: draft.origen || "whatsapp",
+      cliente: pedidoClienteNormalizado(draft.cliente),
+      tipoPago: draft.tipoPago || "",
+      atendidoPor: tituloCase(draft.atendidoPor || ""),
+      pagado: !!draft.pagado,
+      comprobante: draft.comprobante || null,
+      comprobante2: draft.comprobante2 || null,
+      deliveryMonto: pedidoDeliveryTotal(draft),
+      masivoModo: draft.canal === "masivo" ? draft.masivoModo : "",
+      masivoDeliveryRate: draft.canal === "masivo" ? num(draft.masivoDeliveryRate) : 0,
+      hora: draft.hora || "",
+      notas: tituloCase(draft.notas || ""),
+      items: validItems.map(function(it){
+        return { producto: it.producto.trim(), cantidad: num(it.cantidad), precio: num(it.precio), fecha: it.fecha || draft.fechaDefault, obs: (it.obs || "").trim() };
+      })
+    };
+  }
   function schedulePedidoAutosave(){
     if(!pedidoEditingId || readOnly) return;
     clearTimeout(pedidoSaveTimer);
@@ -13285,31 +13987,26 @@ var TRIPLES = [
     // foto (o se destilde "Pagado"), el resto de cambios pendientes se guarda solo.
     if(pedidoFaltaFotoComprobante(draft)) return;
     var id = pedidoEditingId;
-    var payload = {
-      canal: draft.canal,
-      origen: draft.origen || "whatsapp",
-      cliente: pedidoClienteNormalizado(draft.cliente),
-      tipoPago: draft.tipoPago || "",
-      atendidoPor: tituloCase(draft.atendidoPor || ""),
-      pagado: !!draft.pagado,
-      comprobante: draft.comprobante || null,
-      comprobante2: draft.comprobante2 || null,
-      deliveryMonto: pedidoDeliveryTotal(draft),
-      masivoModo: draft.canal === "masivo" ? draft.masivoModo : "",
-      masivoDeliveryRate: draft.canal === "masivo" ? num(draft.masivoDeliveryRate) : 0,
-      hora: draft.hora || "",
-      notas: tituloCase(draft.notas || ""),
-      items: validItems.map(function(it){
-        return { producto: it.producto.trim(), cantidad: num(it.cantidad), precio: num(it.precio), fecha: it.fecha || draft.fechaDefault, obs: (it.obs || "").trim() };
-      })
-    };
+    var completo = pedidoPayloadDesdeDraft(draft);
+    var payload = {};
+    var hayCambios = false;
+    Object.keys(completo).forEach(function(k){
+      if(!pedidoSnapGuardado || JSON.stringify(completo[k]) !== JSON.stringify(pedidoSnapGuardado[k])){
+        payload[k] = completo[k];
+        hayCambios = true;
+      }
+    });
+    if(!hayCambios) return;
     pedidoAutosaving = true;
     updatePedidoSaveStatus();
     db.collection("pedidos").doc(id).update(payload).then(function(){
       pedidoAutosaving = false;
+      if(pedidoEditingId === id && pedidoSnapGuardado){
+        Object.keys(payload).forEach(function(k){ pedidoSnapGuardado[k] = payload[k]; });
+      }
       updatePedidoSaveStatus();
-      upsertCliente(payload.cliente);
-      pedidoRegistrarResponsable(payload.atendidoPor);
+      upsertCliente(completo.cliente);
+      pedidoRegistrarResponsable(completo.atendidoPor);
     }).catch(function(){
       pedidoAutosaving = false;
       updatePedidoSaveStatus();
@@ -24065,6 +24762,12 @@ var TRIPLES = [
     };
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
+    // 6-nov-2026: la app se quedaba en "Cargando datos…" en TODOS los equipos (la conexión en
+    // vivo de Firestore respondía 200 pero casi no bajaban datos: 333 kB en más de 400 s). Eso pasa
+    // cuando una red, router o antivirus traba la conexión continua ("streaming") de Firestore.
+    // Se fuerza el modo "long polling" (pedidos cortos y repetidos), que funciona en cualquier red.
+    // Es solo la forma de conectarse: no cambia qué se lee, qué se guarda, ni reglas ni datos.
+    try{ db.settings({ experimentalForceLongPolling: true }); }catch(e){}
     auth = firebase.auth();
   }
 
@@ -24086,7 +24789,21 @@ var TRIPLES = [
     checkPedidoHashInicial();
     wireStatic();
     document.getElementById("panel").innerHTML = '<div class="empty-state">Cargando datos…</div>';
+    // Si en 15 s no llegó el Arqueo, se explica en pantalla qué pasa (en vez de dejar "Cargando…"
+    // para siempre) y se ofrece reintentar. No cambia nada de lo que se lee ni se guarda.
+    var arqueoLlego = false;
+    setTimeout(function(){
+      if(arqueoLlego) return;
+      var pn = document.getElementById("panel");
+      if(!pn || pn.innerHTML.indexOf("Cargando datos") < 0) return;
+      pn.innerHTML = '<div class="empty-state">Firebase no responde todavía. Tus datos están a salvo (no se ha tocado nada).<br><br>' +
+        'Prueba: (1) volver a intentar, (2) abrir desde el celular con datos móviles en vez del wifi, (3) revisar en Google Cloud > Facturación que la cuenta no tenga avisos de pago.<br><br>' +
+        '<button type="button" class="btn" id="btnReintentarCarga">Reintentar</button></div>';
+      var b = document.getElementById("btnReintentarCarga");
+      if(b) b.addEventListener("click", function(){ location.reload(); });
+    }, 15000);
     attachRemoteSync(function(data){
+      arqueoLlego = true;
       STATE = data;
       renderAll();
       baseline = deepClone(STATE);
