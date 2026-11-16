@@ -5942,7 +5942,15 @@ var TRIPLES = [
       db.collection("pedidos").get(),
       db.collection("cajaCajeros").get(),
       db.collection("clientes").get(),
-      db.collection("contadores").get()
+      db.collection("contadores").get(),
+      // Fotos guardadas aparte (si ya se separaron). Antes de separarlas puede no existir o no
+      // tener permiso: ahí se ignora; si ya hay fotos aparte y falla, el respaldo FALLA (mejor
+      // que un respaldo sin fotos sin avisar).
+      db.collection(PEDIDOS_FOTOS_COL).get().catch(function(e){
+        var hayAparte = fotosModoDocs || (PEDIDOS || []).some(function(p){ return pedidoFotosSeparadas(p); });
+        if(hayAparte) throw e;
+        return null;
+      })
     ]).then(function(results){
       function snapToArray(snap){
         var arr = [];
@@ -5956,7 +5964,8 @@ var TRIPLES = [
         pedidos: snapToArray(results[0]),
         cajaCajeros: snapToArray(results[1]),
         clientes: snapToArray(results[2]),
-        contadores: snapToArray(results[3])
+        contadores: snapToArray(results[3]),
+        pedidosFotos: results[4] ? snapToArray(results[4]) : []
       };
       var blob = new Blob([JSON.stringify(respaldo, null, 2)], { type: "application/json" });
       var url = URL.createObjectURL(blob);
@@ -5999,6 +6008,7 @@ var TRIPLES = [
       out.push("• " + k + ": " + d.docs + " pedidos, " + d.fotos + " fotos (~" + mb.toFixed(1) + " MB), llegó a los " + (d.ms / 1000).toFixed(1) + " s.");
     });
     out.push("Fotos de Yape descargadas al abrir (sumando consultas; un pedido puede repetirse): ~" + totalFotoMB.toFixed(1) + " MB.");
+    try{ var fc = fotosAparteConteo(); out.push("Fotos aparte: modo " + (fotosModoDocs ? "ACTIVO" : "apagado") + " · pedidos en memoria con foto aparte: " + fc.aparte + ", con foto adentro: " + fc.adentro + "."); }catch(e){}
     return out.join("\n");
   }
   // ---------- División del Arqueo por días: migración (SOLO con el botón de Historial) ----------
@@ -6224,6 +6234,270 @@ var TRIPLES = [
     card.appendChild(estadoTxt);
     return card;
   }
+
+  // ---------- Separar las fotos de Yape de los pedidos: migración (SOLO con el botón de Historial) ----------
+  // Nada de esto corre solo. Pasos (cada uno se verifica antes del siguiente; si algo falla, se
+  // detiene y NO se quita ninguna foto de ningún pedido):
+  //  1) lee los pedidos que todavía tienen la foto adentro;
+  //  2) copia cada foto a pedidos_fotos/<id del pedido> (set, se puede repetir sin daño);
+  //  3) vuelve a leer cada copia y comprueba que sea IDÉNTICA a la original (texto por texto);
+  //  4) recién entonces, pedido por pedido y en una transacción que vuelve a comprobar que la foto
+  //     del pedido sigue siendo la misma, quita la foto de adentro y deja las banderas;
+  //  5) activa config/fotosModo = "docs" para que los pedidos nuevos guarden la foto aparte.
+  // Si se corta a la mitad (se cierra la pestaña, se va el internet) no pasa nada malo: lo ya
+  // hecho es válido (un pedido tiene su foto adentro o aparte, nunca en ningún lado) y se
+  // vuelve a apretar el botón para terminar.
+  function pedidosFotosSeparar(estado){
+    function say(t){ try{ if(estado) estado(t); }catch(e){} }
+    if(!db) return Promise.reject(new Error("Sin conexión con la base de datos."));
+    if(fotosMigrando) return Promise.reject(new Error("Ya hay una separación en curso."));
+    if(readOnly) return Promise.reject(new Error("La app está en solo lectura (no se puede separar)."));
+    var ts = 0;
+    try{ ts = parseInt(localStorage.getItem("arqueo_respaldo_ts") || "0", 10) || 0; }catch(e){}
+    if(!ts || Date.now() - ts > 24 * 3600 * 1000) return Promise.reject(new Error("Primero descarga el \"Respaldo completo\" (botón de arriba) y guárdalo. Debe ser de hoy."));
+    fotosMigrando = true;
+    var colP = db.collection("pedidos");
+    var colF = db.collection(PEDIDOS_FOTOS_COL);
+    var lista = [];
+    var resumen = { total: 0, ok: 0, cambio: 0, yaEstaban: 0 };
+    function enTandas(arr, n, fn){
+      var p = Promise.resolve();
+      for(var i = 0; i < arr.length; i += n){
+        (function(tanda, desde){ p = p.then(function(){ return fn(tanda, desde); }); })(arr.slice(i, i + n), i);
+      }
+      return p;
+    }
+    function textoFoto(v){ return (typeof v === "string" && v) ? v : null; }
+    say("Paso 1/4: buscando los pedidos con foto…");
+    return colP.get().then(function(snap){
+      snap.forEach(function(doc){
+        var d = doc.data();
+        var c1 = textoFoto(d.comprobante), c2 = textoFoto(d.comprobante2);
+        // "Rezagado": ya figura como separado pero una pantalla sin recargar le volvió a escribir
+        // una foto adentro -- esa foto es la más nueva y se pasa también (ver pedidoFotosCargar).
+        if(d.fotosEn === "doc" && !c1 && !c2){ resumen.yaEstaban++; return; }
+        if(c1 || c2) lista.push({ id: doc.id, numero: d.numero || "", c1: c1, c2: c2, rezagado: d.fotosEn === "doc" });
+      });
+      resumen.total = lista.length;
+      if(!lista.length) return null;
+      say("Paso 2/4: copiando " + lista.length + " fotos (0/" + lista.length + ")…");
+      return enTandas(lista, 25, function(tanda, desde){
+        var b = db.batch();
+        var ahora = Date.now();
+        tanda.forEach(function(it){
+          if(it.rezagado){
+            var parcial = { pedidoId: it.id, numero: it.numero, actualizado: ahora, v: 1, migradoDe: "pedido" };
+            if(it.c1) parcial.comprobante = it.c1;
+            if(it.c2) parcial.comprobante2 = it.c2;
+            b.set(colF.doc(it.id), parcial, { merge: true });
+          } else {
+            b.set(colF.doc(it.id), { pedidoId: it.id, numero: it.numero, comprobante: it.c1, comprobante2: it.c2, actualizado: ahora, v: 1, migradoDe: "pedido" });
+          }
+        });
+        return b.commit().then(function(){ say("Paso 2/4: copiando fotos (" + Math.min(desde + tanda.length, lista.length) + "/" + lista.length + ")…"); });
+      }).then(function(){
+        say("Paso 3/4: comprobando que cada copia sea idéntica…");
+        var malos = [];
+        return enTandas(lista, 20, function(tanda){
+          return Promise.all(tanda.map(function(it){ return colF.doc(it.id).get(); })).then(function(snaps){
+            snaps.forEach(function(sn, i){
+              var it = tanda[i];
+              var d = sn.exists ? sn.data() : null;
+              if(!d || (it.c1 && d.comprobante !== it.c1) || (it.c2 && d.comprobante2 !== it.c2) || (!it.rezagado && ((d.comprobante || null) !== it.c1 || (d.comprobante2 || null) !== it.c2))) malos.push(it.numero || it.id);
+            });
+          });
+        }).then(function(){
+          if(malos.length) throw new Error("La copia de " + malos.length + " foto(s) no coincide con el original (" + malos.slice(0, 3).join(", ") + "). No se quitó ninguna foto de ningún pedido.");
+        });
+      }).then(function(){
+        say("Paso 4/4: quitando la foto de adentro de cada pedido (0/" + lista.length + ")…");
+        var hechos = 0;
+        return enTandas(lista, 6, function(tanda){
+          return Promise.all(tanda.map(function(it){
+            var ref = colP.doc(it.id);
+            return db.runTransaction(function(tx){
+              return tx.get(ref).then(function(sn){
+                if(!sn.exists) return "falta";
+                var d = sn.data();
+                if(d.fotosEn === "doc" && !it.rezagado) return "ya";
+                if(textoFoto(d.comprobante) !== it.c1 || textoFoto(d.comprobante2) !== it.c2) return "cambio";
+                var upd = {
+                  comprobante: firebase.firestore.FieldValue.delete(),
+                  comprobante2: firebase.firestore.FieldValue.delete(),
+                  fotosEn: "doc"
+                };
+                if(it.rezagado){
+                  // solo se marcan las banderas de las fotos que se pasaron; las demás quedan como estaban
+                  if(it.c1) upd.tieneComprobante = true;
+                  if(it.c2) upd.tieneComprobante2 = true;
+                } else {
+                  upd.tieneComprobante = !!it.c1;
+                  upd.tieneComprobante2 = !!it.c2;
+                }
+                tx.update(ref, upd);
+                return "ok";
+              });
+            }).then(function(r){
+              if(r === "ok") resumen.ok++; else if(r === "cambio") resumen.cambio++;
+              hechos++;
+            });
+          })).then(function(){ say("Paso 4/4: quitando la foto de adentro de cada pedido (" + Math.min(hechos, lista.length) + "/" + lista.length + ")…"); });
+        });
+      });
+    }).then(function(){
+      return db.collection("config").doc("fotosModo").set({ modo: "docs", activadoEn: Date.now() }).catch(function(e){
+        var err = new Error("Las fotos quedaron separadas y comprobadas, pero no se pudo activar el modo nuevo (" + ((e && e.code) || "error") + "). Vuelve a apretar el botón para terminar.");
+        err.codigo = "modo";
+        throw err;
+      });
+    }).then(function(){
+      fotosMigrando = false;
+      return resumen;
+    }, function(err){
+      fotosMigrando = false;
+      if(err && err.code === "permission-denied") throw new Error("Firebase no permite crear la colección nueva pedidos_fotos (reglas de seguridad). No se quitó ninguna foto de ningún pedido.");
+      throw err;
+    });
+  }
+  // DESHACER: devuelve cada foto al interior de su pedido (solo si la copia existe y coincide),
+  // y apaga el modo nuevo. NO borra pedidos_fotos (quedan como copia).
+  function pedidosFotosDeshacer(estado){
+    function say(t){ try{ if(estado) estado(t); }catch(e){} }
+    if(!db) return Promise.reject(new Error("Sin conexión con la base de datos."));
+    if(fotosMigrando) return Promise.reject(new Error("Hay una operación en curso."));
+    if(readOnly) return Promise.reject(new Error("La app está en solo lectura."));
+    var ts = 0;
+    try{ ts = parseInt(localStorage.getItem("arqueo_respaldo_ts") || "0", 10) || 0; }catch(e){}
+    if(!ts || Date.now() - ts > 24 * 3600 * 1000) return Promise.reject(new Error("Primero descarga el \"Respaldo completo\" (botón de arriba) y guárdalo. Debe ser de hoy."));
+    fotosMigrando = true;
+    var colP = db.collection("pedidos");
+    var colF = db.collection(PEDIDOS_FOTOS_COL);
+    var res = { ok: 0, sinCopia: 0 };
+    say("Buscando los pedidos con foto aparte…");
+    return colP.where("fotosEn", "==", "doc").get().then(function(snap){
+      var items = [];
+      snap.forEach(function(doc){ var d = doc.data(); items.push({ id: doc.id, t1: !!d.tieneComprobante, t2: !!d.tieneComprobante2 }); });
+      var p = Promise.resolve();
+      var hechos = 0;
+      for(var i = 0; i < items.length; i += 6){
+        (function(tanda){
+          p = p.then(function(){
+            return Promise.all(tanda.map(function(it){
+              return colF.doc(it.id).get().then(function(fs){
+                var d = fs.exists ? fs.data() : {};
+                var c1 = d.comprobante || null, c2 = d.comprobante2 || null;
+                if((it.t1 && !c1) || (it.t2 && !c2)){ res.sinCopia++; return; }
+                var ref = colP.doc(it.id);
+                return db.runTransaction(function(tx){
+                  return tx.get(ref).then(function(ps){
+                    if(!ps.exists) return;
+                    var pd = ps.data() || {};
+                    var n1 = (typeof pd.comprobante === "string" && pd.comprobante) ? pd.comprobante : null;
+                    var n2 = (typeof pd.comprobante2 === "string" && pd.comprobante2) ? pd.comprobante2 : null;
+                    tx.update(ref, {
+                      comprobante: n1 || c1, comprobante2: n2 || c2,
+                      tieneComprobante: firebase.firestore.FieldValue.delete(),
+                      tieneComprobante2: firebase.firestore.FieldValue.delete(),
+                      fotosEn: firebase.firestore.FieldValue.delete()
+                    });
+                    res.ok++;
+                  });
+                });
+              }).then(function(){ hechos++; });
+            })).then(function(){ say("Devolviendo fotos a sus pedidos (" + Math.min(hechos, items.length) + "/" + items.length + ")…"); });
+          });
+        })(items.slice(i, i + 6));
+      }
+      return p;
+    }).then(function(){
+      if(res.sinCopia) throw new Error(res.sinCopia + " pedido(s) no tenían su copia de foto y se dejaron como estaban. El modo nuevo sigue activo. Avísame antes de seguir.");
+      return db.collection("config").doc("fotosModo").set({ modo: "clasico", desactivadoEn: Date.now() });
+    }).then(function(){
+      fotosMigrando = false;
+      return res;
+    }, function(err){
+      fotosMigrando = false;
+      throw err;
+    });
+  }
+  function fotosAparteConteo(){
+    var lista = PEDIDOS || [];
+    var aparte = 0, adentro = 0;
+    lista.forEach(function(p){
+      if(typeof p.comprobante === "string" || typeof p.comprobante2 === "string") adentro++;
+      else if(pedidoFotosSeparadas(p)) aparte++;
+    });
+    return { aparte: aparte, adentro: adentro };
+  }
+  function buildFotosAparteCard(){
+    var card = document.createElement("div");
+    card.className = "card";
+    card.style.border = "1px solid #c9a15a";
+    card.style.background = "#fbf5e8";
+    card.style.marginBottom = "1rem";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .3rem";
+    h2.textContent = "Fotos de Yape aparte (carga más rápida)";
+    card.appendChild(h2);
+    var info = document.createElement("div");
+    info.className = "hint";
+    info.style.margin = "0 0 .8rem";
+    card.appendChild(info);
+    var estadoTxt = document.createElement("div");
+    estadoTxt.className = "hint";
+    estadoTxt.style.margin = ".6rem 0 0";
+    estadoTxt.style.fontWeight = "700";
+    var c = fotosAparteConteo();
+    if(fotosModoDocs){
+      info.textContent = "Las fotos de Yape ya se guardan en documentos aparte: la app no las descarga al abrir, solo cuando abres, imprimes o previsualizas ese pedido. En memoria: " + c.aparte + " pedidos con foto aparte y " + c.adentro + " con la foto todavía adentro" + (c.adentro ? " (se pueden pasar apretando el botón de nuevo)." : ".");
+    } else {
+      info.textContent = "Hoy cada foto de Yape vive dentro de su pedido y se descarga cada vez que se abre la app (en memoria: " + c.adentro + " pedidos con foto adentro). Esto la mueve a documentos aparte: se copia cada foto, se comprueba que sea idéntica y recién entonces se quita de adentro del pedido. Antes: descarga el Respaldo completo, haz esto desde la COMPUTADORA y cierra las demás pantallas/tablets; al terminar, recárgalas todas.";
+    }
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-primary";
+    btn.textContent = fotosModoDocs ? "Pasar las fotos que falten" : "Separar las fotos de Yape";
+    btn.addEventListener("click", function(){
+      if(!confirm("¿Separar las fotos de Yape de los pedidos?\n\nSe copia cada foto a un documento aparte, se comprueba que sea idéntica y recién entonces se quita de adentro del pedido. No se pierde ninguna foto. Hazlo desde la COMPUTADORA, con las demás pantallas/tablets CERRADAS. Puede tardar varios minutos: no cierres esta pantalla.\n\n¿Descargaste el Respaldo completo de hoy?")) return;
+      pedirPinAdministrativoYEjecutar(function(){
+        btn.disabled = true;
+        pedidosFotosSeparar(function(t){ estadoTxt.textContent = t; }).then(function(r){
+          estadoTxt.textContent = "Listo: " + r.ok + " fotos separadas y comprobadas" + (r.cambio ? "; " + r.cambio + " pedido(s) cambiaron mientras tanto (aprieta de nuevo para terminarlos)" : "") + ".";
+          showToast("Fotos separadas (" + r.ok + "). Recarga las demás pantallas/tablets.", 7000);
+          btn.disabled = false;
+        }).catch(function(e){
+          btn.disabled = false;
+          estadoTxt.textContent = "Se detuvo: " + (e && e.message ? e.message : "error desconocido");
+          alert("No se pudo terminar la separación de fotos.\n\n" + (e && e.message ? e.message : "") + "\n\nNo se perdió ninguna foto.");
+        });
+      });
+    });
+    card.appendChild(btn);
+    if(fotosModoDocs){
+      var undo = document.createElement("button");
+      undo.type = "button";
+      undo.className = "btn btn-sm";
+      undo.style.marginLeft = ".6rem";
+      undo.textContent = "Deshacer (volver a dejar la foto adentro del pedido)";
+      undo.addEventListener("click", function(){
+        if(!confirm("¿Devolver cada foto al interior de su pedido?\n\nNo se borra ninguna copia. ¿Descargaste el Respaldo completo de hoy?")) return;
+        pedirPinAdministrativoYEjecutar(function(){
+          undo.disabled = true;
+          pedidosFotosDeshacer(function(t){ estadoTxt.textContent = t; }).then(function(r){
+            estadoTxt.textContent = "Listo: " + r.ok + " fotos devueltas a sus pedidos.";
+            showToast("Fotos devueltas (" + r.ok + "). Recarga las demás pantallas.", 6000);
+          }).catch(function(e){
+            undo.disabled = false;
+            estadoTxt.textContent = "Se detuvo: " + (e && e.message ? e.message : "error desconocido");
+            alert("No se pudo deshacer.\n\n" + (e && e.message ? e.message : ""));
+          });
+        });
+      });
+      card.appendChild(undo);
+    }
+    card.appendChild(estadoTxt);
+    return card;
+  }
   // Aviso preventivo: mientras el Arqueo siga en un solo documento, avisar cuando se acerque al
   // límite de 1 MB de Firestore (ver "División del Arqueo por días" en Historial).
   function arqueoAvisarTamano(){
@@ -6267,6 +6541,7 @@ var TRIPLES = [
     var wrap = document.createElement("div");
     wrap.appendChild(buildRespaldoCompletoCard());
     wrap.appendChild(buildDividirArqueoCard());
+    wrap.appendChild(buildFotosAparteCard());
     var card = document.createElement("div");
     card.className = "card";
     var headRow = document.createElement("div");
@@ -11758,7 +12033,7 @@ var TRIPLES = [
     var comprobanteFileInput = document.createElement("input");
     comprobanteFileInput.type = "file";
     comprobanteFileInput.accept = "image/*";
-    if(readOnly) comprobanteFileInput.disabled = true;
+    if(readOnly || draft.fotosPendientes) comprobanteFileInput.disabled = true;
     comprobantePreviewWrap.appendChild(comprobanteFileInput);
 
     var comprobanteRemoveBtn = document.createElement("button");
@@ -11766,7 +12041,7 @@ var TRIPLES = [
     comprobanteRemoveBtn.className = "btn btn-sm";
     comprobanteRemoveBtn.textContent = "Quitar foto";
     comprobanteRemoveBtn.hidden = !draft.comprobante;
-    if(readOnly) comprobanteRemoveBtn.disabled = true;
+    if(readOnly || draft.fotosPendientes) comprobanteRemoveBtn.disabled = true;
     comprobantePreviewWrap.appendChild(comprobanteRemoveBtn);
 
     comprobanteRow.appendChild(comprobantePreviewWrap);
@@ -11857,7 +12132,7 @@ var TRIPLES = [
     var comprobante2FileInput = document.createElement("input");
     comprobante2FileInput.type = "file";
     comprobante2FileInput.accept = "image/*";
-    if(readOnly) comprobante2FileInput.disabled = true;
+    if(readOnly || draft.fotosPendientes) comprobante2FileInput.disabled = true;
     comprobante2PreviewWrap.appendChild(comprobante2FileInput);
 
     var comprobante2RemoveBtn = document.createElement("button");
@@ -11865,7 +12140,7 @@ var TRIPLES = [
     comprobante2RemoveBtn.className = "btn btn-sm";
     comprobante2RemoveBtn.textContent = "Quitar foto";
     comprobante2RemoveBtn.hidden = !draft.comprobante2;
-    if(readOnly) comprobante2RemoveBtn.disabled = true;
+    if(readOnly || draft.fotosPendientes) comprobante2RemoveBtn.disabled = true;
     comprobante2PreviewWrap.appendChild(comprobante2RemoveBtn);
 
     comprobante2Row.appendChild(comprobante2PreviewWrap);
@@ -13077,19 +13352,22 @@ var TRIPLES = [
       html += '<div class="field" style="margin-top:.6rem;"><label>¿Cuál?</label><input type="text" class="pw-pago-otro-input" value="' + esc(esConocido ? "" : draft.tipoPago) + '" placeholder="Ej: Izipay, depósito…"></div>';
     }
     html += '<div class="field" style="margin-top:.9rem;"><label class="pedido-checkbox-label' + (draft.pagado ? " is-checked" : "") + '"><input type="checkbox" class="pw-pagado-check"' + (draft.pagado ? " checked" : "") + '> Pagado</label></div>';
-    html += pedidoWizComprobanteHtml("comprobante", "Foto del Yape / Transferencia", draft.comprobante);
-    html += pedidoWizComprobanteHtml("comprobante2", "Foto de un segundo pago (opcional)", draft.comprobante2);
+    if(draft.fotosPendientes){
+      html += '<div class="hint" style="margin-top:1rem;">Cargando la foto del comprobante… (no cambies las fotos hasta que aparezca)</div>';
+    }
+    html += pedidoWizComprobanteHtml("comprobante", "Foto del Yape / Transferencia", draft.comprobante, draft.fotosPendientes);
+    html += pedidoWizComprobanteHtml("comprobante2", "Foto de un segundo pago (opcional)", draft.comprobante2, draft.fotosPendientes);
     if(pedidoFaltaFotoComprobante(draft)){
       html += '<div class="hint" style="color:var(--bad); font-weight:700; margin-top:.4rem;">Obligatorio: sube la foto del Yape/transferencia para poder guardar este pedido como pagado.</div>';
     }
     return html;
   }
-  function pedidoWizComprobanteHtml(campo, label, valor){
+  function pedidoWizComprobanteHtml(campo, label, valor, bloqueado){
     return '<div class="field" style="margin-top:1rem;"><label>' + label + '</label>' +
       '<div style="display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;">' +
       (valor ? '<img src="' + valor + '" style="max-width:130px; max-height:130px; border-radius:6px; border:1px solid var(--border);">' : "") +
-      '<input type="file" accept="image/*" class="pw-comprobante-input" data-campo="' + campo + '">' +
-      (valor ? '<button type="button" class="btn btn-sm pw-comprobante-quitar" data-campo="' + campo + '">Quitar foto</button>' : "") +
+      '<input type="file" accept="image/*" class="pw-comprobante-input" data-campo="' + campo + '"' + (bloqueado ? ' disabled' : '') + '>' +
+      (valor ? '<button type="button" class="btn btn-sm pw-comprobante-quitar" data-campo="' + campo + '"' + (bloqueado ? ' disabled' : '') + '>Quitar foto</button>' : "") +
       '</div></div>';
   }
   function pedidoWizWirePago(body){
@@ -13449,7 +13727,78 @@ var TRIPLES = [
   function pedidoFaltaFotoComprobante(p){
     if(!p || !p.pagado) return false;
     if(pedidoTipoPagoEsEfectivo(p.tipoPago)) return false;
-    return !p.comprobante;
+    // Foto guardada aparte (tieneComprobante) o todavía cargándose (fotosPendientes) cuenta como
+    // "hay foto" -- si no, el candado de pago bloquearía pedidos que sí tienen su comprobante.
+    return !(p.comprobante || p.tieneComprobante || p.fotosPendientes);
+  }
+
+  // ---------- Fotos del comprobante en documentos aparte (nov-2026, pedido de Jessica) ----------
+  // Problema: la foto del Yape (~60 KB) vivía DENTRO de cada pedido, así que todas las pantallas
+  // la descargaban al abrir (~18 MB) y cada cambio de estado volvía a bajar el pedido completo.
+  // Solución: la foto vive en su propio documento (colección "pedidos_fotos", mismo id que el
+  // pedido) y el pedido solo guarda dos banderas (tieneComprobante / tieneComprobante2) y
+  // fotosEn = "doc". La foto se descarga SOLO cuando se abre ese pedido (editar, imprimir, vista
+  // previa). Compatibilidad total: un pedido con la foto todavía dentro (formato anterior) se
+  // sigue leyendo igual -- ver pedidoFotosCargar. NADA de esto cambia datos reales por sí solo:
+  // los pedidos NUEVOS guardan la foto aparte únicamente cuando existe config/fotosModo = "docs"
+  // (se activa con el botón de Historial, después de copiar y COMPROBAR todas las fotos).
+  var PEDIDOS_FOTOS_COL = "pedidos_fotos";
+  var fotosModoDocs = false;
+  var fotosMigrando = false;
+  var pedidoFotosCache = {};
+  var pedidoFotosCacheOrden = [];
+  function pedidoFotosSeparadas(p){ return !!(p && p.fotosEn === "doc"); }
+  function pedidoFotosCacheGuardar(id, r){
+    if(!pedidoFotosCache[id]) pedidoFotosCacheOrden.push(id);
+    pedidoFotosCache[id] = r;
+    while(pedidoFotosCacheOrden.length > 25){ delete pedidoFotosCache[pedidoFotosCacheOrden.shift()]; }
+  }
+  function pedidoFotosCacheOlvidar(id){
+    delete pedidoFotosCache[id];
+    pedidoFotosCacheOrden = pedidoFotosCacheOrden.filter(function(x){ return x !== id; });
+  }
+  // Devuelve { comprobante, comprobante2 } de un pedido, venga la foto de donde venga. Si el
+  // pedido dice tener foto y no se encuentra, RECHAZA (nunca devuelve "sin foto" en silencio).
+  function pedidoFotosCargar(p){
+    if(!p) return Promise.resolve({ comprobante: null, comprobante2: null });
+    if(!pedidoFotosSeparadas(p)) return Promise.resolve({ comprobante: p.comprobante || null, comprobante2: p.comprobante2 || null });
+    if(pedidoFotosCache[p.id]) return Promise.resolve(pedidoFotosCache[p.id]);
+    if(!db) return Promise.reject(new Error("sin-conexion"));
+    return db.collection(PEDIDOS_FOTOS_COL).doc(p.id).get().then(function(snap){
+      var d = snap.exists ? snap.data() : {};
+      // Si una pantalla SIN recargar (versión anterior) volvió a subir una foto y quedó escrita
+      // dentro del pedido, esa es la más nueva: gana sobre la copia aparte.
+      var e1 = (typeof p.comprobante === "string" && p.comprobante) ? p.comprobante : null;
+      var e2 = (typeof p.comprobante2 === "string" && p.comprobante2) ? p.comprobante2 : null;
+      var r = { comprobante: e1 || d.comprobante || null, comprobante2: e2 || d.comprobante2 || null };
+      if((p.tieneComprobante && !r.comprobante) || (p.tieneComprobante2 && !r.comprobante2)) throw new Error("foto-no-encontrada");
+      pedidoFotosCacheGuardar(p.id, r);
+      return r;
+    });
+  }
+  // Copia del pedido con sus fotos puestas (para imprimir / vista previa), sin tocar el original.
+  function pedidoConFotos(p){
+    return pedidoFotosCargar(p).then(function(f){
+      var c = {};
+      Object.keys(p).forEach(function(k){ c[k] = p[k]; });
+      c.comprobante = f.comprobante;
+      c.comprobante2 = f.comprobante2;
+      return c;
+    });
+  }
+  function attachFotosModoSync(){
+    if(!db) return;
+    try{
+      db.collection("config").doc("fotosModo").onSnapshot(function(snap){
+        if(!snap.exists){
+          if(snap.metadata && snap.metadata.fromCache) return; // "no existe" sin confirmar: se ignora
+          fotosModoDocs = false;
+          return;
+        }
+        var d = snap.data() || {};
+        fotosModoDocs = (d.modo === "docs");
+      }, function(){ /* sin permiso o sin conexión: se queda en el modo clásico */ });
+    }catch(e){}
   }
 
   // ---------- Prevención de pedidos duplicados (Jessica, set-2026) ----------
@@ -13732,7 +14081,28 @@ var TRIPLES = [
       payload.tiempoPreparacionMin = null;
       payload.tiempoDeliveryMin = null;
       payload.tiempoTotalMin = null;
-      return conReintentos(function(){ return db.collection("pedidos").add(payload); }).then(function(docRef){
+      // Modo "fotos aparte" (solo si config/fotosModo = docs): la foto se guarda PRIMERO en su
+      // documento y recién después el pedido (con id ya conocido, set idempotente, así los
+      // reintentos no duplican nada). Si falla la foto, no se crea el pedido.
+      var guardadoPedido;
+      if(fotosModoDocs){
+        var fotosNuevas = { comprobante: draft.comprobante || null, comprobante2: draft.comprobante2 || null };
+        delete payload.comprobante;
+        delete payload.comprobante2;
+        payload.tieneComprobante = !!fotosNuevas.comprobante;
+        payload.tieneComprobante2 = !!fotosNuevas.comprobante2;
+        payload.fotosEn = "doc";
+        var nuevoRef = db.collection("pedidos").doc();
+        guardadoPedido = conReintentos(function(){
+          var pasoFotos = (fotosNuevas.comprobante || fotosNuevas.comprobante2)
+            ? db.collection(PEDIDOS_FOTOS_COL).doc(nuevoRef.id).set({ pedidoId: nuevoRef.id, numero: numero, comprobante: fotosNuevas.comprobante, comprobante2: fotosNuevas.comprobante2, actualizado: Date.now(), v: 1 })
+            : Promise.resolve();
+          return pasoFotos.then(function(){ return nuevoRef.set(payload); }).then(function(){ return nuevoRef; });
+        });
+      } else {
+        guardadoPedido = conReintentos(function(){ return db.collection("pedidos").add(payload); });
+      }
+      return guardadoPedido.then(function(docRef){
         pedidosSaving = false;
         upsertCliente(payload.cliente, direccionesNuevasParaCliente);
         pedidoRegistrarResponsable(payload.atendidoPor);
@@ -13795,6 +14165,74 @@ var TRIPLES = [
     return nombre;
   }
 
+  // ---------- PIN personal en cada cambio de estado de Despacho (nov-2026, pedido de Jessica) ----------
+  // Antes el sistema preguntaba un nombre ESCRITO una sola vez por sesión de navegador y lo ponía
+  // en todos los toques siguientes -- no probaba quién tocaba el botón (si dos personas compartían
+  // la tablet, todo quedaba a nombre de quien escribió su nombre primero). Ahora CADA cambio de
+  // estado (avanzar, corregir manualmente, cancelar) pide el PIN personal de 4 dígitos -- el mismo
+  // que ya se usa en Mozos y en la entrega de Masivo (mozosNombrePorPin) -- y el historial guarda
+  // el nombre al que pertenece ese PIN. Sin PIN válido no se cambia nada. El campo va oculto
+  // (type=password) para que nadie vea el PIN de otro mientras se teclea.
+  var despachoPinAbierto = false;
+  function pedirPinDespacho(accionTxt, onOk){
+    if(despachoPinAbierto) return; // ya hay un cuadro de PIN abierto -- evita dobles toques
+    despachoPinAbierto = true;
+    var overlay = document.createElement("div");
+    overlay.setAttribute("data-despacho-pin", "1");
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;";
+    var box = document.createElement("div");
+    box.style.cssText = "background:#fff;color:#222;border-radius:14px;padding:18px 16px;width:100%;max-width:340px;box-shadow:0 10px 30px rgba(0,0,0,.35);font-family:inherit;";
+    var h = document.createElement("div");
+    h.style.cssText = "font-weight:700;font-size:16px;margin-bottom:4px;";
+    h.textContent = "Escribe tu PIN";
+    var sub = document.createElement("div");
+    sub.style.cssText = "font-size:13px;color:#555;margin-bottom:10px;";
+    sub.textContent = "Para " + accionTxt + ". Es tu PIN personal de 4 dígitos (el mismo de Mozos).";
+    var inp = document.createElement("input");
+    inp.type = "password";
+    inp.inputMode = "numeric";
+    inp.pattern = "[0-9]*";
+    inp.maxLength = 4;
+    inp.autocomplete = "off";
+    inp.className = "despacho-pin-input";
+    inp.placeholder = "PIN";
+    inp.style.cssText = "width:100%;box-sizing:border-box;font-size:24px;letter-spacing:8px;text-align:center;padding:10px;border:2px solid #bbb;border-radius:10px;";
+    var err = document.createElement("div");
+    err.style.cssText = "color:#b3261e;font-size:13px;min-height:18px;margin-top:6px;";
+    var row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:8px;margin-top:10px;";
+    var bCancel = document.createElement("button");
+    bCancel.type = "button"; bCancel.textContent = "Cancelar"; bCancel.className = "btn btn-sm despacho-pin-cancel";
+    bCancel.style.cssText = "flex:1;padding:12px;font-size:15px;";
+    var bOk = document.createElement("button");
+    bOk.type = "button"; bOk.textContent = "Confirmar"; bOk.className = "btn btn-sm btn-primary despacho-pin-ok";
+    bOk.style.cssText = "flex:1;padding:12px;font-size:15px;font-weight:700;";
+    row.appendChild(bCancel); row.appendChild(bOk);
+    box.appendChild(h); box.appendChild(sub); box.appendChild(inp); box.appendChild(err); box.appendChild(row);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    function cerrar(){
+      if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      despachoPinAbierto = false;
+    }
+    function confirmar(){
+      var nombre = mozosNombrePorPin(inp.value);
+      if(!nombre){
+        err.textContent = "PIN no reconocido. No se hizo ningún cambio.";
+        inp.value = "";
+        inp.focus();
+        return;
+      }
+      cerrar();
+      setDespachoEncargado(nombre);
+      onOk(nombre);
+    }
+    bCancel.addEventListener("click", cerrar);
+    bOk.addEventListener("click", confirmar);
+    inp.addEventListener("keydown", function(ev){ if(ev.key === "Enter"){ ev.preventDefault(); confirmar(); } });
+    try{ inp.focus(); }catch(e){}
+  }
+
   // ---------- Avance de estados de un pedido (cualquier canal) ----------
   // Un solo botón grande por tarjeta en el panel de Despacho llama a esto con el siguiente
   // estado (ver pedidoProximoEstado) -- la hora se registra sola con Date.now(), nunca se
@@ -13822,8 +14260,12 @@ var TRIPLES = [
       // vuelo (imprimir Y avanzar de estado) chocando entre sí al mismo tiempo.
       if(despachoAccionProduccionEnCurso[id]) return;
     }
-    var quien = ensureDespachoEncargado();
-    if(quien === null) return; // canceló el prompt del encargado -- no se hace el cambio
+    // PIN personal OBLIGATORIO en cada cambio de estado (ver pedirPinDespacho): sin PIN válido no
+    // se escribe nada. Todo lo de abajo corre recién cuando el PIN fue confirmado.
+    pedirPinDespacho("cambiar el estado a \"" + PEDIDO_ESTADO_LABEL[nuevoEstado] + "\"", function(quien){
+    // El cuadro de PIN pudo quedar abierto un rato: se relee el pedido actual para que el
+    // historial se arme con lo último que llegó, no con la copia de cuando se tocó el botón.
+    p = (PEDIDOS && PEDIDOS.filter(function(x){ return x.id === id; })[0]) || p;
     var ahora = Date.now();
     var payload = {
       estado: nuevoEstado,
@@ -13849,6 +14291,7 @@ var TRIPLES = [
     }).finally(function(){
       if(nuevoEstado === "EN_PREPARACION") delete despachoAccionProduccionEnCurso[id];
     });
+    });
   }
 
   // Asignar/editar el repartidor sin cambiar de estado (se usa desde el detalle del pedido) --
@@ -13870,16 +14313,16 @@ var TRIPLES = [
     if(!p || !db) return;
     var nombre = tituloCase((p.cliente && p.cliente.nombre) || "") || "este cliente";
     if(!confirm('¿Cancelar el pedido de "' + nombre + '"? Se puede corregir después si fue un error, pero no se puede deshacer con un clic.')) return;
-    var quien = ensureDespachoEncargado();
-    if(quien === null) return;
-    var ahora = Date.now();
-    db.collection("pedidos").doc(id).update({
-      estado: "CANCELADO",
-      estadoHistorial: (p.estadoHistorial || []).concat([{ estado:"CANCELADO", en: ahora, por: quien }])
-    }).then(function(){
-      showToast("Pedido cancelado.");
-    }).catch(function(){
-      showToast("No se pudo cancelar. Intenta de nuevo.");
+    pedirPinDespacho("cancelar este pedido", function(quien){
+      var ahora = Date.now();
+      db.collection("pedidos").doc(id).update({
+        estado: "CANCELADO",
+        estadoHistorial: (p.estadoHistorial || []).concat([{ estado:"CANCELADO", en: ahora, por: quien }])
+      }).then(function(){
+        showToast("Pedido cancelado.");
+      }).catch(function(){
+        showToast("No se pudo cancelar. Intenta de nuevo.");
+      });
     });
   }
 
@@ -13918,6 +14361,26 @@ var TRIPLES = [
     };
     pedidoEditingId = p.id;
     pedidoSnapGuardado = deepClone(pedidoPayloadDesdeDraft(pedidoDraft));
+    pedidoEditandoSeparado = pedidoFotosSeparadas(p);
+    // Foto guardada aparte: se descarga ahora, solo para este pedido. Mientras llega (o si falla)
+    // el borrador queda marcado fotosPendientes = true y las fotos NO se tocan al autoguardar:
+    // así un borrador sin foto "todavía no cargada" nunca se confunde con "foto quitada".
+    if(pedidoEditandoSeparado && (p.tieneComprobante || p.tieneComprobante2)){
+      var draftRef = pedidoDraft;
+      draftRef.fotosPendientes = true;
+      pedidoFotosCargar(p).then(function(f){
+        if(pedidoDraft !== draftRef || pedidoEditingId !== p.id) return;
+        draftRef.comprobante = f.comprobante;
+        draftRef.comprobante2 = f.comprobante2;
+        draftRef.fotosPendientes = false;
+        if(pedidoSnapGuardado){ pedidoSnapGuardado.comprobante = f.comprobante; pedidoSnapGuardado.comprobante2 = f.comprobante2; }
+        renderPanel();
+      }).catch(function(){
+        if(pedidoDraft !== draftRef || pedidoEditingId !== p.id) return;
+        showToast("No se pudo cargar la foto del comprobante. Cierra el pedido y vuelve a abrirlo (no se cambió nada).", 7000);
+        renderPanel();
+      });
+    }
     pedidosView = "nuevo";
     renderPanel();
   }
@@ -13946,6 +14409,7 @@ var TRIPLES = [
   // guarda un registro de lo último que se escribió/leyó (pedidoSnapGuardado) y el autoguardado
   // manda SOLO los campos que esta pantalla cambió de verdad -- lo demás no se toca.
   var pedidoSnapGuardado = null;
+  var pedidoEditandoSeparado = false; // el pedido que se edita ya tiene su foto en pedidos_fotos
   function pedidoPayloadDesdeDraft(draft){
     var validItems = (draft.items || []).filter(function(it){ return it.producto && it.producto.trim() && num(it.cantidad) > 0; });
     return {
@@ -13989,20 +14453,52 @@ var TRIPLES = [
     var id = pedidoEditingId;
     var completo = pedidoPayloadDesdeDraft(draft);
     var payload = {};
+    var cambiosSnap = {};
     var hayCambios = false;
+    var separado = pedidoEditandoSeparado || fotosModoDocs;
+    var fotosCambiaron = false;
     Object.keys(completo).forEach(function(k){
+      var esFoto = (k === "comprobante" || k === "comprobante2");
+      // Fotos todavía sin cargar: NUNCA se comparan ni se escriben (ver startEditPedido).
+      if(esFoto && draft.fotosPendientes) return;
       if(!pedidoSnapGuardado || JSON.stringify(completo[k]) !== JSON.stringify(pedidoSnapGuardado[k])){
-        payload[k] = completo[k];
+        cambiosSnap[k] = completo[k];
         hayCambios = true;
+        if(esFoto && separado) fotosCambiaron = true;
+        else payload[k] = completo[k];
       }
     });
     if(!hayCambios) return;
+    var pasoFotos = Promise.resolve();
+    var pasaASeparado = false;
+    if(fotosCambiaron){
+      // Foto aparte: primero el documento de fotos, después el pedido (banderas). Si el pedido
+      // todavía las tenía adentro (formato anterior) se pasan las DOS fotos del borrador, ya
+      // cargadas, antes de quitarlas del pedido -- nunca se borra una foto que no esté a salvo.
+      pasaASeparado = !pedidoEditandoSeparado;
+      var fd = { pedidoId: id, actualizado: Date.now(), v: 1 };
+      if(pasaASeparado){ fd.comprobante = completo.comprobante; fd.comprobante2 = completo.comprobante2; }
+      else {
+        if(cambiosSnap.hasOwnProperty("comprobante")) fd.comprobante = completo.comprobante;
+        if(cambiosSnap.hasOwnProperty("comprobante2")) fd.comprobante2 = completo.comprobante2;
+      }
+      pasoFotos = db.collection(PEDIDOS_FOTOS_COL).doc(id).set(fd, { merge: true });
+      payload.tieneComprobante = !!completo.comprobante;
+      payload.tieneComprobante2 = !!completo.comprobante2;
+      payload.fotosEn = "doc";
+      payload.comprobante = firebase.firestore.FieldValue.delete();
+      payload.comprobante2 = firebase.firestore.FieldValue.delete();
+    }
     pedidoAutosaving = true;
     updatePedidoSaveStatus();
-    db.collection("pedidos").doc(id).update(payload).then(function(){
+    pasoFotos.then(function(){
+      if(fotosCambiaron) pedidoFotosCacheOlvidar(id);
+      return db.collection("pedidos").doc(id).update(payload);
+    }).then(function(){
       pedidoAutosaving = false;
       if(pedidoEditingId === id && pedidoSnapGuardado){
-        Object.keys(payload).forEach(function(k){ pedidoSnapGuardado[k] = payload[k]; });
+        Object.keys(cambiosSnap).forEach(function(k){ pedidoSnapGuardado[k] = cambiosSnap[k]; });
+        if(pasaASeparado) pedidoEditandoSeparado = true;
       }
       updatePedidoSaveStatus();
       upsertCliente(completo.cliente);
@@ -14515,7 +15011,10 @@ var TRIPLES = [
 
     var body = document.createElement("div");
     body.className = "pedido-preview-body";
-    body.innerHTML = buildPedidoPrintCardHTML(p);
+    var fotosAparte = pedidoFotosSeparadas(p) && (p.tieneComprobante || p.tieneComprobante2);
+    body.innerHTML = fotosAparte
+      ? '<div style="padding:2rem 1rem; text-align:center;">Cargando la foto del comprobante…</div>'
+      : buildPedidoPrintCardHTML(p);
     box.appendChild(body);
 
     // Botones de acción. Jessica (set-2026): "CREAR PEDIDO → VISTA PREVIA → COMPARTIR LA ORDEN
@@ -14635,6 +15134,20 @@ var TRIPLES = [
     overlay.appendChild(box);
     document.body.appendChild(overlay);
     document.addEventListener("keydown", pedidoVistaPreviaEscHandler);
+    // Foto aparte: los botones de compartir/descargar quedan apagados hasta que la foto aparezca
+    // en la vista previa (si no, se compartiría una imagen sin el comprobante).
+    if(fotosAparte){
+      var botonesPrev = actions.querySelectorAll("button");
+      botonesPrev.forEach(function(b){ b.disabled = true; });
+      pedidoConFotos(p).then(function(pf){
+        if(!body.isConnected) return;
+        body.innerHTML = buildPedidoPrintCardHTML(pf);
+        botonesPrev.forEach(function(b){ b.disabled = false; });
+      }).catch(function(){
+        if(!body.isConnected) return;
+        body.innerHTML = '<div style="padding:2rem 1rem; text-align:center; color:#b3261e; font-weight:700;">No se pudo cargar la foto del comprobante. Cierra esta ventana e intenta de nuevo.</div>';
+      });
+    }
   }
   function doPrintPedido(id){
     var p = (PEDIDOS || []).filter(function(x){ return x.id === id; })[0];
@@ -14646,6 +15159,20 @@ var TRIPLES = [
   // el arreglo PEDIDOS en memoria (puede quedar fuera de los recientes que se cargan en vivo,
   // ver PEDIDOS_LIMITE_RECIENTES).
   function doPrintPedidoObj(p){
+    // Pedido con la foto guardada aparte: se descarga primero (y si no se puede, NO se imprime
+    // sin foto en silencio). Pedido en formato anterior: exactamente igual que siempre.
+    if(pedidoFotosSeparadas(p) && (p.tieneComprobante || p.tieneComprobante2)){
+      showToast("Preparando la orden con su foto…");
+      pedidoConFotos(p).then(function(pf){
+        setPrintOrientation(false);
+        var area0 = document.getElementById("printArea");
+        area0.innerHTML = buildPedidoPrintCardHTML(pf);
+        doWindowPrint("Orden " + (p.numero || ""));
+      }).catch(function(){
+        showToast("No se pudo cargar la foto del comprobante, así que no se imprimió. Revisa tu conexión e intenta de nuevo.", 7000);
+      });
+      return;
+    }
     setPrintOrientation(false);
     var area = document.getElementById("printArea");
     area.innerHTML = buildPedidoPrintCardHTML(p);
@@ -14760,13 +15287,29 @@ var TRIPLES = [
       return (p.items || []).some(function(it){ return it.fecha === date; });
     });
     if(list.length === 0){ showToast("No hay pedidos con entrega ese día."); return; }
-    setPrintOrientation(false);
-    var area = document.getElementById("printArea");
-    area.innerHTML = list.map(function(p, i){
-      var pageBreak = i < list.length - 1 ? "page-break-after:always;" : "";
-      return '<div style="' + pageBreak + '">' + buildPedidoPrintCardHTML(p) + '</div>';
-    }).join("");
-    doWindowPrint("Pedidos " + (date || ""));
+    function imprimirLista(lista){
+      setPrintOrientation(false);
+      var area = document.getElementById("printArea");
+      area.innerHTML = lista.map(function(p, i){
+        var pageBreak = i < lista.length - 1 ? "page-break-after:always;" : "";
+        return '<div style="' + pageBreak + '">' + buildPedidoPrintCardHTML(p) + '</div>';
+      }).join("");
+      doWindowPrint("Pedidos " + (date || ""));
+    }
+    // Pedidos con la foto aparte: se descargan antes de imprimir. Los que no se puedan cargar
+    // se imprimen igual pero se AVISA cuántos salieron sin su foto (nunca en silencio).
+    if(list.some(function(p){ return pedidoFotosSeparadas(p) && (p.tieneComprobante || p.tieneComprobante2); })){
+      showToast("Preparando las órdenes con sus fotos…");
+      var sinFoto = 0;
+      Promise.all(list.map(function(p){
+        return pedidoConFotos(p).catch(function(){ sinFoto++; return p; });
+      })).then(function(conFotos){
+        imprimirLista(conFotos);
+        if(sinFoto) showToast("OJO: " + sinFoto + " pedido(s) se imprimieron SIN su foto del comprobante (no se pudo cargar).", 9000);
+      });
+      return;
+    }
+    imprimirLista(list);
   }
 
   // ---------- Reporte "Pedidos Orden de Tienda" / "Pedidos Delivery" ----------
@@ -17568,7 +18111,7 @@ var TRIPLES = [
           // Este botón marca pagado de un toque, sin pasar por el formulario -- así que la foto
           // obligatoria (ver pedidoFaltaFotoComprobante) se revisa acá también, no solo al
           // guardar/editar el pedido.
-          if(vaAPagado && pedidoFaltaFotoComprobante({ pagado:true, tipoPago:p.tipoPago, comprobante:p.comprobante })){
+          if(vaAPagado && pedidoFaltaFotoComprobante({ pagado:true, tipoPago:p.tipoPago, comprobante:p.comprobante, tieneComprobante:p.tieneComprobante })){
             showToast("Falta subir la foto del Yape/transferencia. Entra a \"Editar\" para subirla antes de marcarlo pagado.");
             return;
           }
@@ -17674,7 +18217,10 @@ var TRIPLES = [
             showToast("No se eliminó: no escribiste ELIMINAR.");
             return;
           }
-          db.collection("pedidos").doc(id).delete().catch(function(){
+          db.collection("pedidos").doc(id).delete().then(function(){
+            // Si su foto estaba aparte, se borra también (si falla no importa: queda huérfana).
+            if(pedidoFotosSeparadas(p)){ pedidoFotosCacheOlvidar(id); db.collection(PEDIDOS_FOTOS_COL).doc(id).delete().catch(function(){}); }
+          }).catch(function(){
             showToast("No se pudo eliminar. Intenta de nuevo.");
           });
         });
@@ -18732,7 +19278,7 @@ var TRIPLES = [
       pagarBtn.textContent = "💰 Marcar pagado";
       pagarBtn.addEventListener("click", function(){
         if(!db) return;
-        if(pedidoFaltaFotoComprobante({ pagado:true, tipoPago:p.tipoPago, comprobante:p.comprobante })){
+        if(pedidoFaltaFotoComprobante({ pagado:true, tipoPago:p.tipoPago, comprobante:p.comprobante, tieneComprobante:p.tieneComprobante })){
           showToast("Falta subir la foto del Yape/transferencia. Entra a \"Ver detalle\" > Editar para subirla antes de marcarlo pagado.");
           return;
         }
@@ -24830,6 +25376,7 @@ var TRIPLES = [
       attachAdminAuthSync();
       attachListaPreciosConfigSync();
       attachProduccionAreasSync();
+      attachFotosModoSync();
     }
     window.__iniciarRestoSync = iniciarRestoSync;
     setTimeout(iniciarRestoSync, 4000);
