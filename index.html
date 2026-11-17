@@ -6537,11 +6537,152 @@ var TRIPLES = [
     card.appendChild(diagBtn);
     return card;
   }
+  // ---------- Herramientas de administración de Historial (nov-2026, pedido de Jessica) ----------
+  // "Esta sección no debería verla todo el mundo": Respaldo completo (baja TODOS los pedidos,
+  // clientes y cajas), División del Arqueo y Fotos de Yape aparte. Quedan detrás del PIN
+  // administrativo (el mismo de la Lista de Precios). El listado "Historial de arqueos" de abajo
+  // sigue a la vista de todos. Se vuelven a cerrar solas: al salir de la pestaña Historial, con
+  // el botón "Cerrar" o a los 10 minutos (salvo que haya una operación en curso). Si todavía no
+  // existe ningún PIN administrativo (config/adminAuth nunca se configuró) no hay nada que
+  // proteger y se muestran como siempre, para no dejar a nadie sin poder sacar un respaldo.
+  var historialAdminAbierto = false;
+  var historialAdminTimer = null;
+  function historialAdminCerrar(){
+    historialAdminAbierto = false;
+    if(historialAdminTimer){ clearTimeout(historialAdminTimer); historialAdminTimer = null; }
+  }
+  function historialAdminProgramarCierre(){
+    if(historialAdminTimer) clearTimeout(historialAdminTimer);
+    historialAdminTimer = setTimeout(function(){
+      historialAdminTimer = null;
+      if(fotosMigrando || arqueoMigrando || respaldoDescargando){ historialAdminProgramarCierre(); return; }
+      historialAdminAbierto = false;
+      if(currentTab === "historial") renderPanel();
+    }, 10 * 60 * 1000);
+  }
+  // PIN administrativo en cuadro con el campo OCULTO (el de la Lista de Precios usa prompt(), que
+  // muestra el PIN en pantalla). Valida contra los hashes de config/adminAuth, igual que
+  // pedirPinAdministrativoYEjecutar, y deja recordado el responsable para no pedirlo de nuevo en
+  // los botones de adentro.
+  function pedirPinAdminOculto(onOk){
+    if(despachoPinAbierto) return;
+    if(!adminAuthDisponible()){ alert("Este navegador no admite la validación segura de PIN. Prueba desde Chrome o Safari actualizados."); return; }
+    if(ADMIN_AUTH_ERROR){ showToast("No se pudo leer la configuración de PINs. Revisa tu conexión e intenta de nuevo.", 5000); return; }
+    if(ADMIN_AUTH_EXISTE === null){ showToast("Todavía se está cargando la configuración de PINs. Intenta en unos segundos.", 4000); return; }
+    despachoPinAbierto = true;
+    var overlay = document.createElement("div");
+    overlay.setAttribute("data-admin-pin", "1");
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;";
+    var box = document.createElement("div");
+    box.style.cssText = "background:#fff;color:#222;border-radius:14px;padding:18px 16px;width:100%;max-width:340px;box-shadow:0 10px 30px rgba(0,0,0,.35);font-family:inherit;";
+    var h = document.createElement("div");
+    h.style.cssText = "font-weight:700;font-size:16px;margin-bottom:4px;";
+    h.textContent = "PIN de administradora";
+    var sub = document.createElement("div");
+    sub.style.cssText = "font-size:13px;color:#555;margin-bottom:10px;";
+    sub.textContent = "Para abrir las herramientas de administración.";
+    var inp = document.createElement("input");
+    inp.type = "password"; inp.inputMode = "numeric"; inp.pattern = "[0-9]*"; inp.maxLength = 8; inp.autocomplete = "off";
+    inp.className = "admin-pin-input"; inp.placeholder = "PIN";
+    inp.style.cssText = "width:100%;box-sizing:border-box;font-size:24px;letter-spacing:8px;text-align:center;padding:10px;border:2px solid #bbb;border-radius:10px;";
+    var err = document.createElement("div");
+    err.style.cssText = "color:#b3261e;font-size:13px;min-height:18px;margin-top:6px;";
+    var row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:8px;margin-top:10px;";
+    var bCancel = document.createElement("button");
+    bCancel.type = "button"; bCancel.textContent = "Cancelar"; bCancel.className = "btn btn-sm admin-pin-cancel";
+    bCancel.style.cssText = "flex:1;padding:12px;font-size:15px;";
+    var bOk = document.createElement("button");
+    bOk.type = "button"; bOk.textContent = "Abrir"; bOk.className = "btn btn-sm btn-primary admin-pin-ok";
+    bOk.style.cssText = "flex:1;padding:12px;font-size:15px;font-weight:700;";
+    row.appendChild(bCancel); row.appendChild(bOk);
+    box.appendChild(h); box.appendChild(sub); box.appendChild(inp); box.appendChild(err); box.appendChild(row);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    var validando = false;
+    function cerrar(){
+      if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      despachoPinAbierto = false;
+    }
+    function confirmar(){
+      if(validando) return;
+      var pin = (inp.value || "").trim();
+      if(!pin){ err.textContent = "Escribe tu PIN."; return; }
+      validando = true;
+      adminAuthValidarPin(pin).then(function(nombre){
+        validando = false;
+        if(!nombre){ err.textContent = "PIN incorrecto."; inp.value = ""; inp.focus(); return; }
+        cerrar();
+        listaPreciosSesionResponsable = nombre;
+        onOk(nombre);
+      }).catch(function(){
+        validando = false;
+        err.textContent = "No se pudo validar el PIN (revisa tu conexión).";
+      });
+    }
+    bCancel.addEventListener("click", cerrar);
+    bOk.addEventListener("click", confirmar);
+    inp.addEventListener("keydown", function(ev){ if(ev.key === "Enter"){ ev.preventDefault(); confirmar(); } });
+    try{ inp.focus(); }catch(e){}
+  }
+  function buildHistorialAdminGate(){
+    var card = document.createElement("div");
+    card.className = "card";
+    card.style.border = "1px solid #c9a15a";
+    card.style.background = "#fbf5e8";
+    card.style.marginBottom = "1rem";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .3rem";
+    h2.textContent = "🔒 Herramientas de administración";
+    card.appendChild(h2);
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.style.margin = "0 0 .8rem";
+    hint.textContent = "Solo para la administradora: se abren con su PIN.";
+    card.appendChild(hint);
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-primary";
+    btn.textContent = "Abrir con mi PIN";
+    btn.addEventListener("click", function(){
+      pedirPinAdminOculto(function(){
+        historialAdminAbierto = true;
+        historialAdminProgramarCierre();
+        renderPanel();
+      });
+    });
+    card.appendChild(btn);
+    return card;
+  }
+  function buildHistorialAdminBarra(){
+    var bar = document.createElement("div");
+    bar.className = "hint";
+    bar.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin:0 0 .8rem;font-weight:700;";
+    var t = document.createElement("span");
+    t.textContent = "🔓 Herramientas de administración abiertas (se cierran solas a los 10 minutos)";
+    bar.appendChild(t);
+    var cerrarBtn = document.createElement("button");
+    cerrarBtn.type = "button";
+    cerrarBtn.className = "btn btn-sm";
+    cerrarBtn.textContent = "Cerrar";
+    cerrarBtn.addEventListener("click", function(){
+      if(fotosMigrando || arqueoMigrando || respaldoDescargando){ showToast("Hay una operación en curso: espera a que termine para cerrar.", 4000); return; }
+      historialAdminCerrar();
+      renderPanel();
+    });
+    bar.appendChild(cerrarBtn);
+    return bar;
+  }
   function buildHistorialPanel(){
     var wrap = document.createElement("div");
-    wrap.appendChild(buildRespaldoCompletoCard());
-    wrap.appendChild(buildDividirArqueoCard());
-    wrap.appendChild(buildFotosAparteCard());
+    if(historialAdminAbierto || ADMIN_AUTH_EXISTE === false){
+      if(historialAdminAbierto) wrap.appendChild(buildHistorialAdminBarra());
+      wrap.appendChild(buildRespaldoCompletoCard());
+      wrap.appendChild(buildDividirArqueoCard());
+      wrap.appendChild(buildFotosAparteCard());
+    } else {
+      wrap.appendChild(buildHistorialAdminGate());
+    }
     var card = document.createElement("div");
     card.className = "card";
     var headRow = document.createElement("div");
@@ -13790,13 +13931,17 @@ var TRIPLES = [
     if(!db) return;
     try{
       db.collection("config").doc("fotosModo").onSnapshot(function(snap){
+        var antes = fotosModoDocs;
         if(!snap.exists){
           if(snap.metadata && snap.metadata.fromCache) return; // "no existe" sin confirmar: se ignora
           fotosModoDocs = false;
-          return;
+        } else {
+          var d = snap.data() || {};
+          fotosModoDocs = (d.modo === "docs");
         }
-        var d = snap.data() || {};
-        fotosModoDocs = (d.modo === "docs");
+        // Si Historial ya estaba dibujado cuando llegó este dato, se vuelve a dibujar para que la
+        // tarjeta de fotos muestre el estado real (antes seguía diciendo "foto adentro" hasta cambiar de pestaña).
+        if(antes !== fotosModoDocs && currentTab === "historial" && !(fotosMigrando || arqueoMigrando)) renderPanel();
       }, function(){ /* sin permiso o sin conexión: se queda en el modo clásico */ });
     }catch(e){}
   }
@@ -24777,6 +24922,8 @@ var TRIPLES = [
           cajeroLogueado = null;
           cajerosLockError = false;
         }
+        // Igual con las herramientas de administración de Historial: al salir se vuelven a cerrar.
+        if(currentTab === "historial" && destino !== "historial" && !(fotosMigrando || arqueoMigrando || respaldoDescargando)) historialAdminCerrar();
         currentTab = destino; renderAll();
       });
     });
