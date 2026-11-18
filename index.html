@@ -1582,6 +1582,9 @@
   .dgv{ display:inline-flex; background:#efe6d3; border-radius:999px; padding:3px; margin:0 0 .8rem; }
   .dgv button{ border:0; background:transparent; font:inherit; font-size:.85rem; font-weight:600; color:#6b4428; padding:.42rem 1.05rem; border-radius:999px; cursor:pointer; min-height:36px; }
   .dgv button.on{ background:#4a2f1d; color:#fbf3e2; }
+  .dgv-row{ display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; justify-content:space-between; margin:0 0 .8rem; }
+  .dgv-row .dgv{ margin:0; }
+  .dgv-acc{ display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; }
   .dgp-card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1rem 1.1rem; box-shadow:var(--shadow); margin-bottom:.8rem; }
   .dgp-lbl{ display:block; font-size:.82rem; color:var(--ink-muted); font-weight:600; margin:0 0 .3rem; }
   .dgp-sel{ width:100%; font:inherit; font-size:.95rem; padding:.6rem .7rem; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--ink); min-height:44px; }
@@ -1591,6 +1594,19 @@
   .dgp-rap{ display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.7rem; }
   .dgp-rap button{ border:1px solid var(--border); background:var(--surface); font:inherit; font-size:.78rem; font-weight:600; color:#6b4428; padding:.35rem .75rem; border-radius:999px; cursor:pointer; min-height:34px; }
   .dgp-rap button:hover{ background:#f3e4c0; }
+  .dgp-kcs{ display:grid; grid-template-columns:1fr 1fr; gap:.7rem; margin-bottom:1.3rem; }
+  @media(min-width:760px){ .dgp-kcs{ grid-template-columns:repeat(4,1fr); } }
+  .dgp-kc{ border:1px solid var(--border); border-radius:12px; padding:.8rem .9rem; background:var(--surface); }
+  .dgp-kc .t{ font-size:.82rem; color:var(--ink-muted); }
+  .dgp-kc .v{ font-size:1.6rem; font-weight:600; color:var(--ink); line-height:1.3; margin:.1rem 0; }
+  .dgp-kc .u{ font-size:.78rem; color:var(--ink-muted); }
+  .dgp-chart{ border:1px solid var(--border); border-radius:12px; padding:.7rem .6rem .5rem; background:var(--surface); }
+  .dgp-leg{ text-align:center; font-size:.82rem; color:var(--ink-muted); margin-top:.2rem; }
+  .dgp-leg .dot{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:.3rem; vertical-align:middle; }
+  .dgp-sd{ display:flex; justify-content:space-between; gap:.6rem; flex-wrap:wrap; font-size:.78rem; margin:.5rem 0 1rem; }
+  .dgp-h3{ margin:.6rem 0 .3rem; font-size:1rem; font-weight:700; }
+  .dgp-up{ color:#1f7a3d; } .dgp-dn{ color:#c0392b; } .dgp-mu{ color:var(--ink-muted); }
+  .dgp-tbl td.b{ font-weight:700; }
   .dgp-name{ margin:0 0 .15rem; font-size:1.25rem; font-weight:700; color:var(--ink); }
   .dgp-per{ font-size:.85rem; color:var(--ink-muted); margin-bottom:1rem; }
   .dgp-kpis{ display:grid; grid-template-columns:1fr 1fr; gap:1rem 1.2rem; margin-bottom:1.2rem; }
@@ -6598,7 +6614,7 @@ var TRIPLES = [
   // muestra el PIN en pantalla). Valida contra los hashes de config/adminAuth, igual que
   // pedirPinAdministrativoYEjecutar, y deja recordado el responsable para no pedirlo de nuevo en
   // los botones de adentro.
-  function pedirPinAdminOculto(onOk){
+  function pedirPinAdminOculto(onOk, mensaje){
     if(despachoPinAbierto) return;
     if(!adminAuthDisponible()){ alert("Este navegador no admite la validación segura de PIN. Prueba desde Chrome o Safari actualizados."); return; }
     if(ADMIN_AUTH_ERROR){ showToast("No se pudo leer la configuración de PINs. Revisa tu conexión e intenta de nuevo.", 5000); return; }
@@ -6614,7 +6630,7 @@ var TRIPLES = [
     h.textContent = "PIN de administradora";
     var sub = document.createElement("div");
     sub.style.cssText = "font-size:13px;color:#555;margin-bottom:10px;";
-    sub.textContent = "Para abrir las herramientas de administración.";
+    sub.textContent = mensaje || "Para abrir las herramientas de administración.";
     var inp = document.createElement("input");
     inp.type = "password"; inp.inputMode = "numeric"; inp.pattern = "[0-9]*"; inp.maxLength = 8; inp.autocomplete = "off";
     inp.className = "admin-pin-input"; inp.placeholder = "PIN";
@@ -11133,7 +11149,7 @@ var TRIPLES = [
   // mismo consolidado de siempre (dashConsolidar), un día a la vez, y nunca inventa cifras: un
   // turno sin datos aparece como "—", no como 0.
   var dashVista = "resumen";
-  var dashProd = { key: "", desde: null, hasta: null, vista: "turno" };
+  var dashProd = { key: "", desde: null, hasta: null, vista: "turno", grafico: "linea" };
   var DASH_PROD_MAXDIAS = 92;
   var DASH_PROD_TABS = { panes: "Panes y pastelería", bebidas: "Bebidas", embutidos: "Embutidos y quesos", triples: "Triples", otros: "Otros" };
   function dashProdKey(p){ return p.tab + "|" + p.name; }
@@ -11167,6 +11183,20 @@ var TRIPLES = [
       out.filas.push({ fecha: date, am: am, pm: pm, t: t });
     });
     out.total = (out.hayAm ? out.am : 0) + (out.hayPm ? out.pm : 0); // misma suma que el consolidado (sin redondeos distintos)
+    // Tendencia día a día (solo si los DOS días tienen dato), mayor venta y última variación
+    var maxV = null, maxF = null;
+    out.filas.forEach(function(x, i){
+      var prev = i > 0 ? out.filas[i - 1].t : null;
+      // Solo se compara contra el día anterior si los dos tienen registrados los MISMOS turnos
+      // (si a un día le falta la tarde, su total no es comparable con el de un día completo).
+      var pf = i > 0 ? out.filas[i - 1] : null;
+      var mismos = pf && ((x.am === null) === (pf.am === null)) && ((x.pm === null) === (pf.pm === null));
+      x.v = (x.t !== null && prev !== null && mismos) ? round2(x.t - prev) : null;
+      if(x.t !== null && (maxV === null || x.t > maxV)){ maxV = x.t; maxF = x.fecha; }
+    });
+    out.max = maxV === null ? null : { v: maxV, fecha: maxF };
+    out.ultVar = null;
+    for(var i = out.filas.length - 1; i >= 0; i--){ if(out.filas[i].v !== null){ out.ultVar = { v: out.filas[i].v, fecha: out.filas[i].fecha }; break; } }
     // Producido y último saldo del período completo (solo para dar contexto)
     var R2 = dashConsolidar(out.desde, hasta, "todo");
     var p2 = null;
@@ -11186,13 +11216,73 @@ var TRIPLES = [
     }
     return out;
   }
+
+  var DASH_GRAF_COLOR = "#8a5a2b", DASH_GRAF_BARRA = "#b8893a";
+  function dashFechaCorta(iso){ return iso.slice(8, 10) + "/" + iso.slice(5, 7); }
+  // Gráfico de barras o línea en SVG (sin librerías). Un día sin datos queda vacío (no se dibuja como 0).
+  function dashProdGrafico(r, tipo, ancho){
+    var W = Math.max(300, Math.min(700, ancho || 700)), H = W < 500 ? 240 : 270, ml = 40, mr = 10, mt = 12, mb = 30, iw = W - ml - mr, ih = H - mt - mb;
+    var n = r.filas.length, max = 0;
+    r.filas.forEach(function(x){ if(x.t !== null && x.t > max) max = x.t; });
+    var step, top;
+    if(max <= 0){ step = 1; top = 4; }
+    else {
+      var raw = max / 4, mag = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10)), norm = raw / mag;
+      step = (norm <= 1 ? 1 : (norm <= 2 ? 2 : (norm <= 5 ? 5 : 10))) * mag;
+      top = Math.ceil(max / step - 1e-9) * step;
+    }
+    function Y(v){ return mt + ih - (v / top) * ih; }
+    var slot = iw / Math.max(n, 1);
+    function X(i){ return ml + slot * (i + 0.5); }
+    var u = r.kg ? " kg" : " und.";
+    var g = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" style="width:100%;height:auto;display:block" role="img" aria-label="Evolución de ventas por día">';
+    for(var v = 0; v <= top + step * 0.001; v += step){
+      var y = Y(v);
+      g += '<line x1="' + ml + '" x2="' + (W - mr) + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="' + (v === 0 ? "#bdb2a2" : "#e6ddcc") + '" stroke-width="1"' + (v === 0 ? "" : ' stroke-dasharray="4 4"') + "/>";
+      g += '<text x="' + (ml - 6) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end" font-size="11" fill="#7a6b5a">' + fmt(Math.round(v * 100) / 100) + "</text>";
+    }
+    var every = Math.max(1, Math.ceil(n / (W < 500 ? 5 : 8)));
+    for(var i = 0; i < n; i++){
+      var show = (i % every === 0) || (i === n - 1 && ((n - 1) % every) >= every / 2);
+      if(show) g += '<text x="' + X(i).toFixed(1) + '" y="' + (H - 9) + '" text-anchor="middle" font-size="11" fill="#7a6b5a">' + dashFechaCorta(r.filas[i].fecha) + "</text>";
+    }
+    if(tipo === "barras"){
+      var bw = Math.min(slot * 0.64, 30);
+      r.filas.forEach(function(x, i){
+        if(x.t === null) return;
+        var h = Math.max(0, (x.t / top) * ih);
+        g += '<rect x="' + (X(i) - bw / 2).toFixed(1) + '" y="' + (mt + ih - h).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="2" fill="' + DASH_GRAF_BARRA + '"><title>' + dashFechaDia(x.fecha) + ": " + fmt(x.t) + u + "</title></rect>";
+      });
+    } else {
+      var d = "", pen = false;
+      r.filas.forEach(function(x, i){
+        if(x.t === null){ pen = false; return; }
+        d += (pen ? "L" : "M") + X(i).toFixed(1) + " " + Y(x.t).toFixed(1) + " ";
+        pen = true;
+      });
+      if(d) g += '<path d="' + d + '" fill="none" stroke="' + DASH_GRAF_COLOR + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
+      var rad = n > 40 ? 2.2 : 3.4;
+      r.filas.forEach(function(x, i){
+        if(x.t === null) return;
+        g += '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(x.t).toFixed(1) + '" r="' + rad + '" fill="' + DASH_GRAF_COLOR + '" stroke="#fff" stroke-width="1"><title>' + dashFechaDia(x.fecha) + ": " + fmt(x.t) + u + "</title></circle>";
+      });
+    }
+    g += "</svg>";
+    return g;
+  }
+  function dashProdTend(x){
+    if(x.v === null || x.v === undefined) return '<span class="dgp-mu">—</span>';
+    if(x.v > 0) return '<span class="dgp-up">↑ +' + fmt(x.v) + "</span>";
+    if(x.v < 0) return '<span class="dgp-dn">↓ ' + fmt(x.v) + "</span>";
+    return '<span class="dgp-mu">= 0</span>';
+  }
   function dashProdExportar(r){
     try{
-      var filas = [["Fecha", "Mañana", "Tarde", "Total"]];
-      r.filas.forEach(function(x){ filas.push([dashFechaLarga(x.fecha), x.am === null ? "" : x.am, x.pm === null ? "" : x.pm, x.t === null ? "" : x.t]); });
-      filas.push(["TOTAL", r.hayAm ? r.am : "", r.hayPm ? r.pm : "", r.diasConDato ? r.total : ""]);
+      var filas = [["Fecha", "Mañana", "Tarde", "Total", "Variación vs día anterior"]];
+      r.filas.forEach(function(x){ filas.push([dashFechaLarga(x.fecha), x.am === null ? "" : x.am, x.pm === null ? "" : x.pm, x.t === null ? "" : x.t, x.v === null ? "" : x.v]); });
+      filas.push(["TOTAL", r.hayAm ? r.am : "", r.hayPm ? r.pm : "", r.diasConDato ? r.total : "", ""]);
       var ws = XLSX.utils.aoa_to_sheet(filas);
-      ws["!cols"] = [{ wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
+      ws["!cols"] = [{ wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 24 }];
       var wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Ventas por día");
       var info = XLSX.utils.aoa_to_sheet([
@@ -11213,8 +11303,8 @@ var TRIPLES = [
     var wrap = dashEl("div", "dg");
     var head = dashEl("div", "dg-head");
     head.appendChild(dashEl("div", "dg-eyebrow", "Carmelitas Pan · Gerencia"));
-    head.appendChild(dashEl("h2", "dg-title", "Reportes por producto"));
-    head.appendChild(dashEl("div", "dg-range", "Análisis de ventas por período"));
+    head.appendChild(dashEl("h2", "dg-title", "Reportes de ventas"));
+    head.appendChild(dashEl("div", "dg-range", "Análisis por producto y período"));
     wrap.appendChild(head);
 
     var opts = dashProdOpciones(dashProd.hasta);
@@ -11226,7 +11316,7 @@ var TRIPLES = [
     }
 
     var sel = dashEl("div", "dgp-card");
-    var lbl = dashEl("label", "dgp-lbl", "Buscar producto"); lbl.setAttribute("for", "dgp-prod");
+    var lbl = dashEl("label", "dgp-lbl", "Producto"); lbl.setAttribute("for", "dgp-prod");
     sel.appendChild(lbl);
     var s = document.createElement("select"); s.id = "dgp-prod"; s.className = "dgp-sel"; s.name = "dgp-prod";
     Object.keys(DASH_PROD_TABS).forEach(function(tab){
@@ -11273,43 +11363,50 @@ var TRIPLES = [
       return wrap;
     }
     var r = dashProdCalcular(dashProd.key, dashProd.desde, dashProd.hasta);
-    var unid = r.kg ? "kg" : "unidades";
+    var u = r.kg ? "kg" : "und.";
     card.appendChild(dashEl("h3", "dgp-name", esc(productoDisplay(r.nombre))));
     card.appendChild(dashEl("div", "dgp-per", "Del " + dashFechaLarga(r.desde) + " al " + dashFechaLarga(r.hasta) + " · " + r.dias + " días seleccionados" +
       (r.truncado ? " <span class=\"dg-mute\">(se muestran los últimos " + DASH_PROD_MAXDIAS + " días)</span>" : "")));
-    function kp(t, v, u){ return "<div class=\"dgp-k\"><div class=\"t\">" + t + "</div><div class=\"v\">" + v + "</div><div class=\"u\">" + u + "</div></div>"; }
-    var prom = r.diasConDato ? fmt(r.total / r.diasConDato) : "—";
-    card.appendChild(dashEl("div", "dgp-kpis",
-      kp("Total vendido", r.diasConDato ? fmt(r.total) : "—", unid) +
-      kp("Promedio diario", prom, unid + " por día con datos") +
-      kp("Turno mañana", r.hayAm ? fmt(r.am) : "—", unid) +
-      kp("Turno tarde", r.hayPm ? fmt(r.pm) : "—", unid)));
+    function kc(t, v, sub){ return "<div class=\"dgp-kc\"><div class=\"t\">" + t + "</div><div class=\"v\">" + v + "</div><div class=\"u\">" + sub + "</div></div>"; }
+    var uv = r.ultVar;
+    var uvHtml = !uv ? "—" : (uv.v > 0 ? "<span class=\"dgp-up\">↗ +" + fmt(uv.v) + " " + u + "</span>" : (uv.v < 0 ? "<span class=\"dgp-dn\">↘ " + fmt(uv.v) + " " + u + "</span>" : "<span class=\"dgp-mu\">= 0 " + u + "</span>"));
+    card.appendChild(dashEl("div", "dgp-kcs",
+      kc(r.kg ? "Kilos vendidos" : "Unidades vendidas", r.diasConDato ? fmt(r.total) : "—", "Período seleccionado") +
+      kc("Promedio diario", r.diasConDato ? fmt(r.total / r.diasConDato) : "—", (r.kg ? "Kilos" : "Unidades") + " por día con datos (" + r.diasConDato + ")") +
+      kc("Mayor venta", r.max ? fmt(r.max.v) + " " + u : "—", r.max ? dashFechaCorta(r.max.fecha) : "Sin datos") +
+      kc("Última variación diaria", uvHtml, uv ? "Respecto al día anterior (" + dashFechaCorta(uv.fecha) + ")" : "Respecto al día anterior")));
+    // ---- Evolución de ventas ----
     var h = dashEl("div", "dgp-h");
-    h.appendChild(dashEl("h3", "", "Detalle de ventas"));
+    var ht = dashEl("div", "");
+    ht.appendChild(dashEl("h3", "", "Evolución de ventas"));
+    ht.appendChild(dashEl("div", "dg-mute", dashFechaLarga(r.desde) + " al " + dashFechaLarga(r.hasta)));
+    h.appendChild(ht);
     var tg = dashEl("div", "dgp-tg");
-    [["dia", "Por día"], ["turno", "Por turno"]].forEach(function(o){
-      var b = dashEl("button", dashProd.vista === o[0] ? "on" : "", o[1]); b.type = "button";
-      b.addEventListener("click", function(){ dashProd.vista = o[0]; renderPanel(); });
+    [["barras", "Barras"], ["linea", "Línea"]].forEach(function(o){
+      var b = dashEl("button", dashProd.grafico === o[0] ? "on" : "", o[1]); b.type = "button";
+      b.addEventListener("click", function(){ dashProd.grafico = o[0]; renderPanel(); });
       tg.appendChild(b);
     });
     h.appendChild(tg);
     card.appendChild(h);
-    var porTurno = dashProd.vista === "turno";
-    var t = "<div class=\"dgp-sc\"><table class=\"dgp-tbl\"><thead><tr><th>Fecha</th>" + (porTurno ? "<th>Mañana</th><th>Tarde</th>" : "") + "<th>Total</th></tr></thead><tbody>";
+    var gbox = dashEl("div", "dgp-chart", r.diasConDato ? dashProdGrafico(r, dashProd.grafico, (document.getElementById("panel") ? document.getElementById("panel").clientWidth : 700) - 64) : "<div class=\"dg-vacio\">Sin ventas con datos en este período.</div>");
+    if(r.diasConDato) gbox.appendChild(dashEl("div", "dgp-leg", "<span class=\"dot\" style=\"background:" + (dashProd.grafico === "barras" ? DASH_GRAF_BARRA : DASH_GRAF_COLOR) + "\"></span> " + (r.kg ? "Kilos vendidos" : "Unidades vendidas")));
+    card.appendChild(gbox);
+    card.appendChild(dashEl("div", "dgp-sd", "<span class=\"dgp-up\">↗ Subida: más ventas que el día anterior</span><span class=\"dgp-dn\">↘ Bajada: menos ventas</span>"));
+    // ---- Detalle diario ----
+    card.appendChild(dashEl("h3", "dgp-h3", "Detalle diario"));
+    var t = "<div class=\"dgp-sc\"><table class=\"dgp-tbl\"><thead><tr><th>Fecha</th><th>Mañana</th><th>Tarde</th><th>Total</th><th>Tendencia</th></tr></thead><tbody>";
     r.filas.forEach(function(x){
-      var sin = x.t === null;
-      t += "<tr><td>" + dashFechaDia(x.fecha) + "</td>" +
-        (porTurno ? "<td" + (x.am === null ? " class=\"p\"" : "") + ">" + dashN(x.am) + "</td><td" + (x.pm === null ? " class=\"p\"" : "") + ">" + dashN(x.pm) + "</td>" : "") +
-        "<td" + (sin ? " class=\"p\"" : "") + ">" + dashN(x.t) + "</td></tr>";
+      t += "<tr><td>" + dashFechaDia(x.fecha) + "</td><td" + (x.am === null ? " class=\"p\"" : "") + ">" + dashN(x.am) + "</td><td" + (x.pm === null ? " class=\"p\"" : "") + ">" + dashN(x.pm) +
+        "</td><td class=\"b" + (x.t === null ? " p" : "") + "\">" + dashN(x.t) + "</td><td>" + dashProdTend(x) + "</td></tr>";
     });
-    t += "<tr class=\"tot\"><td>TOTAL</td>" + (porTurno ? "<td>" + (r.hayAm ? fmt(r.am) : "—") + "</td><td>" + (r.hayPm ? fmt(r.pm) : "—") + "</td>" : "") +
-      "<td>" + (r.diasConDato ? fmt(r.total) : "—") + "</td></tr></tbody></table></div>";
+    t += "<tr class=\"tot\"><td>TOTAL</td><td>" + (r.hayAm ? fmt(r.am) : "—") + "</td><td>" + (r.hayPm ? fmt(r.pm) : "—") + "</td><td>" + (r.diasConDato ? fmt(r.total) : "—") + "</td><td></td></tr></tbody></table></div>";
     card.appendChild(dashEl("div", "", t));
     var ctx = [];
     if(r.prod !== null && r.prod !== undefined) ctx.push("Producido en el período: <strong>" + fmt(r.prod) + "</strong> " + (r.kg ? "kg" : "unid."));
     if(r.saldo !== null && r.saldo !== undefined) ctx.push("Último saldo contado: <strong>" + fmt(r.saldo) + "</strong>");
     if(ctx.length) card.appendChild(dashEl("div", "dg-mute", ctx.join(" · ")));
-    card.appendChild(dashEl("div", "dg-mute", "“—” = turno sin datos (pendiente), no es 0. La venta sale de Metas o del conteo físico de Arqueo, una sola fuente por producto. El promedio usa solo los días con datos."));
+    card.appendChild(dashEl("div", "dg-mute", "“—” = turno o día sin datos (pendiente), no es 0. La tendencia compara con el día anterior solo si los dos tienen los mismos turnos registrados. La venta sale de Metas o del conteo físico de Arqueo, una sola fuente por producto."));
     var ex = dashEl("div", "dgp-ex");
     var be = dashEl("button", "btn", "Descargar Excel"); be.type = "button";
     be.addEventListener("click", function(){ dashProdExportar(r); });
@@ -11319,16 +11416,154 @@ var TRIPLES = [
     return wrap;
   }
 
+
+  // ---- Candado del Dashboard Gerencial: solo la administradora, con su PIN (nov-2026) ----
+  // Mismo criterio que las herramientas de Historial: PIN administrativo (campo oculto), se vuelve
+  // a cerrar al salir de la pestaña, con "Cerrar" o a los 10 minutos. Si todavía no existe ningún
+  // PIN administrativo configurado no hay con qué proteger y se muestra como siempre.
+  var dashAdminAbierto = false;
+  var dashAdminTimer = null;
+  function dashAdminCerrar(){
+    dashAdminAbierto = false;
+    if(dashAdminTimer){ clearTimeout(dashAdminTimer); dashAdminTimer = null; }
+  }
+  function dashAdminProgramarCierre(){
+    if(dashAdminTimer) clearTimeout(dashAdminTimer);
+    dashAdminTimer = setTimeout(function(){
+      dashAdminTimer = null;
+      dashAdminAbierto = false;
+      if(currentTab === "controlprod") renderPanel();
+    }, 10 * 60 * 1000);
+  }
+  function buildDashboardAdminGate(){
+    var card = document.createElement("div");
+    card.className = "card";
+    card.style.border = "1px solid #c9a15a";
+    card.style.background = "#fbf5e8";
+    var h2 = document.createElement("h2");
+    h2.style.margin = "0 0 .3rem";
+    h2.textContent = "🔒 Dashboard Gerencial";
+    card.appendChild(h2);
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.style.margin = "0 0 .8rem";
+    hint.textContent = "Solo para la administradora: se abre con su PIN.";
+    card.appendChild(hint);
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-primary";
+    btn.textContent = "Abrir con mi PIN";
+    btn.addEventListener("click", function(){
+      pedirPinAdminOculto(function(){
+        dashAdminAbierto = true;
+        dashAdminProgramarCierre();
+        renderPanel();
+      }, "Para abrir el Dashboard Gerencial.");
+    });
+    card.appendChild(btn);
+    return card;
+  }
+
+  // ---- Imprimir vista (A4 vertical, mismo mecanismo que el resto de la app) ----
+  function dashImprimirHTMLProducto(r){
+    var u = r.kg ? "kg" : "und.";
+    var h = "<h1>" + esc(STATE.meta.businessName || "Arqueo Diario") + "</h1>";
+    h += '<div class="print-sub">Dashboard Gerencial -- Reporte de ventas &middot; ' + esc(productoDisplay(r.nombre)) + " &middot; " + dashFechaLarga(r.desde) + " al " + dashFechaLarga(r.hasta) + "</div>";
+    h += '<div class="print-summary">Total vendido: ' + (r.diasConDato ? fmt(r.total) : "—") + " " + u +
+      " &nbsp;&middot;&nbsp; Promedio diario: " + (r.diasConDato ? fmt(r.total / r.diasConDato) : "—") + " " + u +
+      " &nbsp;&middot;&nbsp; Mayor venta: " + (r.max ? fmt(r.max.v) + " " + u + " (" + dashFechaCorta(r.max.fecha) + ")" : "—") +
+      " &nbsp;&middot;&nbsp; Turno mañana: " + (r.hayAm ? fmt(r.am) : "—") + " &nbsp;&middot;&nbsp; Turno tarde: " + (r.hayPm ? fmt(r.pm) : "—") + "</div>";
+    if(r.diasConDato) h += '<div style="margin:.4em 0 .8em;max-width:100%">' + dashProdGrafico(r, dashProd.grafico) + "</div>";
+    h += "<table><thead><tr><th>Fecha</th><th>Mañana</th><th>Tarde</th><th>Total</th><th>Tendencia</th></tr></thead><tbody>";
+    r.filas.forEach(function(x){
+      var tend = x.v === null ? "—" : (x.v > 0 ? "↑ +" + fmt(x.v) : (x.v < 0 ? "↓ " + fmt(x.v) : "= 0"));
+      h += "<tr><td>" + dashFechaDia(x.fecha) + "</td><td>" + dashN(x.am) + "</td><td>" + dashN(x.pm) + "</td><td><strong>" + dashN(x.t) + "</strong></td><td>" + tend + "</td></tr>";
+    });
+    h += '</tbody><tfoot><tr class="metas-total-row"><td>TOTAL</td><td>' + (r.hayAm ? fmt(r.am) : "—") + "</td><td>" + (r.hayPm ? fmt(r.pm) : "—") + "</td><td>" + (r.diasConDato ? fmt(r.total) : "—") + "</td><td></td></tr></tfoot></table>";
+    var ctx = [];
+    if(r.prod !== null && r.prod !== undefined) ctx.push("Producido en el período: " + fmt(r.prod) + " " + (r.kg ? "kg" : "unid."));
+    if(r.saldo !== null && r.saldo !== undefined) ctx.push("Último saldo contado: " + fmt(r.saldo));
+    if(ctx.length) h += '<div class="meta-line">' + ctx.join(" &middot; ") + "</div>";
+    h += '<div class="meta-line">“—” = turno o día sin datos (pendiente), no es 0. La tendencia compara con el día anterior solo si los dos tienen los mismos turnos registrados. La venta sale de Metas o del conteo físico de Arqueo, una sola fuente por producto.</div>';
+    h += '<div class="print-footer">Generado ' + esc(new Date().toLocaleString("es-PE", { timeZone: "America/Lima" })) + "</div>";
+    return h;
+  }
+  function dashImprimirHTMLResumen(R, f, rango){
+    var turnoTxt = f.turno === "am" ? "Turno mañana" : (f.turno === "pm" ? "Turno tarde" : "Todo el día");
+    var pan = R.pan;
+    var h = "<h1>" + esc(STATE.meta.businessName || "Arqueo Diario") + "</h1>";
+    h += '<div class="print-sub">Dashboard Gerencial -- Producción, ventas y saldos &middot; ' + esc(dashRangoEtiqueta(f.modo, rango)) + " &middot; " + turnoTxt + "</div>";
+    h += '<div class="print-summary">Producción panadería: ' + fmt(pan.tot.prod) + " unid. &nbsp;&middot;&nbsp; Ventas panadería: " + fmt(pan.tot.venta) + " unid. &nbsp;&middot;&nbsp; Saldo panadería: " + fmt(pan.tot.saldo) +
+      " unid. &nbsp;&middot;&nbsp; Ventas totales: " + fmt(R.totales.unid) + " unid. &nbsp;&middot;&nbsp; Cumplimiento de metas: " + (R.cumpl.pct === null ? "—" : Math.round(R.cumpl.pct * 100) + "%") + "</div>";
+    if(!R.diasConDatos){ h += '<div class="meta-line">Sin datos en este período.</div>'; }
+    h += "<h2>Panadería · producido, vendido y saldo</h2>";
+    h += "<table><thead><tr><th>Producto</th><th>Producido</th><th>Vendido</th><th>Saldo</th></tr></thead><tbody>";
+    pan.filas.forEach(function(r){ h += "<tr><td>" + esc(productoDisplay(r.nombre)) + "</td><td>" + fmt(r.producido) + "</td><td>" + dashN(r.vendido) + "</td><td>" + dashN(r.saldo) + "</td></tr>"; });
+    h += '</tbody><tfoot><tr class="metas-total-row"><td>Total unidades</td><td>' + fmt(pan.tot.prod) + "</td><td>" + fmt(pan.tot.venta) + "</td><td>" + fmt(pan.tot.saldo) + "</td></tr></tfoot></table>";
+    if(pan.kgFilas.length){
+      h += "<table><thead><tr><th>Al peso</th><th>Producido</th><th>Vendido</th><th>Saldo</th></tr></thead><tbody>";
+      pan.kgFilas.forEach(function(r){ h += "<tr><td>" + esc(productoDisplay(r.nombre)) + " (kg)</td><td>" + fmt(r.producido) + "</td><td>" + dashN(r.vendido) + "</td><td>" + dashN(r.saldo) + "</td></tr>"; });
+      h += "</tbody></table>";
+    }
+    h += "<h2>Ventas por categoría (unidades)</h2>";
+    h += "<table><thead><tr><th>Categoría</th><th>Total</th><th>Meta</th><th>Cumpl.</th></tr></thead><tbody>";
+    R.cats.forEach(function(c){
+      h += "<tr><td>" + esc(c.etiqueta) + (c.kg ? " (+ " + fmt(c.kg) + " kg)" : "") + "</td><td>" + fmt(c.total) + "</td><td>" + (c.meta === null ? "—" : fmt(c.meta)) + "</td><td>" + (c.pct === null ? "—" : Math.round(c.pct * 100) + "%") + "</td></tr>";
+    });
+    h += '</tbody><tfoot><tr class="metas-total-row"><td>Total ventas (unidades)</td><td>' + fmt(R.totales.unid) + "</td><td></td><td></td></tr></tfoot></table>";
+    R.avisos.forEach(function(a){ h += '<div class="meta-line">⚠ ' + esc(a) + "</div>"; });
+    h += '<div class="meta-line">“—” = sin datos (pendiente), no es 0. Unidades y kilos nunca se suman entre sí. Una sola fuente de venta por producto (Metas o conteo físico de Arqueo).</div>';
+    h += '<div class="print-footer">Generado ' + esc(new Date().toLocaleString("es-PE", { timeZone: "America/Lima" })) + "</div>";
+    return h;
+  }
+  function dashImprimirVista(){
+    try{
+      var html, titulo;
+      if(dashVista === "producto"){
+        if(!dashProd.key){ showToast("Elige un producto primero."); return; }
+        var r = dashProdCalcular(dashProd.key, dashProd.desde, dashProd.hasta);
+        html = dashImprimirHTMLProducto(r);
+        titulo = "Reporte " + productoDisplay(r.nombre) + " " + r.desde + "_" + r.hasta;
+      } else {
+        var f = dashFiltro; if(!f.ref) f.ref = todayISO();
+        var rango = dashRango(f.modo, f.ref);
+        var R = dashConsolidar(rango.desde, rango.hasta, f.turno);
+        html = dashImprimirHTMLResumen(R, f, rango);
+        titulo = "Dashboard " + rango.desde + "_" + rango.hasta;
+      }
+      setPrintOrientation(false);
+      document.getElementById("printArea").innerHTML = html;
+      doWindowPrint(titulo);
+    }catch(err){ showToast("No se pudo preparar la impresión. Intenta de nuevo."); }
+  }
+
   // ---- UI ----
   function buildProduccionPanel(){
     var wrap = document.createElement("div");
+    if(!dashAdminAbierto && ADMIN_AUTH_EXISTE !== false){
+      wrap.appendChild(buildDashboardAdminGate());
+      return wrap;
+    }
+    var fila = dashEl("div", "dgv-row");
     var vt = dashEl("div", "dgv");
-    [["resumen", "Resumen general"], ["producto", "Reporte por producto"]].forEach(function(o){
+    [["resumen", "Resumen general"], ["producto", "Reportes de ventas"]].forEach(function(o){
       var b = dashEl("button", dashVista === o[0] ? "on" : "", o[1]); b.type = "button";
       b.addEventListener("click", function(){ dashVista = o[0]; renderPanel(); });
       vt.appendChild(b);
     });
-    wrap.appendChild(vt);
+    fila.appendChild(vt);
+    var acc = dashEl("div", "dgv-acc");
+    var bi = dashEl("button", "btn", "🖨 Imprimir vista"); bi.type = "button";
+    bi.addEventListener("click", dashImprimirVista);
+    acc.appendChild(bi);
+    if(dashAdminAbierto){
+      var bc = dashEl("button", "btn", "🔓 Cerrar"); bc.type = "button";
+      bc.title = "Vuelve a poner el candado (se cierra solo a los 10 minutos)";
+      bc.addEventListener("click", function(){ dashAdminCerrar(); renderPanel(); });
+      acc.appendChild(bc);
+    }
+    fila.appendChild(acc);
+    wrap.appendChild(fila);
     wrap.appendChild(dashVista === "producto" ? buildDashboardProducto() : buildDashboardPremium());
     // El lote de taller (Empanada de carne) se carga en segundo plano; el dashboard no espera por él.
     if(PRODUCCION_MOVIMIENTOS === null && !PRODUCCION_MOVIMIENTOS_ERROR && !produccionCargando && db){
@@ -25158,6 +25393,8 @@ var TRIPLES = [
         }
         // Igual con las herramientas de administración de Historial: al salir se vuelven a cerrar.
         if(currentTab === "historial" && destino !== "historial" && !(fotosMigrando || arqueoMigrando || respaldoDescargando)) historialAdminCerrar();
+        // Igual con el Dashboard Gerencial: al salir de la pestaña vuelve a quedar con candado.
+        if(currentTab === "controlprod" && destino !== "controlprod") dashAdminCerrar();
         currentTab = destino; renderAll();
       });
     });
